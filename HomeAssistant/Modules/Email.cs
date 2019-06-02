@@ -104,7 +104,7 @@ namespace HomeAssistant.Modules {
 
 			ExitClient = true;
 
-			if (!withExitClient) {
+			if (withExitClient) {
 				Logger.Log("Waiting for IMAP Client to disconnect idling process...");
 
 				while (true) {
