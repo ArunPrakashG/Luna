@@ -12,6 +12,7 @@ using Unosquare.RaspberryIO;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Extensions {
+
 	public static class Helpers {
 		private static readonly Logger Logger = new Logger("HELPERS");
 		private static Timer TaskSchedulerTimer;
@@ -26,7 +27,7 @@ namespace HomeAssistant.Extensions {
 				Logger.Log($"Delay is null! " + nameof(action), LogLevels.Error);
 				return;
 			}
-			
+
 			if (TaskSchedulerTimer != null) {
 				TaskSchedulerTimer.Dispose();
 				TaskSchedulerTimer = null;
@@ -40,7 +41,6 @@ namespace HomeAssistant.Extensions {
 						TaskSchedulerTimer.Dispose();
 						TaskSchedulerTimer = null;
 					}
-
 				}, null, delay, delay);
 			}
 		}
@@ -61,14 +61,19 @@ namespace HomeAssistant.Extensions {
 
 					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/{Constants.ResourcesDirectory} && omxplayer {Constants.IMAPSoundName}", true);
 					break;
+
 				case NotificationContext.EmailSend:
 					break;
+
 				case NotificationContext.EmailSendFailed:
 					break;
+
 				case NotificationContext.FatalError:
 					break;
+
 				case NotificationContext.Normal:
 					break;
+
 				default:
 					break;
 			}
@@ -232,7 +237,6 @@ namespace HomeAssistant.Extensions {
 				}
 			}
 			return null;
-
 		}
 
 		public static byte[] GetUrlToBytes(string url, Method method, string headerName, string headerValue, string userAgent) {

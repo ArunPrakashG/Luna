@@ -12,6 +12,7 @@ using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Server {
+
 	public class TCPServer : Program {
 		private readonly Logger Logger;
 		private byte[] Buffer = new byte[1024];
@@ -84,7 +85,6 @@ namespace HomeAssistant.Server {
 							return;
 						}
 					}
-
 				}, "TCP Server", true);
 			}
 			catch (Exception ex) {
@@ -153,6 +153,7 @@ namespace HomeAssistant.Server {
 									}
 
 									break;
+
 								case "LOW":
 									PinVoltage = PiVoltage.LOW;
 
@@ -165,12 +166,14 @@ namespace HomeAssistant.Server {
 									}
 
 									break;
+
 								default:
 									Logger.Log("Voltage doesnt satisfy.", LogLevels.Warn);
 									return "Voltage doesnt satisfy.";
 							}
 
 							break;
+
 						case "INPUT":
 							PiState = PiState.INPUT;
 
@@ -187,6 +190,7 @@ namespace HomeAssistant.Server {
 									}
 
 									break;
+
 								case "LOW":
 									PinVoltage = PiVoltage.LOW;
 
@@ -199,17 +203,20 @@ namespace HomeAssistant.Server {
 									}
 
 									break;
+
 								default:
 									Logger.Log("Voltage doesnt satisfy.", LogLevels.Warn);
 									return "Voltage doesnt satisfy.";
 							}
 
 							break;
+
 						default:
 							Logger.Log("States doesnt satisfy.", LogLevels.Warn);
 							return "States doesnt satisfy.";
 					}
 					break;
+
 				case "FETCH":
 					PiContext = PiContext.FETCH;
 					int pinNumber = Convert.ToInt32(rawData[2].Trim());
@@ -231,6 +238,7 @@ namespace HomeAssistant.Server {
 								await Exit().ConfigureAwait(false);
 							});
 							return "Exiting TESS in 2 seconds...";
+
 						case "PI":
 							Helpers.InBackground(() => {
 								Task.Delay(2000).Wait();
@@ -239,6 +247,7 @@ namespace HomeAssistant.Server {
 							return "Rasperry Pi shutting down in 2 seconds...";
 					}
 					break;
+
 				case "RESTART":
 					PiContext = PiContext.RESTART;
 					switch (rawData[2].Trim()) {
@@ -250,32 +259,40 @@ namespace HomeAssistant.Server {
 							return "Restarting TESS in 2 seconds...";
 					}
 					break;
+
 				case "RELAY":
 					PiContext = PiContext.RELAY;
 					switch (Convert.ToInt32(rawData[2].Trim())) {
 						case (int) GPIOCycles.Cycle:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Cycle).ConfigureAwait(false), "Relay Cycle");
 							return "Cycle completed!";
+
 						case (int) GPIOCycles.OneMany:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.OneMany).ConfigureAwait(false), "Relay Cycle");
 							return "OneMany cycle completed!";
+
 						case (int) GPIOCycles.OneOne:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false), "Relay Cycle");
 							return "OneOne cycle comepleted!";
+
 						case (int) GPIOCycles.OneTwo:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false), "Relay Cycle");
 							return "OneTwo cycle completed!";
+
 						case (int) GPIOCycles.Base:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Base).ConfigureAwait(false), "Relay Cycle");
 							return "Base cycle completed!";
+
 						case (int) GPIOCycles.Single:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Single, Convert.ToInt32(rawData[3].Trim())).ConfigureAwait(false), "Relay Cycle");
 							return $"Sucessfully configured {rawData[3].Trim()} pin";
+
 						case (int) GPIOCycles.Default:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Default).ConfigureAwait(false), "Relay Cycle");
 							return "Sucessfully completed default cycle!";
 					}
 					break;
+
 				default:
 					Logger.Log("Context doesnt satisfy.", LogLevels.Warn);
 					return "Failed context!";
@@ -298,6 +315,7 @@ namespace HomeAssistant.Server {
 					Result = Controller.SetGPIO((int) pinNumber, (GpioPinDriveMode) state, voltage == PiVoltage.HIGH ? GpioPinValue.High : GpioPinValue.Low);
 					await Task.Delay(300).ConfigureAwait(false);
 					return Result;
+
 				default:
 					Logger.Log("Context doesnt satisfy. (ProcessCommand())", LogLevels.Warn);
 					await Task.Delay(300).ConfigureAwait(false);

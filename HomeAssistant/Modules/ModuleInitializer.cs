@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
-	public class ModuleInitializer {
 
+	public class ModuleInitializer {
 		private Logger Logger = new Logger("MODULES");
 		public DiscordClient Discord;
 		public GoogleMap Map;
@@ -76,7 +76,7 @@ namespace HomeAssistant.Modules {
 
 				mailClient.StartImapClient(false);
 
-				if (mailClient.AccountLoaded) {
+				if (mailClient.IsAccountLoaded) {
 					Logger.Log($"Sucessfully loaded {entry.Key.Trim()}");
 					EmailClientCollection.TryAdd(UniqueID, mailClient);
 					loadedCount++;
@@ -99,11 +99,13 @@ namespace HomeAssistant.Modules {
 			}
 
 			foreach (KeyValuePair<string, Email> pair in EmailClientCollection) {
-				if (pair.Value.AccountLoaded) {
-					pair.Value.DisposeClient(false);
-					Logger.Log($"Disconnected {pair.Key} email account.");
+				if (pair.Value.IsAccountLoaded) {
+					pair.Value.DisposeClient();
+					Logger.Log($"Disconnected {pair.Key} email account sucessfully!", LogLevels.Trace);
+					EmailClientCollection.TryRemove(pair.Key, out _);
 				}
 			}
+			EmailClientCollection.Clear();
 		}
 
 		public async Task OnCoreShutdown() {

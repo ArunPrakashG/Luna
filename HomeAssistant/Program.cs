@@ -17,6 +17,7 @@ using Unosquare.WiringPi;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant {
+
 	public class Program {
 		private static Logger Logger;
 		public static GPIOController Controller;
@@ -93,9 +94,11 @@ namespace HomeAssistant {
 					switch (key.KeyChar) {
 						case 'c':
 							break;
+
 						case 'q':
 							await Exit(0).ConfigureAwait(false);
 							break;
+
 						default:
 							Logger.Log("Unknown value entered! continuing to run the program...");
 							goto case 'c';
@@ -175,7 +178,7 @@ namespace HomeAssistant {
 			Logger.Log($"Press {loopBreaker} to quit in 5 seconds.");
 			Logger.Log($"Press {quickShutDown} to exit application immediately.");
 			Logger.Log($"Press {menuKey} to display GPIO menu.");
-			Logger.Log($"Press {imapIdleShutdown} to stop IMAP Idle notifications.");
+			Logger.Log($"Press {imapIdleShutdown} to stop all IMAP Idle notifications.");
 			Logger.Log($"Press {testKey} to execute the TEST methods.");
 
 			while (true) {
@@ -201,7 +204,6 @@ namespace HomeAssistant {
 				}
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
-
 				}
 				else {
 					continue;
@@ -249,6 +251,7 @@ namespace HomeAssistant {
 					}
 
 					break;
+
 				case 2:
 					Configured = await Controller.RelayTestService(GPIOCycles.OneMany).ConfigureAwait(false);
 
@@ -264,6 +267,7 @@ namespace HomeAssistant {
 					}
 
 					break;
+
 				case 3:
 					Configured = await Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false);
 
@@ -279,6 +283,7 @@ namespace HomeAssistant {
 					}
 
 					break;
+
 				case 4:
 					Configured = await Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false);
 
@@ -294,6 +299,7 @@ namespace HomeAssistant {
 					}
 
 					break;
+
 				case 5:
 					Logger.Log("\nPlease select the channel (2, 3, 4, 17, 27, 22, 10, 9, etc): ", LogLevels.UserInput);
 					ConsoleKeyInfo singleKey = Console.ReadKey();
@@ -318,6 +324,7 @@ namespace HomeAssistant {
 					}
 
 					break;
+
 				case 6:
 					Configured = await Controller.RelayTestService(GPIOCycles.Default).ConfigureAwait(false);
 
@@ -333,9 +340,11 @@ namespace HomeAssistant {
 					}
 
 					break;
+
 				case 0:
 					Logger.Log("Exiting from menu...", LogLevels.UserInput);
 					return;
+
 				default:
 					goto case 0;
 			}

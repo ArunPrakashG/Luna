@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace HomeAssistant.Modules.Interfaces {
-	interface IMail {
+
+	internal interface IMail {
 		string UniqueAccountID { get; set; }
 	}
 }

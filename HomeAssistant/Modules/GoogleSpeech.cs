@@ -3,11 +3,11 @@ using HomeAssistant.Log;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
+
 	public class GoogleSpeech {
 		private Logger Logger = new Logger("GOOGLE-SPEECH");
 
 		public GoogleSpeech() {
-
 		}
 
 		private void Init(string filePath) {

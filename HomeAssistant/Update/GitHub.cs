@@ -6,6 +6,7 @@ using System;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Update {
+
 	public class Rootobject {
 		public string url { get; set; }
 		public string assets_url { get; set; }

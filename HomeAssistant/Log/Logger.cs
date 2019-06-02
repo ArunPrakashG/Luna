@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Log {
+
 	public class Logger {
 		private NLog.Logger LogModule;
 		private DiscordSocketClient DiscordClient;
@@ -59,7 +60,6 @@ namespace HomeAssistant.Log {
 			else {
 				LogModule.Info($"{message}");
 			}
-
 		}
 
 		private void LogGenericTrace(string message, [CallerMemberName] string previousMethodName = null) {
@@ -89,7 +89,7 @@ namespace HomeAssistant.Log {
 		}
 
 		public void Log(Exception e, ExceptionLogLevels level = ExceptionLogLevels.Error, [CallerFilePath] string filePath = null, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int previosmethodLineNumber = 0) {
-			if(string.IsNullOrEmpty(e.ToString()) || string.IsNullOrWhiteSpace(e.ToString())) {
+			if (string.IsNullOrEmpty(e.ToString()) || string.IsNullOrWhiteSpace(e.ToString())) {
 				return;
 			}
 
@@ -97,16 +97,19 @@ namespace HomeAssistant.Log {
 				case ExceptionLogLevels.Fatal:
 					LogGenericException(e, previousMethodName);
 					break;
+
 				case ExceptionLogLevels.Error:
 					LogGenericError($"[{previosmethodLineNumber} line] {previousMethodName}() {e.Message}/{e.InnerException}/{e.StackTrace}");
 					break;
+
 				case ExceptionLogLevels.DebugException:
 					LogGenericTrace($"[{previosmethodLineNumber} line] {previousMethodName}() {e.Message}/{e.InnerException}/{e.StackTrace}");
 					break;
+
 				default:
 					goto case ExceptionLogLevels.Error;
 			}
-			
+
 			if (!string.IsNullOrEmpty(e.ToString()) || !string.IsNullOrWhiteSpace(e.ToString())) {
 				DiscordLogToChannel($"{e.ToString()}\n\nLine Number: {previosmethodLineNumber}\n{previousMethodName}()");
 			}
@@ -120,49 +123,59 @@ namespace HomeAssistant.Log {
 					}
 					LogGenericTrace(message, previousMethodName);
 					break;
+
 				case LogLevels.Debug:
 					LogGenericDebug(message, previousMethodName);
 					break;
+
 				case LogLevels.Info:
 					LogGenericInfo(message, previousMethodName);
 					break;
+
 				case LogLevels.Warn:
 					LogGenericWarning(message, previousMethodName);
 					if (!string.IsNullOrEmpty(message) || !string.IsNullOrWhiteSpace(message)) {
 						DiscordLogToChannel($"{message}");
 					}
 					break;
+
 				case LogLevels.Error:
 					LogGenericError(message, previousMethodName);
 					if (!string.IsNullOrEmpty(message) || !string.IsNullOrWhiteSpace(message)) {
 						DiscordLogToChannel($"{message}");
 					}
 					break;
+
 				case LogLevels.Ascii:
 					Console.ForegroundColor = ConsoleColor.Green;
 					Console.WriteLine(message);
 					Console.ResetColor();
 					LogGenericTrace(message);
 					break;
+
 				case LogLevels.UserInput:
 					Console.WriteLine(">>> " + message);
 					LogGenericTrace(message);
 					break;
+
 				case LogLevels.ServerResult:
 					Console.ForegroundColor = ConsoleColor.Cyan;
 					Console.WriteLine("> " + message);
 					Console.ResetColor();
 					LogGenericTrace(message);
 					break;
+
 				case LogLevels.Custom:
 					Console.WriteLine(message);
 					LogGenericTrace(message, previousMethodName);
 					break;
+
 				case LogLevels.Sucess:
 					Console.ForegroundColor = ConsoleColor.DarkMagenta;
 					LogGenericInfo(message, previousMethodName);
 					Console.ResetColor();
 					break;
+
 				default:
 					goto case LogLevels.Info;
 			}

@@ -2,11 +2,11 @@ using HomeAssistant.Log;
 using System;
 
 namespace HomeAssistant.Modules {
+
 	public class MiscModule {
 		private Logger Logger = new Logger("MISC-MODULE");
 
 		public MiscModule() {
-
 		}
 
 		public DateTime ConvertTo24Hours(DateTime source) {

@@ -10,11 +10,13 @@ using static HomeAssistant.Core.Enums;
 namespace HomeAssistant.Core {
 
 	public class GPIOConfigRoot {
+
 		[JsonProperty]
 		public List<GPIOPinConfig> GPIOData { get; set; }
 	}
 
 	public class GPIOPinConfig {
+
 		[JsonProperty]
 		public int Pin { get; set; } = 0;
 
@@ -88,9 +90,11 @@ namespace HomeAssistant.Core {
 			switch (inputTask.Result.KeyChar) {
 				case 'c':
 					break;
+
 				case 'q':
 					Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
 					return false;
+
 				default:
 					Logger.Log("Unknown value entered! continuing to run the program...");
 					goto case 'c';
@@ -112,7 +116,6 @@ namespace HomeAssistant.Core {
 			};
 
 			for (int i = 0; i <= 31; i++) {
-
 				GPIOPinConfig PinConfig = new GPIOPinConfig() {
 					IsOn = false,
 					Mode = PinMode.Output,

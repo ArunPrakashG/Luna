@@ -8,6 +8,7 @@ using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
+
 	//High = OFF
 	//Low = ON
 	public class GPIOController {
@@ -96,11 +97,13 @@ namespace HomeAssistant.Core {
 						return true;
 					}
 					break;
+
 				case GpioPinValue.Low:
 					if (Status.Pin.Equals(pin) && Status.IsOn) {
 						return true;
 					}
 					break;
+
 				default:
 					return false;
 			}
@@ -117,24 +120,28 @@ namespace HomeAssistant.Core {
 								Logger.Log($"Configured {pin} pin to OFF. (INPUT)");
 								UpdatePinStatus(pin, false, PinMode.Input);
 								break;
+
 							case GpioPinValue.Low:
 								Logger.Log($"Configured {pin} pin to ON. (INPUT)");
 								UpdatePinStatus(pin, true, PinMode.Input);
 								break;
 						}
 						break;
+
 					case GpioPinDriveMode.Output:
 						switch (state) {
 							case GpioPinValue.High:
 								Logger.Log($"Configured {pin} pin to OFF. (OUTPUT)");
 								UpdatePinStatus(pin, false, PinMode.Output);
 								break;
+
 							case GpioPinValue.Low:
 								Logger.Log($"Configured {pin} pin to ON. (OUTPUT)");
 								UpdatePinStatus(pin, true, PinMode.Output);
 								break;
 						}
 						break;
+
 					default:
 						goto case GpioPinDriveMode.Output;
 				}
@@ -167,11 +174,13 @@ namespace HomeAssistant.Core {
 						return true;
 					}
 					break;
+
 				case GpioPinValue.Low:
 					if (Status.Pin.Equals(pin) && Status.IsOn) {
 						return true;
 					}
 					break;
+
 				default:
 					return false;
 			}
@@ -188,24 +197,28 @@ namespace HomeAssistant.Core {
 								Logger.Log($"Configured {pin.ToString()} pin to OFF. (INPUT)");
 								UpdatePinStatus(pin, false, PinMode.Input);
 								break;
+
 							case GpioPinValue.Low:
 								Logger.Log($"Configured {pin.ToString()} pin to ON. (INPUT)");
 								UpdatePinStatus(pin, true, PinMode.Input);
 								break;
 						}
 						break;
+
 					case GpioPinDriveMode.Output:
 						switch (state) {
 							case GpioPinValue.High:
 								Logger.Log($"Configured {pin.ToString()} pin to OFF. (OUTPUT)");
 								UpdatePinStatus(pin, false, PinMode.Output);
 								break;
+
 							case GpioPinValue.Low:
 								Logger.Log($"Configured {pin.ToString()} pin to ON. (OUTPUT)");
 								UpdatePinStatus(pin, true, PinMode.Output);
 								break;
 						}
 						break;
+
 					default:
 						goto case GpioPinDriveMode.Output;
 				}
@@ -274,6 +287,7 @@ namespace HomeAssistant.Core {
 				case PiAudioState.Mute:
 					Pi.Audio.ToggleMute(true);
 					break;
+
 				case PiAudioState.Unmute:
 					Pi.Audio.ToggleMute(false);
 					break;
@@ -295,20 +309,25 @@ namespace HomeAssistant.Core {
 				case GPIOCycles.OneTwo:
 					_ = await RelayOneTwo().ConfigureAwait(false);
 					break;
+
 				case GPIOCycles.OneOne:
 					_ = await RelayOneOne().ConfigureAwait(false);
 					break;
+
 				case GPIOCycles.OneMany:
 					_ = await RelayOneMany().ConfigureAwait(false);
 					break;
+
 				case GPIOCycles.Cycle:
 					_ = await RelayOneTwo().ConfigureAwait(false);
 					_ = await RelayOneOne().ConfigureAwait(false);
 					_ = await RelayOneMany().ConfigureAwait(false);
 					break;
+
 				case GPIOCycles.Single:
 					_ = await RelaySingle(singleChannelValue, 8000).ConfigureAwait(false);
 					break;
+
 				case GPIOCycles.Base:
 					Logger.Log("Base argument specified, running default cycle test!");
 					goto case GPIOCycles.Cycle;

@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using VideoLibrary;
 
 namespace HomeAssistant.Modules {
-	public class Youtube {
 
+	public class Youtube {
 		private Logger Logger = new Logger("YOUTUBE");
 
 		//TODO
@@ -15,7 +15,6 @@ namespace HomeAssistant.Modules {
 		//extract songs
 
 		public Youtube() {
-
 		}
 
 		private async Task<YouTubeVideo> FetchYoutubeVideo(string url) {

@@ -15,6 +15,7 @@ using static HomeAssistant.Core.Enums;
 using Timer = System.Timers.Timer;
 
 namespace HomeAssistant.Modules {
+
 	public class Email : IModuleBase, IMail {
 		//TODO
 		//IMAP Client for gmail
@@ -33,16 +34,19 @@ namespace HomeAssistant.Modules {
 		private ImapClient Client;
 		private int InboxMessagesCount;
 		private CancellationTokenSource DoneToken;
-		public bool AccountLoaded = false;
-		public bool CancelIdle = false;
-		public bool ExitClient = false;
+		public bool IsAccountLoaded = false;
+		public bool IsIdleCancelRequested = false;
+		public bool IsClientShutdownRequested = false;
+		public bool ClientShutdownSucessfull = false;
+		public bool IdleCancelledSucessfully = false;
+		public bool IsClientDisconnected = false;
+		public bool IsClientInIdle => Client.IsIdle;
 
 		public void OnModuleStarted() {
-
 		}
 
 		public void OnModuleShutdown() {
-			DisposeClient(false);
+			DisposeClient();
 		}
 
 		public Email(string gmailID, string gmailPASS) {
@@ -59,6 +63,10 @@ namespace HomeAssistant.Modules {
 			Logger = new Logger(UniqueAccountID);
 		}
 
+		~Email() {
+			DisposeClient();
+		}
+
 		public bool SendEmail(string toName, string to, string subject, string body, string[] attachmentPaths) {
 			MimeMessage Message = new MimeMessage();
 			Message.From.Add(new MailboxAddress("TESS", GmailID));
@@ -71,7 +79,6 @@ namespace HomeAssistant.Modules {
 
 			if (attachmentPaths.Count() > 0) {
 				foreach (string path in attachmentPaths) {
-
 					if (!File.Exists(path)) {
 						continue;
 					}
@@ -97,36 +104,34 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		public void DisposeClient(bool withExitClient) {
-			if (!CancelIdle) {
+		public void DisposeClient() {
+			IsClientShutdownRequested = true;
+			IsIdleCancelRequested = true;
+			if (!IdleCancelledSucessfully) {
 				StopImapIdle();
-			}
 
-			ExitClient = true;
-
-			if (withExitClient) {
-				Logger.Log("Waiting for IMAP Client to disconnect idling process...");
+				Task.Delay(100).Wait();
 
 				while (true) {
-					if (!Client.IsIdle) {
-						if (AccountLoaded) {
-							lock (Client.SyncRoot) {
-								Client.Disconnect(true);
-							}
-						}
+					if (!IdleCancelledSucessfully) {
+						Logger.Log("Waiting for IMAP Client to disconnect idling process...", LogLevels.Trace);
+					}
+					else {
+						Logger.Log("IMAP Idle has been stopped.");
 						break;
 					}
+					Task.Delay(200).Wait();
 				}
-
-				Logger.Log("Disconnected!");
 			}
 
 			if (Client != null) {
 				Client.Dispose();
+				IsClientDisconnected = true;
+				ClientShutdownSucessfull = true;
 			}
 		}
 
-		public void StopImapIdle() => CancelIdle = true;
+		public void StopImapIdle() => IsIdleCancelRequested = true;
 
 		public void StartImapClient(bool reconnect) {
 			if (!Program.Config.ImapNotifications) {
@@ -141,8 +146,11 @@ namespace HomeAssistant.Modules {
 			InboxMessagesCount = 0;
 
 			Client = new ImapClient();
-			CancelIdle = false;
-			ExitClient = false;
+			IdleCancelledSucessfully = false;
+			IsIdleCancelRequested = false;
+			IsClientShutdownRequested = false;
+			ClientShutdownSucessfull = false;
+			IsClientDisconnected = false;
 
 			if (reconnect) {
 				Logger.Log("Reconnecting to host...");
@@ -160,7 +168,7 @@ namespace HomeAssistant.Modules {
 			Client.Inbox.Open(FolderAccess.ReadWrite);
 			InboxMessagesCount = Client.Inbox.Count;
 			Logger.Log($"Sucessfully connected and authenticated for {GmailID}. ({InboxMessagesCount} messages found)");
-			AccountLoaded = true;
+			IsAccountLoaded = true;
 
 			Client.Inbox.MessageExpunged += (sender, e) => {
 				if (e.Index < InboxMessagesCount) {
@@ -186,7 +194,7 @@ namespace HomeAssistant.Modules {
 						thread.Start(new IdleState(Client, DoneToken.Token));
 
 						while (true) {
-							if (CancelIdle) {
+							if (IsIdleCancelRequested) {
 								break;
 							}
 							Task.Delay(100).Wait();
@@ -195,27 +203,49 @@ namespace HomeAssistant.Modules {
 						DoneToken.Cancel();
 						thread.Join();
 
-						if (ExitClient) {							
-							Logger.Log("Waiting for IMAP Client to disconnect idling process...");
+						while (true) {
+							if (IsClientInIdle) {
+								Logger.Log("Waiting for imap idle client to shutdown...");
+							}
+							else {
+								IdleCancelledSucessfully = true;
+								break;
+							}
+						}
 
+						if (IsClientShutdownRequested && !ClientShutdownSucessfull) {
 							while (true) {
-								if (!Client.IsIdle) {
-									if (AccountLoaded) {
+								if (IsClientInIdle) {
+									Logger.Log("Waiting for IMAP Client to disconnect idling process...");
+								}
+								else {
+									if (IsAccountLoaded) {
 										lock (Client.SyncRoot) {
 											Client.Disconnect(true);
+											IsClientDisconnected = true;
+
+											if (Client != null) {
+												Client.Dispose();
+											}
+
+											Logger.Log($"Disconnected and disposed imap and mail client for {GmailID.Split('@').FirstOrDefault().Trim()}");
+											break;
 										}
 									}
-									break;
+									else {
+										return;
+									}
 								}
 								Task.Delay(100).Wait();
 							}
-
-							AccountLoaded = false;
-							Logger.Log("Disconnected!");
-							return;
 						}
 
-						OnIdleStopped(ExitClient);
+						if (IsClientShutdownRequested || IsClientDisconnected) {
+							return;
+						}
+						else {
+							OnIdleStopped(IsClientShutdownRequested);
+						}
 					}
 				}
 				catch (Exception e) {
@@ -225,37 +255,41 @@ namespace HomeAssistant.Modules {
 			}, "Idle Thread");
 		}
 
-		private void OnIdleStopped(bool exit) {
-			if (Client.IsIdle) {
+		private void OnIdleStopped(bool IsShutdownReqested) {
+			if (IsClientInIdle) {
 				StopImapIdle();
 			}
 
-			AccountLoaded = false;
+			while (true) {
+				if (!IsClientInIdle) {
+					Logger.Log("Client imap idling has been ended sucessfully!");
+					break;
+				}
+				else {
+					Logger.Log("Waiting for client to shutdown idling connection...");
+				}
+			}
+
 			List<IMessageSummary> messages = new List<IMessageSummary>();
 			if (Client.Inbox.Count > InboxMessagesCount) {
-
 				lock (Client.SyncRoot) {
 					messages = Client.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
 				}
 
-				if (messages.Count <= 0 || messages == null) {
-					lock (Client.SyncRoot) {
-						Client.Disconnect(true);
+				if (messages.Count > 0 || messages != null) {
+					foreach (IMessageSummary message in messages) {
+						Logger.Log($"{message.Envelope.From.FirstOrDefault()}/{message.Envelope.Subject}");
 					}
-					if (!exit) {
-						StartImapClient(true);
-					}
-					return;
-				}
-
-				foreach (IMessageSummary message in messages) {
-					Logger.Log($"{message.Envelope.From.FirstOrDefault()}/{message.Envelope.Subject}");
 				}
 			}
+
 			lock (Client.SyncRoot) {
 				Client.Disconnect(true);
+				IsClientDisconnected = true;
+				IsAccountLoaded = false;
 			}
-			if (!exit) {
+
+			if (!IsShutdownReqested && !IsClientShutdownRequested) {
 				StartImapClient(true);
 			}
 		}

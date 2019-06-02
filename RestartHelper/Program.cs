@@ -1,56 +1,49 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
-namespace RestartHelper
-{
-    class Program
-    {
-        public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+namespace RestartHelper {
 
-        static async Task Main(string[] args)
-        {
-            Console.WriteLine("Started restart helper...");
-            Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent.FullName + "/AssistantCore/");
+	internal class Program {
+		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
-            int Delay = 0;
+		private static async Task Main(string[] args) {
+			Console.WriteLine("Started restart helper...");
+			Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent.FullName + "/AssistantCore/");
 
-            if (args != null && args.Count() > 0)
-            {
-                Delay = Convert.ToInt32(args[0].Trim());
-            }
-            Console.WriteLine("Restarting in " + Delay + " ms...");
-            await Task.Delay(Delay).ConfigureAwait(false);
-            ExecuteCommand("cd /home/pi/Desktop/HomeAssistant && dotnet HomeAssistant.dll");
-            Console.WriteLine("Started Assistant...");
-            Console.WriteLine("Exiting restarter.");
-            Environment.Exit(0);
-        }
+			int Delay = 0;
 
-        public static void ExecuteCommand(string command, bool redirectOutput = false)
-        {
-            Process proc = new Process();
-            proc.StartInfo.FileName = "/bin/bash";
-            proc.StartInfo.Arguments = "-c \" " + command;
+			if (args != null && args.Count() > 0) {
+				Delay = Convert.ToInt32(args[0].Trim());
+			}
+			Console.WriteLine("Restarting in " + Delay + " ms...");
+			await Task.Delay(Delay).ConfigureAwait(false);
+			ExecuteCommand("cd /home/pi/Desktop/HomeAssistant && dotnet HomeAssistant.dll");
+			Console.WriteLine("Started Assistant...");
+			Console.WriteLine("Exiting restarter.");
+			Environment.Exit(0);
+		}
 
-            if (redirectOutput)
-            {
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.RedirectStandardOutput = true;
-            }
+		public static void ExecuteCommand(string command, bool redirectOutput = false) {
+			Process proc = new Process();
+			proc.StartInfo.FileName = "/bin/bash";
+			proc.StartInfo.Arguments = "-c \" " + command;
 
-            proc.Start();
+			if (redirectOutput) {
+				proc.StartInfo.UseShellExecute = false;
+				proc.StartInfo.RedirectStandardOutput = true;
+			}
 
-            if (redirectOutput)
-            {
-                while (!proc.StandardOutput.EndOfStream)
-                {
-                    Console.WriteLine(">>> " + proc.StandardOutput.ReadLine());
-                }
-            }
-        }
-    }
+			proc.Start();
+
+			if (redirectOutput) {
+				while (!proc.StandardOutput.EndOfStream) {
+					Console.WriteLine(">>> " + proc.StandardOutput.ReadLine());
+				}
+			}
+		}
+	}
 }

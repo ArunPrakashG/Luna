@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Update {
+
 	public class Updater {
 		private Logger Logger = new Logger("UPDATER");
 		private GitHub Git = new GitHub();
@@ -17,7 +18,6 @@ namespace HomeAssistant.Update {
 		private Timer AutoUpdateTimer;
 
 		public Updater() {
-
 		}
 
 		public void StopUpdateTimer() {

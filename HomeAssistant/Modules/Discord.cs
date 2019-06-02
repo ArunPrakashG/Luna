@@ -12,6 +12,7 @@ using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
+
 	public class DiscordClient {
 		public DiscordSocketClient Client;
 		private readonly CommandService Commands;
@@ -136,7 +137,6 @@ namespace HomeAssistant.Modules {
 		//Discord Core Logger
 		//Not to be confused with HomeAssistant Discord channel logger
 		public async Task DiscordCoreLogger(LogMessage message) {
-
 			if (!Program.Config.DiscordBot || !Program.Config.DiscordLog || !Program.Modules.Discord.IsServerOnline) {
 				return;
 			}
@@ -151,6 +151,7 @@ namespace HomeAssistant.Modules {
 				case LogSeverity.Info:
 					Logger.Log(message.Message, LogLevels.Trace);
 					break;
+
 				default:
 					goto case LogSeverity.Info;
 			}
@@ -393,21 +394,25 @@ namespace HomeAssistant.Modules {
 							await FormatResponse("OneMany relay test completed!").ConfigureAwait(false);
 						}
 						break;
+
 					case 1:
 						if (await Program.Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false)) {
 							await FormatResponse("OneOne relay test completed!").ConfigureAwait(false);
 						}
 						break;
+
 					case 2:
 						if (await Program.Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false)) {
 							await FormatResponse("OneTwo relay test completed!").ConfigureAwait(false);
 						}
 						break;
+
 					case 3:
 						if (await Program.Controller.RelayTestService(GPIOCycles.Cycle).ConfigureAwait(false)) {
 							await FormatResponse("Cycle relay test completed!").ConfigureAwait(false);
 						}
 						break;
+
 					case 4:
 						if (await Program.Controller.RelayTestService(GPIOCycles.Base).ConfigureAwait(false)) {
 							await FormatResponse("Base relay test completed!").ConfigureAwait(false);

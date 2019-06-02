@@ -6,6 +6,7 @@ using System;
 using System.IO;
 
 namespace HomeAssistant.Log {
+
 	public class Logging {
 		private const string GeneralTraceLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${level:uppercase=true} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";
 		private const string GeneralDebugLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";
@@ -47,7 +48,7 @@ namespace HomeAssistant.Log {
 		}
 
 		public static void LoggerOnShutdown() {
-			LogManager.Flush();			
+			LogManager.Flush();
 		}
 	}
 }

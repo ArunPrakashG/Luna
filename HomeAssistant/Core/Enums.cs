@@ -1,4 +1,5 @@
 namespace HomeAssistant.Core {
+
 	public static class Enums {
 
 		public enum PiContext : byte {
@@ -9,7 +10,7 @@ namespace HomeAssistant.Core {
 			RELAY
 		}
 
-		public enum ShutdownContext: byte {
+		public enum ShutdownContext : byte {
 			TESS,
 			PI
 		}
@@ -57,7 +58,7 @@ namespace HomeAssistant.Core {
 			Debug,
 			Info,
 			Warn,
-			Error,			
+			Error,
 			Ascii,
 			UserInput,
 			ServerResult,

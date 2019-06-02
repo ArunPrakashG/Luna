@@ -7,7 +7,9 @@ using System.IO;
 using System.Threading.Tasks;
 
 namespace HomeAssistant.Core {
+
 	public class CoreConfig {
+
 		[JsonProperty]
 		public bool AutoRestart = false;
 
@@ -142,9 +144,11 @@ namespace HomeAssistant.Core {
 			switch (inputTask.Result.KeyChar) {
 				case 'c':
 					break;
+
 				case 'q':
 					Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
 					return false;
+
 				default:
 					Logger.Log("Unknown value entered! continuing to run the program...");
 					break;
