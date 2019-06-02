@@ -290,7 +290,7 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		private static void IdleLoop(object state) {
+		private void IdleLoop(object state) {
 			IdleState idle = (IdleState) state;
 			lock (idle.Client.SyncRoot) {
 				while (!idle.IsCancellationRequested) {
@@ -307,8 +307,10 @@ namespace HomeAssistant.Modules {
 									idle.Client.Idle(timeout.Token, idle.CancellationToken);
 								}
 								else {
+									Logger.Log("Issuing NoOp command to IMAP servers...");
 									idle.Client.NoOp(idle.CancellationToken);
 									WaitHandle.WaitAny(new[] { timeout.Token.WaitHandle, idle.CancellationToken.WaitHandle });
+									Logger.Log("NoOp completed!");
 								}
 							}
 							catch (OperationCanceledException) {

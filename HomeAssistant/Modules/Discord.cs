@@ -424,6 +424,47 @@ namespace HomeAssistant.Modules {
 			Helpers.InBackgroundThread(action, "Relay Cycle");
 		}
 
+		[Command("!delayedtask")]
+		public async Task DelayedTask(int relaypinNumber, int delay, [Remainder] int Status) {
+			if (!IsAllowed(Context.User.Id)) {
+				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				return;
+			}
+
+			if (relaypinNumber.Equals(0) || delay.Equals(0) || (!Status.Equals(0) || !Status.Equals(1))) {
+				await FormatResponse("Please sender a correct value.").ConfigureAwait(false);
+				return;
+			}
+
+			if (!Program.Config.GPIOSafeMode || !Program.Config.RelayPins.Contains(relaypinNumber)) {
+				await FormatResponse("Sorry, the specified pin doesnt exist on relay pin list.");
+				return;
+			}
+
+			if (Program.Config.IRSensorPins.Contains(relaypinNumber)) {
+				await FormatResponse("The specified pin is set for IR Sensor. cannot proceed.");
+				return;
+			}
+
+			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(relaypinNumber);
+
+			Helpers.ScheduleTask(async () => {
+				if (PinStatus.IsOn && Status.Equals(0)) {
+					Program.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
+					await FormatResponse($"Sucessfully executed the task: {relaypinNumber} pin set to OFF.");
+				}
+				else {
+					if (!PinStatus.IsOn && Status.Equals(1)) {
+						Program.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
+						await FormatResponse($"Sucessfully executed the task: {relaypinNumber} pin set to ON.");
+					}
+					else {
+						return;
+					}
+				}
+			}, TimeSpan.FromMinutes(delay));
+		}
+
 		[Command("!exit"), RequireOwner]
 		public async Task TessExit(int delay = 5) {
 			await FormatResponse($"Exiting in {delay} seconds").ConfigureAwait(false);
