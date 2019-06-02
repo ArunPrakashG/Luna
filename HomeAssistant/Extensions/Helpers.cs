@@ -380,7 +380,7 @@ namespace HomeAssistant.Extensions {
 					return true;
 				}
 			}
-			catch {
+			catch(Exception) {
 				return false;
 			}
 		}
