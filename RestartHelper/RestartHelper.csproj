@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.0.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <SshDeployHost>192.168.1.42</SshDeployHost>
+    <SshDeployClean />
+    <SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
+    <SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Helpers/Restarter</SshDeployTargetPath>
+    <SshDeployUsername>pi</SshDeployUsername>
+    <SshDeployPassword>miniprakash</SshDeployPassword>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+
+  <Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="cd $(ProjectDir)" />
+    <Exec Command="dotnet-sshdeploy push" />
+  </Target>
+
+</Project>
