@@ -63,10 +63,6 @@ namespace HomeAssistant.Modules {
 			Logger = new Logger(UniqueAccountID);
 		}
 
-		~Email() {
-			DisposeClient();
-		}
-
 		public bool SendEmail(string toName, string to, string subject, string body, string[] attachmentPaths) {
 			MimeMessage Message = new MimeMessage();
 			Message.From.Add(new MailboxAddress("TESS", GmailID));
