@@ -1,20 +1,32 @@
+using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
 using MailKit;
 using MailKit.Net.Imap;
-using MailKit.Net.Smtp;
+using MailKit.Search;
+using MailKit.Security;
 using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Threading;
 using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 using Timer = System.Timers.Timer;
 
 namespace HomeAssistant.Modules {
+
+	public class MessageData {
+		public IMessageSummary Message { get; set; }
+		public uint UniqueId { get; set; }
+		public bool MarkAsRead { get; set; }
+		public bool MarkedAsDeleted { get; set; }
+		public DateTime ArrivedTime { get; set; }
+	}
 
 	public class Email : IModuleBase, IMail {
 		//TODO
@@ -32,15 +44,18 @@ namespace HomeAssistant.Modules {
 		public Version Version { get; set; }
 		public string ModuleName { get; set; }
 		private ImapClient Client;
-		private int InboxMessagesCount;
+		private ImapClient HelperClient;
+		private int InboxMessagesCount = 0;
 		private CancellationTokenSource DoneToken;
 		public bool IsAccountLoaded = false;
-		public bool IsIdleCancelRequested = false;
-		public bool IsClientShutdownRequested = false;
-		public bool ClientShutdownSucessfull = false;
-		public bool IdleCancelledSucessfully = false;
-		public bool IsClientDisconnected = false;
-		public bool IsClientInIdle => Client.IsIdle;
+		private bool IsIdleCancelRequested = false;
+		private bool IsClientShutdownRequested = false;
+		private bool ClientShutdownSucessfull = false;
+		private bool IdleCancelledSucessfully = false;
+		private bool IsClientDisconnected = false;
+		private bool IsClientInIdle => Client.IsIdle;
+		public List<MessageData> MessagesArrivedDuringIdle = new List<MessageData>();
+		private EmailConfig MailConfig = new EmailConfig();
 
 		public void OnModuleStarted() {
 		}
@@ -49,21 +64,22 @@ namespace HomeAssistant.Modules {
 			DisposeClient();
 		}
 
-		public Email(string gmailID, string gmailPASS) {
-			if (string.IsNullOrEmpty(gmailID) || string.IsNullOrWhiteSpace(gmailID)
-				|| string.IsNullOrEmpty(gmailPASS) || string.IsNullOrWhiteSpace(gmailPASS)) {
-				Logger.Log("Either gmail or password is empty. cannot proceed with this account..." + " (" + gmailID + "/" + GmailPass + ")");
+		public Email(string uniqueID, EmailConfig mailConfig) {
+			MailConfig = mailConfig ?? throw new ArgumentNullException("Mail Config is null!");
+			if (string.IsNullOrEmpty(MailConfig.EmailID) || string.IsNullOrWhiteSpace(MailConfig.EmailPASS)
+				|| string.IsNullOrEmpty(MailConfig.EmailPASS) || string.IsNullOrWhiteSpace(MailConfig.EmailID)) {
+				Logger.Log($"Either gmail or password is empty. cannot proceed with this account... ({MailConfig.EmailID})");
 				return;
 			}
 
-			GmailID = gmailID;
-			GmailPass = gmailPASS;
+			GmailID = MailConfig.EmailID ?? throw new NullReferenceException("Email ID is null!");
+			GmailPass = MailConfig.EmailPASS ?? throw new NullReferenceException("Email Password is null!");
 			Version = new Version("1.0.0.0");
-			UniqueAccountID = GmailID.Split('@').FirstOrDefault();
-			Logger = new Logger(UniqueAccountID);
+			UniqueAccountID = uniqueID ?? MailConfig.EmailID.Split('@').FirstOrDefault().Trim();
+			Logger = new Logger($"{UniqueAccountID} | {MailConfig.EmailID.Split('@').FirstOrDefault().Trim()}");
 		}
 
-		public bool SendEmail(string toName, string to, string subject, string body, string[] attachmentPaths) {
+		public bool SendEmail(string toName, string to, string subject, string body, string[] attachmentPaths = null) {
 			MimeMessage Message = new MimeMessage();
 			Message.From.Add(new MailboxAddress("TESS", GmailID));
 			Message.To.Add(new MailboxAddress(toName, to));
@@ -86,7 +102,7 @@ namespace HomeAssistant.Modules {
 			Message.Body = builder.ToMessageBody();
 
 			try {
-				SmtpClient client = new SmtpClient();
+				MailKit.Net.Smtp.SmtpClient client = new MailKit.Net.Smtp.SmtpClient();
 				client.Connect(Constants.SMTPHost, Constants.SMPTPort, true);
 				client.Authenticate(GmailID, GmailPass);
 				client.Send(Message);
@@ -113,10 +129,10 @@ namespace HomeAssistant.Modules {
 						Logger.Log("Waiting for IMAP Client to disconnect idling process...", LogLevels.Trace);
 					}
 					else {
-						Logger.Log("IMAP Idle has been stopped.");
+						Logger.Log("IMAP Idle has been stopped.", LogLevels.Trace);
 						break;
 					}
-					Task.Delay(200).Wait();
+					Task.Delay(100).Wait();
 				}
 			}
 
@@ -129,9 +145,53 @@ namespace HomeAssistant.Modules {
 
 		public void StopImapIdle() => IsIdleCancelRequested = true;
 
+		public void MarkMessageAsSeen() {
+			if (!HelperClient.IsConnected) {
+				Logger.Log("Cannot process MarkMessageAsSeen as Helper Client is offline.");
+				return;
+			}
+
+			List<UniqueId> uids = HelperClient.Inbox.Search(SearchQuery.NotSeen).ToList();
+
+			if (uids.Count <= 0) {
+				Logger.Log("No messages to mark as seen.");
+				return;
+			}
+
+			HelperClient.Inbox.AddFlags(uids, MessageFlags.Seen, true);
+			Logger.Log($"Sucessfully marked {uids.Count} messages as seen!");
+		}
+
+		public void MarkMessageAsSeen(uint messageid) {
+			if (!HelperClient.IsConnected) {
+				Logger.Log("Cannot process MarkMessageAsSeen as Helper Client is offline.");
+				return;
+			}
+
+			List<UniqueId> uids = HelperClient.Inbox.Search(SearchQuery.NotSeen).ToList();
+
+			if (uids.Count <= 0) {
+				Logger.Log("No messages to mark as seen.");
+				return;
+			}
+
+			foreach (UniqueId id in uids) {
+				if (messageid.Equals(id.Id)) {
+					HelperClient.Inbox.AddFlags(id, MessageFlags.Seen, true);
+					Logger.Log($"Sucessfully marked {id} message as seen!");
+					return;
+				}
+			}
+		}
+
 		public void StartImapClient(bool reconnect) {
-			if (!Program.Config.ImapNotifications) {
-				Logger.Log("IMAP Idle is disabled in config file.");
+			if (!MailConfig.Enabled) {
+				Logger.Log("This account has been disabled in the config file.");
+				return;
+			}
+
+			if (!MailConfig.ImapNotifications) {
+				Logger.Log("IDLE Service is disabled in this account.");
 				return;
 			}
 
@@ -139,9 +199,8 @@ namespace HomeAssistant.Modules {
 				Client.Dispose();
 			}
 
-			InboxMessagesCount = 0;
-
 			Client = new ImapClient();
+			InboxMessagesCount = 0;
 			IdleCancelledSucessfully = false;
 			IsIdleCancelRequested = false;
 			IsClientShutdownRequested = false;
@@ -149,12 +208,16 @@ namespace HomeAssistant.Modules {
 			IsClientDisconnected = false;
 
 			if (reconnect) {
-				Logger.Log("Reconnecting to host...");
+				Logger.Log("Reconnecting to GMAIL...", LogLevels.Trace);
 			}
 
 			try {
 				Client.Connect(Constants.GmailHost, Constants.GmailPort, true);
 				Client.Authenticate(GmailID, GmailPass);
+			}
+			catch (AuthenticationException) {
+				Logger.Log("Account password must be incorrect. please recheck and re-run!");
+				return;
 			}
 			catch (Exception e) {
 				Logger.Log(e, ExceptionLogLevels.Error);
@@ -163,7 +226,17 @@ namespace HomeAssistant.Modules {
 
 			Client.Inbox.Open(FolderAccess.ReadWrite);
 			InboxMessagesCount = Client.Inbox.Count;
-			Logger.Log($"Sucessfully connected and authenticated for {GmailID}. ({InboxMessagesCount} messages found)");
+			if (reconnect) {
+				Logger.Log("IDLE reconnected sucessfully!");
+			}
+			else {
+				Logger.Log($"Sucessfully connected and authenticated for {GmailID}.");
+			}
+
+			HelperClient = new ImapClient();
+			HelperClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
+			HelperClient.Authenticate(GmailID, GmailPass);
+			Logger.Log($"Total messages in inbox: {HelperClient.Inbox.Count} Unread messages: {HelperClient.Inbox.Unread}", LogLevels.Trace);
 			IsAccountLoaded = true;
 
 			Client.Inbox.MessageExpunged += (sender, e) => {
@@ -178,8 +251,9 @@ namespace HomeAssistant.Modules {
 				Logger.Log($"The number of messages in {folder.Name} has changed.", LogLevels.Trace);
 
 				if (folder.Count > InboxMessagesCount) {
-					Logger.Log($"{folder.Count - InboxMessagesCount} new message(s) have arrived.", LogLevels.Info);
+					Logger.Log($"{folder.Count - InboxMessagesCount} new message(s) have arrived.");
 					StopImapIdle();
+					OnMessageArrived();
 				}
 			};
 
@@ -201,7 +275,7 @@ namespace HomeAssistant.Modules {
 
 						while (true) {
 							if (IsClientInIdle) {
-								Logger.Log("Waiting for imap idle client to shutdown...");
+								Logger.Log("Waiting for imap idle client to shutdown...", LogLevels.Trace);
 							}
 							else {
 								IdleCancelledSucessfully = true;
@@ -212,7 +286,7 @@ namespace HomeAssistant.Modules {
 						if (IsClientShutdownRequested && !ClientShutdownSucessfull) {
 							while (true) {
 								if (IsClientInIdle) {
-									Logger.Log("Waiting for IMAP Client to disconnect idling process...");
+									Logger.Log("Waiting for IMAP Client to disconnect idling process...", LogLevels.Trace);
 								}
 								else {
 									if (IsAccountLoaded) {
@@ -251,6 +325,120 @@ namespace HomeAssistant.Modules {
 			}, "Idle Thread");
 		}
 
+		private void OnMessageArrived() {
+			if (IsClientInIdle) {
+				StopImapIdle();
+			}
+
+			while (true) {
+				if (!IsClientInIdle) {
+					Logger.Log("Client imap idling has been sucessfully stopped!", LogLevels.Trace);
+					break;
+				}
+				else {
+					Logger.Log("Waiting for client to shutdown idling connection...", LogLevels.Trace);
+				}
+			}
+
+			List<IMessageSummary> messages = new List<IMessageSummary>();
+			if (Client.Inbox.Count > InboxMessagesCount) {
+				lock (HelperClient.SyncRoot) {
+					messages = HelperClient.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
+				}
+
+				if (!MailConfig.MuteNotifications && MailConfig.ImapNotifications) {
+					Helpers.PlayNotification(NotificationContext.Imap);
+				}
+
+				IMessageSummary latestMessage = null;
+
+				if (messages.Count > 0 || messages != null) {
+					foreach (IMessageSummary msg in messages) {
+						foreach (MessageData msgdata in MessagesArrivedDuringIdle) {
+							if (msg.UniqueId.Id != msgdata.UniqueId) {
+								latestMessage = msg;
+								break;
+							}
+						}
+					}
+				}
+
+				if (messages.Count > 0 || messages != null) {
+					foreach (IMessageSummary message in messages) {
+						MessagesArrivedDuringIdle.Add(new MessageData() {
+							UniqueId = message.UniqueId.Id,
+							Message = message,
+							MarkAsRead = false,
+							MarkedAsDeleted = false,
+							ArrivedTime = DateTime.Now
+						});
+					}
+				}
+
+				if (MailConfig.AutoReplyText != null && latestMessage != null) {
+					HelperClient.Inbox.Open(FolderAccess.ReadWrite);
+					MimeMessage msg = HelperClient.Inbox.GetMessage(latestMessage.UniqueId);
+					AutoReplyEmail(msg, MailConfig.AutoReplyText);
+					Logger.Log($"Sucessfully send auto reply message to {msg.Sender.Address}");
+				}
+			}
+		}
+
+		private void AutoReplyEmail(MimeMessage msg, string replyBody) {
+			_ = replyBody ?? throw new ArgumentNullException("Body is null!");
+			_ = msg ?? throw new ArgumentNullException("Message is null!");
+
+			try {
+				string ReplyTextFormat = $"Reply to Previous Message with Subject: {msg.Subject}\n{replyBody}\n\n\nThank you, have a good day!";
+				Logger.Log($"Sending Auto Reply to {msg.Sender.Address}");
+				MailMessage Message = new MailMessage();
+				SmtpClient SmtpServer = new SmtpClient("smtp.gmail.com");
+				Message.From = new MailAddress(MailConfig.EmailID);
+				Message.To.Add(msg.Sender.Address);
+				Message.Subject = $"RE: {msg.Subject}";
+				Message.Body = ReplyTextFormat;
+				SmtpServer.Port = 587;
+				SmtpServer.Credentials = new NetworkCredential(GmailID, GmailPass);
+				SmtpServer.EnableSsl = true;
+				SmtpServer.Send(Message);
+				SmtpServer.Dispose();
+				Message.Dispose();
+				Logger.Log($"Successfully Send Auto-Reply to {msg.From.Mailboxes.First().Address}");
+			}
+			catch (Exception e) {
+				Logger.Log(e, ExceptionLogLevels.Error);
+				return;
+			}
+		}
+
+		public void SendEmail(string to, string subject, string body, string[] attachments) {
+			_ = to ?? throw new ArgumentNullException("Email to is null.");
+			_ = subject ?? throw new ArgumentNullException("Subject is null.");
+			_ = body ?? throw new ArgumentNullException("Body is null.");
+			MailMessage Message = new MailMessage();
+			System.Net.Mail.SmtpClient SmtpServer = new System.Net.Mail.SmtpClient("smtp.gmail.com");
+			Message.From = new MailAddress(MailConfig.EmailID);
+			Message.To.Add(to);
+			Message.Subject = subject;
+			Message.Body = body;
+
+			if (attachments != null && attachments.Count() > 0) {
+				foreach (string x in attachments) {
+					if (File.Exists(x)) {
+						Message.Attachments.Add(new Attachment(x));
+					}
+				}
+			}
+
+			SmtpServer.Port = 587;
+			SmtpServer.Credentials = new NetworkCredential(MailConfig.EmailID, MailConfig.EmailPASS);
+			SmtpServer.EnableSsl = true;
+			SmtpServer.Send(Message);
+			SmtpServer.Dispose();
+			Message.Dispose();
+			Logger.Log($"Successfully send email to {to}");
+		}
+
 		private void OnIdleStopped(bool IsShutdownReqested) {
 			if (IsClientInIdle) {
 				StopImapIdle();
@@ -258,24 +446,11 @@ namespace HomeAssistant.Modules {
 
 			while (true) {
 				if (!IsClientInIdle) {
-					Logger.Log("Client imap idling has been ended sucessfully!");
+					Logger.Log("Client imap idling has been sucessfully stopped!", LogLevels.Trace);
 					break;
 				}
 				else {
-					Logger.Log("Waiting for client to shutdown idling connection...");
-				}
-			}
-
-			List<IMessageSummary> messages = new List<IMessageSummary>();
-			if (Client.Inbox.Count > InboxMessagesCount) {
-				lock (Client.SyncRoot) {
-					messages = Client.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
-				}
-
-				if (messages.Count > 0 || messages != null) {
-					foreach (IMessageSummary message in messages) {
-						Logger.Log($"{message.Envelope.From.FirstOrDefault()}/{message.Envelope.Subject}");
-					}
+					Logger.Log("Waiting for client to shutdown idling connection...", LogLevels.Trace);
 				}
 			}
 

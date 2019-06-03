@@ -8,16 +8,17 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
+using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.WiringPi;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant {
-
 	public class Program {
 		private static Logger Logger;
 		public static GPIOController Controller;
@@ -132,7 +133,7 @@ namespace HomeAssistant {
 					_ = await CoreServer.StartServer().ConfigureAwait(false);
 				}
 
-				Modules = new ModuleInitializer(false);
+				Modules = new ModuleInitializer();
 				await Modules.StartModules().ConfigureAwait(false);
 				await PostInitTasks(args).ConfigureAwait(false);
 			}
@@ -163,7 +164,7 @@ namespace HomeAssistant {
 			}
 
 			Logger.Log("Waiting for commands...");
-			await KeepAlive('q', 'm', 'e', 'i', 't').ConfigureAwait(false);
+			await KeepAlive('q', 'm', 'e', 'i', 't', 'c').ConfigureAwait(false);
 		}
 
 		private static void SetConsoleTitle() {
@@ -174,12 +175,13 @@ namespace HomeAssistant {
 			}
 		}
 
-		private static async Task KeepAlive(char loopBreaker = 'q', char menuKey = 'm', char quickShutDown = 'e', char imapIdleShutdown = 'i', char testKey = 't') {
+		private static async Task KeepAlive(char loopBreaker = 'q', char menuKey = 'm', char quickShutDown = 'e', char imapIdleShutdown = 'i', char testKey = 't', char commandKey = 'c') {
 			Logger.Log($"Press {loopBreaker} to quit in 5 seconds.");
 			Logger.Log($"Press {quickShutDown} to exit application immediately.");
 			Logger.Log($"Press {menuKey} to display GPIO menu.");
 			Logger.Log($"Press {imapIdleShutdown} to stop all IMAP Idle notifications.");
 			Logger.Log($"Press {testKey} to execute the TEST methods.");
+			Logger.Log($"Press {commandKey} to display command menu.");
 
 			while (true) {
 				char pressedKey = Console.ReadKey().KeyChar;
@@ -190,7 +192,7 @@ namespace HomeAssistant {
 					await Exit(0).ConfigureAwait(false);
 				}
 				else if (pressedKey.Equals(menuKey)) {
-					Logger.Log("Displaying relay testing menu...");
+					Logger.Log("Displaying relay testing menu...", LogLevels.Trace);
 					await DisplayRelayMenu().ConfigureAwait(false);
 					continue;
 				}
@@ -199,16 +201,237 @@ namespace HomeAssistant {
 					await Exit(0).ConfigureAwait(false);
 				}
 				else if (pressedKey.Equals(imapIdleShutdown)) {
-					Logger.Log("Exiting IMAP Idle...");
+					Logger.Log("Exiting all email account imap idle...");
 					Modules.DisposeAllEmailClients();
 				}
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
+					Logger.Log("No test tasks pending...");
+				}
+				else if (pressedKey.Equals(commandKey)) {
+					DisplayCommandMenu();
 				}
 				else {
 					continue;
 				}
 			}
+		}
+
+		public static void DisplayCommandMenu() {
+			Logger.Log("--------------------COMMAND MENU--------------------", LogLevels.UserInput);
+			Logger.Log("1 | Relay pin 1", LogLevels.UserInput);
+			Logger.Log("2 | Relay pin 2", LogLevels.UserInput);
+			Logger.Log("3 | Relay pin 3", LogLevels.UserInput);
+			Logger.Log("4 | Relay pin 4", LogLevels.UserInput);
+			Logger.Log("5 | Relay pin 5", LogLevels.UserInput);
+			Logger.Log("6 | Relay pin 6", LogLevels.UserInput);
+			Logger.Log("7 | Relay pin 7", LogLevels.UserInput);
+			Logger.Log("8 | Relay pin 8", LogLevels.UserInput);
+			Logger.Log("9 | Schedule task for specified relay pin", LogLevels.UserInput);
+			Logger.Log("0 | Exit menu", LogLevels.UserInput);
+			Logger.Log("Press any key (between 0 - 9) for their respective option.\n", LogLevels.UserInput);
+			ConsoleKeyInfo key = Console.ReadKey();
+			Logger.Log("\n", LogLevels.UserInput);
+			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
+				Logger.Log("Could not parse the input key. please try again!", LogLevels.Error);
+				Logger.Log("Command menu closed.");
+				Logger.Log($"Press q to quit in 5 seconds.");
+				Logger.Log($"Press e to exit application immediately.");
+				Logger.Log($"Press m to display GPIO menu.");
+				Logger.Log($"Press i to stop IMAP Idle notifications.");
+				Logger.Log($"Press c to display command menu.");
+				return;
+			}
+
+			GPIOPinConfig PinStatus;
+			switch (SelectedValue) {
+				case 1:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[0]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[0]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[0]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 2:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[1]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[1]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[1]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 3:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[2]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[2]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[2]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 4:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[3]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[3]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[3]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 5:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[4]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[4]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[4]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 6:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[5]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[5]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[5]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 7:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[6]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[6]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[6]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 8:
+					PinStatus = Controller.FetchPinStatus(Config.RelayPins[7]);
+
+					if (PinStatus.IsOn) {
+						Controller.SetGPIO(Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"Sucessfully set {Config.RelayPins[7]} pin to OFF.", LogLevels.Sucess);
+					}
+					else {
+						Controller.SetGPIO(Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"Sucessfully set {Config.RelayPins[7]} pin to ON.", LogLevels.Sucess);
+					}
+					break;
+				case 9:
+					Logger.Log("Please enter the pin u want to configure: ", LogLevels.UserInput);
+					string pinNumberKey = Console.ReadLine();
+					int pinNumber = 0;
+					int delay = 0;
+					int pinStatus = 0;
+
+					if (!int.TryParse(pinNumberKey, out pinNumber) || Convert.ToInt32(pinNumberKey) <= 0) {
+						Logger.Log("Your entered pin number is incorrect. please enter again.", LogLevels.UserInput);
+
+						pinNumberKey = Console.ReadLine();
+						if (!int.TryParse(pinNumberKey, out pinNumber) || Convert.ToInt32(pinNumberKey) <= 0) {
+							Logger.Log("Your entered pin number is incorrect again. press m for menu, and start again!", LogLevels.UserInput);
+							return;
+						}
+					}
+
+					Logger.Log("Please enter the amount of delay you want in between the task. (in minutes)", LogLevels.UserInput);
+					string delayInMinuteskey = Console.ReadLine();
+					if (!int.TryParse(delayInMinuteskey, out delay) || Convert.ToInt32(delayInMinuteskey) <= 0) {
+						Logger.Log("Your entered delay is incorrect. please enter again.", LogLevels.UserInput);
+
+						delayInMinuteskey = Console.ReadLine();
+						if (!int.TryParse(delayInMinuteskey, out delay) || Convert.ToInt32(delayInMinuteskey) <= 0) {
+							Logger.Log("Your entered pin is incorrect again. press m for menu, and start again!", LogLevels.UserInput);
+							return;
+						}
+					}
+
+					Logger.Log("Please enter the status u want the task to configure: (0 = OFF, 1 = ON)", LogLevels.UserInput);
+
+					string pinStatuskey = Console.ReadLine();
+					if (!int.TryParse(pinStatuskey, out pinStatus) || (Convert.ToInt32(pinStatuskey) != 0 && Convert.ToInt32(pinStatus) != 1)) {
+						Logger.Log("Your entered pin status is incorrect. please enter again.", LogLevels.UserInput);
+
+						pinStatuskey = Console.ReadLine();
+						if (!int.TryParse(pinStatuskey, out pinStatus) || (Convert.ToInt32(pinStatuskey) != 0 && Convert.ToInt32(pinStatus) != 1)) {
+							Logger.Log("Your entered pin status is incorrect again. press m for menu, and start again!", LogLevels.UserInput);
+							return;
+						}
+					}
+
+					GPIOPinConfig Status = Controller.FetchPinStatus(pinNumber);
+
+					if (Status.IsOn && pinStatus.Equals(1)) {
+						Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
+						return;
+					}
+
+					if (!Status.IsOn && pinStatus.Equals(0)) {
+						Logger.Log("Pin is already configured to be in OFF State. Command doesn't make any sense.");
+						return;
+					}
+
+					if (Config.IRSensorPins.Contains(pinNumber)) {
+						Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!");
+						return;
+					}
+
+					if (!Config.RelayPins.Contains(pinNumber)) {
+						Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.");
+						return;
+					}
+
+					Helpers.ScheduleTask(() => {
+						if (Status.IsOn && pinStatus.Equals(0)) {
+							Controller.SetGPIO(pinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
+							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to OFF.", LogLevels.Sucess);
+						}
+
+						if (!Status.IsOn && pinStatus.Equals(1)) {
+							Controller.SetGPIO(pinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
+							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to ON.", LogLevels.Sucess);
+						}
+					}, TimeSpan.FromMinutes(delay));
+
+					if (pinStatus.Equals(0)) {
+						Logger.Log($"Successfully scheduled a task: set {pinNumber} pin to OFF", LogLevels.Sucess);
+					}
+					else {
+						Logger.Log($"Successfully scheduled a task: set {pinNumber} pin to ON", LogLevels.Sucess);
+					}
+					break;
+			}
+
+			Logger.Log("Command menu closed.");
+			Logger.Log($"Press q to quit in 5 seconds.");
+			Logger.Log($"Press e to exit application immediately.");
+			Logger.Log($"Press m to display GPIO menu.");
+			Logger.Log($"Press i to stop IMAP Idle notifications.");
+			Logger.Log($"Press c to display command menu.");
 		}
 
 		public static async Task DisplayRelayMenu() {
@@ -242,13 +465,6 @@ namespace HomeAssistant {
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
-					else {
-						Logger.Log("Test sucessfull!");
-						Logger.Log($"Press q to quit in 5 seconds.");
-						Logger.Log($"Press m to exit application immediately.");
-						Logger.Log($"Press e to display GPIO menu.");
-						Logger.Log($"Press i to stop IMAP Idle notifications.");
-					}
 
 					break;
 
@@ -258,46 +474,21 @@ namespace HomeAssistant {
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
-					else {
-						Logger.Log("Test sucessfull!");
-						Logger.Log($"Press q to quit in 5 seconds.");
-						Logger.Log($"Press m to exit application immediately.");
-						Logger.Log($"Press e to display GPIO menu.");
-						Logger.Log($"Press i to stop IMAP Idle notifications.");
-					}
 
 					break;
 
 				case 3:
 					Configured = await Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false);
-
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
-					else {
-						Logger.Log("Test sucessfull!");
-						Logger.Log($"Press q to quit in 5 seconds.");
-						Logger.Log($"Press m to exit application immediately.");
-						Logger.Log($"Press e to display GPIO menu.");
-						Logger.Log($"Press i to stop IMAP Idle notifications.");
-					}
-
 					break;
-
 				case 4:
 					Configured = await Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
-					else {
-						Logger.Log("Test sucessfull!");
-						Logger.Log($"Press q to quit in 5 seconds.");
-						Logger.Log($"Press m to exit application immediately.");
-						Logger.Log($"Press e to display GPIO menu.");
-						Logger.Log($"Press i to stop IMAP Idle notifications.");
-					}
-
 					break;
 
 				case 5:
@@ -315,14 +506,6 @@ namespace HomeAssistant {
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
-					else {
-						Logger.Log("Test sucessfull!");
-						Logger.Log($"Press q to quit in 5 seconds.");
-						Logger.Log($"Press m to exit application immediately.");
-						Logger.Log($"Press e to display GPIO menu.");
-						Logger.Log($"Press i to stop IMAP Idle notifications.");
-					}
-
 					break;
 
 				case 6:
@@ -331,14 +514,6 @@ namespace HomeAssistant {
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
-					else {
-						Logger.Log("Test sucessfull!");
-						Logger.Log($"Press q to quit in 5 seconds.");
-						Logger.Log($"Press m to exit application immediately.");
-						Logger.Log($"Press e to display GPIO menu.");
-						Logger.Log($"Press i to stop IMAP Idle notifications.");
-					}
-
 					break;
 
 				case 0:
@@ -348,6 +523,20 @@ namespace HomeAssistant {
 				default:
 					goto case 0;
 			}
+
+			if (Configured) {
+				Logger.Log("Test sucessfull!");
+			}
+			else {
+				Logger.Log("Test Failed!");
+			}
+
+			Logger.Log("Relay menu closed.");
+			Logger.Log($"Press q to quit in 5 seconds.");
+			Logger.Log($"Press e to exit application immediately.");
+			Logger.Log($"Press m to display GPIO menu.");
+			Logger.Log($"Press i to stop IMAP Idle notifications.");
+			Logger.Log($"Press c to display command menu.");
 		}
 
 		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
@@ -369,8 +558,11 @@ namespace HomeAssistant {
 		}
 
 		public static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {
-			Logger.Log($"{e.ExceptionObject.ToString()}", LogLevels.Error);
 			Logger.Log($"{e.ToString()}", LogLevels.Trace);
+
+			if (e.IsTerminating) {
+				Task.Run(async () => await Exit(1).ConfigureAwait(false));
+			}
 		}
 
 		public static async Task OnExit() {
@@ -403,6 +595,7 @@ namespace HomeAssistant {
 		public static async Task Exit(byte exitCode = 0) {
 			if (exitCode != 0) {
 				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
+				Logger.Log("Check TraceLog for debug information.", LogLevels.Error);
 			}
 
 			if (exitCode == 0) {

@@ -190,7 +190,7 @@ namespace HomeAssistant.Modules {
 			return true;
 		}
 
-		private async Task<bool> FormatResponse(string response) {
+		private async Task<bool> Response(string response) {
 			if (string.IsNullOrEmpty(response) || string.IsNullOrWhiteSpace(response)) {
 				Logger.Log("Response text is null!");
 				return false;
@@ -228,10 +228,10 @@ namespace HomeAssistant.Modules {
 			await ReplyAsync("", false, builder.Build()).ConfigureAwait(false);
 		}
 
-		[Command("!light1")]
+		[Command("!relay1")]
 		public async Task Light1() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -239,18 +239,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[0]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[0]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[0]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[0]} pin to ON.");
 			}
 		}
 
-		[Command("!light2")]
+		[Command("!relay2")]
 		public async Task Light2() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -258,18 +258,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[1]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[1]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[1]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[1]} pin to ON.");
 			}
 		}
 
-		[Command("!light3")]
+		[Command("!relay3")]
 		public async Task Light3() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -277,18 +277,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[2]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[2]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[2]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[2]} pin to ON.");
 			}
 		}
 
-		[Command("!light4")]
+		[Command("!relay4")]
 		public async Task Light4() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -296,18 +296,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[3]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[3]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[3]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[3]} pin to ON.");
 			}
 		}
 
-		[Command("!light5")]
+		[Command("!relay5")]
 		public async Task Light5() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -315,18 +315,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[4]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[4]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[3]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[3]} pin to ON.");
 			}
 		}
 
-		[Command("!light6")]
+		[Command("!relay6")]
 		public async Task Light6() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -334,18 +334,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[5]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[5]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[6]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[6]} pin to ON.");
 			}
 		}
 
-		[Command("!light7")]
+		[Command("!relay7")]
 		public async Task Light7() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -353,18 +353,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[6]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[6]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[5]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[5]} pin to ON.");
 			}
 		}
 
-		[Command("!light8")]
+		[Command("!relay8")]
 		public async Task Light8() {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -372,18 +372,18 @@ namespace HomeAssistant.Modules {
 
 			if (PinStatus.IsOn) {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[7]} pin to OFF.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[7]} pin to OFF.");
 			}
 			else {
 				Program.Controller.SetGPIO(Program.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await FormatResponse($"Sucessfully set {Program.Config.RelayPins[7]} pin to ON.");
+				await Response($"Sucessfully set {Program.Config.RelayPins[7]} pin to ON.");
 			}
 		}
 
 		[Command("!relaycycle")]
 		public async Task RelayCycle([Remainder] int cycleMode = 0) {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
@@ -391,31 +391,31 @@ namespace HomeAssistant.Modules {
 				switch (cycleMode) {
 					case 0:
 						if (await Program.Controller.RelayTestService(GPIOCycles.OneMany).ConfigureAwait(false)) {
-							await FormatResponse("OneMany relay test completed!").ConfigureAwait(false);
+							await Response("OneMany relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 1:
 						if (await Program.Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false)) {
-							await FormatResponse("OneOne relay test completed!").ConfigureAwait(false);
+							await Response("OneOne relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 2:
 						if (await Program.Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false)) {
-							await FormatResponse("OneTwo relay test completed!").ConfigureAwait(false);
+							await Response("OneTwo relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 3:
 						if (await Program.Controller.RelayTestService(GPIOCycles.Cycle).ConfigureAwait(false)) {
-							await FormatResponse("Cycle relay test completed!").ConfigureAwait(false);
+							await Response("Cycle relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 4:
 						if (await Program.Controller.RelayTestService(GPIOCycles.Base).ConfigureAwait(false)) {
-							await FormatResponse("Base relay test completed!").ConfigureAwait(false);
+							await Response("Base relay test completed!").ConfigureAwait(false);
 						}
 						break;
 				}
@@ -424,62 +424,88 @@ namespace HomeAssistant.Modules {
 			Helpers.InBackgroundThread(action, "Relay Cycle");
 		}
 
-		[Command("!delayedtask")]
-		public async Task DelayedTask(int relaypinNumber, int delay, [Remainder] int Status) {
+		[Command("!timedtask")]
+		public async Task DelayedTask(int relaypinNumber, int delayInMinutes = 1, int pinStatus = 1) {
 			if (!IsAllowed(Context.User.Id)) {
-				await FormatResponse("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
+				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
 				return;
 			}
 
-			if (relaypinNumber.Equals(0) || delay.Equals(0) || (!Status.Equals(0) || !Status.Equals(1))) {
-				await FormatResponse("Please sender a correct value.").ConfigureAwait(false);
+			//0 = off
+			//1 = on
+
+			if (relaypinNumber <= 0) {
+				await Response("Please enter a valid relay pin number...").ConfigureAwait(false);
 				return;
 			}
 
-			if (!Program.Config.GPIOSafeMode || !Program.Config.RelayPins.Contains(relaypinNumber)) {
-				await FormatResponse("Sorry, the specified pin doesnt exist on relay pin list.");
+			if (delayInMinutes <= 0) {
+				await Response("Please enter a valid delay... (in minutes)").ConfigureAwait(false);
+				return;
+			}
+
+			if (pinStatus != 0 && pinStatus != 1) {
+				await Response("Please enter a valid pin state. (0 for off and 1 for on)").ConfigureAwait(false);
 				return;
 			}
 
 			if (Program.Config.IRSensorPins.Contains(relaypinNumber)) {
-				await FormatResponse("The specified pin is set for IR Sensor. cannot proceed.");
+				await Response("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!").ConfigureAwait(false);
+				return;
+			}
+
+			if (!Program.Config.RelayPins.Contains(relaypinNumber)) {
+				await Response("Sorry, the specified pin doesn't exist in the relay pin catagory.").ConfigureAwait(false);
 				return;
 			}
 
 			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(relaypinNumber);
 
+			if (PinStatus.IsOn && pinStatus.Equals(1)) {
+				await Response("Pin is already configured to be in ON State. Command doesn't make any sense.").ConfigureAwait(false);
+				return;
+			}
+
+			if (!PinStatus.IsOn && pinStatus.Equals(0)) {
+				await Response("Pin is already configured to be in OFF State. Command doesn't make any sense.").ConfigureAwait(false);
+				return;
+			}
+
 			Helpers.ScheduleTask(async () => {
-				if (PinStatus.IsOn && Status.Equals(0)) {
+				if (PinStatus.IsOn && pinStatus.Equals(0)) {
 					Program.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
-					await FormatResponse($"Sucessfully executed the task: {relaypinNumber} pin set to OFF.");
+					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to OFF.");
 				}
-				else {
-					if (!PinStatus.IsOn && Status.Equals(1)) {
-						Program.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
-						await FormatResponse($"Sucessfully executed the task: {relaypinNumber} pin set to ON.");
-					}
-					else {
-						return;
-					}
+
+				if (!PinStatus.IsOn && pinStatus.Equals(1)) {
+					Program.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
+					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to ON.");
 				}
-			}, TimeSpan.FromMinutes(delay));
+			}, TimeSpan.FromMinutes(delayInMinutes));
+
+			if (pinStatus.Equals(0)) {
+				await Response($"Successfully scheduled a task: set {relaypinNumber} pin to OFF").ConfigureAwait(false);
+			}
+			else {
+				await Response($"Successfully scheduled a task: set {relaypinNumber} pin to ON").ConfigureAwait(false);
+			}
 		}
 
 		[Command("!exit"), RequireOwner]
 		public async Task TessExit(int delay = 5) {
-			await FormatResponse($"Exiting in {delay} seconds").ConfigureAwait(false);
+			await Response($"Exiting in {delay} seconds").ConfigureAwait(false);
 			Helpers.ScheduleTask(async () => await Program.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
 		}
 
 		[Command("!shutdown"), RequireOwner]
 		public async Task PiShutdown(int delay = 10) {
-			await FormatResponse($"Exiting in {delay} seconds").ConfigureAwait(false);
+			await Response($"Exiting in {delay} seconds").ConfigureAwait(false);
 			Helpers.ScheduleTask(() => Helpers.ExecuteCommand("sudo shutdown -h now"), TimeSpan.FromSeconds(delay));
 		}
 
-		[Command("!restart")]
+		[Command("!restart"), RequireOwner]
 		public async Task TessRestart(int delay = 8) {
-			await FormatResponse($"Restarting in {delay} seconds").ConfigureAwait(false);
+			await Response($"Restarting in {delay} seconds").ConfigureAwait(false);
 			await Program.Restart(8);
 		}
 	}

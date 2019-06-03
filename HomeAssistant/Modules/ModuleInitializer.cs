@@ -1,3 +1,4 @@
+using HomeAssistant.Core;
 using HomeAssistant.Log;
 using System;
 using System.Collections.Concurrent;
@@ -16,32 +17,15 @@ namespace HomeAssistant.Modules {
 		public Youtube Youtube;
 		public ConcurrentDictionary<string, Email> EmailClientCollection = new ConcurrentDictionary<string, Email>();
 
-		public ModuleInitializer() {
-			Logger.Log("Starting modules...");
-		}
-
-		public ModuleInitializer(bool withInitilization = false) {
-			if (withInitilization) {
-				Task.Run(StartModules);
-			}
-		}
-
 		public async Task StartModules() {
-			bool DiscordLoaded = await StartDiscord().ConfigureAwait(false);
-			bool EmailLoaded = StartEmail();
+			await StartDiscord().ConfigureAwait(false);
+			StartEmail();
 			Map = new GoogleMap();
 			Speech = new GoogleSpeech();
 			Youtube = new Youtube();
-
-			if (DiscordLoaded && EmailLoaded) {
-				Logger.Log("Sucessfully loaded all modules!");
-			}
-			else {
-				Logger.Log("One or more modules have failed to load.", LogLevels.Warn);
-			}
 		}
 
-		public async Task<bool> StartDiscord() {
+		private async Task<bool> StartDiscord() {
 			try {
 				Discord = new DiscordClient();
 				if (await Discord.InitDiscordClient().ConfigureAwait(false)) {
@@ -56,9 +40,9 @@ namespace HomeAssistant.Modules {
 			return false;
 		}
 
-		public bool StartEmail() {
+		private bool StartEmail() {
 			if (Program.Config.EmailDetails.Count <= 0 || !Program.Config.EmailDetails.Any()) {
-				Logger.Log("No email IDs found in global config. cannot start Email Module...");
+				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
 				return false;
 			}
 
@@ -66,28 +50,28 @@ namespace HomeAssistant.Modules {
 
 			int loadedCount = 0;
 
-			foreach (KeyValuePair<string, string> entry in Program.Config.EmailDetails) {
-				Email mailClient = new Email(entry.Key.Trim(), entry.Value.Trim());
-				string UniqueID = mailClient.UniqueAccountID;
-
-				if (string.IsNullOrEmpty(UniqueID) || string.IsNullOrWhiteSpace(UniqueID)) {
-					UniqueID = entry.Key;
+			foreach (KeyValuePair<string, EmailConfig> entry in Program.Config.EmailDetails) {
+				if (string.IsNullOrEmpty(entry.Value.EmailID) || string.IsNullOrWhiteSpace(entry.Value.EmailPASS)) {
+					continue;
 				}
+
+				string UniqueID = entry.Key;
+				Email mailClient = new Email(UniqueID, entry.Value);
 
 				mailClient.StartImapClient(false);
 
 				if (mailClient.IsAccountLoaded) {
-					Logger.Log($"Sucessfully loaded {entry.Key.Trim()}");
+					Logger.Log($"Sucessfully loaded {entry.Key.Trim()}", LogLevels.Trace);
 					EmailClientCollection.TryAdd(UniqueID, mailClient);
 					loadedCount++;
 				}
 			}
 
 			if (loadedCount == Program.Config.EmailDetails.Count) {
-				Logger.Log("Sucessfully loaded all email accounts and started IMAP Idle!");
+				Logger.Log("Sucessfully loaded all email accounts and started IMAP Idle!", LogLevels.Trace);
 			}
 			else {
-				Logger.Log($"{loadedCount} accounts loaded sucessfully, {Program.Config.EmailDetails.Count - loadedCount} account(s) failed.");
+				Logger.Log($"{loadedCount} accounts loaded sucessfully, {Program.Config.EmailDetails.Count - loadedCount} account(s) failed.", LogLevels.Trace);
 			}
 
 			return true;

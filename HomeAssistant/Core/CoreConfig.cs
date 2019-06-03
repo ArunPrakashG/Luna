@@ -8,6 +8,28 @@ using System.Threading.Tasks;
 
 namespace HomeAssistant.Core {
 
+	public class EmailConfig {
+		[JsonProperty]
+		public string EmailID { get; set; }
+		[JsonProperty]
+		public string EmailPASS { get; set; }
+		[JsonProperty]
+		public bool MarkAllMessagesAsRead = false;
+		[JsonProperty]
+		public bool MuteNotifications { get; set; } = false;
+		[JsonProperty]
+		public string AutoReplyText { get; set; }
+		[JsonProperty]
+		public bool DownloadEmails { get; set; } = false;
+		[JsonProperty]
+		public bool Enabled { get; set; } = true;
+
+		[JsonProperty]
+		public bool ImapNotifications { get; set; } = true;
+		[JsonProperty]
+		public ConcurrentDictionary<bool, string> AutoForwardEmails = new ConcurrentDictionary<bool, string>();
+	}
+
 	public class CoreConfig {
 
 		[JsonProperty]
@@ -49,13 +71,16 @@ namespace HomeAssistant.Core {
 		public bool Debug = false;
 
 		[JsonProperty]
-		public bool EmailNotifications = false;
+		public bool MuteAll = false;
 
 		[JsonProperty]
-		public ConcurrentDictionary<string, string> EmailDetails = new ConcurrentDictionary<string, string>();
+		public ConcurrentDictionary<string, EmailConfig> EmailDetails = new ConcurrentDictionary<string, EmailConfig>();
 
 		[JsonProperty]
-		public ConcurrentDictionary<string, string> SendFromEmails = new ConcurrentDictionary<string, string>();
+		public string TessEmailID { get; set; }
+
+		[JsonProperty]
+		public string TessEmailPASS { get; set; }
 
 		[JsonProperty]
 		public DateTime ProgramLastStartup { get; set; }
@@ -77,9 +102,6 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty]
 		public bool DiscordBot = true;
-
-		[JsonProperty]
-		public bool ImapNotifications = true;
 
 		[JsonProperty]
 		public bool CloseRelayOnShutdown = false;

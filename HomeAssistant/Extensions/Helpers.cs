@@ -47,13 +47,17 @@ namespace HomeAssistant.Extensions {
 
 		//TODO Implement play notification sound
 		public static void PlayNotification(NotificationContext context = NotificationContext.Normal) {
+			if (Program.Config.MuteAll) {
+				return;
+			}
+
 			if (!Directory.Exists(Constants.ResourcesDirectory)) {
 				Logger.Log("Resources directory doesn't exist!", LogLevels.Warn);
 				return;
 			}
 
 			switch (context) {
-				case NotificationContext.Imap:
+				case NotificationContext.Imap:					
 					if (!File.Exists(Constants.ResourcesDirectory + "/" + Constants.IMAPSoundName)) {
 						Logger.Log("IMAP notification music file doesn't exist!", LogLevels.Warn);
 						return;

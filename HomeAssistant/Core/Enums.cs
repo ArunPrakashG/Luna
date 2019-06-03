@@ -15,6 +15,13 @@ namespace HomeAssistant.Core {
 			PI
 		}
 
+
+		public enum KeywordType {
+			Subject,
+			MessageBody,
+			From
+		}
+
 		public enum NotificationContext : byte {
 			Imap,
 			EmailSend,
