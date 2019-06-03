@@ -57,7 +57,7 @@ namespace HomeAssistant.Extensions {
 			}
 
 			switch (context) {
-				case NotificationContext.Imap:					
+				case NotificationContext.Imap:
 					if (!File.Exists(Constants.ResourcesDirectory + "/" + Constants.IMAPSoundName)) {
 						Logger.Log("IMAP notification music file doesn't exist!", LogLevels.Warn);
 						return;
@@ -384,7 +384,7 @@ namespace HomeAssistant.Extensions {
 					return true;
 				}
 			}
-			catch(Exception) {
+			catch (Exception) {
 				return false;
 			}
 		}
