@@ -79,25 +79,24 @@ namespace HomeAssistant.Core {
 		public bool GenerateDefaultConfig() {
 			Logger.Log("GPIO config file doesnt exist. press c to continue generating default config or q to quit.");
 
-			Task waitTask = Task.Delay(60000);
+			ConsoleKeyInfo? Key = Helpers.FetchUserInputSingleChar(TimeSpan.FromMinutes(1));
 
-			Task<ConsoleKeyInfo> inputTask = Task.Run(() => {
-				return Console.ReadKey();
-			});
+			if (!Key.HasValue) {
+				Logger.Log("No value has been entered, continuing to run the program...");
+			}
+			else {
+				switch (Key.Value.KeyChar) {
+					case 'c':
+						break;
 
-			Task.WhenAny(new[] { waitTask, inputTask });
+					case 'q':
+						Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
+						return false;
 
-			switch (inputTask.Result.KeyChar) {
-				case 'c':
-					break;
-
-				case 'q':
-					Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
-					return false;
-
-				default:
-					Logger.Log("Unknown value entered! continuing to run the program...");
-					goto case 'c';
+					default:
+						Logger.Log("Unknown value entered! continuing to run the program...");
+						break;
+				}
 			}
 
 			Logger.Log("Generating default GPIO Config...");

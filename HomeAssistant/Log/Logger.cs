@@ -88,33 +88,6 @@ namespace HomeAssistant.Log {
 			LogGenericError($"{nullObjectName} | Object is null!", previousMethodName);
 		}
 
-		public void Log(Exception e, ExceptionLogLevels level = ExceptionLogLevels.Error, [CallerFilePath] string filePath = null, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int previosmethodLineNumber = 0) {
-			if (string.IsNullOrEmpty(e.ToString()) || string.IsNullOrWhiteSpace(e.ToString())) {
-				return;
-			}
-
-			switch (level) {
-				case ExceptionLogLevels.Fatal:
-					LogGenericException(e, previousMethodName);
-					break;
-
-				case ExceptionLogLevels.Error:
-					LogGenericError($"[{previosmethodLineNumber} line] {previousMethodName}() {e.Message}/{e.InnerException}/{e.StackTrace}");
-					break;
-
-				case ExceptionLogLevels.DebugException:
-					LogGenericTrace($"[{previosmethodLineNumber} line] {previousMethodName}() {e.Message}/{e.InnerException}/{e.StackTrace}");
-					break;
-
-				default:
-					goto case ExceptionLogLevels.Error;
-			}
-
-			if (!string.IsNullOrEmpty(e.ToString()) || !string.IsNullOrWhiteSpace(e.ToString())) {
-				DiscordLogToChannel($"{e.ToString()}\n\nLine Number: {previosmethodLineNumber}\n{previousMethodName}()");
-			}
-		}
-
 		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null) {
 			switch (level) {
 				case LogLevels.Trace:
@@ -178,6 +151,33 @@ namespace HomeAssistant.Log {
 
 				default:
 					goto case LogLevels.Info;
+			}
+		}
+
+		public void Log(Exception e, ExceptionLogLevels level = ExceptionLogLevels.Error, [CallerFilePath] string filePath = null, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int previosmethodLineNumber = 0) {
+			if (string.IsNullOrEmpty(e.ToString()) || string.IsNullOrWhiteSpace(e.ToString())) {
+				return;
+			}
+
+			switch (level) {
+				case ExceptionLogLevels.Fatal:
+					LogGenericException(e, previousMethodName);
+					break;
+
+				case ExceptionLogLevels.Error:
+					LogGenericError($"[{previosmethodLineNumber} line] {previousMethodName}() {e.Message}/{e.InnerException}/{e.StackTrace}");
+					break;
+
+				case ExceptionLogLevels.DebugException:
+					LogGenericTrace($"[{previosmethodLineNumber} line] {previousMethodName}() {e.Message}/{e.InnerException}/{e.StackTrace}");
+					break;
+
+				default:
+					goto case ExceptionLogLevels.Error;
+			}
+
+			if (!string.IsNullOrEmpty(e.ToString()) || !string.IsNullOrWhiteSpace(e.ToString())) {
+				DiscordLogToChannel($"{e.ToString()}\n\nLine Number: {previosmethodLineNumber}\n{previousMethodName}()");
 			}
 		}
 

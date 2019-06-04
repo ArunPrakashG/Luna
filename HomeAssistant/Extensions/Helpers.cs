@@ -63,7 +63,8 @@ namespace HomeAssistant.Extensions {
 						return;
 					}
 
-					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/{Constants.ResourcesDirectory} && omxplayer {Constants.IMAPSoundName}", true);
+					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && omxplayer {Constants.IMAPSoundName}", true);
+					Logger.Log("Notification command processed sucessfully!", LogLevels.Trace);
 					break;
 
 				case NotificationContext.EmailSend:
@@ -91,6 +92,12 @@ namespace HomeAssistant.Extensions {
 				}
 			}
 			throw new Exception("No network adapters with an IPv4 address in the system!");
+		}
+
+		public static ConsoleKeyInfo? FetchUserInputSingleChar(TimeSpan delay) {
+			Task<ConsoleKeyInfo> task = Task.Factory.StartNew(Console.ReadKey);
+			ConsoleKeyInfo? result = Task.WaitAny(new Task[] { task }, delay) == 0 ? task.Result : (ConsoleKeyInfo?) null;
+			return result;
 		}
 
 		public static void SetConsoleTitle(string text) => Console.Title = $"TESS Home Assistant V{Constants.Version} | {text}";

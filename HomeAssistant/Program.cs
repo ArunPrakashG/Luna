@@ -48,11 +48,6 @@ namespace HomeAssistant {
 		// Handle Pre-init Tasks in here
 		private static async Task Main(string[] args) {
 			Helpers.CheckMultipleProcess();
-
-			if (!Helpers.IsRaspberryEnvironment()) {
-				DisablePiMethods = true;
-			}
-			
 			Logger = new Logger("CORE");
 			TaskScheduler.UnobservedTaskException += HandleTaskExceptions;
 			AppDomain.CurrentDomain.UnhandledException += HandleUnhandledExceptions;
@@ -64,6 +59,7 @@ namespace HomeAssistant {
 		private static async Task<bool> InitCore(string[] args) {
 			try {
 				await Helpers.DisplayTessASCII().ConfigureAwait(false);
+				Constants.ExternelIP = Helpers.GetExternalIP();
 				Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater");
 				Logger.Log($"X--------  Starting TESS Assistant v{Constants.Version}  --------X", LogLevels.Ascii);
 				Logger.Log("Loading core config...", LogLevels.Trace);
@@ -77,6 +73,10 @@ namespace HomeAssistant {
 				}
 
 				ParseStartupArguments(args);
+
+				if (!Helpers.IsRaspberryEnvironment()) {
+					DisablePiMethods = true;
+				}
 
 				Logger.Log("Loading GPIO config...", LogLevels.Trace);
 				try {
@@ -179,7 +179,7 @@ namespace HomeAssistant {
 		}
 
 		private static void SetConsoleTitle() {
-			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Helpers.GetExternalIP()}:{Config.ServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 2)} minutes");
+			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Constants.ExternelIP}:{Config.ServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
 			if (RefreshConsoleTitleTimer == null) {
 				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
@@ -217,6 +217,10 @@ namespace HomeAssistant {
 				}
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
+					Logger.Log("Setting Timer for charger controller.");
+					Logger.Log("Enter 0 for OFF and 1 for ON", LogLevels.UserInput);
+					char key = Console.ReadKey().KeyChar;
+					Controller.ChargerController(Config.RelayPins[0], TimeSpan.FromMinutes(2), key == 0 ? GpioPinValue.High : GpioPinValue.Low);
 					Logger.Log("No test tasks pending...");
 				}
 				else if (pressedKey.Equals(commandKey)) {
@@ -232,9 +236,6 @@ namespace HomeAssistant {
 			if (args.Count() <= 0 || args == null) {
 				return;
 			}
-
-			Parser.Default.Settings.IgnoreUnknownArguments = true;
-			Parser.Default.Settings.EnableDashDash = true;
 
 			Parser.Default.ParseArguments<Options>(args).WithParsed(x => {
 				if (x.Debug) {

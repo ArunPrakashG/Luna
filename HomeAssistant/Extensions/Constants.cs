@@ -23,6 +23,7 @@ namespace HomeAssistant.Extensions {
 		public const int SMPTPort = 465;
 		public const int GmailPort = 993;
 		public const string GitHubAPI = "https://api.github.com/repos/";
+		public static string ExternelIP { get; set; }
 		public const string GitHubReleaseURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";
 		public const string GitHubAssetDownloadURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/assets/";
 		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);

@@ -236,6 +236,7 @@ namespace HomeAssistant.Modules {
 			HelperClient = new ImapClient();
 			HelperClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
 			HelperClient.Authenticate(GmailID, GmailPass);
+			HelperClient.Inbox.Open(FolderAccess.ReadWrite);
 			Logger.Log($"Total messages in inbox: {HelperClient.Inbox.Count} Unread messages: {HelperClient.Inbox.Unread}", LogLevels.Trace);
 			IsAccountLoaded = true;
 
@@ -344,19 +345,26 @@ namespace HomeAssistant.Modules {
 			if (Client.Inbox.Count > InboxMessagesCount) {
 				lock (HelperClient.SyncRoot) {
 					messages = HelperClient.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
+					Logger.Log("Message fetched.", LogLevels.Trace);
 				}
 
 				if (!MailConfig.MuteNotifications && MailConfig.ImapNotifications) {
-					Helpers.PlayNotification(NotificationContext.Imap);
+					Helpers.PlayNotification(NotificationContext.Imap);					
 				}
 
 				IMessageSummary latestMessage = null;
 
 				if (messages.Count > 0 || messages != null) {
 					foreach (IMessageSummary msg in messages) {
+						if(MessagesArrivedDuringIdle.Count <= 0) {
+							latestMessage = msg;
+							break;
+						}
+
 						foreach (MessageData msgdata in MessagesArrivedDuringIdle) {
 							if (msg.UniqueId.Id != msgdata.UniqueId) {
 								latestMessage = msg;
+								Logger.Log("fetched latest message data.", LogLevels.Trace);
 								break;
 							}
 						}
@@ -372,6 +380,7 @@ namespace HomeAssistant.Modules {
 							MarkedAsDeleted = false,
 							ArrivedTime = DateTime.Now
 						});
+						Logger.Log("Added a new messageData() object to messagesArrivedDuringIdle.", LogLevels.Trace);
 					}
 				}
 

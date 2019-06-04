@@ -155,25 +155,25 @@ namespace HomeAssistant.Core {
 
 		public bool GenerateDefaultConfig() {
 			Logger.Log("Core config file doesnt exist. press c to continue generating default config or q to quit.");
-			Task waitTask = Task.Delay(60000);
 
-			Task<ConsoleKeyInfo> inputTask = Task.Run(() => {
-				return Console.ReadKey();
-			});
+			ConsoleKeyInfo? Key = Helpers.FetchUserInputSingleChar(TimeSpan.FromMinutes(1));
 
-			Task.WhenAny(new[] { waitTask, inputTask });
+			if (!Key.HasValue) {
+				Logger.Log("No value has been entered, continuing to run the program...");
+			}
+			else {
+				switch (Key.Value.KeyChar) {
+					case 'c':
+						break;
 
-			switch (inputTask.Result.KeyChar) {
-				case 'c':
-					break;
+					case 'q':
+						Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
+						return false;
 
-				case 'q':
-					Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
-					return false;
-
-				default:
-					Logger.Log("Unknown value entered! continuing to run the program...");
-					break;
+					default:
+						Logger.Log("Unknown value entered! continuing to run the program...");
+						break;
+				}
 			}
 
 			Logger.Log("Generating default Config...");

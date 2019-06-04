@@ -1,3 +1,4 @@
+using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.Collections.Generic;
@@ -12,39 +13,167 @@ namespace HomeAssistant.Core {
 	//High = OFF
 	//Low = ON
 	public class GPIOController {
-		private string[] StartupArgs = null;
 		private Logger Logger = new Logger("GPIO-CONTROLLER");
 		private readonly GPIOConfigHandler GPIOConfigHandler;
 		public List<GPIOPinConfig> GPIOConfig;
 		public GPIOConfigRoot GPIOConfigRoot;
+		private bool IsWaitForValueCancellationRequested = false;
 
-		public GPIOController(string[] startupargs, GPIOConfigRoot rootObject, List<GPIOPinConfig> config, GPIOConfigHandler configHandler) {
-			StartupArgs = startupargs;
+		public GPIOController(GPIOConfigRoot rootObject, List<GPIOPinConfig> config, GPIOConfigHandler configHandler) {
 			GPIOConfig = config;
 			GPIOConfigHandler = configHandler;
 			GPIOConfigRoot = rootObject;
 			Logger.Log("Initiated GPIO Controller class!");
 		}
 
-		private bool CheckSafeMode() {
-			if (Program.Config.GPIOSafeMode) {
-				return true;
+		private bool CheckSafeMode() => Program.Config.GPIOSafeMode;
+
+		public void StopWaitForValue() => IsWaitForValueCancellationRequested = true;
+
+		public void ChargerController(int pin, TimeSpan delay, GpioPinValue value) {
+			if(delay == null) {
+				Logger.Log("Time delay is null!", LogLevels.Error);
+				return;
 			}
 
-			if (!StartupArgs.Any() || StartupArgs == null || StartupArgs.Count() <= 0) {
+			if(pin <= 0) {
+				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
+				return;
+			}
+
+			if (Program.Config.IRSensorPins.Contains(pin)) {
+				Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!", LogLevels.Error);
+				return;
+			}
+
+			if (!Program.Config.RelayPins.Contains(pin)) {
+				Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.", LogLevels.Error);
+				return;
+			}
+
+			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(pin);
+
+			if (PinStatus.IsOn && value == GpioPinValue.Low) {
+				Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
+				return;
+			}
+
+			if (!PinStatus.IsOn && value == GpioPinValue.High) {
+				Logger.Log("Pin is already configured to be in OFF State. Command doesn't make any sense.");
+				return;
+			}
+
+			Helpers.ScheduleTask(() => {
+				if (PinStatus.IsOn && value == GpioPinValue.High) {
+					Program.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+					Logger.Log($"Sucessfully finished execution of the task: {pin} pin set to OFF.");
+				}
+
+				if (!PinStatus.IsOn && value == GpioPinValue.Low) {
+					Program.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+					Logger.Log($"Sucessfully finished execution of the task: {pin} pin set to ON.");
+				}
+			}, delay);
+
+			if (value == GpioPinValue.High) {
+				Logger.Log($"Successfully scheduled a task: set {pin} pin to OFF");
+			}
+			else {
+				Logger.Log($"Successfully scheduled a task: set {pin} pin to ON");
+			}
+		}
+
+		public void ContinuousWaitForValue(int pin, bool pinValue, Action action) {
+			if (action == null) {
+				Logger.Log("Action is null!", LogLevels.Error);
+				return;
+			}
+
+			if (pin == 0) {
+				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
+				return;
+			}
+
+			if (!Program.Config.IRSensorPins.Contains(pin)) {
+				Logger.Log("The specified pin doesn't exist in IR Sensor pin list.", LogLevels.Error);
+				return;
+			}
+
+			int failedAttempts = 0;
+
+			while (true) {
+				if (IsWaitForValueCancellationRequested) {
+					break;
+				}
+
+				if (failedAttempts.Equals(7)) {
+					Logger.Log("Failed to run the specified action.", LogLevels.Error);
+					return;
+				}
+
+				bool? pinState = GetGPIO(pin);
+
+				if (!pinState.HasValue) {
+					Logger.Log("Could not fetch pin state value, trying again...", LogLevels.Trace);
+					failedAttempts++;
+					continue;
+				}
+
+				if (pinState.Equals(pinValue)) {
+					Task.Run(action);
+				}
+				Task.Delay(100).Wait();
+			}
+		}
+
+		public bool WaitUntilPinValue(int pin, GpioPinValue value, int timeOutValue) {
+			if (pin <= 0) {
+				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
 				return false;
 			}
 
-			string arg = StartupArgs[0].Split('-')[1].Trim();
+			if (timeOutValue <= 0) {
+				Logger.Log("Time out value is set to unknown digit.", LogLevels.Error);
+			}
 
-			if (string.IsNullOrEmpty(arg) || string.IsNullOrWhiteSpace(arg)) {
+			IGpioPin GPIOPin = Pi.Gpio[pin];
+			return GPIOPin.WaitForValue(value, timeOutValue);
+		}
+
+		public bool RunOnPinValue(int pin, bool pinValueConditon, Action action) {
+			if (action == null) {
+				Logger.Log("Action is null!", LogLevels.Error);
 				return false;
 			}
 
-			if (arg.Equals("safe", StringComparison.OrdinalIgnoreCase)) {
-				return true;
+			if (pin == 0) {
+				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
+				return false;
 			}
-			return false;
+
+			int failedAttempts = 0;
+
+			while (true) {
+				if (failedAttempts.Equals(7)) {
+					Logger.Log("Failed to run the specified action.", LogLevels.Error);
+					return false;
+				}
+
+				bool? pinState = GetGPIO(pin);
+
+				if (!pinState.HasValue) {
+					Logger.Log("Could not fetch pin state value, trying again...", LogLevels.Trace);
+					failedAttempts++;
+					continue;
+				}
+
+				if (pinState.Value.Equals(pinValueConditon)) {
+					Helpers.InBackground(action);
+					Logger.Log("Started the specified action process.", LogLevels.Trace);
+					return true;
+				}
+				Task.Delay(100).Wait();
+			}
 		}
 
 		public GPIOPinConfig FetchPinStatus(int pin) {
@@ -75,6 +204,18 @@ namespace HomeAssistant.Core {
 			}
 
 			return Status;
+		}
+
+		public bool? GetGPIO(int pin, bool onlyInputPins = false) {
+
+			IGpioPin GPIOPin = Pi.Gpio[pin];
+			
+			if (onlyInputPins && GPIOPin.PinMode != GpioPinDriveMode.Input) {
+				Logger.Log("The specified gpio pin mode isn't set to Input.", LogLevels.Error);
+				return null;
+			}
+
+			return GPIOPin.Read();
 		}
 
 		public bool SetGPIO(int pin, GpioPinDriveMode mode, GpioPinValue state) {
@@ -279,7 +420,7 @@ namespace HomeAssistant.Core {
 			Logger.Log($"Pi Version: {Pi.Info.RaspberryPiVersion.ToString()}", LogLevels.Trace);
 			Logger.Log($"Memory size: {Pi.Info.MemorySize.ToString()}", LogLevels.Trace);
 			Logger.Log($"Serial: {Pi.Info.Serial}", LogLevels.Trace);
-			Logger.Log($"Pi Uptime: {Pi.Info.UptimeTimeSpan.TotalMinutes} minutes");
+			Logger.Log($"Pi Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 4)} minutes");
 		}
 
 		public void SetPiAudioState(PiAudioState state) {
