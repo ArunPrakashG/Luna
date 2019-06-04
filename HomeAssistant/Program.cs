@@ -1,3 +1,4 @@
+using CommandLine;
 using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
@@ -19,6 +20,14 @@ using Unosquare.WiringPi;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant {
+	public class Options {
+		[Option('d', "debug", Required = false, HelpText = "Displays all Trace level messages to console. (for debugging)")]
+		public bool Debug { get; set; }
+
+		[Option('s', "safe", Required = false, HelpText = "Enables safe mode so that only pre configured pins can be modified.")]
+		public bool Safe { get; set; }
+	}
+
 	public class Program {
 		private static Logger Logger;
 		public static GPIOController Controller;
@@ -43,7 +52,7 @@ namespace HomeAssistant {
 			if (!Helpers.IsRaspberryEnvironment()) {
 				DisablePiMethods = true;
 			}
-
+			
 			Logger = new Logger("CORE");
 			TaskScheduler.UnobservedTaskException += HandleTaskExceptions;
 			AppDomain.CurrentDomain.UnhandledException += HandleUnhandledExceptions;
@@ -66,6 +75,8 @@ namespace HomeAssistant {
 					await Exit(1).ConfigureAwait(false);
 					return false;
 				}
+
+				ParseStartupArguments(args);
 
 				Logger.Log("Loading GPIO config...", LogLevels.Trace);
 				try {
@@ -215,6 +226,28 @@ namespace HomeAssistant {
 					continue;
 				}
 			}
+		}
+
+		private static void ParseStartupArguments(string[] args) {
+			if (args.Count() <= 0 || args == null) {
+				return;
+			}
+
+			Parser.Default.Settings.IgnoreUnknownArguments = true;
+			Parser.Default.Settings.EnableDashDash = true;
+
+			Parser.Default.ParseArguments<Options>(args).WithParsed(x => {
+				if (x.Debug) {
+					Logger.Log("Debug mode enabled. Logging trace data to console.");
+					Config.Debug = true;
+				}
+
+				if (x.Safe) {
+					Logger.Log("Safe mode enabled. Only pre-configured gpio pins are allowed to be modified.");
+					Config.GPIOSafeMode = true;
+				}
+				
+			});
 		}
 
 		public static void DisplayCommandMenu() {
