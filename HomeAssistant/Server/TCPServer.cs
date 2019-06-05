@@ -26,18 +26,15 @@ namespace HomeAssistant.Server {
 		}
 
 		public void StopServer() {
-			try {
-				if (Sock != null && ServerOn) {
-					Logger.Log("Stopping Server...");
-					ServerOn = false;
-					Sock.Close();
-					Sock.Dispose();
-				}
+			if (Sock == null) {
+				return;
 			}
-			catch (WebSocketException) {
 
-				//throw
-			}
+			Logger.Log("Stopping Server...");
+			Sock.Close(2);
+			Task.Delay(300).Wait();
+			Sock.Dispose();
+			Logger.Log("TCP Server stopped and disposed!");
 		}
 
 		public bool StartServer() {
@@ -71,9 +68,6 @@ namespace HomeAssistant.Server {
 							ReceivedData = Encoding.ASCII.GetString(Buffer, 0, b);
 							Logger.Log($"Client Connected > {clientIP} > {ReceivedData}", LogLevels.Trace);
 							string resultText = OnRecevied(ReceivedData).Result;
-
-							if (!Helpers.IsSocketConnected(Socket)) {
-							}
 
 							if (resultText != null) {
 								byte[] Message = Encoding.ASCII.GetBytes(resultText);

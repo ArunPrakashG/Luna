@@ -28,6 +28,9 @@ namespace HomeAssistant.Core {
 
 		[Option('f', "fistchance", Required = false, HelpText = "Enables logging of first chance exceptions to console.")]
 		public bool EnableFirstChance { get; set; }
+
+		[Option('t', "tts", Required = false, HelpText = "Enable text to speech system for assistant.")]
+		public bool TextToSpeech { get; set; }
 	}
 
 	public class Tess {
@@ -161,6 +164,7 @@ namespace HomeAssistant.Core {
 				await DisplayRelayMenu().ConfigureAwait(false);
 			}
 
+			Modules.Speech.SpeakText("TESS Home assistant have been sucessfully started!");
 			Logger.Log("Waiting for commands...");
 			await KeepAlive('q', 'm', 'e', 'i', 't', 'c').ConfigureAwait(false);
 		}
@@ -245,6 +249,11 @@ namespace HomeAssistant.Core {
 				if (x.EnableFirstChance) {
 					Logger.Log("First chance exception logging is enabled.", LogLevels.Warn);
 					Config.EnableFirstChanceLog = true;
+				}
+
+				if (x.TextToSpeech) {
+					Logger.Log("Enabled text to speech service via startup arguments.", LogLevels.Warn);
+					Config.EnableTextToSpeech = true;
 				}
 			});
 		}

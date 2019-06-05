@@ -272,7 +272,7 @@ namespace HomeAssistant.Modules {
 					Logger.Log($"{folder.Count - InboxMessagesCount} new message(s) have arrived.");
 
 					if (!MailConfig.MuteNotifications && MailConfig.ImapNotifications) {
-						Helpers.PlayNotification(NotificationContext.Imap, true);
+						Helpers.PlayNotification(NotificationContext.Imap, false);
 					}
 
 					StopImapIdle();
@@ -371,7 +371,7 @@ namespace HomeAssistant.Modules {
 					foreach (IMessageSummary msg in messages) {
 						if (MessagesArrivedDuringIdle.Count <= 0) {
 							latestMessage = msg;
-							Logger.Log("fetched latest message data.", LogLevels.Trace);
+							Logger.Log("fetched latest message data. (first index of MessageArrivedDuringIdle<> Dictionary", LogLevels.Trace);
 							Logger.Log($"{latestMessage.Envelope.Sender.FirstOrDefault().Name} / {latestMessage.Envelope.Subject}");
 							break;
 						}
@@ -381,6 +381,7 @@ namespace HomeAssistant.Modules {
 								latestMessage = msg;
 								Logger.Log("fetched latest message data.", LogLevels.Trace);
 								Logger.Log($"{latestMessage.Envelope.Sender.FirstOrDefault().Name} / {latestMessage.Envelope.Subject}");
+								Tess.Modules.Speech.SpeakText($"Sir, you got an email from {latestMessage.Envelope.Sender.FirstOrDefault().Name} with subject {latestMessage.Envelope.Subject}");
 								break;
 							}
 						}

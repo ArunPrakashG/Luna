@@ -76,7 +76,7 @@ namespace HomeAssistant.Extensions {
 						return;
 					}
 
-					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPSoundName}", redirectOutput);
+					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPSoundName}", Tess.Config.Debug ? true : redirectOutput);
 					Logger.Log("Notification command processed sucessfully!", LogLevels.Trace);
 					break;
 
@@ -278,13 +278,15 @@ namespace HomeAssistant.Extensions {
 				request.AddHeader(headerName, headerValue);
 			}
 
+			Logger.Log("Downloading bytes...", LogLevels.Trace);
 			IRestResponse response = client.Execute(request);
-
+			
 			if (response.StatusCode != HttpStatusCode.OK) {
 				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
 				return null;
 			}
 
+			Logger.Log("Sucessfully downloaded", LogLevels.Trace);
 			return response.RawBytes;
 		}
 

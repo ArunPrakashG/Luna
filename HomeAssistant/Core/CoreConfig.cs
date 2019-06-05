@@ -81,6 +81,9 @@ namespace HomeAssistant.Core {
 		public bool EnableFirstChanceLog = false;
 
 		[JsonProperty]
+		public bool EnableTextToSpeech = true;
+
+		[JsonProperty]
 		public bool MuteAll = false;
 
 		[JsonProperty]
