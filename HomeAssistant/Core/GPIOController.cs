@@ -1,6 +1,7 @@
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,14 +11,32 @@ using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
 
+	public class AssistantTaskQueue {
+
+		public int PinNumber { get; set; }
+
+		public DateTime CreationTime { get; set; }
+
+		public DateTime EndingTime { get; set; }
+
+		public GpioPinValue InitialValue { get; set; }
+
+		public GpioPinValue FinalValue { get; set; }
+
+		public string Message { get; set; }
+
+		public TimeSpan Delay { get; set; }
+	}
+
 	//High = OFF
 	//Low = ON
 	public class GPIOController {
-		private Logger Logger = new Logger("GPIO-CONTROLLER");
+		private readonly Logger Logger = new Logger("GPIO-CONTROLLER");
 		private readonly GPIOConfigHandler GPIOConfigHandler;
 		public List<GPIOPinConfig> GPIOConfig;
 		public GPIOConfigRoot GPIOConfigRoot;
 		private bool IsWaitForValueCancellationRequested = false;
+		private ConcurrentQueue<AssistantTaskQueue> TaskQueue = new ConcurrentQueue<AssistantTaskQueue>();
 
 		public GPIOController(GPIOConfigRoot rootObject, List<GPIOPinConfig> config, GPIOConfigHandler configHandler) {
 			GPIOConfig = config;
@@ -26,60 +45,86 @@ namespace HomeAssistant.Core {
 			Logger.Log("Initiated GPIO Controller class!");
 		}
 
-		private bool CheckSafeMode() => Program.Config.GPIOSafeMode;
+		private bool CheckSafeMode() => Tess.Config.GPIOSafeMode;
 
 		public void StopWaitForValue() => IsWaitForValueCancellationRequested = true;
 
-		public void ChargerController(int pin, TimeSpan delay, GpioPinValue value) {
-			if(delay == null) {
+		public void ChargerController(int pin, TimeSpan delay, GpioPinValue initialValue, GpioPinValue finalValue) {
+			if (delay == null) {
 				Logger.Log("Time delay is null!", LogLevels.Error);
 				return;
 			}
 
-			if(pin <= 0) {
+			if (pin <= 0) {
 				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
 				return;
 			}
 
-			if (Program.Config.IRSensorPins.Contains(pin)) {
+			if (Tess.Config.IRSensorPins.Contains(pin)) {
 				Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!", LogLevels.Error);
 				return;
 			}
 
-			if (!Program.Config.RelayPins.Contains(pin)) {
+			if (!Tess.Config.RelayPins.Contains(pin)) {
 				Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.", LogLevels.Error);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(pin);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(pin);
 
-			if (PinStatus.IsOn && value == GpioPinValue.Low) {
+			if (initialValue == finalValue) {
+				Logger.Log("Initial value cant be equal to final value.", LogLevels.Error);
+				return;
+			}
+
+			if (PinStatus.IsOn && initialValue == GpioPinValue.Low) {
 				Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
 				return;
 			}
 
-			if (!PinStatus.IsOn && value == GpioPinValue.High) {
+			if (!PinStatus.IsOn && initialValue == GpioPinValue.High) {
 				Logger.Log("Pin is already configured to be in OFF State. Command doesn't make any sense.");
 				return;
 			}
 
-			Helpers.ScheduleTask(() => {
-				if (PinStatus.IsOn && value == GpioPinValue.High) {
-					Program.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
-					Logger.Log($"Sucessfully finished execution of the task: {pin} pin set to OFF.");
-				}
+			if (PinStatus.IsOn && initialValue == GpioPinValue.High && finalValue == GpioPinValue.Low) {
+				AssistantTaskQueue task = new AssistantTaskQueue() {
+					CreationTime = DateTime.Now,
+					EndingTime = DateTime.Now.Add(delay),
+					Delay = delay,
+					Message = null,
+					FinalValue = finalValue,
+					InitialValue = initialValue,
+					PinNumber = pin
+				};
 
-				if (!PinStatus.IsOn && value == GpioPinValue.Low) {
-					Program.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
-					Logger.Log($"Sucessfully finished execution of the task: {pin} pin set to ON.");
-				}
-			}, delay);
+				//TODO: Task based system for scheduling various tasks like remainders and charger controller
+				TaskQueue.Enqueue(task);
+				Logger.Log("Task added sucessfully.", LogLevels.Trace);
 
-			if (value == GpioPinValue.High) {
-				Logger.Log($"Successfully scheduled a task: set {pin} pin to OFF");
+				Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+				Logger.Log($"TASK >> {pin} configured to OFF state. Waiting {delay.Minutes} minutes...");
+				PinStatus = Tess.Controller.FetchPinStatus(pin);
+				Helpers.ScheduleTask(() => {
+					if (!PinStatus.IsOn && finalValue == GpioPinValue.Low) {
+						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+						Logger.Log($"TASK >> {pin} configured to ON state. Task completed sucessfully!");
+					}
+				}, delay);
+			}
+			else if (!PinStatus.IsOn && initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
+				Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+				Logger.Log($"TASK >> {pin} configured to ON state. Waiting {delay.Minutes} minutes...");
+				PinStatus = Tess.Controller.FetchPinStatus(pin);
+				Helpers.ScheduleTask(() => {
+					if (!PinStatus.IsOn && finalValue == GpioPinValue.High) {
+						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+						Logger.Log($"TASK >> {pin} configured to OFF state. Task completed sucessfully!");
+					}
+				}, delay);
 			}
 			else {
-				Logger.Log($"Successfully scheduled a task: set {pin} pin to ON");
+				return;
 			}
 		}
 
@@ -94,7 +139,7 @@ namespace HomeAssistant.Core {
 				return;
 			}
 
-			if (!Program.Config.IRSensorPins.Contains(pin)) {
+			if (!Tess.Config.IRSensorPins.Contains(pin)) {
 				Logger.Log("The specified pin doesn't exist in IR Sensor pin list.", LogLevels.Error);
 				return;
 			}
@@ -120,9 +165,9 @@ namespace HomeAssistant.Core {
 				}
 
 				if (pinState.Equals(pinValue)) {
-					Task.Run(action);
+					System.Threading.Tasks.Task.Run(action);
 				}
-				Task.Delay(100).Wait();
+				System.Threading.Tasks.Task.Delay(100).Wait();
 			}
 		}
 
@@ -172,7 +217,7 @@ namespace HomeAssistant.Core {
 					Logger.Log("Started the specified action process.", LogLevels.Trace);
 					return true;
 				}
-				Task.Delay(100).Wait();
+				System.Threading.Tasks.Task.Delay(100).Wait();
 			}
 		}
 
@@ -207,9 +252,8 @@ namespace HomeAssistant.Core {
 		}
 
 		public bool? GetGPIO(int pin, bool onlyInputPins = false) {
-
 			IGpioPin GPIOPin = Pi.Gpio[pin];
-			
+
 			if (onlyInputPins && GPIOPin.PinMode != GpioPinDriveMode.Input) {
 				Logger.Log("The specified gpio pin mode isn't set to Input.", LogLevels.Error);
 				return null;
@@ -219,12 +263,12 @@ namespace HomeAssistant.Core {
 		}
 
 		public bool SetGPIO(int pin, GpioPinDriveMode mode, GpioPinValue state) {
-			if (!Program.Config.GPIOControl) {
+			if (!Tess.Config.GPIOControl) {
 				return false;
 			}
 
 			if (CheckSafeMode()) {
-				if (!Program.Config.RelayPins.Contains(pin)) {
+				if (!Tess.Config.RelayPins.Contains(pin)) {
 					Logger.Log($"Could not configure {pin} as safe mode is enabled.");
 					return false;
 				}
@@ -296,12 +340,12 @@ namespace HomeAssistant.Core {
 		}
 
 		public bool SetGPIO(BcmPin pin, GpioPinDriveMode mode, GpioPinValue state) {
-			if (!Program.Config.GPIOControl) {
+			if (!Tess.Config.GPIOControl) {
 				return false;
 			}
 
 			if (CheckSafeMode()) {
-				if (!Program.Config.RelayPins.Contains((int) pin)) {
+				if (!Tess.Config.RelayPins.Contains((int) pin)) {
 					Logger.Log("Could not configure {pin} as safe mode is enabled.");
 					return false;
 				}
@@ -399,7 +443,7 @@ namespace HomeAssistant.Core {
 
 			await Task.Delay(100).ConfigureAwait(false);
 
-			if (Program.Config.CloseRelayOnShutdown) {
+			if (Tess.Config.CloseRelayOnShutdown) {
 				foreach (GPIOPinConfig value in GPIOConfig) {
 					if (value.IsOn) {
 						SetGPIO(value.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -482,15 +526,16 @@ namespace HomeAssistant.Core {
 		public async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
 			SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			Logger.Log($"Waiting for {delayInMs} ms to close the relay...");
-			await Task.Delay(delayInMs).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(delayInMs).ConfigureAwait(false);
 			SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			Logger.Log("Relay closed!");
 			return true;
 		}
 
 		public async Task<bool> RelayOneTwo() {
+
 			//make sure all relay is off
-			foreach (int pin in Program.Config.RelayPins) {
+			foreach (int pin in Tess.Config.RelayPins) {
 				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -498,37 +543,38 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			foreach (int pin in Program.Config.RelayPins) {
-				Task.Delay(400).Wait();
+			foreach (int pin in Tess.Config.RelayPins) {
+				System.Threading.Tasks.Task.Delay(400).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
-			await Task.Delay(500).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(500).ConfigureAwait(false);
 
-			foreach (int pin in Program.Config.RelayPins) {
-				Task.Delay(200).Wait();
+			foreach (int pin in Tess.Config.RelayPins) {
+				System.Threading.Tasks.Task.Delay(200).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
-			Task.Delay(800).Wait();
+			System.Threading.Tasks.Task.Delay(800).Wait();
 
-			foreach (int pin in Program.Config.RelayPins) {
-				Task.Delay(200).Wait();
+			foreach (int pin in Tess.Config.RelayPins) {
+				System.Threading.Tasks.Task.Delay(200).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
-			await Task.Delay(500).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(500).ConfigureAwait(false);
 
-			foreach (int pin in Program.Config.RelayPins) {
-				Task.Delay(400).Wait();
+			foreach (int pin in Tess.Config.RelayPins) {
+				System.Threading.Tasks.Task.Delay(400).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 			return true;
 		}
 
 		public async Task<bool> RelayOneOne() {
+
 			//make sure all relay is off
-			foreach (int pin in Program.Config.RelayPins) {
+			foreach (int pin in Tess.Config.RelayPins) {
 				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -536,19 +582,20 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			foreach (int pin in Program.Config.RelayPins) {
+			foreach (int pin in Tess.Config.RelayPins) {
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
-				Task.Delay(500).Wait();
+				System.Threading.Tasks.Task.Delay(500).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
-				await Task.Delay(100).ConfigureAwait(false);
+				await System.Threading.Tasks.Task.Delay(100).ConfigureAwait(false);
 			}
 
 			return true;
 		}
 
 		public async Task<bool> RelayOneMany() {
+
 			//make sure all relay is off
-			foreach (int pin in Program.Config.RelayPins) {
+			foreach (int pin in Tess.Config.RelayPins) {
 				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -558,18 +605,18 @@ namespace HomeAssistant.Core {
 
 			int counter = 0;
 
-			foreach (int pin in Program.Config.RelayPins) {
+			foreach (int pin in Tess.Config.RelayPins) {
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 
 				while (counter < 4) {
-					Task.Delay(200).Wait();
+					System.Threading.Tasks.Task.Delay(200).Wait();
 					SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
-					Task.Delay(500).Wait();
+					System.Threading.Tasks.Task.Delay(500).Wait();
 					SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 					counter++;
 				}
 
-				await Task.Delay(100).ConfigureAwait(false);
+				await System.Threading.Tasks.Task.Delay(100).ConfigureAwait(false);
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 

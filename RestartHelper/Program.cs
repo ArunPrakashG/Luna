@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace RestartHelper {
 
 	internal class Program {
+
 		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
 		private static async Task Main(string[] args) {

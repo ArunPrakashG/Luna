@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
@@ -90,7 +89,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
+						System.Threading.Tasks.Task.Run((Func<System.Threading.Tasks.Task>) (async () => await Tess.Exit(0).ConfigureAwait(false)));
 						return false;
 
 					default:

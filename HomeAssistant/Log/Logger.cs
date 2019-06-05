@@ -1,4 +1,5 @@
 using Discord.WebSocket;
+using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Modules;
 using System;
@@ -9,7 +10,6 @@ namespace HomeAssistant.Log {
 
 	public class Logger {
 		private NLog.Logger LogModule;
-		private DiscordSocketClient DiscordClient;
 		private readonly string LogIdentifier;
 
 		public Logger(string loggerIdentifier) {
@@ -54,7 +54,7 @@ namespace HomeAssistant.Log {
 				return;
 			}
 
-			if (Program.Config.Debug) {
+			if (Tess.Config.Debug) {
 				LogModule.Info($"{previousMethodName}() {message}");
 			}
 			else {
@@ -91,7 +91,7 @@ namespace HomeAssistant.Log {
 		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null) {
 			switch (level) {
 				case LogLevels.Trace:
-					if (Program.Config.Debug) {
+					if (Tess.Config.Debug) {
 						LogGenericInfo(message, previousMethodName);
 					}
 					LogGenericTrace(message, previousMethodName);
@@ -182,12 +182,14 @@ namespace HomeAssistant.Log {
 		}
 
 		public void DiscordLogToChannel(string message) {
-			if (!Program.CoreInitiationCompleted || !Program.Config.DiscordLog || !Program.Modules.Discord.IsServerOnline) {
+			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.Modules.Discord.IsServerOnline) {
 				return;
 			}
 
-			if (DiscordClient == null && Program.Modules.Discord.Client != null) {
-				DiscordClient = Program.Modules.Discord.Client;
+			DiscordSocketClient DiscordClient = null;
+
+			if (Tess.Modules.Discord.Client != null && Tess.Modules.Discord.Client.ConnectionState == Discord.ConnectionState.Connected) {
+				DiscordClient = Tess.Modules.Discord.Client;
 			}
 			else {
 				Log("Failed to log to discord channel as the discord client is neither connected nor initialized.", LogLevels.Info);

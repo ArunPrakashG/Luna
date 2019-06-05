@@ -4,28 +4,35 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace HomeAssistant.Core {
 
 	public class EmailConfig {
+
 		[JsonProperty]
 		public string EmailID { get; set; }
+
 		[JsonProperty]
 		public string EmailPASS { get; set; }
+
 		[JsonProperty]
 		public bool MarkAllMessagesAsRead = false;
+
 		[JsonProperty]
 		public bool MuteNotifications { get; set; } = false;
+
 		[JsonProperty]
 		public string AutoReplyText { get; set; }
+
 		[JsonProperty]
 		public bool DownloadEmails { get; set; } = false;
+
 		[JsonProperty]
 		public bool Enabled { get; set; } = true;
 
 		[JsonProperty]
 		public bool ImapNotifications { get; set; } = true;
+
 		[JsonProperty]
 		public ConcurrentDictionary<bool, string> AutoForwardEmails = new ConcurrentDictionary<bool, string>();
 	}
@@ -69,6 +76,9 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty]
 		public bool Debug = false;
+
+		[JsonProperty]
+		public bool EnableFirstChanceLog = false;
 
 		[JsonProperty]
 		public bool MuteAll = false;
@@ -167,11 +177,11 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						Task.Run(async () => await Program.Exit(0).ConfigureAwait(false));
+						System.Threading.Tasks.Task.Run((Func<System.Threading.Tasks.Task>) (async () => await Tess.Exit(0).ConfigureAwait(false)));
 						return false;
 
 					default:
-						Logger.Log("Unknown value entered! continuing to run the program...");
+						Logger.Log("Unknown value entered! continuing to run the Tess...");
 						break;
 				}
 			}

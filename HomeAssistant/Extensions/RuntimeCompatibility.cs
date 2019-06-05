@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 namespace HomeAssistant.Extensions {
 
 	public static class RuntimeCompatibility {
+
 		internal static bool IsRunningOnMono => Type.GetType("Mono.Runtime") != null;
 
 #if NET472
@@ -55,6 +56,7 @@ namespace HomeAssistant.Extensions {
 
 			internal static string GetRelativePath(string relativeTo, string path) {
 #if NET472
+
 				// This is a very silly implementation
 				if (!path.StartsWith(relativeTo, StringComparison.OrdinalIgnoreCase)) {
 					throw new NotImplementedException();

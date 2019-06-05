@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 namespace HomeAssistant.Extensions {
 
 	internal static class OS {
+
 		internal static bool IsUnix => RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 		private static Logger Logger = new Logger("OS");
 
@@ -52,6 +53,7 @@ namespace HomeAssistant.Extensions {
 		}
 
 		private static void KeepWindowsSystemActive() {
+
 			// This function calls unmanaged API in order to tell Windows OS that it should not enter sleep state while the program is running
 			// If user wishes to enter sleep mode, then he should use ShutdownOnFarmingFinished or manage ASF process with third-party tool or script
 			// More info: https://msdn.microsoft.com/library/windows/desktop/aa373208(v=vs.85).aspx

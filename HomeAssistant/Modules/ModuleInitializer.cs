@@ -41,7 +41,7 @@ namespace HomeAssistant.Modules {
 		}
 
 		private bool StartEmail() {
-			if (Program.Config.EmailDetails.Count <= 0 || !Program.Config.EmailDetails.Any()) {
+			if (Tess.Config.EmailDetails.Count <= 0 || !Tess.Config.EmailDetails.Any()) {
 				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
 				return false;
 			}
@@ -49,8 +49,7 @@ namespace HomeAssistant.Modules {
 			EmailClientCollection.Clear();
 
 			int loadedCount = 0;
-
-			foreach (KeyValuePair<string, EmailConfig> entry in Program.Config.EmailDetails) {
+			foreach (KeyValuePair<string, EmailConfig> entry in Tess.Config.EmailDetails) {
 				if (string.IsNullOrEmpty(entry.Value.EmailID) || string.IsNullOrWhiteSpace(entry.Value.EmailPASS)) {
 					continue;
 				}
@@ -67,24 +66,24 @@ namespace HomeAssistant.Modules {
 				}
 			}
 
-			if (loadedCount == Program.Config.EmailDetails.Count) {
+			if (loadedCount == Tess.Config.EmailDetails.Count) {
 				Logger.Log("Sucessfully loaded all email accounts and started IMAP Idle!", LogLevels.Trace);
 			}
 			else {
-				Logger.Log($"{loadedCount} accounts loaded sucessfully, {Program.Config.EmailDetails.Count - loadedCount} account(s) failed.", LogLevels.Trace);
+				Logger.Log($"{loadedCount} accounts loaded sucessfully, {Tess.Config.EmailDetails.Count - loadedCount} account(s) failed.", LogLevels.Trace);
 			}
 
 			return true;
 		}
 
 		public void DisposeAllEmailClients() {
-			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null || !EmailClientCollection.Any()) {
+			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
 				return;
 			}
 
 			foreach (KeyValuePair<string, Email> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
-					pair.Value.DisposeClient();
+					pair.Value.DisposeClient(false);
 					Logger.Log($"Disconnected {pair.Key} email account sucessfully!", LogLevels.Trace);
 					EmailClientCollection.TryRemove(pair.Key, out _);
 				}
@@ -92,13 +91,19 @@ namespace HomeAssistant.Modules {
 			EmailClientCollection.Clear();
 		}
 
-		public async Task OnCoreShutdown() {
+		public bool OnCoreShutdown() {
 			if (Discord.Client != null || Discord.IsServerOnline) {
-				await Discord.StopServer().ConfigureAwait(false);
+				Logger.Log("Discord server shutting down...", LogLevels.Trace);
+				_ = Discord.StopServer().Result;
 			}
 
-			DisposeAllEmailClients();
+			if (EmailClientCollection.Count > 0 && EmailClientCollection != null) {
+				Logger.Log("Email clients shutting down...", LogLevels.Trace);
+				DisposeAllEmailClients();
+			}
+
 			Logger.Log("Modules sucessfully shutdown!");
+			return true;
 		}
 	}
 }

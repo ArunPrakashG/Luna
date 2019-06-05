@@ -14,21 +14,26 @@ using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Threading;
-using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 using Timer = System.Timers.Timer;
 
 namespace HomeAssistant.Modules {
 
 	public class MessageData {
+
 		public IMessageSummary Message { get; set; }
+
 		public uint UniqueId { get; set; }
+
 		public bool MarkAsRead { get; set; }
+
 		public bool MarkedAsDeleted { get; set; }
+
 		public DateTime ArrivedTime { get; set; }
 	}
 
-	public class Email : IModuleBase, IMail {
+	public class Email : IMail {
+
 		//TODO
 		//IMAP Client for gmail
 		//send emails
@@ -38,10 +43,15 @@ namespace HomeAssistant.Modules {
 		//search messages
 
 		private readonly Logger Logger;
+
 		private string GmailID { get; set; }
+
 		private string GmailPass { get; set; }
+
 		public string UniqueAccountID { get; set; }
+
 		public Version Version { get; set; }
+
 		public string ModuleName { get; set; }
 		private ImapClient Client;
 		private ImapClient HelperClient;
@@ -53,16 +63,10 @@ namespace HomeAssistant.Modules {
 		private bool ClientShutdownSucessfull = false;
 		private bool IdleCancelledSucessfully = false;
 		private bool IsClientDisconnected = false;
+
 		private bool IsClientInIdle => Client.IsIdle;
 		public List<MessageData> MessagesArrivedDuringIdle = new List<MessageData>();
 		private EmailConfig MailConfig = new EmailConfig();
-
-		public void OnModuleStarted() {
-		}
-
-		public void OnModuleShutdown() {
-			DisposeClient();
-		}
 
 		public Email(string uniqueID, EmailConfig mailConfig) {
 			MailConfig = mailConfig ?? throw new ArgumentNullException("Mail Config is null!");
@@ -116,13 +120,25 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		public void DisposeClient() {
+		public void DisposeClient(bool force) {
 			IsClientShutdownRequested = true;
 			IsIdleCancelRequested = true;
+
+			if (force) {
+				if (Client != null) {
+					Client.Dispose();
+				}
+
+				if (HelperClient != null) {
+					HelperClient.Dispose();
+				}
+				return;
+			}
+
 			if (!IdleCancelledSucessfully) {
 				StopImapIdle();
 
-				Task.Delay(100).Wait();
+				System.Threading.Tasks.Task.Delay(100).Wait();
 
 				while (true) {
 					if (!IdleCancelledSucessfully) {
@@ -132,7 +148,7 @@ namespace HomeAssistant.Modules {
 						Logger.Log("IMAP Idle has been stopped.", LogLevels.Trace);
 						break;
 					}
-					Task.Delay(100).Wait();
+					System.Threading.Tasks.Task.Delay(100).Wait();
 				}
 			}
 
@@ -226,8 +242,9 @@ namespace HomeAssistant.Modules {
 
 			Client.Inbox.Open(FolderAccess.ReadWrite);
 			InboxMessagesCount = Client.Inbox.Count;
+
 			if (reconnect) {
-				Logger.Log("IDLE reconnected sucessfully!");
+				Logger.Log("IDLE service reconnected sucessfully!", LogLevels.Trace);
 			}
 			else {
 				Logger.Log($"Sucessfully connected and authenticated for {GmailID}.");
@@ -253,22 +270,26 @@ namespace HomeAssistant.Modules {
 
 				if (folder.Count > InboxMessagesCount) {
 					Logger.Log($"{folder.Count - InboxMessagesCount} new message(s) have arrived.");
+
+					if (!MailConfig.MuteNotifications && MailConfig.ImapNotifications) {
+						Helpers.PlayNotification(NotificationContext.Imap, true);
+					}
+
 					StopImapIdle();
-					OnMessageArrived();
 				}
 			};
 
-			Helpers.InBackgroundThread(() => {
+			Helpers.InBackground(() => {
 				try {
 					using (DoneToken = new CancellationTokenSource()) {
-						Thread thread = new Thread(IdleLoop);
+						Thread thread = new Thread(this.IdleLoop);
 						thread.Start(new IdleState(Client, DoneToken.Token));
 
 						while (true) {
 							if (IsIdleCancelRequested) {
 								break;
 							}
-							Task.Delay(100).Wait();
+							System.Threading.Tasks.Task.Delay(100).Wait();
 						}
 
 						DoneToken.Cancel();
@@ -280,6 +301,7 @@ namespace HomeAssistant.Modules {
 							}
 							else {
 								IdleCancelledSucessfully = true;
+								OnMessageArrived();
 								break;
 							}
 						}
@@ -307,15 +329,8 @@ namespace HomeAssistant.Modules {
 										return;
 									}
 								}
-								Task.Delay(100).Wait();
+								System.Threading.Tasks.Task.Delay(100).Wait();
 							}
-						}
-
-						if (IsClientShutdownRequested || IsClientDisconnected) {
-							return;
-						}
-						else {
-							OnIdleStopped(IsClientShutdownRequested);
 						}
 					}
 				}
@@ -323,7 +338,7 @@ namespace HomeAssistant.Modules {
 					Logger.Log(e, ExceptionLogLevels.Error);
 					return;
 				}
-			}, "Idle Thread");
+			});
 		}
 
 		private void OnMessageArrived() {
@@ -339,25 +354,25 @@ namespace HomeAssistant.Modules {
 				else {
 					Logger.Log("Waiting for client to shutdown idling connection...", LogLevels.Trace);
 				}
+				System.Threading.Tasks.Task.Delay(100).Wait();
 			}
 
 			List<IMessageSummary> messages = new List<IMessageSummary>();
 			if (Client.Inbox.Count > InboxMessagesCount) {
-				lock (HelperClient.SyncRoot) {
-					messages = HelperClient.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
+				if (!Client.IsConnected) { return; }
+				lock (Client.SyncRoot) {
+					messages = Client.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
 					Logger.Log("Message fetched.", LogLevels.Trace);
-				}
-
-				if (!MailConfig.MuteNotifications && MailConfig.ImapNotifications) {
-					Helpers.PlayNotification(NotificationContext.Imap);					
 				}
 
 				IMessageSummary latestMessage = null;
 
 				if (messages.Count > 0 || messages != null) {
 					foreach (IMessageSummary msg in messages) {
-						if(MessagesArrivedDuringIdle.Count <= 0) {
+						if (MessagesArrivedDuringIdle.Count <= 0) {
 							latestMessage = msg;
+							Logger.Log("fetched latest message data.", LogLevels.Trace);
+							Logger.Log($"{latestMessage.Envelope.Sender.FirstOrDefault().Name} / {latestMessage.Envelope.Subject}");
 							break;
 						}
 
@@ -365,6 +380,7 @@ namespace HomeAssistant.Modules {
 							if (msg.UniqueId.Id != msgdata.UniqueId) {
 								latestMessage = msg;
 								Logger.Log("fetched latest message data.", LogLevels.Trace);
+								Logger.Log($"{latestMessage.Envelope.Sender.FirstOrDefault().Name} / {latestMessage.Envelope.Subject}");
 								break;
 							}
 						}
@@ -384,12 +400,23 @@ namespace HomeAssistant.Modules {
 					}
 				}
 
-				if (MailConfig.AutoReplyText != null && latestMessage != null) {
-					HelperClient.Inbox.Open(FolderAccess.ReadWrite);
-					MimeMessage msg = HelperClient.Inbox.GetMessage(latestMessage.UniqueId);
+				if ((!string.IsNullOrEmpty(MailConfig.AutoReplyText) || !string.IsNullOrWhiteSpace(MailConfig.AutoReplyText)) && latestMessage != null) {
+					MimeMessage msg = Client.Inbox.GetMessage(latestMessage.UniqueId);
+
+					if (msg == null) {
+						return;
+					}
+
 					AutoReplyEmail(msg, MailConfig.AutoReplyText);
 					Logger.Log($"Sucessfully send auto reply message to {msg.Sender.Address}");
 				}
+			}
+
+			if (IsClientShutdownRequested || IsClientDisconnected) {
+				return;
+			}
+			else {
+				OnIdleStopped(IsClientShutdownRequested);
 			}
 		}
 
@@ -448,7 +475,7 @@ namespace HomeAssistant.Modules {
 			Logger.Log($"Successfully send email to {to}");
 		}
 
-		private void OnIdleStopped(bool IsShutdownReqested) {
+		private void OnIdleStopped(bool isShutdownReqested) {
 			if (IsClientInIdle) {
 				StopImapIdle();
 			}
@@ -469,8 +496,8 @@ namespace HomeAssistant.Modules {
 				IsAccountLoaded = false;
 			}
 
-			if (!IsShutdownReqested && !IsClientShutdownRequested) {
-				StartImapClient(true);
+			if (!isShutdownReqested && !IsClientShutdownRequested) {
+				Helpers.InBackground(() => StartImapClient(true));
 			}
 		}
 
@@ -488,6 +515,8 @@ namespace HomeAssistant.Modules {
 								idle.SetTimeoutSource(timeout);
 
 								if (idle.Client.Capabilities.HasFlag(ImapCapabilities.Idle)) {
+
+									//TODO ERROR
 									idle.Client.Idle(timeout.Token, idle.CancellationToken);
 								}
 								else {

@@ -1,7 +1,9 @@
+using HomeAssistant.Core;
 using HomeAssistant.Log;
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -45,9 +47,20 @@ namespace HomeAssistant.Extensions {
 			}
 		}
 
+		public static bool IsSocketConnected(Socket s) {
+			bool part1 = s.Poll(1000, SelectMode.SelectRead);
+			bool part2 = s.Available == 0;
+			if (part1 && part2) {
+				return false;
+			}
+			else {
+				return true;
+			}
+		}
+
 		//TODO Implement play notification sound
-		public static void PlayNotification(NotificationContext context = NotificationContext.Normal) {
-			if (Program.Config.MuteAll) {
+		public static void PlayNotification(NotificationContext context = NotificationContext.Normal, bool redirectOutput = false) {
+			if (Tess.Config.MuteAll) {
 				return;
 			}
 
@@ -63,7 +76,7 @@ namespace HomeAssistant.Extensions {
 						return;
 					}
 
-					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && omxplayer {Constants.IMAPSoundName}", true);
+					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPSoundName}", redirectOutput);
 					Logger.Log("Notification command processed sucessfully!", LogLevels.Trace);
 					break;
 
@@ -95,8 +108,8 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static ConsoleKeyInfo? FetchUserInputSingleChar(TimeSpan delay) {
-			Task<ConsoleKeyInfo> task = Task.Factory.StartNew(Console.ReadKey);
-			ConsoleKeyInfo? result = Task.WaitAny(new Task[] { task }, delay) == 0 ? task.Result : (ConsoleKeyInfo?) null;
+			Task<ConsoleKeyInfo> task = System.Threading.Tasks.Task.Factory.StartNew(Console.ReadKey);
+			ConsoleKeyInfo? result = System.Threading.Tasks.Task.WaitAny(new System.Threading.Tasks.Task[] { task }, delay) == 0 ? task.Result : (ConsoleKeyInfo?) null;
 			return result;
 		}
 
@@ -111,7 +124,7 @@ namespace HomeAssistant.Extensions {
 		public static string GetExternalIP() => new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
 
 		internal static string TimeRan() {
-			DateTime StartTime = Program.StartupTime;
+			DateTime StartTime = Tess.StartupTime;
 			TimeSpan dt = DateTime.Now - StartTime;
 			string Duration = "Online for: ";
 			Duration += Math.Round(dt.TotalDays, 0).ToString() + " days, ";
@@ -122,17 +135,17 @@ namespace HomeAssistant.Extensions {
 
 		public static async Task DisplayTessASCII() {
 			Logger.Log(@"  _______ ______  _____ _____ ", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 			Logger.Log(@" |__   __|  ____|/ ____/ ____|", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 			Logger.Log(@"    | |  | |__  | (___| (___  ", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 			Logger.Log(@"    | |  |  __|  \___ \\___ \ ", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 			Logger.Log(@"    | |  | |____ ____) |___) |", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 			Logger.Log(@"    |_|  |______|_____/_____/ ", LogLevels.Ascii);
-			await Task.Delay(100).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(100).ConfigureAwait(false);
 			Logger.Log("\n", LogLevels.Ascii);
 		}
 
@@ -244,13 +257,14 @@ namespace HomeAssistant.Extensions {
 			}
 			catch (Exception e) {
 				if (e is PlatformNotSupportedException) {
+
 					//Ignoring this as this is common on Raspberry pi with arm cpu system.
 				}
 			}
 			return null;
 		}
 
-		public static byte[] GetUrlToBytes(string url, Method method, string headerName, string headerValue, string userAgent) {
+		public static byte[] GetUrlToBytes(string url, Method method, string userAgent, string headerName = null, string headerValue = null) {
 			if (url == null) {
 				throw new ArgumentNullException(nameof(url));
 			}
@@ -277,16 +291,24 @@ namespace HomeAssistant.Extensions {
 		public static async Task<bool> RestartOrExit(bool Restart = false) {
 			if (Restart) {
 				Logger.Log("Restarting...");
-				await Task.Delay(5000).ConfigureAwait(false);
-				await Program.Restart().ConfigureAwait(false);
+				await System.Threading.Tasks.Task.Delay(5000).ConfigureAwait(false);
+				await Tess.Restart().ConfigureAwait(false);
 				return true;
 			}
 			else {
 				Logger.Log("Exiting...");
-				await Task.Delay(5000).ConfigureAwait(false);
-				await Program.Exit().ConfigureAwait(false);
+				await System.Threading.Tasks.Task.Delay(5000).ConfigureAwait(false);
+				await Tess.Exit().ConfigureAwait(false);
 				return true;
 			}
+		}
+
+		public static void WriteBytesToFile(byte[] bytesToWrite, string filePath) {
+			if (bytesToWrite.Length <= 0 || string.IsNullOrEmpty(filePath) || string.IsNullOrWhiteSpace(filePath)) {
+				return;
+			}
+
+			File.WriteAllBytes(filePath, bytesToWrite);
 		}
 
 		public static void InBackgroundThread(Action action, string threadName, bool longRunning = false) {
@@ -319,25 +341,42 @@ namespace HomeAssistant.Extensions {
 				options |= TaskCreationOptions.LongRunning | TaskCreationOptions.PreferFairness;
 			}
 
-			Task.Factory.StartNew(action, CancellationToken.None, options, TaskScheduler.Default);
+			System.Threading.Tasks.Task.Factory.StartNew(action, CancellationToken.None, options, TaskScheduler.Default);
 		}
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
-			Process proc = new Process();
-			proc.StartInfo.FileName = fileName;
-			proc.StartInfo.Arguments = "-c \" " + command + " \"";
-
-			if (redirectOutput) {
-				proc.StartInfo.UseShellExecute = false;
-				proc.StartInfo.RedirectStandardOutput = true;
+			if (Tess.IsUnknownOS && fileName == "/bin/bash") {
+				Logger.Log("TESS is running on unknown OS. notification sounds wont be played.", LogLevels.Error);
+				return;
 			}
 
-			proc.Start();
+			try {
+				Process proc = new Process();
+				proc.StartInfo.FileName = fileName;
+				proc.StartInfo.Arguments = "-c \" " + command + " \"";
 
-			if (redirectOutput) {
-				while (!proc.StandardOutput.EndOfStream) {
-					Logger.Log(proc.StandardOutput.ReadLine(), LogLevels.Warn);
+				if (redirectOutput) {
+					proc.StartInfo.UseShellExecute = false;
+					proc.StartInfo.RedirectStandardOutput = true;
 				}
+
+				proc.Start();
+
+				if (redirectOutput) {
+					while (!proc.StandardOutput.EndOfStream) {
+						Logger.Log(proc.StandardOutput.ReadLine(), LogLevels.Trace);
+					}
+				}
+			}
+			catch (PlatformNotSupportedException) {
+			}
+			catch (Win32Exception) {
+				Logger.Log("System cannot find the specified file.", LogLevels.Error);
+				return;
+			}
+			catch (Exception e) {
+				Logger.Log(e.ToString());
+				return;
 			}
 		}
 
@@ -353,7 +392,7 @@ namespace HomeAssistant.Extensions {
 				options |= TaskCreationOptions.LongRunning | TaskCreationOptions.PreferFairness;
 			}
 
-			Task.Factory.StartNew(function, CancellationToken.None, options, TaskScheduler.Default);
+			System.Threading.Tasks.Task.Factory.StartNew(function, CancellationToken.None, options, TaskScheduler.Default);
 		}
 
 		public static async Task<IList<T>> InParallel<T>(IEnumerable<Task<T>> tasks) {
@@ -362,7 +401,7 @@ namespace HomeAssistant.Extensions {
 				return null;
 			}
 
-			IList<T> results = await Task.WhenAll(tasks).ConfigureAwait(false);
+			IList<T> results = await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
 			return results;
 		}
 
@@ -375,13 +414,13 @@ namespace HomeAssistant.Extensions {
 			}
 		}
 
-		public static async Task InParallel(IEnumerable<Task> tasks) {
+		public static async Task InParallel(IEnumerable<System.Threading.Tasks.Task> tasks) {
 			if (tasks == null) {
 				Logger.Log(nameof(tasks), LogLevels.Warn);
 				return;
 			}
 
-			await Task.WhenAll(tasks).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
 		}
 
 		public static bool CheckForInternetConnection() {

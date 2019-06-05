@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace UpdateHelper {
 
 	internal class Program {
+
 		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
 		private static void Main(string[] args) {

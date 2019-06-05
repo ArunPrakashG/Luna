@@ -1,3 +1,4 @@
+using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using RestSharp;
@@ -29,7 +30,7 @@ namespace HomeAssistant.Update {
 
 		public void StartUpdateTimer() {
 			StopUpdateTimer();
-			if (Program.Config.AutoUpdates && AutoUpdateTimer == null) {
+			if (Tess.Config.AutoUpdates && AutoUpdateTimer == null) {
 				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(5);
 
 				AutoUpdateTimer = new Timer(
@@ -48,7 +49,7 @@ namespace HomeAssistant.Update {
 				StartUpdateTimer();
 			}
 
-			if (!Program.Config.AutoUpdates) {
+			if (!Tess.Config.AutoUpdates) {
 				Logger.Log("Updates are disabled.");
 				return;
 			}
@@ -91,7 +92,7 @@ namespace HomeAssistant.Update {
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...");
 				UpdateAvailable = true;
-				await Task.Delay(10000).ConfigureAwait(false);
+				await System.Threading.Tasks.Task.Delay(10000).ConfigureAwait(false);
 				await InitUpdate().ConfigureAwait(false);
 			}
 			else if (LatestVersion < Constants.Version) {
@@ -148,7 +149,7 @@ namespace HomeAssistant.Update {
 
 			response.RawBytes.SaveAs(Constants.UpdateZipFileName);
 			Logger.Log("Sucessfully Downloaded, Starting update process...");
-			await Task.Delay(1000).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(1000).ConfigureAwait(false);
 
 			if (!File.Exists(Constants.UpdateZipFileName)) {
 				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", LogLevels.Error);
@@ -170,7 +171,7 @@ namespace HomeAssistant.Update {
 					}
 				}
 
-				await Task.Delay(1000).ConfigureAwait(false);
+				await System.Threading.Tasks.Task.Delay(1000).ConfigureAwait(false);
 				Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll", true);
 				_ = await Helpers.RestartOrExit().ConfigureAwait(false);
 			}

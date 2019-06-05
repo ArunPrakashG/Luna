@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
@@ -13,7 +14,7 @@ using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Server {
 
-	public class TCPServer : Program {
+	public class TCPServer : Tess {
 		private readonly Logger Logger;
 		private byte[] Buffer = new byte[1024];
 		private string ReceivedData;
@@ -24,18 +25,22 @@ namespace HomeAssistant.Server {
 			Logger = new Logger("SERVER");
 		}
 
-		public async Task<bool> StopServer() {
-			if (Sock != null) {
-				Sock.Close(2);
-				Sock.Dispose();
-				Logger.Log("Stopping Server...");
-				await Task.Delay(100).ConfigureAwait(false);
-				return true;
+		public void StopServer() {
+			try {
+				if (Sock != null && ServerOn) {
+					Logger.Log("Stopping Server...");
+					ServerOn = false;
+					Sock.Close();
+					Sock.Dispose();
+				}
 			}
-			return false;
+			catch (WebSocketException) {
+
+				//throw
+			}
 		}
 
-		public async Task<bool> StartServer() {
+		public bool StartServer() {
 			try {
 				IPEndPoint localEndpoint = new IPEndPoint(IPAddress.Any, Config.ServerPort);
 				string externalip = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
@@ -50,38 +55,49 @@ namespace HomeAssistant.Server {
 
 				Helpers.InBackgroundThread(() => {
 					while (true) {
-						Socket Socket = Sock.Accept();
-						int b = Socket.Receive(Buffer);
-						EndPoint ep = Socket.RemoteEndPoint;
-						string[] IpData = ep.ToString().Split(':');
-						string clientIP = IpData[0].Trim();
-						Logger.Log("Client IP: " + clientIP, LogLevels.Trace);
+						try {
+							Socket Socket = Sock.Accept();
+							int b = Socket.Receive(Buffer);
+							EndPoint ep = Socket.RemoteEndPoint;
+							string[] IpData = ep.ToString().Split(':');
+							string clientIP = IpData[0].Trim();
+							Logger.Log("Client IP: " + clientIP, LogLevels.Trace);
 
-						if (File.Exists(Constants.IPBlacklistPath) && File.ReadAllLines(Constants.IPBlacklistPath).Any(x => x.Equals(clientIP))) {
-							Logger.Log("Unauthorized IP Connected: " + clientIP, LogLevels.Error);
+							if (File.Exists(Constants.IPBlacklistPath) && File.ReadAllLines(Constants.IPBlacklistPath).Any(x => x.Equals(clientIP))) {
+								Logger.Log("Unauthorized IP Connected: " + clientIP, LogLevels.Error);
+								Socket.Close();
+							}
+
+							ReceivedData = Encoding.ASCII.GetString(Buffer, 0, b);
+							Logger.Log($"Client Connected > {clientIP} > {ReceivedData}", LogLevels.Trace);
+							string resultText = OnRecevied(ReceivedData).Result;
+
+							if (!Helpers.IsSocketConnected(Socket)) {
+							}
+
+							if (resultText != null) {
+								byte[] Message = Encoding.ASCII.GetBytes(resultText);
+								Socket.Send(Message);
+							}
+							else {
+								byte[] Message = Encoding.ASCII.GetBytes("Bad Command!");
+								Socket.Send(Message);
+							}
+
 							Socket.Close();
+							Logger.Log("Client Disconnected.", LogLevels.Trace);
+
+							if (!ServerOn) {
+								Helpers.ScheduleTask(() => {
+									CoreServer.StopServer();
+									StartServer();
+								}, TimeSpan.FromMinutes(1));
+								Logger.Log("Restarting server in 1 minute as it went offline.");
+								return;
+							}
 						}
-
-						ReceivedData = Encoding.ASCII.GetString(Buffer, 0, b);
-						Logger.Log($"Client Connected > {clientIP} > {ReceivedData}", LogLevels.Trace);
-						string resultText = OnRecevied(ReceivedData).Result;
-
-						if (resultText != null) {
-							byte[] Message = Encoding.ASCII.GetBytes(resultText);
-							Socket.Send(Message);
-						}
-						else {
-							byte[] Message = Encoding.ASCII.GetBytes("Bad Command!");
-							Socket.Send(Message);
-						}
-
-						Socket.Close();
-						Logger.Log("Client Disconnected.", LogLevels.Trace);
-
-						if (!ServerOn) {
-							Helpers.InBackground(StopServer);
-							Task.Delay(5000).Wait();
-							Helpers.InBackground(StartServer);
+						catch (SocketException) {
+							Logger.Log("Socket Exception on TCPServer.cs Line 54.", LogLevels.Trace);
 							return;
 						}
 					}
@@ -99,13 +115,15 @@ namespace HomeAssistant.Server {
 				}
 				else if (ex is SocketException) {
 					Logger.Log("Connection has been reset.", LogLevels.Error);
-					await StopServer().ConfigureAwait(false);
+					CoreServer.StopServer();
 				}
 				else {
 					Logger.Log(ex, ExceptionLogLevels.Fatal);
-					await StopServer().ConfigureAwait(false);
-					await Task.Delay(5000).ConfigureAwait(false);
-					await StartServer().ConfigureAwait(false);
+					Helpers.ScheduleTask(() => {
+						CoreServer.StopServer();
+						StartServer();
+					}, TimeSpan.FromMinutes(1));
+					Logger.Log("Restarting server in 1 minute as it went offline.");
 				}
 			}
 			return true;
@@ -313,12 +331,12 @@ namespace HomeAssistant.Server {
 			switch (context) {
 				case PiContext.GPIO:
 					Result = Controller.SetGPIO((int) pinNumber, (GpioPinDriveMode) state, voltage == PiVoltage.HIGH ? GpioPinValue.High : GpioPinValue.Low);
-					await Task.Delay(300).ConfigureAwait(false);
+					await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 					return Result;
 
 				default:
 					Logger.Log("Context doesnt satisfy. (ProcessCommand())", LogLevels.Warn);
-					await Task.Delay(300).ConfigureAwait(false);
+					await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 					return Result;
 			}
 		}

@@ -5,7 +5,9 @@ using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
+using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
@@ -18,7 +20,7 @@ namespace HomeAssistant.Modules {
 		private readonly CommandService Commands;
 		public bool IsServerOnline;
 		internal Logger Logger;
-		internal CoreConfig Config = Program.Config;
+		internal CoreConfig Config = Tess.Config;
 		private readonly DiscordLogger DiscordLogger;
 		private readonly string DiscordToken;
 
@@ -42,12 +44,40 @@ namespace HomeAssistant.Modules {
 			DiscordLogger = new DiscordLogger(Client, "DISCORD-CLIENT");
 		}
 
-		public async Task StopServer() {
-			if (Client != null) {
-				await Client.StopAsync().ConfigureAwait(false);
+		public async Task<bool> StopServer() {
+			try {
+				if (Client.ConnectionState == ConnectionState.Connected || Client.ConnectionState == ConnectionState.Connecting) {
+					await Client.StopAsync().ConfigureAwait(false);
+				}
+				while (true) {
+					if (Client.ConnectionState == ConnectionState.Disconnected) {
+						IsServerOnline = false;
+						break;
+					}
+					else {
+						Logger.Log("Waiting for Discord client to disconnect...", LogLevels.Trace);
+					}
+				}
+
+				if (Client != null) {
+					Client.Dispose();
+				}
+
+				Logger.Log("Discord server stopped!");
 			}
-			IsServerOnline = false;
-			Logger.Log("Discord server stopped!");
+			catch (IOException io) {
+				Logger.Log($"IO Exception: {io.Message}/{io.TargetSite}", LogLevels.Error);
+				return false;
+			}
+			catch (SocketException so) {
+				Logger.Log($"Socket Exception: {so.Message}/{so.TargetSite}", LogLevels.Error);
+				return false;
+			}
+			catch (TaskCanceledException tc) {
+				Logger.Log($"Task Canceled Exception: {tc.Message}/{tc.TargetSite}", LogLevels.Error);
+				return false;
+			}
+			return true;
 		}
 
 		public async Task<bool> InitDiscordClient() {
@@ -79,7 +109,7 @@ namespace HomeAssistant.Modules {
 			SocketCommandContext Context = new SocketCommandContext(Client, Message);
 			Client = Context.Client;
 
-			if (Context.Channel.Id.Equals(Program.Config.DiscordLogChannelID)) {
+			if (Context.Channel.Id.Equals(Tess.Config.DiscordLogChannelID)) {
 				return;
 			}
 
@@ -94,7 +124,7 @@ namespace HomeAssistant.Modules {
 				await CommandExecutedResult(Result, Context).ConfigureAwait(false);
 			}, "Discord Message Handler");
 
-			await Task.Delay(10).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(10).ConfigureAwait(false);
 		}
 
 		private async Task CommandExecutedResult(IResult result, SocketCommandContext context) {
@@ -137,11 +167,11 @@ namespace HomeAssistant.Modules {
 		//Discord Core Logger
 		//Not to be confused with HomeAssistant Discord channel logger
 		public async Task DiscordCoreLogger(LogMessage message) {
-			if (!Program.Config.DiscordBot || !Program.Config.DiscordLog || !Program.Modules.Discord.IsServerOnline) {
+			if (!Tess.Config.DiscordBot || !Tess.Config.DiscordLog || !Tess.Modules.Discord.IsServerOnline) {
 				return;
 			}
 
-			await Task.Delay(100).ConfigureAwait(false);
+			await System.Threading.Tasks.Task.Delay(100).ConfigureAwait(false);
 			switch (message.Severity) {
 				case LogSeverity.Critical:
 				case LogSeverity.Error:
@@ -159,13 +189,13 @@ namespace HomeAssistant.Modules {
 
 		private async Task RestartDiscordServer() {
 			try {
-				await StopServer().ConfigureAwait(false);
+				_ = await StopServer().ConfigureAwait(false);
 
 				if (Client != null) {
 					Client.Dispose();
 				}
 
-				await Task.Delay(5000).ConfigureAwait(false);
+				await System.Threading.Tasks.Task.Delay(5000).ConfigureAwait(false);
 				await InitDiscordClient().ConfigureAwait(false);
 			}
 			catch (Exception) {
@@ -179,7 +209,7 @@ namespace HomeAssistant.Modules {
 		private readonly Logger Logger = new Logger("DISCORD-BASE");
 
 		private bool IsAllowed(ulong id) {
-			if (id.Equals(Program.Config.DiscordOwnerID)) {
+			if (id.Equals(Tess.Config.DiscordOwnerID)) {
 				return true;
 			}
 
@@ -235,15 +265,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[0]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[0]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[0]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[0]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[0]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[0]} pin to ON.");
 			}
 		}
 
@@ -254,15 +284,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[1]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[1]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[1]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[1]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[1]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[1]} pin to ON.");
 			}
 		}
 
@@ -273,15 +303,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[2]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[2]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[2]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[2]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[2]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[2]} pin to ON.");
 			}
 		}
 
@@ -292,15 +322,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[3]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[3]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[3]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[3]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to ON.");
 			}
 		}
 
@@ -311,15 +341,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[4]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[4]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[4]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[4]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[3]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to ON.");
 			}
 		}
 
@@ -330,15 +360,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[5]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[5]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[5]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[5]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[6]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[6]} pin to ON.");
 			}
 		}
 
@@ -349,15 +379,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[6]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[6]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[6]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[6]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[5]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[5]} pin to ON.");
 			}
 		}
 
@@ -368,15 +398,15 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(Program.Config.RelayPins[7]);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[7]);
 
 			if (PinStatus.IsOn) {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Program.Config.RelayPins[7]} pin to OFF.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[7]} pin to OFF.");
 			}
 			else {
-				Program.Controller.SetGPIO(Program.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Program.Config.RelayPins[7]} pin to ON.");
+				Tess.Controller.SetGPIO(Tess.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Tess.Config.RelayPins[7]} pin to ON.");
 			}
 		}
 
@@ -390,31 +420,31 @@ namespace HomeAssistant.Modules {
 			async void action() {
 				switch (cycleMode) {
 					case 0:
-						if (await Program.Controller.RelayTestService(GPIOCycles.OneMany).ConfigureAwait(false)) {
+						if (await Tess.Controller.RelayTestService(GPIOCycles.OneMany).ConfigureAwait(false)) {
 							await Response("OneMany relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 1:
-						if (await Program.Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false)) {
+						if (await Tess.Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false)) {
 							await Response("OneOne relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 2:
-						if (await Program.Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false)) {
+						if (await Tess.Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false)) {
 							await Response("OneTwo relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 3:
-						if (await Program.Controller.RelayTestService(GPIOCycles.Cycle).ConfigureAwait(false)) {
+						if (await Tess.Controller.RelayTestService(GPIOCycles.Cycle).ConfigureAwait(false)) {
 							await Response("Cycle relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 4:
-						if (await Program.Controller.RelayTestService(GPIOCycles.Base).ConfigureAwait(false)) {
+						if (await Tess.Controller.RelayTestService(GPIOCycles.Base).ConfigureAwait(false)) {
 							await Response("Base relay test completed!").ConfigureAwait(false);
 						}
 						break;
@@ -449,17 +479,17 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			if (Program.Config.IRSensorPins.Contains(relaypinNumber)) {
+			if (Tess.Config.IRSensorPins.Contains(relaypinNumber)) {
 				await Response("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!").ConfigureAwait(false);
 				return;
 			}
 
-			if (!Program.Config.RelayPins.Contains(relaypinNumber)) {
+			if (!Tess.Config.RelayPins.Contains(relaypinNumber)) {
 				await Response("Sorry, the specified pin doesn't exist in the relay pin catagory.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Program.Controller.FetchPinStatus(relaypinNumber);
+			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(relaypinNumber);
 
 			if (PinStatus.IsOn && pinStatus.Equals(1)) {
 				await Response("Pin is already configured to be in ON State. Command doesn't make any sense.").ConfigureAwait(false);
@@ -473,12 +503,12 @@ namespace HomeAssistant.Modules {
 
 			Helpers.ScheduleTask(async () => {
 				if (PinStatus.IsOn && pinStatus.Equals(0)) {
-					Program.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
+					Tess.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
 					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to OFF.");
 				}
 
 				if (!PinStatus.IsOn && pinStatus.Equals(1)) {
-					Program.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
+					Tess.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
 					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to ON.");
 				}
 			}, TimeSpan.FromMinutes(delayInMinutes));
@@ -494,7 +524,7 @@ namespace HomeAssistant.Modules {
 		[Command("!exit"), RequireOwner]
 		public async Task TessExit(int delay = 5) {
 			await Response($"Exiting in {delay} seconds").ConfigureAwait(false);
-			Helpers.ScheduleTask(async () => await Program.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
+			Helpers.ScheduleTask(async () => await Tess.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
 		}
 
 		[Command("!shutdown"), RequireOwner]
@@ -506,7 +536,7 @@ namespace HomeAssistant.Modules {
 		[Command("!restart"), RequireOwner]
 		public async Task TessRestart(int delay = 8) {
 			await Response($"Restarting in {delay} seconds").ConfigureAwait(false);
-			await Program.Restart(8);
+			await Tess.Restart(8);
 		}
 	}
 
@@ -528,14 +558,13 @@ namespace HomeAssistant.Modules {
 
 		public async Task LogToChannel(string message) {
 			string LogOutput = LogOutputFormat(message);
-
-			if (!Program.Config.DiscordBot || !Program.Config.DiscordLog || !Program.Modules.Discord.IsServerOnline || Client == null) {
+			if (!Tess.Config.DiscordBot || !Tess.Config.DiscordLog || !Tess.Modules.Discord.IsServerOnline || Client == null) {
 				return;
 			}
 
 			try {
-				SocketGuild Guild = Client.Guilds.Where(x => x.Id == Program.Config.DiscordServerID).FirstOrDefault();
-				SocketTextChannel Channel = Guild.Channels.Where(x => x.Id == Program.Config.DiscordLogChannelID).FirstOrDefault() as SocketTextChannel;
+				SocketGuild Guild = Client.Guilds.Where(x => x.Id == Tess.Config.DiscordServerID).FirstOrDefault();
+				SocketTextChannel Channel = Guild.Channels.Where(x => x.Id == Tess.Config.DiscordLogChannelID).FirstOrDefault() as SocketTextChannel;
 				await Channel.SendMessageAsync(LogOutput).ConfigureAwait(false);
 			}
 			catch (Exception ex) {
