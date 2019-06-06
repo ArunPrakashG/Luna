@@ -46,6 +46,12 @@ namespace HomeAssistant.Core {
 		public bool AutoUpdates = true;
 
 		[JsonProperty]
+		public bool EnableConfigWatcher = true;
+
+		[JsonProperty]
+		public bool EnableImapIdleWorkaround = false;
+
+		[JsonProperty]
 		public int ServerAuthCode { get; set; } = 3033;
 
 		[JsonProperty]
@@ -141,13 +147,13 @@ namespace HomeAssistant.Core {
 			}
 		}
 
-		public CoreConfig LoadConfig() {
+		public CoreConfig LoadConfig(bool eventRaisedByConfigWatcher = false) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			if (!File.Exists(Constants.CoreConfigPath)) {
+			if (!eventRaisedByConfigWatcher && !File.Exists(Constants.CoreConfigPath)) {
 				if (!GenerateDefaultConfig()) {
 					return null;
 				}
@@ -162,7 +168,13 @@ namespace HomeAssistant.Core {
 
 			CoreConfig returnConfig = JsonConvert.DeserializeObject<CoreConfig>(JSON);
 
-			Logger.Log("Core Configuration Loaded Successfully!");
+			if (eventRaisedByConfigWatcher) {
+				Logger.Log("Updated core config!");
+			}
+			else {
+				Logger.Log("Core Configuration Loaded Successfully!");
+			}
+			
 			return returnConfig;
 		}
 
@@ -180,7 +192,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						System.Threading.Tasks.Task.Run((Func<System.Threading.Tasks.Task>) (async () => await Tess.Exit(0).ConfigureAwait(false)));
+						System.Threading.Tasks.Task.Run(async () => await Tess.Exit(0).ConfigureAwait(false));
 						return false;
 
 					default:

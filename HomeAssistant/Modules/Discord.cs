@@ -41,7 +41,7 @@ namespace HomeAssistant.Modules {
 			});
 
 			DiscordToken = Helpers.FetchVariable(2, true, "DISCORD_TOKEN");
-			DiscordLogger = new DiscordLogger(Client, "DISCORD-CLIENT");
+			DiscordLogger = new DiscordLogger("DISCORD-CLIENT");
 		}
 
 		public async Task<bool> StopServer() {
@@ -49,6 +49,7 @@ namespace HomeAssistant.Modules {
 				if (Client.ConnectionState == ConnectionState.Connected || Client.ConnectionState == ConnectionState.Connecting) {
 					await Client.StopAsync().ConfigureAwait(false);
 				}
+
 				while (true) {
 					if (Client.ConnectionState == ConnectionState.Disconnected) {
 						IsServerOnline = false;
@@ -56,6 +57,7 @@ namespace HomeAssistant.Modules {
 					}
 					else {
 						Logger.Log("Waiting for Discord client to disconnect...", LogLevels.Trace);
+						await Task.Delay(100).ConfigureAwait(false);
 					}
 				}
 
@@ -171,7 +173,7 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			await System.Threading.Tasks.Task.Delay(100).ConfigureAwait(false);
+			await Task.Delay(100).ConfigureAwait(false);
 			switch (message.Severity) {
 				case LogSeverity.Critical:
 				case LogSeverity.Error:
@@ -195,7 +197,7 @@ namespace HomeAssistant.Modules {
 					Client.Dispose();
 				}
 
-				await System.Threading.Tasks.Task.Delay(5000).ConfigureAwait(false);
+				await Task.Delay(5000).ConfigureAwait(false);
 				await InitDiscordClient().ConfigureAwait(false);
 			}
 			catch (Exception) {
@@ -541,12 +543,10 @@ namespace HomeAssistant.Modules {
 	}
 
 	public class DiscordLogger {
-		private readonly DiscordSocketClient Client;
 		private readonly Logger Logger = new Logger("DISCORD-LOGGER");
 		private readonly string LogIdentifier;
 
-		public DiscordLogger(DiscordSocketClient client, string logIdentifier) {
-			Client = client;
+		public DiscordLogger(string logIdentifier) {
 			LogIdentifier = logIdentifier;
 		}
 
@@ -557,8 +557,25 @@ namespace HomeAssistant.Modules {
 		}
 
 		public async Task LogToChannel(string message) {
+			if(string.IsNullOrEmpty(message) || string.IsNullOrWhiteSpace(message)) {
+				return;
+			}
+
+			if (!Tess.CoreInitiationCompleted || Tess.Config == null || Tess.Modules == null) {
+				return;
+			}
+
+			if (!Tess.Config.DiscordBot || !Tess.Config.DiscordLog || !Tess.Modules.Discord.IsServerOnline) {
+				return;
+			}
+
+			DiscordSocketClient Client = null;
 			string LogOutput = LogOutputFormat(message);
-			if (!Tess.Config.DiscordBot || !Tess.Config.DiscordLog || !Tess.Modules.Discord.IsServerOnline || Client == null) {
+			if (Tess.CoreInitiationCompleted && Tess.Modules.Discord != null && Tess.Modules.Discord.Client != null && Tess.Modules.Discord.Client.ConnectionState == ConnectionState.Connected) {
+				Client = Tess.Modules.Discord.Client;
+			}
+			else {
+				Logger.Log("Failed to log to discord as the client appears to be null or unuseable.", LogLevels.Trace);
 				return;
 			}
 
@@ -567,15 +584,21 @@ namespace HomeAssistant.Modules {
 				SocketTextChannel Channel = Guild.Channels.Where(x => x.Id == Tess.Config.DiscordLogChannelID).FirstOrDefault() as SocketTextChannel;
 				await Channel.SendMessageAsync(LogOutput).ConfigureAwait(false);
 			}
-			catch (Exception ex) {
-				if (ex is ArgumentException || ex is ArgumentOutOfRangeException) {
-					Logger.Log("The Content is above 2000 words which is not allowed.", LogLevels.Trace);
-					return;
-				}
-				else {
-					Logger.Log(ex.ToString(), LogLevels.Trace);
-					return;
-				}
+			catch (NullReferenceException) {
+				Logger.Log("Null reference exception thrown. possibly, client is null.", LogLevels.Trace);
+				return;
+			}
+			catch (ArgumentOutOfRangeException) {
+				Logger.Log($"The message to send has charecters more than 2000 which is discord limit. ({message.Length} charecters)", LogLevels.Trace);
+				return;
+			}
+			catch (ArgumentException) {
+				Logger.Log($"One of the arguments provided is null or unknown.", LogLevels.Trace);
+				return;
+			}
+			catch (TaskCanceledException) {
+				Logger.Log("A task has been cancelled by waiting.", LogLevels.Trace);
+				return;
 			}
 		}
 	}

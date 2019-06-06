@@ -39,7 +39,8 @@ namespace HomeAssistant.Core {
 		public static Updater Update = new Updater();
 		public static TCPServer CoreServer = new TCPServer();
 		public static CoreConfig Config = new CoreConfig();
-		private static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
+		private static ConfigWatcher ConfigWatcher = new ConfigWatcher();
+		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
 		public static ModuleInitializer Modules;
@@ -50,6 +51,7 @@ namespace HomeAssistant.Core {
 		public static bool CoreInitiationCompleted = false;
 		public static bool DisablePiMethods = false;
 		public static bool IsUnknownOS = false;
+		public static bool TessShutdownRequested = false;
 
 		public static async Task<bool> InitCore(string[] args) {
 			Helpers.CheckMultipleProcess();
@@ -82,6 +84,7 @@ namespace HomeAssistant.Core {
 					return false;
 				}
 
+				ConfigWatcher.InitConfigWatcher();
 				//MISC:
 				//Config.Debug = true;
 
@@ -164,7 +167,7 @@ namespace HomeAssistant.Core {
 				await DisplayRelayMenu().ConfigureAwait(false);
 			}
 
-			Modules.Speech.SpeakText("TESS Home assistant have been sucessfully started!");
+			TTSService.SpeakText("TESS Home assistant have been sucessfully started!", SpeechContext.TessStartup, false);
 			Logger.Log("Waiting for commands...");
 			await KeepAlive('q', 'm', 'e', 'i', 't', 'c').ConfigureAwait(false);
 		}
@@ -216,9 +219,11 @@ namespace HomeAssistant.Core {
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
 					Logger.Log("Setting Timer for charger controller.");
-					Logger.Log("Enter 0 for OFF and 1 for ON", LogLevels.UserInput);
-					char key = Console.ReadKey().KeyChar;
-					Controller.ChargerController(Config.RelayPins[0], TimeSpan.FromMinutes(2), key == 0 ? GpioPinValue.High : GpioPinValue.Low, key == 0 ? GpioPinValue.Low : GpioPinValue.High);
+					Logger.Log("Enter initial value 0 for OFF and 1 for ON", LogLevels.UserInput);
+					char initialvalue = Console.ReadKey().KeyChar;
+					Logger.Log("Enter final value 0 for OFF and 1 for ON", LogLevels.UserInput);
+					char finalvalue = Console.ReadKey().KeyChar;
+					Controller.ChargerController(9, TimeSpan.FromMinutes(2), initialvalue == 0 ? GpioPinValue.High : GpioPinValue.Low, finalvalue == 1 ? GpioPinValue.Low : GpioPinValue.High);
 					Logger.Log("No test tasks pending...");
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
@@ -602,6 +607,10 @@ namespace HomeAssistant.Core {
 				Logger.Log("Console title refresh timer disposed!", LogLevels.Trace);
 			}
 
+			if (ConfigWatcher.ConfigWatcherOnline) {
+				ConfigWatcher.StopConfigWatcher();
+			}
+
 			if (Modules != null) {
 				_ = Modules.OnCoreShutdown();
 			}
@@ -621,6 +630,7 @@ namespace HomeAssistant.Core {
 		}
 
 		public static async Task Exit(byte exitCode = 0) {
+			TessShutdownRequested = true;
 			if (exitCode != 0) {
 				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
 				Logger.Log("Check TraceLog for debug information.", LogLevels.Error);

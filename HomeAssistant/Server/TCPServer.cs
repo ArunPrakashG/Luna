@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
@@ -34,6 +33,7 @@ namespace HomeAssistant.Server {
 			Sock.Close(2);
 			Task.Delay(300).Wait();
 			Sock.Dispose();
+			ServerOn = false;
 			Logger.Log("TCP Server stopped and disposed!");
 		}
 
@@ -41,6 +41,8 @@ namespace HomeAssistant.Server {
 			try {
 				IPEndPoint localEndpoint = new IPEndPoint(IPAddress.Any, Config.ServerPort);
 				string externalip = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
+				Logger.Log("Public ip fetched sucessfully => " + externalip, LogLevels.Trace);
+				Logger.Log("Local ip => " + Helpers.GetLocalIPAddress(), LogLevels.Trace);
 				Logger.Log("Starting assistant command server...", LogLevels.Trace);
 				Sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 				Logger.Log("Server started sucessfully on address: " + externalip + ":" + Config.ServerPort);
@@ -49,6 +51,7 @@ namespace HomeAssistant.Server {
 				Sock.Listen(15);
 				ServerOn = true;
 				Logger.Log("Listerning for connections...");
+				int errorCounter = 0;
 
 				Helpers.InBackgroundThread(() => {
 					while (true) {
@@ -83,42 +86,62 @@ namespace HomeAssistant.Server {
 
 							if (!ServerOn) {
 								Helpers.ScheduleTask(() => {
-									CoreServer.StopServer();
+									StopServer();
 									StartServer();
 								}, TimeSpan.FromMinutes(1));
 								Logger.Log("Restarting server in 1 minute as it went offline.");
 								return;
 							}
 						}
-						catch (SocketException) {
-							Logger.Log("Socket Exception on TCPServer.cs Line 54.", LogLevels.Trace);
-							return;
+						catch (SocketException se) {
+							Logger.Log(se.Message, LogLevels.Trace);
+							errorCounter++;
+
+							if (errorCounter > 5) {
+								Logger.Log("too many errors occured on TCP Server. stopping...", LogLevels.Error);
+								StopServer();
+							}
+
+							if (Sock != null) {
+								StopServer();
+								if (!ServerOn) {
+									Helpers.ScheduleTask(() => {
+										StopServer();
+										StartServer();
+									}, TimeSpan.FromMinutes(1));
+									Logger.Log("Restarting server in 1 minute as it went offline.");
+									return;
+								}
+							}
+						}
+						catch (InvalidOperationException ioe) {
+							Logger.Log(ioe.Message, LogLevels.Error);
+							errorCounter++;
+							if(errorCounter > 5) {
+								Logger.Log("too many errors occured on TCP Server. stopping...", LogLevels.Error);
+								StopServer();
+							}
+							continue;
 						}
 					}
 				}, "TCP Server", true);
 			}
-			catch (Exception ex) {
-				if (ex is IOException) {
-					Logger.Log("Unable to read data from the transport connection: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.", LogLevels.Error);
-				}
-				else if (ex is FormatException) {
-					Logger.Log("Server doesnt support processing of GET/POST Requests from Browsers. so kindly stick to the Control Panel.", LogLevels.Error);
-				}
-				else if (ex is IndexOutOfRangeException) {
-					Logger.Log("Unathorized User Connected.", LogLevels.Error);
-				}
-				else if (ex is SocketException) {
-					Logger.Log("Connection has been reset.", LogLevels.Error);
+			catch (IOException io) {
+				Logger.Log(io.Message, LogLevels.Error);
+			}
+			catch (FormatException fe) {
+				Logger.Log(fe.Message, LogLevels.Error);
+			}
+			catch (IndexOutOfRangeException ioore) {
+				Logger.Log(ioore.Message, LogLevels.Error);
+			}
+			catch (SocketException se) {
+				Logger.Log(se.Message, LogLevels.Error);
+				Helpers.ScheduleTask(() => {
 					CoreServer.StopServer();
-				}
-				else {
-					Logger.Log(ex, ExceptionLogLevels.Fatal);
-					Helpers.ScheduleTask(() => {
-						CoreServer.StopServer();
-						StartServer();
-					}, TimeSpan.FromMinutes(1));
-					Logger.Log("Restarting server in 1 minute as it went offline.");
-				}
+					StartServer();
+				}, TimeSpan.FromMinutes(1));
+				Logger.Log("Restarting server in 1 minute as it went offline.");
 			}
 			return true;
 		}

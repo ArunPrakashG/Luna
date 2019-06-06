@@ -45,6 +45,38 @@ namespace HomeAssistant.Core {
 			Logger.Log("Initiated GPIO Controller class!");
 		}
 
+		private void OnEnqueued(AssistantTaskQueue item) {
+
+		}
+
+		private void OnDequeued(AssistantTaskQueue item) {
+
+		}
+
+		private void TryEnqueue(AssistantTaskQueue task) {
+			if (task == null) {
+				Logger.Log("Task is null.", LogLevels.Warn);
+				return;
+			}
+
+			TaskQueue.Enqueue(task);
+			Helpers.InBackground(() => OnEnqueued(task));
+			Logger.Log("Task added sucessfully.", LogLevels.Trace);
+		}
+
+		private AssistantTaskQueue TryDequeue() {
+			bool result = TaskQueue.TryDequeue(out AssistantTaskQueue task);
+
+			if (!result) {
+				Logger.Log("Failed to fetch from the queue.", LogLevels.Error);
+				return null;
+			}
+
+			Logger.Log("Fetching task sucessfully!", LogLevels.Trace);
+			Helpers.InBackground(() => OnDequeued(task));
+			return task;
+		}
+
 		private bool CheckSafeMode() => Tess.Config.GPIOSafeMode;
 
 		public void StopWaitForValue() => IsWaitForValueCancellationRequested = true;
@@ -72,58 +104,65 @@ namespace HomeAssistant.Core {
 
 			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(pin);
 
-			if (initialValue == finalValue) {
-				Logger.Log("Initial value cant be equal to final value.", LogLevels.Error);
-				return;
-			}
-
-			if (PinStatus.IsOn && initialValue == GpioPinValue.Low) {
-				Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
-				return;
-			}
-
-			if (!PinStatus.IsOn && initialValue == GpioPinValue.High) {
-				Logger.Log("Pin is already configured to be in OFF State. Command doesn't make any sense.");
-				return;
-			}
-
-			if (PinStatus.IsOn && initialValue == GpioPinValue.High && finalValue == GpioPinValue.Low) {
-				AssistantTaskQueue task = new AssistantTaskQueue() {
-					CreationTime = DateTime.Now,
-					EndingTime = DateTime.Now.Add(delay),
-					Delay = delay,
-					Message = null,
-					FinalValue = finalValue,
-					InitialValue = initialValue,
-					PinNumber = pin
-				};
-
-				//TODO: Task based system for scheduling various tasks like remainders and charger controller
-				TaskQueue.Enqueue(task);
-				Logger.Log("Task added sucessfully.", LogLevels.Trace);
-
-				Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
-				Logger.Log($"TASK >> {pin} configured to OFF state. Waiting {delay.Minutes} minutes...");
-				PinStatus = Tess.Controller.FetchPinStatus(pin);
-				Helpers.ScheduleTask(() => {
-					if (!PinStatus.IsOn && finalValue == GpioPinValue.Low) {
-						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+			//TODO: Task based system for scheduling various tasks like remainders and charger controller		
+			if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.Low) {
+				if (PinStatus.IsOn) {
+					AssistantTaskQueue task = new AssistantTaskQueue() {
+						CreationTime = DateTime.Now,
+						EndingTime = DateTime.Now.Add(delay),
+						Delay = delay,
+						Message = null,
+						FinalValue = finalValue,
+						InitialValue = initialValue,
+						PinNumber = pin
+					};
+					TryEnqueue(task);
+					Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
+					Logger.Log($"TASK >> {pin} configured to OFF state. Waiting {delay.Minutes} minutes...");
+					PinStatus = Tess.Controller.FetchPinStatus(pin);
+					Helpers.ScheduleTask(() => {
+						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
 						Logger.Log($"TASK >> {pin} configured to ON state. Task completed sucessfully!");
-					}
-				}, delay);
+					}, delay);
+				}
+				else {
+					Logger.Log("Pin is already in OFF state. disposing the task.", LogLevels.Error);
+					return;
+				}
 			}
-			else if (!PinStatus.IsOn && initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
-				Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
-				Logger.Log($"TASK >> {pin} configured to ON state. Waiting {delay.Minutes} minutes...");
-				PinStatus = Tess.Controller.FetchPinStatus(pin);
-				Helpers.ScheduleTask(() => {
-					if (!PinStatus.IsOn && finalValue == GpioPinValue.High) {
-						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+			else if(initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
+				if (!PinStatus.IsOn) {
+					AssistantTaskQueue task = new AssistantTaskQueue() {
+						CreationTime = DateTime.Now,
+						EndingTime = DateTime.Now.Add(delay),
+						Delay = delay,
+						Message = null,
+						FinalValue = finalValue,
+						InitialValue = initialValue,
+						PinNumber = pin
+					};
+					TryEnqueue(task);
+					Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
+					Logger.Log($"TASK >> {pin} configured to ON state. Waiting {delay.Minutes} minutes...");
+					PinStatus = Tess.Controller.FetchPinStatus(pin);
+					Helpers.ScheduleTask(() => {
+						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
 						Logger.Log($"TASK >> {pin} configured to OFF state. Task completed sucessfully!");
-					}
-				}, delay);
+					}, delay);
+				}
+				else {
+					Logger.Log("Pin is already in ON state. disposing the task.", LogLevels.Error);
+					return;
+				}
+			}else if(initialValue == GpioPinValue.Low && finalValue == GpioPinValue.Low) {
+				Logger.Log("Both initial and final values cant be equal. (ON-ON)", LogLevels.Error);
+				return;
+			}else if(initialValue == GpioPinValue.High && finalValue == GpioPinValue.High) {
+				Logger.Log("Both initial and final values cant be equal (OFF-OFF)", LogLevels.Error);
+				return;
 			}
 			else {
+				Logger.Log("Unknown value, an error has occured.", LogLevels.Error);
 				return;
 			}
 		}

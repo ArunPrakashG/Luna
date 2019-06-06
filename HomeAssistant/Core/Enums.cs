@@ -15,6 +15,12 @@ namespace HomeAssistant.Core {
 			PI
 		}
 
+		public enum SpeechContext : byte {
+			TessStartup,
+			TessShutdown,
+			NewEmaiNotification,
+			Custom
+		}
 
 		public enum KeywordType {
 			Subject,

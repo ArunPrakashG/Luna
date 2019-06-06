@@ -9,8 +9,8 @@ namespace HomeAssistant.Extensions {
 		public const string DebugLogPath = @"DebugLog.txt";
 		public const string ConfigDirectory = @"Config";
 		public const string ResourcesDirectory = @"Resources";
-		public const string TextToSpeechDirectory = @"TTS";
-		public const string IMAPSoundName = "notifications.mp3";
+		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
+		
 		public const string GPIOConfigPath = ConfigDirectory + "/GPIOConfig.json";
 		public const string CoreConfigPath = ConfigDirectory + "/TESS.json";
 		public const string IPBlacklistPath = ConfigDirectory + "/IPBlacklist.txt";
@@ -24,6 +24,18 @@ namespace HomeAssistant.Extensions {
 		public const int SMPTPort = 465;
 		public const int GmailPort = 993;
 		public const string GitHubAPI = "https://api.github.com/repos/";
+
+		public const string StartupSpeechFilePath = TextToSpeechDirectory + "/startup.mp3";		
+		public const string NewMailSpeechFilePath = TextToSpeechDirectory + "/newmail.mp3";
+		public const string ShutdownSpeechFilePath = TextToSpeechDirectory + "/shutdown.mp3";
+		public const string IMAPPushNotificationFilePath = ResourcesDirectory + "/mail_push_notification.mp3";
+		public const string TTSAlertFilePath = ResourcesDirectory + "/tts_alert.mp3";
+
+		public const string StartupFileName = "startup.mp3";
+		public const string NewMailFileName = "newmail.mp3";
+		public const string ShutdownFileName = "shutdown.mp3";
+		public const string IMAPPushFileName = "mail_push_notification.mp3";
+		public const string TTSAlertFileName = "tts_alert.mp3";
 
 		public static string ExternelIP { get; set; }
 		public const string GitHubReleaseURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";

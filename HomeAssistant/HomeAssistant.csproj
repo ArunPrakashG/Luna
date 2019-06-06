@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -28,6 +28,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Config\GPIOConfig.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -40,7 +55,13 @@
     <None Update="NLog.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Resources\notifications.mp3">
+    <None Update="Resources\mail_push_notification.mp3">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\TTS\startup.mp3">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\tts_alert.mp3">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Variables.txt">
@@ -49,7 +70,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <SshDeployHost>192.168.1.41</SshDeployHost>
+    <SshDeployHost>192.168.1.36</SshDeployHost>
     <SshDeployClean />
     <SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
     <SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
@@ -57,6 +78,11 @@
     <SshDeployPassword>miniprakash</SshDeployPassword>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     <LangVersion>7.3</LangVersion>
+    <Authors>Arun Prakash (SynergyFTW)</Authors>
+    <Product>Home Assistant</Product>
+    <Description>Home automation and personal assistant running on raspberry pi. 
+using C# .NET CORE Framework.</Description>
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
   <Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">

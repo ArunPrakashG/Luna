@@ -13,7 +13,6 @@ namespace HomeAssistant.Modules {
 		private Logger Logger = new Logger("MODULES");
 		public DiscordClient Discord;
 		public GoogleMap Map;
-		public GoogleSpeech Speech;
 		public Youtube Youtube;
 		public ConcurrentDictionary<string, Email> EmailClientCollection = new ConcurrentDictionary<string, Email>();
 
@@ -21,7 +20,6 @@ namespace HomeAssistant.Modules {
 			await StartDiscord().ConfigureAwait(false);
 			StartEmail();
 			Map = new GoogleMap();
-			Speech = new GoogleSpeech();
 			Youtube = new Youtube();
 		}
 

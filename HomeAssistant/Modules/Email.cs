@@ -14,6 +14,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Threading;
+using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 using Timer = System.Timers.Timer;
 
@@ -138,7 +139,7 @@ namespace HomeAssistant.Modules {
 			if (!IdleCancelledSucessfully) {
 				StopImapIdle();
 
-				System.Threading.Tasks.Task.Delay(100).Wait();
+				Task.Delay(100).Wait();
 
 				while (true) {
 					if (!IdleCancelledSucessfully) {
@@ -148,7 +149,7 @@ namespace HomeAssistant.Modules {
 						Logger.Log("IMAP Idle has been stopped.", LogLevels.Trace);
 						break;
 					}
-					System.Threading.Tasks.Task.Delay(100).Wait();
+					Task.Delay(100).Wait();
 				}
 			}
 
@@ -282,14 +283,14 @@ namespace HomeAssistant.Modules {
 			Helpers.InBackground(() => {
 				try {
 					using (DoneToken = new CancellationTokenSource()) {
-						Thread thread = new Thread(this.IdleLoop);
+						Thread thread = new Thread(IdleLoop);
 						thread.Start(new IdleState(Client, DoneToken.Token));
 
 						while (true) {
 							if (IsIdleCancelRequested) {
 								break;
 							}
-							System.Threading.Tasks.Task.Delay(100).Wait();
+							Task.Delay(100).Wait();
 						}
 
 						DoneToken.Cancel();
@@ -329,13 +330,13 @@ namespace HomeAssistant.Modules {
 										return;
 									}
 								}
-								System.Threading.Tasks.Task.Delay(100).Wait();
+								Task.Delay(100).Wait();
 							}
 						}
 					}
 				}
 				catch (Exception e) {
-					Logger.Log(e, ExceptionLogLevels.Error);
+					Logger.Log(e.Message, LogLevels.Error);
 					return;
 				}
 			});
@@ -354,7 +355,7 @@ namespace HomeAssistant.Modules {
 				else {
 					Logger.Log("Waiting for client to shutdown idling connection...", LogLevels.Trace);
 				}
-				System.Threading.Tasks.Task.Delay(100).Wait();
+				Task.Delay(100).Wait();
 			}
 
 			List<IMessageSummary> messages = new List<IMessageSummary>();
@@ -371,8 +372,9 @@ namespace HomeAssistant.Modules {
 					foreach (IMessageSummary msg in messages) {
 						if (MessagesArrivedDuringIdle.Count <= 0) {
 							latestMessage = msg;
-							Logger.Log("fetched latest message data. (first index of MessageArrivedDuringIdle<> Dictionary", LogLevels.Trace);
+							Logger.Log("fetched latest message data. (first index of MessageArrivedDuringIdle<> Dictionary)", LogLevels.Trace);
 							Logger.Log($"{latestMessage.Envelope.Sender.FirstOrDefault().Name} / {latestMessage.Envelope.Subject}");
+							Helpers.InBackgroundThread(() => TTSService.SpeakText($"You got an email from {latestMessage.Envelope.Sender.FirstOrDefault().Name} with subject {latestMessage.Envelope.Subject}", SpeechContext.Custom, true), "TTS Service");
 							break;
 						}
 
@@ -381,7 +383,7 @@ namespace HomeAssistant.Modules {
 								latestMessage = msg;
 								Logger.Log("fetched latest message data.", LogLevels.Trace);
 								Logger.Log($"{latestMessage.Envelope.Sender.FirstOrDefault().Name} / {latestMessage.Envelope.Subject}");
-								Tess.Modules.Speech.SpeakText($"Sir, you got an email from {latestMessage.Envelope.Sender.FirstOrDefault().Name} with subject {latestMessage.Envelope.Subject}");
+								Helpers.InBackgroundThread(() => TTSService.SpeakText($"You got an email from {latestMessage.Envelope.Sender.FirstOrDefault().Name} with subject {latestMessage.Envelope.Subject}", SpeechContext.Custom, true), "TTS Service");
 								break;
 							}
 						}
@@ -535,6 +537,13 @@ namespace HomeAssistant.Modules {
 							}
 							catch (ImapCommandException) {
 								break;
+							}
+							catch (IOException io) {
+								Logger.Log(io.Message, LogLevels.Error);
+								Logger.Log("Running IMAP idle workaround...", LogLevels.Trace);
+								DisposeClient(false);
+								StartImapClient(true);
+								return;
 							}
 							finally {
 								idle.SetTimeoutSource(null);

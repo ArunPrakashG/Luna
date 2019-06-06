@@ -1,8 +1,8 @@
-using Discord.WebSocket;
 using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Modules;
 using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using static HomeAssistant.Core.Enums;
 
@@ -68,7 +68,12 @@ namespace HomeAssistant.Log {
 				return;
 			}
 
-			LogModule.Trace($"{previousMethodName}() {message}");
+			if (Tess.Config.Debug) {
+				LogGenericInfo(message, previousMethodName);
+			}
+			else {
+				LogModule.Trace($"{previousMethodName}() {message}");
+			}			
 		}
 
 		private void LogGenericWarning(string message, [CallerMemberName] string previousMethodName = null) {
@@ -88,13 +93,11 @@ namespace HomeAssistant.Log {
 			LogGenericError($"{nullObjectName} | Object is null!", previousMethodName);
 		}
 
-		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null) {
+		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+			
 			switch (level) {
 				case LogLevels.Trace:
-					if (Tess.Config.Debug) {
-						LogGenericInfo(message, previousMethodName);
-					}
-					LogGenericTrace(message, previousMethodName);
+					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + message, previousMethodName);
 					break;
 
 				case LogLevels.Debug:
@@ -106,17 +109,21 @@ namespace HomeAssistant.Log {
 					break;
 
 				case LogLevels.Warn:
-					LogGenericWarning(message, previousMethodName);
+					LogGenericWarning($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + message, previousMethodName);
+
 					if (!string.IsNullOrEmpty(message) || !string.IsNullOrWhiteSpace(message)) {
 						DiscordLogToChannel($"{message}");
 					}
+
 					break;
 
 				case LogLevels.Error:
-					LogGenericError(message, previousMethodName);
+					LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + message, previousMethodName);
+
 					if (!string.IsNullOrEmpty(message) || !string.IsNullOrWhiteSpace(message)) {
 						DiscordLogToChannel($"{message}");
 					}
+
 					break;
 
 				case LogLevels.Ascii:
@@ -186,17 +193,7 @@ namespace HomeAssistant.Log {
 				return;
 			}
 
-			DiscordSocketClient DiscordClient = null;
-
-			if (Tess.Modules.Discord.Client != null && Tess.Modules.Discord.Client.ConnectionState == Discord.ConnectionState.Connected) {
-				DiscordClient = Tess.Modules.Discord.Client;
-			}
-			else {
-				Log("Failed to log to discord channel as the discord client is neither connected nor initialized.", LogLevels.Info);
-				return;
-			}
-
-			DiscordLogger Logger = new DiscordLogger(DiscordClient, LogIdentifier);
+			DiscordLogger Logger = new DiscordLogger(LogIdentifier);
 			Helpers.InBackground(async () => await Logger.LogToChannel(message).ConfigureAwait(false));
 		}
 	}

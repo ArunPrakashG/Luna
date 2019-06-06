@@ -1,6 +1,7 @@
 using HomeAssistant.Core;
 using HomeAssistant.Log;
 using System;
+using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
@@ -21,23 +22,26 @@ namespace HomeAssistant {
 		}
 
 		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
-			Logger.Log($"{e.Exception.InnerException}/{e.Exception.Message}/{e.Exception.TargetSite}", LogLevels.Warn);
+			Logger.Log($"{e.Exception.Message}", LogLevels.Error);
 			Logger.Log($"{e.Exception.ToString()}", LogLevels.Trace);
 		}
 
 		public static void HandleFirstChanceExceptions(object sender, FirstChanceExceptionEventArgs e) {
-			if (Tess.Config.EnableFirstChanceLog) {
+			if (Tess.Config.Debug && Tess.Config.EnableFirstChanceLog) {
 				if (e.Exception is PlatformNotSupportedException) {
-					Logger.Log("Platform not supported exception thrown.", LogLevels.Error);
+					Logger.Log(e.Exception.Message, LogLevels.Error);
 				}
 				else if (e.Exception is ArgumentNullException) {
-					Logger.Log("Argument null exception thrown.", LogLevels.Error);
+					Logger.Log(e.Exception.Message, LogLevels.Error);
 				}
 				else if (e.Exception is OperationCanceledException) {
-					Logger.Log("Operation cancelled exception thrown.", LogLevels.Error);
+					Logger.Log(e.Exception.Message, LogLevels.Error);
+				}
+				else if (e.Exception is IOException) {
+					Logger.Log(e.Exception.Message, LogLevels.Error);
 				}
 				else {
-					Logger.Log(e.Exception.ToString(), LogLevels.Error);
+					Logger.Log(e.Exception.Message, LogLevels.Error);
 				}
 			}
 			else {
@@ -45,13 +49,17 @@ namespace HomeAssistant {
 					if (e.Exception is PlatformNotSupportedException) {
 						Logger.Log("Platform not supported exception thrown.", LogLevels.Trace);
 					}
-
-					if (e.Exception is ArgumentNullException) {
+					else if (e.Exception is ArgumentNullException) {
 						Logger.Log("Argument null exception thrown.", LogLevels.Trace);
 					}
-
-					if (e.Exception is OperationCanceledException) {
+					else if (e.Exception is OperationCanceledException) {
 						Logger.Log("Operation cancelled exception thrown.", LogLevels.Trace);
+					}
+					else if (e.Exception is IOException) {
+						Logger.Log("IO Exception thrown.", LogLevels.Trace);
+					}
+					else {
+						Logger.Log(e.Exception.Message, LogLevels.Trace);
 					}
 				}
 			}
@@ -59,10 +67,10 @@ namespace HomeAssistant {
 
 		public static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {
 			Exception ex = (Exception) e.ExceptionObject;
-			Logger.Log($"{ex.ToString()}", LogLevels.Trace);
+			Logger.Log(ex.ToString(), LogLevels.Error);
 
 			if (e.IsTerminating) {
-				System.Threading.Tasks.Task.Run(async () => await Tess.Exit(1).ConfigureAwait(false));
+				Task.Run(async () => await Tess.Exit(1).ConfigureAwait(false));
 			}
 		}
 
