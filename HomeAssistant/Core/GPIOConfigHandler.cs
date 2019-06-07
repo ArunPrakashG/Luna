@@ -89,7 +89,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						System.Threading.Tasks.Task.Run((Func<System.Threading.Tasks.Task>) (async () => await Tess.Exit(0).ConfigureAwait(false)));
+						System.Threading.Tasks.Task.Run(async () => await Tess.Exit(0).ConfigureAwait(false));
 						return false;
 
 					default:

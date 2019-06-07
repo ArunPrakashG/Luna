@@ -4,6 +4,7 @@ using HomeAssistant.Log;
 using RestSharp;
 using RestSharp.Extensions;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -13,33 +14,52 @@ using static HomeAssistant.Core.Enums;
 namespace HomeAssistant.Update {
 
 	public class Updater {
-		private Logger Logger = new Logger("UPDATER");
-		private GitHub Git = new GitHub();
+		private readonly Logger Logger = new Logger("UPDATER");
+		private readonly GitHub Git = new GitHub();
 		public bool UpdateAvailable = false;
 		private Timer AutoUpdateTimer;
-
-		public Updater() {
-		}
+		private Stopwatch ElapasedTimeCalculator = new Stopwatch();
+		private DateTime UpdateTimerStartTime;
 
 		public void StopUpdateTimer() {
 			if (AutoUpdateTimer != null) {
 				AutoUpdateTimer.Dispose();
 				AutoUpdateTimer = null;
 			}
+
+			if (ElapasedTimeCalculator != null && ElapasedTimeCalculator.IsRunning) {
+				ElapasedTimeCalculator.Stop();
+			}
 		}
+
+		public TimeSpan ElapsedUpdateTime() {
+			if (ElapasedTimeCalculator.IsRunning) {
+				return ElapasedTimeCalculator.Elapsed;
+			}
+			else {
+				Logger.Log("Elapsed time calculator isn't running, cant get the time left.", LogLevels.Warn);
+				return new TimeSpan();
+			}
+		}
+
+		public int HoursUntilNextCheck() => (DateTime.Now - UpdateTimerStartTime).Hours;
 
 		public void StartUpdateTimer() {
 			StopUpdateTimer();
 			if (Tess.Config.AutoUpdates && AutoUpdateTimer == null) {
-				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(5);
+				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(Tess.Config.UpdateIntervalInHours);
 
 				AutoUpdateTimer = new Timer(
-					async e => await CheckAndUpdate(true).ConfigureAwait(false),
+					async e => {
+						await CheckAndUpdate(true).ConfigureAwait(false);
+					},
 					null,
 					autoUpdatePeriod, // Delay
 					autoUpdatePeriod // Period
 				);
 
+				UpdateTimerStartTime = DateTime.Now;
+				ElapasedTimeCalculator.Start();
 				Logger.Log($"TESS will automatically check for updates every 5 hours.", LogLevels.Info);
 			}
 		}
@@ -49,13 +69,15 @@ namespace HomeAssistant.Update {
 				StartUpdateTimer();
 			}
 
+			UpdateTimerStartTime = DateTime.Now;
+			ElapasedTimeCalculator.Restart();
+
 			if (!Tess.Config.AutoUpdates) {
 				Logger.Log("Updates are disabled.");
 				return;
 			}
 
 			Rootobject GitRoot = null;
-			string GitVersion = null;
 
 			try {
 				string gitToken = Helpers.FetchVariable(0, true, "GITHUB_TOKEN");
@@ -69,6 +91,7 @@ namespace HomeAssistant.Update {
 				return;
 			}
 
+			string GitVersion;
 			if (GitRoot != null) {
 				GitVersion = GitRoot.tag_name;
 			}
@@ -92,7 +115,7 @@ namespace HomeAssistant.Update {
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...");
 				UpdateAvailable = true;
-				await System.Threading.Tasks.Task.Delay(10000).ConfigureAwait(false);
+				await Task.Delay(10000).ConfigureAwait(false);
 				await InitUpdate().ConfigureAwait(false);
 			}
 			else if (LatestVersion < Constants.Version) {
@@ -107,8 +130,7 @@ namespace HomeAssistant.Update {
 
 		public async Task InitUpdate() {
 			Rootobject GitRoot = null;
-			string gitToken = null;
-
+			string gitToken;
 			try {
 				gitToken = Helpers.FetchVariable(0, true, "GITHUB_TOKEN");
 
@@ -120,8 +142,7 @@ namespace HomeAssistant.Update {
 				Logger.Log("Failed to fetch GITHUB_TOKEN variable value from file. file exists ?", LogLevels.Warn);
 				return;
 			}
-
-			string releaseURL = GitRoot.assets[0].browser_download_url;
+			
 			int releaseID = GitRoot.assets[0].id;
 
 			Logger.Log($"Release name: {GitRoot.name}");
@@ -149,7 +170,7 @@ namespace HomeAssistant.Update {
 
 			response.RawBytes.SaveAs(Constants.UpdateZipFileName);
 			Logger.Log("Sucessfully Downloaded, Starting update process...");
-			await System.Threading.Tasks.Task.Delay(1000).ConfigureAwait(false);
+			await Task.Delay(1000).ConfigureAwait(false);
 
 			if (!File.Exists(Constants.UpdateZipFileName)) {
 				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", LogLevels.Error);
@@ -171,12 +192,12 @@ namespace HomeAssistant.Update {
 					}
 				}
 
-				await System.Threading.Tasks.Task.Delay(1000).ConfigureAwait(false);
+				await Task.Delay(1000).ConfigureAwait(false);
 				Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll", true);
 				_ = await Helpers.RestartOrExit().ConfigureAwait(false);
 			}
 			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Error);
+				Logger.Log(e, LogLevels.Error);
 				return;
 			}
 		}

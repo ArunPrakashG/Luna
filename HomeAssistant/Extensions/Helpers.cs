@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -96,6 +97,10 @@ namespace HomeAssistant.Extensions {
 					break;
 
 				case NotificationContext.Normal:
+					if (!Tess.IsNetworkAvailable) {
+						Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+						return;
+					}
 					break;
 
 				default:
@@ -127,7 +132,16 @@ namespace HomeAssistant.Extensions {
 			return dtDateTime;
 		}
 
-		public static string GetExternalIP() => new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
+		public static string GetExternalIP() {
+			if (Tess.IsNetworkAvailable) {
+				string result = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
+				return result;
+			}
+			else {
+				Logger.Log("No internet connection.", LogLevels.Error);
+				return null;
+			}
+		}
 
 		internal static string TimeRan() {
 			DateTime StartTime = Tess.StartupTime;
@@ -207,12 +221,17 @@ namespace HomeAssistant.Extensions {
 				return true;
 			}
 			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Error);
+				Logger.Log(e, LogLevels.Error);
 				return false;
 			}
 		}
 
 		public static string GetUrlToString(string url, string Method = "GET", bool withuserAgent = true) {
+			if (!Tess.IsNetworkAvailable) {
+				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+				return null;
+			}
+
 			string Response = null;
 
 			try {
@@ -231,7 +250,7 @@ namespace HomeAssistant.Extensions {
 				}
 			}
 			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Error);
+				Logger.Log(e, LogLevels.Error);
 				return null;
 			}
 
@@ -239,6 +258,11 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static string GetUrlToString(string url, Method method, bool withuseragent = true) {
+			if (!Tess.IsNetworkAvailable) {
+				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+				return null;
+			}
+
 			if (url == null) {
 				throw new ArgumentNullException(nameof(url));
 			}
@@ -268,6 +292,11 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static byte[] GetUrlToBytes(string url, Method method, string userAgent, string headerName = null, string headerValue = null) {
+			if (!Tess.IsNetworkAvailable) {
+				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+				return new byte[0];
+			}
+
 			if (url == null) {
 				throw new ArgumentNullException(nameof(url));
 			}
@@ -283,7 +312,7 @@ namespace HomeAssistant.Extensions {
 
 			Logger.Log("Downloading bytes...", LogLevels.Trace);
 			IRestResponse response = client.Execute(request);
-			
+
 			if (response.StatusCode != HttpStatusCode.OK) {
 				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
 				return null;
@@ -367,20 +396,20 @@ namespace HomeAssistant.Extensions {
 				Process proc = new Process();
 				proc.StartInfo.FileName = fileName;
 				proc.StartInfo.Arguments = "-c \" " + command + " \"";
-                proc.StartInfo.UseShellExecute = false;
+				proc.StartInfo.UseShellExecute = false;
 				proc.StartInfo.CreateNoWindow = true;
 				proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
 
 
-                if (redirectOutput) {					
+				if (redirectOutput) {
 					proc.StartInfo.RedirectStandardOutput = true;
-                }
-                else
-                {
-                    proc.StartInfo.RedirectStandardOutput = false;
-                }
+				}
+				else {
+					proc.StartInfo.RedirectStandardOutput = false;
+				}
 
 				proc.Start();
+				proc.WaitForExit(4000);
 
 				if (redirectOutput) {
 					while (!proc.StandardOutput.EndOfStream) {
@@ -389,7 +418,7 @@ namespace HomeAssistant.Extensions {
 				}
 			}
 			catch (PlatformNotSupportedException) {
-                Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", LogLevels.Warn);
+				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", LogLevels.Warn);
 				return;
 			}
 			catch (Win32Exception) {
@@ -450,6 +479,21 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static bool CheckForInternetConnection() {
+			try {
+				Ping myPing = new Ping();
+				string host = "8.8.8.8";
+				byte[] buffer = new byte[32];
+				int timeout = 1000;
+				PingOptions pingOptions = new PingOptions();
+				PingReply reply = myPing.Send(host, timeout, buffer, pingOptions);
+				return reply.Status == IPStatus.Success;
+			}
+			catch (Exception) {
+				return false;
+			}
+		}
+
+		public static bool CheckForInternetConnection(bool usingWebClient) {
 			try {
 				using (WebClient client = new WebClient())
 				using (Stream stream = client.OpenRead("http://www.google.com")) {

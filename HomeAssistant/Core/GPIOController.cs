@@ -11,7 +11,7 @@ using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
 
-	public class AssistantTaskQueue {
+	public class GPIOTaskQueue {
 
 		public int PinNumber { get; set; }
 
@@ -36,7 +36,7 @@ namespace HomeAssistant.Core {
 		public List<GPIOPinConfig> GPIOConfig;
 		public GPIOConfigRoot GPIOConfigRoot;
 		private bool IsWaitForValueCancellationRequested = false;
-		private ConcurrentQueue<AssistantTaskQueue> TaskQueue = new ConcurrentQueue<AssistantTaskQueue>();
+		private readonly ConcurrentQueue<GPIOTaskQueue> TaskQueue = new ConcurrentQueue<GPIOTaskQueue>();
 
 		public GPIOController(GPIOConfigRoot rootObject, List<GPIOPinConfig> config, GPIOConfigHandler configHandler) {
 			GPIOConfig = config;
@@ -45,15 +45,15 @@ namespace HomeAssistant.Core {
 			Logger.Log("Initiated GPIO Controller class!");
 		}
 
-		private void OnEnqueued(AssistantTaskQueue item) {
+		private void OnEnqueued(GPIOTaskQueue item) {
 
 		}
 
-		private void OnDequeued(AssistantTaskQueue item) {
+		private void OnDequeued(GPIOTaskQueue item) {
 
 		}
 
-		private void TryEnqueue(AssistantTaskQueue task) {
+		private void TryEnqueue(GPIOTaskQueue task) {
 			if (task == null) {
 				Logger.Log("Task is null.", LogLevels.Warn);
 				return;
@@ -64,8 +64,8 @@ namespace HomeAssistant.Core {
 			Logger.Log("Task added sucessfully.", LogLevels.Trace);
 		}
 
-		private AssistantTaskQueue TryDequeue() {
-			bool result = TaskQueue.TryDequeue(out AssistantTaskQueue task);
+		private GPIOTaskQueue TryDequeue() {
+			bool result = TaskQueue.TryDequeue(out GPIOTaskQueue task);
 
 			if (!result) {
 				Logger.Log("Failed to fetch from the queue.", LogLevels.Error);
@@ -107,7 +107,7 @@ namespace HomeAssistant.Core {
 			//TODO: Task based system for scheduling various tasks like remainders and charger controller		
 			if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.Low) {
 				if (PinStatus.IsOn) {
-					AssistantTaskQueue task = new AssistantTaskQueue() {
+					GPIOTaskQueue task = new GPIOTaskQueue() {
 						CreationTime = DateTime.Now,
 						EndingTime = DateTime.Now.Add(delay),
 						Delay = delay,
@@ -130,9 +130,9 @@ namespace HomeAssistant.Core {
 					return;
 				}
 			}
-			else if(initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
+			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
 				if (!PinStatus.IsOn) {
-					AssistantTaskQueue task = new AssistantTaskQueue() {
+					GPIOTaskQueue task = new GPIOTaskQueue() {
 						CreationTime = DateTime.Now,
 						EndingTime = DateTime.Now.Add(delay),
 						Delay = delay,
@@ -154,10 +154,12 @@ namespace HomeAssistant.Core {
 					Logger.Log("Pin is already in ON state. disposing the task.", LogLevels.Error);
 					return;
 				}
-			}else if(initialValue == GpioPinValue.Low && finalValue == GpioPinValue.Low) {
+			}
+			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.Low) {
 				Logger.Log("Both initial and final values cant be equal. (ON-ON)", LogLevels.Error);
 				return;
-			}else if(initialValue == GpioPinValue.High && finalValue == GpioPinValue.High) {
+			}
+			else if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.High) {
 				Logger.Log("Both initial and final values cant be equal (OFF-OFF)", LogLevels.Error);
 				return;
 			}
@@ -583,28 +585,28 @@ namespace HomeAssistant.Core {
 			}
 
 			foreach (int pin in Tess.Config.RelayPins) {
-				System.Threading.Tasks.Task.Delay(400).Wait();
+				Task.Delay(400).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
-			await System.Threading.Tasks.Task.Delay(500).ConfigureAwait(false);
+			await Task.Delay(500).ConfigureAwait(false);
 
 			foreach (int pin in Tess.Config.RelayPins) {
-				System.Threading.Tasks.Task.Delay(200).Wait();
+				Task.Delay(200).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
-			System.Threading.Tasks.Task.Delay(800).Wait();
+			Task.Delay(800).Wait();
 
 			foreach (int pin in Tess.Config.RelayPins) {
-				System.Threading.Tasks.Task.Delay(200).Wait();
+				Task.Delay(200).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
-			await System.Threading.Tasks.Task.Delay(500).ConfigureAwait(false);
+			await Task.Delay(500).ConfigureAwait(false);
 
 			foreach (int pin in Tess.Config.RelayPins) {
-				System.Threading.Tasks.Task.Delay(400).Wait();
+				Task.Delay(400).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 			return true;
@@ -623,9 +625,9 @@ namespace HomeAssistant.Core {
 
 			foreach (int pin in Tess.Config.RelayPins) {
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
-				System.Threading.Tasks.Task.Delay(500).Wait();
+				Task.Delay(500).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
-				await System.Threading.Tasks.Task.Delay(100).ConfigureAwait(false);
+				await Task.Delay(100).ConfigureAwait(false);
 			}
 
 			return true;
@@ -648,14 +650,14 @@ namespace HomeAssistant.Core {
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 
 				while (counter < 4) {
-					System.Threading.Tasks.Task.Delay(200).Wait();
+					Task.Delay(200).Wait();
 					SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
-					System.Threading.Tasks.Task.Delay(500).Wait();
+					Task.Delay(500).Wait();
 					SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 					counter++;
 				}
 
-				await System.Threading.Tasks.Task.Delay(100).ConfigureAwait(false);
+				await Task.Delay(100).ConfigureAwait(false);
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 

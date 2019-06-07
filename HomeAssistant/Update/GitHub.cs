@@ -174,7 +174,7 @@ namespace HomeAssistant.Update {
 				return Root;
 			}
 			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Fatal);
+				Logger.Log(e, LogLevels.Fatal);
 				return null;
 			}
 		}

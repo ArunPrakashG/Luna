@@ -3,10 +3,10 @@ using HomeAssistant.Log;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 
 namespace HomeAssistant.Core {
-
 	public class EmailConfig {
 
 		[JsonProperty]
@@ -37,7 +37,7 @@ namespace HomeAssistant.Core {
 		public ConcurrentDictionary<bool, string> AutoForwardEmails = new ConcurrentDictionary<bool, string>();
 	}
 
-	public class CoreConfig {
+	public class CoreConfig : IEquatable<CoreConfig> {
 
 		[JsonProperty]
 		public bool AutoRestart = false;
@@ -49,7 +49,10 @@ namespace HomeAssistant.Core {
 		public bool EnableConfigWatcher = true;
 
 		[JsonProperty]
-		public bool EnableImapIdleWorkaround = false;
+		public bool EnableImapIdleWorkaround = true;
+
+		[JsonProperty]
+		public int UpdateIntervalInHours = 5;
 
 		[JsonProperty]
 		public int ServerAuthCode { get; set; } = 3033;
@@ -82,6 +85,9 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty]
 		public bool Debug = false;
+
+		[JsonProperty]
+		public string OwnerEmailAddress { get; set; }
 
 		[JsonProperty]
 		public bool EnableFirstChanceLog = false;
@@ -126,7 +132,7 @@ namespace HomeAssistant.Core {
 		public bool CloseRelayOnShutdown = false;
 
 		[JsonIgnore]
-		private Logger Logger = new Logger("CORE-CONFIG");
+		private readonly Logger Logger = new Logger("CORE-CONFIG");
 
 		public void SaveConfig(CoreConfig config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
@@ -174,7 +180,7 @@ namespace HomeAssistant.Core {
 			else {
 				Logger.Log("Core Configuration Loaded Successfully!");
 			}
-			
+
 			return returnConfig;
 		}
 
@@ -222,6 +228,85 @@ namespace HomeAssistant.Core {
 				sw.Dispose();
 			}
 			return true;
+		}
+
+		public override bool Equals(object obj) {
+			return Equals(obj as CoreConfig);
+		}
+
+		public bool Equals(CoreConfig other) {
+			return other != null &&
+				   AutoRestart == other.AutoRestart &&
+				   AutoUpdates == other.AutoUpdates &&
+				   EnableConfigWatcher == other.EnableConfigWatcher &&
+				   EnableImapIdleWorkaround == other.EnableImapIdleWorkaround &&
+				   UpdateIntervalInHours == other.UpdateIntervalInHours &&
+				   ServerAuthCode == other.ServerAuthCode &&
+				   ServerPort == other.ServerPort &&
+				   TCPServer == other.TCPServer &&
+				   GPIOSafeMode == other.GPIOSafeMode &&
+				   EqualityComparer<int[]>.Default.Equals(RelayPins, other.RelayPins) &&
+				   EqualityComparer<int[]>.Default.Equals(IRSensorPins, other.IRSensorPins) &&
+				   DisplayStartupMenu == other.DisplayStartupMenu &&
+				   GPIOControl == other.GPIOControl &&
+				   Debug == other.Debug &&
+				   EnableFirstChanceLog == other.EnableFirstChanceLog &&
+				   EnableTextToSpeech == other.EnableTextToSpeech &&
+				   MuteAll == other.MuteAll &&
+				   EqualityComparer<ConcurrentDictionary<string, EmailConfig>>.Default.Equals(EmailDetails, other.EmailDetails) &&
+				   TessEmailID == other.TessEmailID &&
+				   TessEmailPASS == other.TessEmailPASS &&
+				   ProgramLastStartup == other.ProgramLastStartup &&
+				   ProgramLastShutdown == other.ProgramLastShutdown &&
+				   DiscordOwnerID == other.DiscordOwnerID &&
+				   DiscordServerID == other.DiscordServerID &&
+				   DiscordLogChannelID == other.DiscordLogChannelID &&
+				   DiscordLog == other.DiscordLog &&
+				   DiscordBot == other.DiscordBot &&
+				   CloseRelayOnShutdown == other.CloseRelayOnShutdown &&
+				   EqualityComparer<Logger>.Default.Equals(Logger, other.Logger);
+		}
+
+		public override int GetHashCode() {
+			HashCode hash = new HashCode();
+			hash.Add(AutoRestart);
+			hash.Add(AutoUpdates);
+			hash.Add(EnableConfigWatcher);
+			hash.Add(EnableImapIdleWorkaround);
+			hash.Add(UpdateIntervalInHours);
+			hash.Add(ServerAuthCode);
+			hash.Add(ServerPort);
+			hash.Add(TCPServer);
+			hash.Add(GPIOSafeMode);
+			hash.Add(RelayPins);
+			hash.Add(IRSensorPins);
+			hash.Add(DisplayStartupMenu);
+			hash.Add(GPIOControl);
+			hash.Add(Debug);
+			hash.Add(EnableFirstChanceLog);
+			hash.Add(EnableTextToSpeech);
+			hash.Add(MuteAll);
+			hash.Add(EmailDetails);
+			hash.Add(TessEmailID);
+			hash.Add(TessEmailPASS);
+			hash.Add(ProgramLastStartup);
+			hash.Add(ProgramLastShutdown);
+			hash.Add(DiscordOwnerID);
+			hash.Add(DiscordServerID);
+			hash.Add(DiscordLogChannelID);
+			hash.Add(DiscordLog);
+			hash.Add(DiscordBot);
+			hash.Add(CloseRelayOnShutdown);
+			hash.Add(Logger);
+			return hash.ToHashCode();
+		}
+
+		public static bool operator ==(CoreConfig left, CoreConfig right) {
+			return EqualityComparer<CoreConfig>.Default.Equals(left, right);
+		}
+
+		public static bool operator !=(CoreConfig left, CoreConfig right) {
+			return !(left == right);
 		}
 	}
 }

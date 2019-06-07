@@ -49,6 +49,7 @@ namespace HomeAssistant.Log {
 
 		public static void LoggerOnShutdown() {
 			LogManager.Flush();
+			LogManager.Shutdown();
 		}
 	}
 }

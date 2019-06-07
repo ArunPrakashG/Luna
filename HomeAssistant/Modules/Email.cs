@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
@@ -51,9 +52,6 @@ namespace HomeAssistant.Modules {
 
 		public string UniqueAccountID { get; set; }
 
-		public Version Version { get; set; }
-
-		public string ModuleName { get; set; }
 		private ImapClient Client;
 		private ImapClient HelperClient;
 		private int InboxMessagesCount = 0;
@@ -67,7 +65,7 @@ namespace HomeAssistant.Modules {
 
 		private bool IsClientInIdle => Client.IsIdle;
 		public List<MessageData> MessagesArrivedDuringIdle = new List<MessageData>();
-		private EmailConfig MailConfig = new EmailConfig();
+		private readonly EmailConfig MailConfig = new EmailConfig();
 
 		public Email(string uniqueID, EmailConfig mailConfig) {
 			MailConfig = mailConfig ?? throw new ArgumentNullException("Mail Config is null!");
@@ -79,7 +77,6 @@ namespace HomeAssistant.Modules {
 
 			GmailID = MailConfig.EmailID ?? throw new NullReferenceException("Email ID is null!");
 			GmailPass = MailConfig.EmailPASS ?? throw new NullReferenceException("Email Password is null!");
-			Version = new Version("1.0.0.0");
 			UniqueAccountID = uniqueID ?? MailConfig.EmailID.Split('@').FirstOrDefault().Trim();
 			Logger = new Logger($"{UniqueAccountID} | {MailConfig.EmailID.Split('@').FirstOrDefault().Trim()}");
 		}
@@ -128,11 +125,15 @@ namespace HomeAssistant.Modules {
 			if (force) {
 				if (Client != null) {
 					Client.Dispose();
+					IsClientDisconnected = true;
+					ClientShutdownSucessfull = true;
 				}
 
 				if (HelperClient != null) {
 					HelperClient.Dispose();
 				}
+				Tess.Modules.EmailClientCollection.TryRemove(UniqueAccountID, out _);
+				Logger.Log("Removed email object from client collection", LogLevels.Trace);
 				return;
 			}
 
@@ -157,6 +158,11 @@ namespace HomeAssistant.Modules {
 				Client.Dispose();
 				IsClientDisconnected = true;
 				ClientShutdownSucessfull = true;
+			}
+
+			if (Tess.Modules.EmailClientCollection.ContainsKey(UniqueAccountID)) {
+				Tess.Modules.EmailClientCollection.TryRemove(UniqueAccountID, out _);
+				Logger.Log("Removed email object from client collection.", LogLevels.Trace);
 			}
 		}
 
@@ -228,34 +234,73 @@ namespace HomeAssistant.Modules {
 				Logger.Log("Reconnecting to GMAIL...", LogLevels.Trace);
 			}
 
-			try {
-				Client.Connect(Constants.GmailHost, Constants.GmailPort, true);
-				Client.Authenticate(GmailID, GmailPass);
-			}
-			catch (AuthenticationException) {
-				Logger.Log("Account password must be incorrect. please recheck and re-run!");
-				return;
-			}
-			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Error);
-				return;
+			int connectionTry = 1;
+			bool clientConnected = false;
+
+			while (true) {
+				if (connectionTry > 5) {
+					Logger.Log($"Connection to gmail account {GmailID} failed after 5 attempts. cannot proceed for this account.", LogLevels.Error);
+					IsAccountLoaded = false;
+					return;
+				}
+				try {
+					Client.Connect(Constants.GmailHost, Constants.GmailPort, true);
+					Client.Authenticate(GmailID, GmailPass);
+					Client.Inbox.Open(FolderAccess.ReadWrite);
+					InboxMessagesCount = Client.Inbox.Count;
+
+					if (reconnect) {
+						Logger.Log("reconnected to gmail sucessfully!", LogLevels.Trace);
+					}
+					else {
+						Logger.Log($"Sucessfully connected and authenticated for {GmailID}.");
+					}
+
+					clientConnected = true;
+					if (Tess.Modules.EmailClientCollection.ContainsKey(UniqueAccountID)) {
+						Logger.Log("Deleting entry with the same unique account id from Client Collection.", LogLevels.Error);
+						Tess.Modules.EmailClientCollection.TryRemove(UniqueAccountID, out _);
+					}
+
+					Tess.Modules.EmailClientCollection.TryAdd(UniqueAccountID, this);
+					Logger.Log("Added email object to client collection.", LogLevels.Trace);
+				}
+				catch (AuthenticationException) {
+					Logger.Log("Account password must be incorrect. please recheck and re-run!");
+					return;
+				}
+				catch (SocketException) {
+					Logger.Log("Network connectivity problem occured, we will retry to connect...", LogLevels.Warn);
+				}
+				catch (OperationCanceledException) {
+					Logger.Log("An operation has been cancelled, failed to connect.", LogLevels.Warn);
+				}
+				catch (IOException) {
+					Logger.Log("IO exception occured. failed to connect.", LogLevels.Warn);
+				}
+				catch (Exception e) {
+					Logger.Log(e, LogLevels.Error);
+				}
+
+				if (clientConnected || Client.IsConnected) {
+					break;
+				}
+				else {
+					if (connectionTry < 5) {
+						Logger.Log($"Could not connect, retrying... ({connectionTry}/5)", LogLevels.Warn);
+					}
+					connectionTry++;
+				}
 			}
 
-			Client.Inbox.Open(FolderAccess.ReadWrite);
-			InboxMessagesCount = Client.Inbox.Count;
+			Helpers.InBackground(() => {
+				HelperClient = new ImapClient();
+				HelperClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
+				HelperClient.Authenticate(GmailID, GmailPass);
+				HelperClient.Inbox.Open(FolderAccess.ReadWrite);
+				Logger.Log($"Total messages in inbox: {HelperClient.Inbox.Count} Unread messages: {HelperClient.Inbox.Unread}", LogLevels.Trace);
+			});
 
-			if (reconnect) {
-				Logger.Log("IDLE service reconnected sucessfully!", LogLevels.Trace);
-			}
-			else {
-				Logger.Log($"Sucessfully connected and authenticated for {GmailID}.");
-			}
-
-			HelperClient = new ImapClient();
-			HelperClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
-			HelperClient.Authenticate(GmailID, GmailPass);
-			HelperClient.Inbox.Open(FolderAccess.ReadWrite);
-			Logger.Log($"Total messages in inbox: {HelperClient.Inbox.Count} Unread messages: {HelperClient.Inbox.Unread}", LogLevels.Trace);
 			IsAccountLoaded = true;
 
 			Client.Inbox.MessageExpunged += (sender, e) => {
@@ -316,15 +361,15 @@ namespace HomeAssistant.Modules {
 									if (IsAccountLoaded) {
 										lock (Client.SyncRoot) {
 											Client.Disconnect(true);
-											IsClientDisconnected = true;
-
-											if (Client != null) {
-												Client.Dispose();
-											}
-
-											Logger.Log($"Disconnected and disposed imap and mail client for {GmailID.Split('@').FirstOrDefault().Trim()}");
-											break;
 										}
+
+										IsClientDisconnected = true;
+
+										if (Client != null) {
+											Client.Dispose();
+										}
+										Logger.Log($"Disconnected and disposed imap and mail client for {GmailID.Split('@').FirstOrDefault().Trim()}");
+										break;
 									}
 									else {
 										return;
@@ -444,8 +489,20 @@ namespace HomeAssistant.Modules {
 				Message.Dispose();
 				Logger.Log($"Successfully Send Auto-Reply to {msg.From.Mailboxes.First().Address}");
 			}
+			catch (ArgumentNullException) {
+				Logger.Log($"One or more arguments are null or empty. cannot send auto reply email to {msg.Sender.Address}", LogLevels.Warn);
+				return;
+			}
+			catch (InvalidOperationException) {
+				Logger.Log($"Invalid operation exception thrown. cannot send auto reply email to {msg.Sender.Address}", LogLevels.Error);
+				return;
+			}
+			catch (SmtpException) {
+				Logger.Log("SMTP Exception throw, please check the credentials if they are correct.", LogLevels.Warn);
+				return;
+			}
 			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Error);
+				Logger.Log(e, LogLevels.Error);
 				return;
 			}
 		}
@@ -518,8 +575,8 @@ namespace HomeAssistant.Modules {
 								idle.SetTimeoutSource(timeout);
 
 								if (idle.Client.Capabilities.HasFlag(ImapCapabilities.Idle)) {
-
-									//TODO ERROR
+									//TODO: Connection reset by peer error, no fix for mobile networks, added workaround for mobile networks.
+									//working normally for normal connections
 									idle.Client.Idle(timeout.Token, idle.CancellationToken);
 								}
 								else {
@@ -540,9 +597,11 @@ namespace HomeAssistant.Modules {
 							}
 							catch (IOException io) {
 								Logger.Log(io.Message, LogLevels.Error);
-								Logger.Log("Running IMAP idle workaround...", LogLevels.Trace);
-								DisposeClient(false);
-								StartImapClient(true);
+								if (!IsClientShutdownRequested) {
+									Logger.Log("Applying connection reset by peer error workaround...", LogLevels.Trace);
+									DisposeClient(true);
+									StartImapClient(true);
+								}
 								return;
 							}
 							finally {

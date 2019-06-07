@@ -26,11 +26,14 @@ namespace HomeAssistant.Core {
 		[Option('s', "safe", Required = false, HelpText = "Enables safe mode so that only pre configured pins can be modified.")]
 		public bool Safe { get; set; }
 
-		[Option('f', "fistchance", Required = false, HelpText = "Enables logging of first chance exceptions to console.")]
+		[Option('f', "firstchance", Required = false, HelpText = "Enables logging of first chance exceptions to console.")]
 		public bool EnableFirstChance { get; set; }
 
 		[Option('t', "tts", Required = false, HelpText = "Enable text to speech system for assistant.")]
 		public bool TextToSpeech { get; set; }
+
+		[Option("df", Required = false, HelpText = "Disable first chance exception loggin when debug mode is enabled.")]
+		public bool DisableFirstChance { get; set; }
 	}
 
 	public class Tess {
@@ -39,7 +42,7 @@ namespace HomeAssistant.Core {
 		public static Updater Update = new Updater();
 		public static TCPServer CoreServer = new TCPServer();
 		public static CoreConfig Config = new CoreConfig();
-		private static ConfigWatcher ConfigWatcher = new ConfigWatcher();
+		private static readonly ConfigWatcher ConfigWatcher = new ConfigWatcher();
 		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
@@ -52,11 +55,14 @@ namespace HomeAssistant.Core {
 		public static bool DisablePiMethods = false;
 		public static bool IsUnknownOS = false;
 		public static bool TessShutdownRequested = false;
+		public static bool IsNetworkDisconnected = false;
+		public static bool IsNetworkReconnected = false;
+		public static bool IsNetworkAvailable = true;
+		public static bool DisableFirstChanceLogWithDebug = false;		
 
 		public static async Task<bool> InitCore(string[] args) {
 			Helpers.CheckMultipleProcess();
-			StartupTime = DateTime.Now;
-
+			StartupTime = DateTime.Now;			
 			Logger.Log("Verifying internet connectivity...", LogLevels.Trace);
 
 			if (Helpers.CheckForInternetConnection()) {
@@ -65,13 +71,17 @@ namespace HomeAssistant.Core {
 			else {
 				Logger.Log("No internet connection detected!");
 				Logger.Log("Starting TESS in offline mode.");
-
-				//TODO Offline mode
+				IsNetworkAvailable = false;
 			}
 
 			try {
 				await Helpers.DisplayTessASCII().ConfigureAwait(false);
 				Constants.ExternelIP = Helpers.GetExternalIP();
+
+				if (string.IsNullOrEmpty(Constants.ExternelIP) || string.IsNullOrWhiteSpace(Constants.ExternelIP)) {
+					Constants.ExternelIP = "Failed. No internet connection.";
+				}
+
 				Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater");
 				Logger.Log($"X--------  Starting TESS Assistant v{Constants.Version}  --------X", LogLevels.Ascii);
 				Logger.Log("Loading core config...", LogLevels.Trace);
@@ -85,9 +95,6 @@ namespace HomeAssistant.Core {
 				}
 
 				ConfigWatcher.InitConfigWatcher();
-				//MISC:
-				//Config.Debug = true;
-
 				ParseStartupArguments(args);
 
 				if (!Helpers.IsRaspberryEnvironment()) {
@@ -120,30 +127,38 @@ namespace HomeAssistant.Core {
 						Logger.Log("Github token isnt found. Updates will be disabled.", LogLevels.Warn);
 						Token = false;
 					}
+					else {
+						Token = true;
+					}
 				}
-				catch (Exception) {
+				catch (NullReferenceException) {
 					Logger.Log("Github token isnt found. Updates will be disabled.", LogLevels.Warn);
 					Token = false;
 				}
 
-				Token = true;
-
-				if (Token && Config.AutoUpdates) {
+				if (Token && Config.AutoUpdates && IsNetworkAvailable) {
 					Logger.Log("Checking for any new version...", LogLevels.Trace);
 					File.WriteAllText("version.txt", Constants.Version.ToString());
 					await Update.CheckAndUpdate(true).ConfigureAwait(false);
 				}
 
-				if (Config.TCPServer) {
+				if (Config.TCPServer && IsNetworkAvailable) {
 					_ = CoreServer.StartServer();
 				}
 
 				Modules = new ModuleInitializer();
-				await Modules.StartModules().ConfigureAwait(false);
+
+				if (IsNetworkAvailable) {
+					await Modules.StartModules().ConfigureAwait(false);
+				}
+				else {
+					Logger.Log("Could not start the modules as network is unavailable.", LogLevels.Warn);
+				}
+
 				await PostInitTasks().ConfigureAwait(false);
 			}
 			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Fatal);
+				Logger.Log(e, LogLevels.Fatal);
 				return false;
 			}
 			return true;
@@ -167,7 +182,7 @@ namespace HomeAssistant.Core {
 				await DisplayRelayMenu().ConfigureAwait(false);
 			}
 
-			TTSService.SpeakText("TESS Home assistant have been sucessfully started!", SpeechContext.TessStartup, false);
+			TTSService.SpeakText("TESS Home assistant have been sucessfully started!", SpeechContext.TessStartup, true);
 			Logger.Log("Waiting for commands...");
 			await KeepAlive('q', 'm', 'e', 'i', 't', 'c').ConfigureAwait(false);
 		}
@@ -259,6 +274,11 @@ namespace HomeAssistant.Core {
 				if (x.TextToSpeech) {
 					Logger.Log("Enabled text to speech service via startup arguments.", LogLevels.Warn);
 					Config.EnableTextToSpeech = true;
+				}
+
+				if (x.DisableFirstChance) {
+					Logger.Log("Disabling first chance exception logging with debug mode.", LogLevels.Warn);
+					DisableFirstChanceLogWithDebug = true;
 				}
 			});
 		}
@@ -593,6 +613,64 @@ namespace HomeAssistant.Core {
 			Logger.Log($"Press m to display GPIO menu.");
 			Logger.Log($"Press i to stop IMAP Idle notifications.");
 			Logger.Log($"Press c to display command menu.");
+		}
+
+		//I still cant remember why i coded this method so lets just comment until i remember
+		//private static void NetworkConnectionListerner() {
+		//	Helpers.InBackgroundThread(() => {
+		//		while (true) {
+		//			if (IsNetworkDisconnected) {
+		//				OnNetworkDisconnected();
+		//			}
+		//			Task.Delay(100).Wait();
+		//			if (IsNetworkReconnected) {
+		//				OnNetworkReconnected();
+		//			}
+		//		}
+		//	}, "Network Change Listerner");
+		//	Logger.Log("Started network listerner...", LogLevels.Trace);
+		//}
+
+		public static void OnNetworkDisconnected() {
+			IsNetworkAvailable = false;
+			Constants.ExternelIP = "Internet connection lost.";
+
+			if (Update != null) {
+				Update.StopUpdateTimer();
+				Logger.Log("Stopped update timer.", LogLevels.Warn);
+			}
+
+			if (Modules != null) {
+				_ = Modules.OnCoreShutdown();
+			}
+
+			if (CoreServer != null && CoreServer.ServerOn) {
+				CoreServer.StopServer();
+			}
+		}
+
+		public static void OnNetworkReconnected() {
+			IsNetworkAvailable = true;
+			Constants.ExternelIP = Helpers.GetExternalIP();
+
+			if (Config.AutoUpdates && IsNetworkAvailable) {
+				Logger.Log("Checking for any new version...", LogLevels.Trace);
+				File.WriteAllText("version.txt", Constants.Version.ToString());
+				Task.Run(async () => await Update.CheckAndUpdate(true).ConfigureAwait(false));
+			}
+
+			if (Config.TCPServer && IsNetworkAvailable) {
+				_ = CoreServer.StartServer();
+			}
+
+			Modules = new ModuleInitializer();
+
+			if (IsNetworkAvailable) {
+				Task.Run(async () => await Modules.StartModules().ConfigureAwait(false));
+			}
+			else {
+				Logger.Log("Could not start the modules as network is unavailable.", LogLevels.Warn);
+			}
 		}
 
 		public static async Task OnExit() {

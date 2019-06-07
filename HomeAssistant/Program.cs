@@ -27,25 +27,29 @@ namespace HomeAssistant {
 		}
 
 		public static void HandleFirstChanceExceptions(object sender, FirstChanceExceptionEventArgs e) {
-			if (Tess.Config.Debug && Tess.Config.EnableFirstChanceLog) {
-				if (e.Exception is PlatformNotSupportedException) {
-					Logger.Log(e.Exception.Message, LogLevels.Error);
+			if (Tess.Config.Debug) {
+				if (Tess.DisableFirstChanceLogWithDebug) {
+					return;
 				}
-				else if (e.Exception is ArgumentNullException) {
-					Logger.Log(e.Exception.Message, LogLevels.Error);
-				}
-				else if (e.Exception is OperationCanceledException) {
-					Logger.Log(e.Exception.Message, LogLevels.Error);
-				}
-				else if (e.Exception is IOException) {
-					Logger.Log(e.Exception.Message, LogLevels.Error);
+
+				if (Tess.Config.EnableFirstChanceLog) {
+					if (e.Exception is PlatformNotSupportedException) {
+						Logger.Log(e.Exception.Message, LogLevels.Error);
+					}
+					else if (e.Exception is ArgumentNullException) {
+						Logger.Log(e.Exception.Message, LogLevels.Error);
+					}
+					else if (e.Exception is OperationCanceledException) {
+						Logger.Log(e.Exception.Message, LogLevels.Error);
+					}
+					else if (e.Exception is IOException) {
+						Logger.Log(e.Exception.Message, LogLevels.Error);
+					}
+					else {
+						Logger.Log(e.Exception.Message, LogLevels.Error);
+					}
 				}
 				else {
-					Logger.Log(e.Exception.Message, LogLevels.Error);
-				}
-			}
-			else {
-				if (Tess.Config.Debug) {
 					if (e.Exception is PlatformNotSupportedException) {
 						Logger.Log("Platform not supported exception thrown.", LogLevels.Trace);
 					}
@@ -65,9 +69,8 @@ namespace HomeAssistant {
 			}
 		}
 
-		public static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {
-			Exception ex = (Exception) e.ExceptionObject;
-			Logger.Log(ex.ToString(), LogLevels.Error);
+		public static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {			
+			Logger.Log((Exception) e.ExceptionObject, LogLevels.Fatal);
 
 			if (e.IsTerminating) {
 				Task.Run(async () => await Tess.Exit(1).ConfigureAwait(false));
@@ -76,10 +79,13 @@ namespace HomeAssistant {
 
 		private static void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
 			if (e.IsAvailable) {
-				Logger.Log("Network is available!");
+				Logger.Log("Network is back online, reconnecting!");
+				Tess.OnNetworkReconnected();
 			}
 			else {
-				Logger.Log("Network disconnected.", LogLevels.Error);
+				Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
+				Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", LogLevels.Error);
+				Tess.OnNetworkDisconnected();
 			}
 		}
 	}

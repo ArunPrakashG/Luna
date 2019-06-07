@@ -32,7 +32,7 @@ namespace HomeAssistant.Modules {
 				}
 			}
 			catch (Exception e) {
-				Logger.Log(e, ExceptionLogLevels.Error);
+				Logger.Log(e, LogLevels.Error);
 				return false;
 			}
 			return false;
@@ -58,8 +58,7 @@ namespace HomeAssistant.Modules {
 				mailClient.StartImapClient(false);
 
 				if (mailClient.IsAccountLoaded) {
-					Logger.Log($"Sucessfully loaded {entry.Key.Trim()}", LogLevels.Trace);
-					EmailClientCollection.TryAdd(UniqueID, mailClient);
+					Logger.Log($"Sucessfully loaded {entry.Key.Trim()}", LogLevels.Trace);					
 					loadedCount++;
 				}
 			}
@@ -82,8 +81,7 @@ namespace HomeAssistant.Modules {
 			foreach (KeyValuePair<string, Email> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
 					pair.Value.DisposeClient(false);
-					Logger.Log($"Disconnected {pair.Key} email account sucessfully!", LogLevels.Trace);
-					EmailClientCollection.TryRemove(pair.Key, out _);
+					Logger.Log($"Disconnected {pair.Key} email account sucessfully!", LogLevels.Trace);					
 				}
 			}
 			EmailClientCollection.Clear();

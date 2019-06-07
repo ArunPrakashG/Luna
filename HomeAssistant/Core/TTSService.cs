@@ -36,6 +36,11 @@ namespace HomeAssistant.Core {
 				return;
 			}
 
+			if (!Tess.IsNetworkAvailable) {
+				Logger.Log("Network is unavailable. TTS won't run.", LogLevels.Warn);
+				return;
+			}
+
 			if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(text)) {
 				Logger.Log("Text is null! line 33, TTSService.cs", LogLevels.Error);
 				return;
@@ -46,8 +51,7 @@ namespace HomeAssistant.Core {
 			}
 
 			if (File.Exists(Constants.TTSAlertFilePath) && !disableTTSalert) {
-				Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q", false);
-				Task.Delay(300).Wait();
+				Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q", false);				
 			}
 
 			byte[] result;
@@ -69,6 +73,7 @@ namespace HomeAssistant.Core {
 					}
 
 					if (File.Exists(Constants.StartupSpeechFilePath)) {
+						Task.Delay(500).Wait();
 						Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q", false);
 					}
 					else {

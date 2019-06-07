@@ -7,6 +7,7 @@ using HomeAssistant.Log;
 using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -91,17 +92,37 @@ namespace HomeAssistant.Modules {
 			Client.Log += DiscordCoreLogger;
 			Client.MessageReceived += OnMessageReceived;
 			Client.Ready += OnClientReady;
+			int connectionTry = 1;
+			while (true) {
+				if (connectionTry > 5) {
+					Logger.Log($"Connection failed after 5 attempts. cannot proceed to connect.", LogLevels.Error);
+					IsServerOnline = false;
+					return false;
+				}
 
-			try {
-				await Commands.AddModulesAsync(Assembly.GetEntryAssembly(), null).ConfigureAwait(false);
-				await Client.LoginAsync(TokenType.Bot, DiscordToken);
-				await Client.StartAsync().ConfigureAwait(false);
-				IsServerOnline = true;
-				Logger.Log($"Discord server is online!");
-			}
-			catch (Exception ex) {
-				Logger.Log(ex, ExceptionLogLevels.Error);
-				return false;
+				try {
+					await Commands.AddModulesAsync(Assembly.GetEntryAssembly(), null).ConfigureAwait(false);
+					await Client.LoginAsync(TokenType.Bot, DiscordToken);
+					await Client.StartAsync().ConfigureAwait(false);
+					IsServerOnline = true;
+					Logger.Log($"Discord server is online!");
+				}
+				catch (HttpRequestException) {
+					Logger.Log("HTTP request exception thrown.", LogLevels.Error);
+				}
+				catch (Exception ex) {
+					Logger.Log(ex, LogLevels.Error);
+				}
+
+				if (IsServerOnline) {
+					break;
+				}
+				else {
+					if (connectionTry < 5) {
+						Logger.Log($"Could not connect, retrying... ({connectionTry}/5)", LogLevels.Warn);
+					}
+					connectionTry++;
+				}
 			}
 			return true;
 		}
@@ -557,7 +578,7 @@ namespace HomeAssistant.Modules {
 		}
 
 		public async Task LogToChannel(string message) {
-			if(string.IsNullOrEmpty(message) || string.IsNullOrWhiteSpace(message)) {
+			if (string.IsNullOrEmpty(message) || string.IsNullOrWhiteSpace(message)) {
 				return;
 			}
 

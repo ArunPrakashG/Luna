@@ -60,18 +60,14 @@ namespace HomeAssistant.Core {
 			Default
 		}
 
-		public enum ExceptionLogLevels {
-			Fatal,
-			Error,
-			DebugException
-		}
-
 		public enum LogLevels {
 			Trace,
 			Debug,
 			Info,
 			Warn,
 			Error,
+			Fatal,			
+			DebugException,
 			Ascii,
 			UserInput,
 			ServerResult,
