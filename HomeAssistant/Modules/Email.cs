@@ -59,11 +59,8 @@ namespace HomeAssistant.Modules {
 		public bool IsAccountLoaded = false;
 		private bool IsIdleCancelRequested = false;
 		private bool IsClientShutdownRequested = false;
-		private bool ClientShutdownSucessfull = false;
-		private bool IdleCancelledSucessfully = false;
-		private bool IsClientDisconnected = false;
+		private bool IsReconnectEnabled = false;
 
-		private bool IsClientInIdle => Client.IsIdle;
 		public List<MessageData> MessagesArrivedDuringIdle = new List<MessageData>();
 		private readonly EmailConfig MailConfig = new EmailConfig();
 
@@ -121,29 +118,38 @@ namespace HomeAssistant.Modules {
 		public void DisposeClient(bool force) {
 			IsClientShutdownRequested = true;
 			IsIdleCancelRequested = true;
+			IsAccountLoaded = false;
 
 			if (force) {
 				if (Client != null) {
 					Client.Dispose();
-					IsClientDisconnected = true;
-					ClientShutdownSucessfull = true;
+					Logger.Log("Forcefully disposed imap client.", LogLevels.Trace);
 				}
 
 				if (HelperClient != null) {
 					HelperClient.Dispose();
+					Logger.Log("Forcefully disposed helper client.", LogLevels.Trace);
 				}
+
 				Tess.Modules.EmailClientCollection.TryRemove(UniqueAccountID, out _);
 				Logger.Log("Removed email object from client collection", LogLevels.Trace);
+			}
+		}
+
+		public void DisposeClient() {
+			IsClientShutdownRequested = true;
+			IsIdleCancelRequested = true;
+			IsAccountLoaded = false;
+
+			if (Client == null) {
 				return;
 			}
 
-			if (!IdleCancelledSucessfully) {
+			if (Client.IsIdle) {
 				StopImapIdle();
 
-				Task.Delay(100).Wait();
-
 				while (true) {
-					if (!IdleCancelledSucessfully) {
+					if (Client.IsIdle) {
 						Logger.Log("Waiting for IMAP Client to disconnect idling process...", LogLevels.Trace);
 					}
 					else {
@@ -156,8 +162,12 @@ namespace HomeAssistant.Modules {
 
 			if (Client != null) {
 				Client.Dispose();
-				IsClientDisconnected = true;
-				ClientShutdownSucessfull = true;
+				Logger.Log("Disposed imap client.", LogLevels.Trace);
+			}
+
+			if (HelperClient != null) {
+				HelperClient.Dispose();
+				Logger.Log("Disposed helper client.", LogLevels.Trace);
 			}
 
 			if (Tess.Modules.EmailClientCollection.ContainsKey(UniqueAccountID)) {
@@ -222,13 +232,15 @@ namespace HomeAssistant.Modules {
 				Client.Dispose();
 			}
 
+			if (HelperClient != null) {
+				HelperClient.Dispose();
+			}
+
 			Client = new ImapClient();
 			InboxMessagesCount = 0;
-			IdleCancelledSucessfully = false;
 			IsIdleCancelRequested = false;
 			IsClientShutdownRequested = false;
-			ClientShutdownSucessfull = false;
-			IsClientDisconnected = false;
+			IsReconnectEnabled = false;
 
 			if (reconnect) {
 				Logger.Log("Reconnecting to GMAIL...", LogLevels.Trace);
@@ -243,6 +255,7 @@ namespace HomeAssistant.Modules {
 					IsAccountLoaded = false;
 					return;
 				}
+
 				try {
 					Client.Connect(Constants.GmailHost, Constants.GmailPort, true);
 					Client.Authenticate(GmailID, GmailPass);
@@ -258,7 +271,7 @@ namespace HomeAssistant.Modules {
 
 					clientConnected = true;
 					if (Tess.Modules.EmailClientCollection.ContainsKey(UniqueAccountID)) {
-						Logger.Log("Deleting entry with the same unique account id from Client Collection.", LogLevels.Error);
+						Logger.Log("Deleting entry with the same unique account id from Client Collection.", LogLevels.Trace);
 						Tess.Modules.EmailClientCollection.TryRemove(UniqueAccountID, out _);
 					}
 
@@ -321,6 +334,7 @@ namespace HomeAssistant.Modules {
 						Helpers.PlayNotification(NotificationContext.Imap, false);
 					}
 
+					IsReconnectEnabled = true;
 					StopImapIdle();
 				}
 			};
@@ -342,36 +356,54 @@ namespace HomeAssistant.Modules {
 						thread.Join();
 
 						while (true) {
-							if (IsClientInIdle) {
+							if (Client.IsIdle) {
 								Logger.Log("Waiting for imap idle client to shutdown...", LogLevels.Trace);
 							}
 							else {
-								IdleCancelledSucessfully = true;
+								//Idle has been sucessfully cancelled
 								OnMessageArrived();
 								break;
 							}
 						}
 
-						if (IsClientShutdownRequested && !ClientShutdownSucessfull) {
+						if (IsClientShutdownRequested && !IsReconnectEnabled) {
 							while (true) {
-								if (IsClientInIdle) {
+								if (Client.IsIdle) {
 									Logger.Log("Waiting for IMAP Client to disconnect idling process...", LogLevels.Trace);
 								}
 								else {
 									if (IsAccountLoaded) {
 										lock (Client.SyncRoot) {
-											Client.Disconnect(true);
+											if (Client != null && Client.IsConnected) {
+												Client.Disconnect(true);
+												Logger.Log("account has been disconnected as shutdown requested.", LogLevels.Trace);
+											}
+											else {
+												Logger.Log("Client is already disposed.", LogLevels.Trace);
+											}
 										}
-
-										IsClientDisconnected = true;
 
 										if (Client != null) {
 											Client.Dispose();
+											Logger.Log("Client has been disposed as shutdown requested.", LogLevels.Trace);
 										}
+
 										Logger.Log($"Disconnected and disposed imap and mail client for {GmailID.Split('@').FirstOrDefault().Trim()}");
 										break;
 									}
 									else {
+										if(Client == null) {
+											Logger.Log("client is already disposed.", LogLevels.Trace);
+										}
+										else {
+											Logger.Log("client is already disconnected.", LogLevels.Trace);
+
+											if (Client != null) {
+												Client.Dispose();
+												Logger.Log("Client has been disposed as shutdown requested.", LogLevels.Trace);
+											}
+										}
+										
 										return;
 									}
 								}
@@ -379,6 +411,9 @@ namespace HomeAssistant.Modules {
 							}
 						}
 					}
+				}
+				catch (ObjectDisposedException) {
+					Logger.Log("Client appears to be already disposed.", LogLevels.Trace);
 				}
 				catch (Exception e) {
 					Logger.Log(e.Message, LogLevels.Error);
@@ -388,12 +423,12 @@ namespace HomeAssistant.Modules {
 		}
 
 		private void OnMessageArrived() {
-			if (IsClientInIdle) {
+			if (Client.IsIdle) {
 				StopImapIdle();
 			}
 
 			while (true) {
-				if (!IsClientInIdle) {
+				if (!Client.IsIdle) {
 					Logger.Log("Client imap idling has been sucessfully stopped!", LogLevels.Trace);
 					break;
 				}
@@ -404,7 +439,7 @@ namespace HomeAssistant.Modules {
 			}
 
 			List<IMessageSummary> messages = new List<IMessageSummary>();
-			if (Client.Inbox.Count > InboxMessagesCount) {
+			if (Client != null && !IsClientShutdownRequested && Client.Inbox.Count > InboxMessagesCount) {
 				if (!Client.IsConnected) { return; }
 				lock (Client.SyncRoot) {
 					messages = Client.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
@@ -460,7 +495,7 @@ namespace HomeAssistant.Modules {
 				}
 			}
 
-			if (IsClientShutdownRequested || IsClientDisconnected) {
+			if (IsClientShutdownRequested) {
 				return;
 			}
 			else {
@@ -536,12 +571,12 @@ namespace HomeAssistant.Modules {
 		}
 
 		private void OnIdleStopped(bool isShutdownReqested) {
-			if (IsClientInIdle) {
+			if (Client.IsIdle) {
 				StopImapIdle();
 			}
 
 			while (true) {
-				if (!IsClientInIdle) {
+				if (!Client.IsIdle) {
 					Logger.Log("Client imap idling has been sucessfully stopped!", LogLevels.Trace);
 					break;
 				}
@@ -552,7 +587,7 @@ namespace HomeAssistant.Modules {
 
 			lock (Client.SyncRoot) {
 				Client.Disconnect(true);
-				IsClientDisconnected = true;
+				Logger.Log("Account has been disconnected.", LogLevels.Trace);
 				IsAccountLoaded = false;
 			}
 
@@ -577,7 +612,13 @@ namespace HomeAssistant.Modules {
 								if (idle.Client.Capabilities.HasFlag(ImapCapabilities.Idle)) {
 									//TODO: Connection reset by peer error, no fix for mobile networks, added workaround for mobile networks.
 									//working normally for normal connections
-									idle.Client.Idle(timeout.Token, idle.CancellationToken);
+									//error IOException, socket exception
+									if (idle.Client == null) {
+										Logger.Log("idle client isnt connected.", LogLevels.Warn);
+									}
+									else {
+										idle.Client.Idle(timeout.Token, idle.CancellationToken);
+									}
 								}
 								else {
 									Logger.Log("Issuing NoOp command to IMAP servers...");
@@ -595,12 +636,38 @@ namespace HomeAssistant.Modules {
 							catch (ImapCommandException) {
 								break;
 							}
+							catch (ServiceNotConnectedException) {
+								Logger.Log("An error has occured. IMAP client is not connected to gmail servers. we will attempt to reconnect.", LogLevels.Warn);
+
+								if (idle.Client != null) {
+									idle.Client.Dispose();
+								}
+
+								DisposeClient();
+								Task.Delay(400).Wait();
+								StartImapClient(true);
+							}
 							catch (IOException io) {
-								Logger.Log(io.Message, LogLevels.Error);
-								if (!IsClientShutdownRequested) {
-									Logger.Log("Applying connection reset by peer error workaround...", LogLevels.Trace);
+								Logger.Log(io.Message, LogLevels.Trace);
+
+								if (idle.Client != null) {
+									idle.Client.Dispose();
+								}
+
+								if (!IsClientShutdownRequested && IsReconnectEnabled) {
+									Logger.Log("Applying connection reset by peer error workaround...", LogLevels.Warn);
 									DisposeClient(true);
 									StartImapClient(true);
+								}
+								else {
+									Logger.Log("IO Exception thrown during shutdown", LogLevels.Trace);
+									Logger.Log("Client shutting down.", LogLevels.Trace);
+
+									if (idle.Client != null) {
+										idle.Client.Dispose();
+									}
+
+									DisposeClient(true);
 								}
 								return;
 							}
@@ -641,13 +708,19 @@ namespace HomeAssistant.Modules {
 			}
 
 			public void SetTimeoutSource(CancellationTokenSource source) {
-				lock (Mutex) {
-					timeout = source;
+				try {
+					lock (Mutex) {
+						timeout = source;
 
-					if (timeout != null && IsCancellationRequested) {
-						timeout.Cancel();
+						if (timeout != null && IsCancellationRequested) {
+							timeout.Cancel();
+						}
 					}
 				}
+				catch (NullReferenceException) {
+					// ignore this as it only happens during exit
+				}
+
 			}
 		}
 	}

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
@@ -62,7 +63,10 @@ namespace HomeAssistant.Core {
 
 		public static async Task<bool> InitCore(string[] args) {
 			Helpers.CheckMultipleProcess();
-			StartupTime = DateTime.Now;			
+			StartupTime = DateTime.Now;
+
+			Helpers.SetFileSeperator();
+
 			Logger.Log("Verifying internet connectivity...", LogLevels.Trace);
 
 			if (Helpers.CheckForInternetConnection()) {
@@ -97,7 +101,7 @@ namespace HomeAssistant.Core {
 				ConfigWatcher.InitConfigWatcher();
 				ParseStartupArguments(args);
 
-				if (!Helpers.IsRaspberryEnvironment()) {
+				if (!Helpers.IsRaspberryEnvironment() || Helpers.GetOsPlatform() != OSPlatform.Linux) {
 					DisablePiMethods = true;
 					IsUnknownOS = true;
 				}

@@ -34,6 +34,9 @@ namespace HomeAssistant.Core {
 		public bool ImapNotifications { get; set; } = true;
 
 		[JsonProperty]
+		public string NotificationSoundPath { get; set; }
+
+		[JsonProperty]
 		public ConcurrentDictionary<bool, string> AutoForwardEmails = new ConcurrentDictionary<bool, string>();
 	}
 

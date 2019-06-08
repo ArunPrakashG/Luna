@@ -9,6 +9,7 @@ using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
@@ -19,7 +20,39 @@ namespace HomeAssistant.Extensions {
 	public static class Helpers {
 		private static readonly Logger Logger = new Logger("HELPERS");
 		private static Timer TaskSchedulerTimer;
-		private const string UnixFileSeperator = @"\";
+		private static string FileSeprator = @"\";
+
+		public static void SetFileSeperator() {
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+				FileSeprator = @"/";
+				Logger.Log("windows os decteted. setting file seperator as " + FileSeprator, LogLevels.Trace);
+			}
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+				FileSeprator = @"\";
+				Logger.Log("linux os decteted. setting file seperator as " + FileSeprator, LogLevels.Trace);
+			}
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+				FileSeprator = @"/";
+				Logger.Log("osx os decteted. setting file seperator as " + FileSeprator, LogLevels.Trace);
+			}
+		}
+
+		public static OSPlatform GetOsPlatform() {
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+				return OSPlatform.Windows;
+			}
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+				return OSPlatform.Linux;
+			}
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+				return OSPlatform.OSX;
+			}
+			return OSPlatform.Linux;
+		}
 
 		public static void ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
@@ -337,13 +370,7 @@ namespace HomeAssistant.Extensions {
 			}
 		}
 
-		public static string GetFileName(string path) {
-			if (Tess.IsUnknownOS) {
-				return path;
-			}
-
-			return path.Substring(path.LastIndexOf(UnixFileSeperator) + 1);
-		}
+		public static string GetFileName(string path) => path.Substring(path.LastIndexOf(FileSeprator) + 1);
 
 		public static void WriteBytesToFile(byte[] bytesToWrite, string filePath) {
 			if (bytesToWrite.Length <= 0 || string.IsNullOrEmpty(filePath) || string.IsNullOrWhiteSpace(filePath)) {

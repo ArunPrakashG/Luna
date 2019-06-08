@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -22,7 +22,7 @@
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
     <PackageReference Include="Unosquare.Raspberry.IO" Version="0.20.0" />
-    <PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.2.4" />
+    <PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.3.0" />
     <PackageReference Include="Unosquare.WiringPi" Version="0.3.1" />
     <PackageReference Include="VideoLibrary" Version="2.0.3" />
   </ItemGroup>
@@ -70,7 +70,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <SshDeployHost>192.168.1.36</SshDeployHost>
+    <SshDeployHost>192.168.1.38</SshDeployHost>
     <SshDeployClean />
     <SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
     <SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
@@ -80,8 +80,7 @@
     <LangVersion>7.3</LangVersion>
     <Authors>Arun Prakash (SynergyFTW)</Authors>
     <Product>Home Assistant</Product>
-    <Description>Home automation and personal assistant running on raspberry pi. 
-using C# .NET CORE Framework.</Description>
+    <Description>Home automation and personal assistant running on raspberry pi using C# .NET CORE Framework.</Description>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 

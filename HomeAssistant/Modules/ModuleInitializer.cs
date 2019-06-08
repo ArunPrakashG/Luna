@@ -80,7 +80,7 @@ namespace HomeAssistant.Modules {
 
 			foreach (KeyValuePair<string, Email> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
-					pair.Value.DisposeClient(false);
+					pair.Value.DisposeClient();
 					Logger.Log($"Disconnected {pair.Key} email account sucessfully!", LogLevels.Trace);					
 				}
 			}

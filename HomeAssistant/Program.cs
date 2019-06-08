@@ -18,6 +18,7 @@ namespace HomeAssistant {
 			AppDomain.CurrentDomain.UnhandledException += HandleUnhandledExceptions;
 			AppDomain.CurrentDomain.FirstChanceException += HandleFirstChanceExceptions;
 			NetworkChange.NetworkAvailabilityChanged += AvailabilityChanged;
+			AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
 			bool Init = await Tess.InitCore(args).ConfigureAwait(false);
 		}
 
@@ -87,6 +88,10 @@ namespace HomeAssistant {
 				Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", LogLevels.Error);
 				Tess.OnNetworkDisconnected();
 			}
+		}
+
+		private static void OnEnvironmentExit(object sender, EventArgs e) {
+			Task.Run(async () => await Tess.OnExit().ConfigureAwait(false));
 		}
 	}
 }
