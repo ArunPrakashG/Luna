@@ -24,6 +24,7 @@ when the network is back online, it can start the previously stopped tasks again
 - Task queue - task based functions, such as setting remainders etc will be added to a concurrentqueue with FIFO principal. they will started in the background thread concurrently with the main thread.
 - Discord bot - allows to control tess using discord bot commands from home assistant discord chann
 - TTS service - text to speech system for various important updates.
+- Updater - automatically check for updates and update tess.
 
 
 **To be edited later on**
