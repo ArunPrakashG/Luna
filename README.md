@@ -23,9 +23,10 @@ when the network is back online, it can start the previously stopped tasks again
 - Multi threaded - Tess utilizes multi threading to perform at its best. it can run many tasks concurrently without delay.
 - Task queue - task based functions, such as setting remainders etc will be added to a concurrentqueue with FIFO principal. they will started in the background thread concurrently with the main thread.
 - Discord bot - allows to control tess using discord bot commands from home assistant discord chann
-- TTS service - text to speech system for various important updates.
+- TTS service - text to speech system for various important notifications and updates.
 - Updater - automatically check for updates and update tess.
-
+- Kestrel Http Server - Advanced REST Http server API with various endpoints to provide you with complete control over your assistant.
+- Performence Counter - System to monitor CPU and RAM usage in real-time. [Currently only for Windows platforms]
 
 **To be edited later on**
 
