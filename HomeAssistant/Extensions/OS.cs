@@ -8,7 +8,7 @@ namespace HomeAssistant.Extensions {
 	internal static class OS {
 
 		internal static bool IsUnix => RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-		private static Logger Logger = new Logger("OS");
+		private static readonly Logger Logger = new Logger("OS");
 
 		internal static void Init(bool systemRequired) {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -28,7 +28,7 @@ namespace HomeAssistant.Extensions {
 
 			// Chmod() returns 0 on success, -1 on failure
 			if (NativeMethods.Chmod(path, (int) NativeMethods.UnixExecutePermission) != 0) {
-				Logger.Log(string.Format("Failed due to error: {0}", Marshal.GetLastWin32Error()));
+				Logger.Log($"Failed due to error: {Marshal.GetLastWin32Error()}");
 			}
 		}
 
@@ -61,7 +61,7 @@ namespace HomeAssistant.Extensions {
 
 			// SetThreadExecutionState() returns NULL on failure, which is mapped to 0 (EExecutionState.Error) in our case
 			if (result == NativeMethods.EExecutionState.Error) {
-				Logger.Log(string.Format("Failed due to error: {0}", result));
+				Logger.Log($"Failed due to error: {result}");
 			}
 		}
 

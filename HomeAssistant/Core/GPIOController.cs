@@ -33,8 +33,8 @@ namespace HomeAssistant.Core {
 	public class GPIOController {
 		private readonly Logger Logger = new Logger("GPIO-CONTROLLER");
 		private readonly GPIOConfigHandler GPIOConfigHandler;
-		public List<GPIOPinConfig> GPIOConfig;
-		public GPIOConfigRoot GPIOConfigRoot;
+		public List<GPIOPinConfig> GPIOConfig { get; set; }
+		public GPIOConfigRoot GPIOConfigRoot { get; private set; }
 		private bool IsWaitForValueCancellationRequested = false;
 		private readonly ConcurrentQueue<GPIOTaskQueue> TaskQueue = new ConcurrentQueue<GPIOTaskQueue>();
 
@@ -42,7 +42,7 @@ namespace HomeAssistant.Core {
 			GPIOConfig = config;
 			GPIOConfigHandler = configHandler;
 			GPIOConfigRoot = rootObject;
-			Logger.Log("Initiated GPIO Controller class!");
+			Logger.Log("Initiated GPIO Controller class!", LogLevels.Trace);
 		}
 
 		private void OnEnqueued(GPIOTaskQueue item) {
@@ -82,11 +82,6 @@ namespace HomeAssistant.Core {
 		public void StopWaitForValue() => IsWaitForValueCancellationRequested = true;
 
 		public void ChargerController(int pin, TimeSpan delay, GpioPinValue initialValue, GpioPinValue finalValue) {
-			if (delay == null) {
-				Logger.Log("Time delay is null!", LogLevels.Error);
-				return;
-			}
-
 			if (pin <= 0) {
 				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
 				return;
@@ -119,7 +114,7 @@ namespace HomeAssistant.Core {
 					TryEnqueue(task);
 					Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
 					Logger.Log($"TASK >> {pin} configured to OFF state. Waiting {delay.Minutes} minutes...");
-					PinStatus = Tess.Controller.FetchPinStatus(pin);
+					Tess.Controller.FetchPinStatus(pin);
 					Helpers.ScheduleTask(() => {
 						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
 						Logger.Log($"TASK >> {pin} configured to ON state. Task completed sucessfully!");
@@ -127,7 +122,6 @@ namespace HomeAssistant.Core {
 				}
 				else {
 					Logger.Log("Pin is already in OFF state. disposing the task.", LogLevels.Error);
-					return;
 				}
 			}
 			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
@@ -144,7 +138,7 @@ namespace HomeAssistant.Core {
 					TryEnqueue(task);
 					Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
 					Logger.Log($"TASK >> {pin} configured to ON state. Waiting {delay.Minutes} minutes...");
-					PinStatus = Tess.Controller.FetchPinStatus(pin);
+					Tess.Controller.FetchPinStatus(pin);
 					Helpers.ScheduleTask(() => {
 						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
 						Logger.Log($"TASK >> {pin} configured to OFF state. Task completed sucessfully!");
@@ -152,20 +146,16 @@ namespace HomeAssistant.Core {
 				}
 				else {
 					Logger.Log("Pin is already in ON state. disposing the task.", LogLevels.Error);
-					return;
 				}
 			}
 			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.Low) {
 				Logger.Log("Both initial and final values cant be equal. (ON-ON)", LogLevels.Error);
-				return;
 			}
 			else if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.High) {
 				Logger.Log("Both initial and final values cant be equal (OFF-OFF)", LogLevels.Error);
-				return;
 			}
 			else {
 				Logger.Log("Unknown value, an error has occured.", LogLevels.Error);
-				return;
 			}
 		}
 
@@ -206,9 +196,9 @@ namespace HomeAssistant.Core {
 				}
 
 				if (pinState.Equals(pinValue)) {
-					System.Threading.Tasks.Task.Run(action);
+					Task.Run(action);
 				}
-				System.Threading.Tasks.Task.Delay(100).Wait();
+				Task.Delay(100).Wait();
 			}
 		}
 
@@ -258,7 +248,7 @@ namespace HomeAssistant.Core {
 					Logger.Log("Started the specified action process.", LogLevels.Trace);
 					return true;
 				}
-				System.Threading.Tasks.Task.Delay(100).Wait();
+				Task.Delay(100).Wait();
 			}
 		}
 
@@ -358,12 +348,12 @@ namespace HomeAssistant.Core {
 						switch (state) {
 							case GpioPinValue.High:
 								Logger.Log($"Configured {pin} pin to OFF. (OUTPUT)");
-								UpdatePinStatus(pin, false, PinMode.Output);
+								UpdatePinStatus(pin, false);
 								break;
 
 							case GpioPinValue.Low:
 								Logger.Log($"Configured {pin} pin to ON. (OUTPUT)");
-								UpdatePinStatus(pin, true, PinMode.Output);
+								UpdatePinStatus(pin, true);
 								break;
 						}
 						break;
@@ -435,12 +425,12 @@ namespace HomeAssistant.Core {
 						switch (state) {
 							case GpioPinValue.High:
 								Logger.Log($"Configured {pin.ToString()} pin to OFF. (OUTPUT)");
-								UpdatePinStatus(pin, false, PinMode.Output);
+								UpdatePinStatus(pin, false);
 								break;
 
 							case GpioPinValue.Low:
 								Logger.Log($"Configured {pin.ToString()} pin to ON. (OUTPUT)");
-								UpdatePinStatus(pin, true, PinMode.Output);
+								UpdatePinStatus(pin, true);
 								break;
 						}
 						break;

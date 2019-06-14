@@ -100,14 +100,14 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			string JSON = null;
+			string json = null;
 			using (FileStream Stream = new FileStream(Constants.TaskQueueFilePath, FileMode.Open, FileAccess.Read)) {
 				using (StreamReader ReadSettings = new StreamReader(Stream)) {
-					JSON = ReadSettings.ReadToEnd();
+					json = ReadSettings.ReadToEnd();
 				}
 			}
 
-			TaskRootObject = JsonConvert.DeserializeObject<TaskQueueRoot>(JSON);
+			TaskRootObject = JsonConvert.DeserializeObject<TaskQueueRoot>(json);
 			ConcurrentTasks = TaskRootObject.TaskList;
 			Logger.Log("Tasks loaded sucessfully!");
 			return TaskRootObject;
@@ -127,7 +127,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						Task.Run(async () => await Tess.Exit(0).ConfigureAwait(false));
+						Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
 						return false;
 
 					default:

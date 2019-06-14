@@ -18,7 +18,7 @@ namespace HomeAssistant.Update {
 		private readonly GitHub Git = new GitHub();
 		public bool UpdateAvailable = false;
 		private Timer AutoUpdateTimer;
-		private Stopwatch ElapasedTimeCalculator = new Stopwatch();
+		private readonly Stopwatch ElapasedTimeCalculator = new Stopwatch();
 		private DateTime UpdateTimerStartTime;
 
 		public void StopUpdateTimer() {
@@ -142,33 +142,37 @@ namespace HomeAssistant.Update {
 				Logger.Log("Failed to fetch GITHUB_TOKEN variable value from file. file exists ?", LogLevels.Warn);
 				return;
 			}
-			
-			int releaseID = GitRoot.assets[0].id;
 
-			Logger.Log($"Release name: {GitRoot.name}");
-			Logger.Log($"URL: {GitRoot.url}", LogLevels.Trace);
-			Logger.Log($"Version: {GitRoot.tag_name}", LogLevels.Trace);
-			Logger.Log($"Publish time: {GitRoot.published_at.ToLongTimeString()}");
-			Logger.Log($"ZIP URL: {GitRoot.assets[0].browser_download_url}", LogLevels.Trace);
-			Logger.Log($"Downloading {GitRoot.name}.zip...");
+			if (GitRoot != null)
+			{
+				int releaseID = GitRoot.assets[0].id;
 
-			if (File.Exists(Constants.UpdateZipFileName)) {
-				File.Delete(Constants.UpdateZipFileName);
+				Logger.Log($"Release name: {GitRoot.name}");
+				Logger.Log($"URL: {GitRoot.url}", LogLevels.Trace);
+				Logger.Log($"Version: {GitRoot.tag_name}", LogLevels.Trace);
+				Logger.Log($"Publish time: {GitRoot.published_at.ToLongTimeString()}");
+				Logger.Log($"ZIP URL: {GitRoot.assets[0].browser_download_url}", LogLevels.Trace);
+				Logger.Log($"Downloading {GitRoot.name}.zip...");
+
+				if (File.Exists(Constants.UpdateZipFileName)) {
+					File.Delete(Constants.UpdateZipFileName);
+				}
+
+				RestClient client = new RestClient($"{Constants.GitHubAssetDownloadURL}/{releaseID}?access_token={gitToken}");
+				RestRequest request = new RestRequest(Method.GET);
+				client.UserAgent = Constants.GitHubProjectName;
+				request.AddHeader("cache-control", "no-cache");
+				request.AddHeader("Accept", "application/octet-stream");
+				IRestResponse response = client.Execute(request);
+
+				if (response.StatusCode != HttpStatusCode.OK) {
+					Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
+					return;
+				}
+
+				response.RawBytes.SaveAs(Constants.UpdateZipFileName);
 			}
 
-			RestClient client = new RestClient($"{Constants.GitHubAssetDownloadURL}/{releaseID}?access_token={gitToken}");
-			RestRequest request = new RestRequest(Method.GET);
-			client.UserAgent = Constants.GitHubProjectName;
-			request.AddHeader("cache-control", "no-cache");
-			request.AddHeader("Accept", "application/octet-stream");
-			IRestResponse response = client.Execute(request);
-
-			if (response.StatusCode != HttpStatusCode.OK) {
-				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
-				return;
-			}
-
-			response.RawBytes.SaveAs(Constants.UpdateZipFileName);
 			Logger.Log("Sucessfully Downloaded, Starting update process...");
 			await Task.Delay(1000).ConfigureAwait(false);
 

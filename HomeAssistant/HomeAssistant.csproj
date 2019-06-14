@@ -1,92 +1,114 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-    <AssemblyVersion>4.3.0.0</AssemblyVersion>
-    <FileVersion>4.3.0.0</FileVersion>
-    <Version>4.3.0.0</Version>
-    <RuntimeIdentifiers>linux-arm;linux-x64;osx-x64;win-x64</RuntimeIdentifiers>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>netcoreapp2.1</TargetFramework>
+		<AssemblyVersion>4.3.0.0</AssemblyVersion>
+		<FileVersion>4.3.0.0</FileVersion>
+		<Version>4.3.0.0</Version>
+		<Authors>Arun</Authors>
+		<Company>Arun Prakash</Company>
+		<Copyright>Copyright © TessHomeAssistant 2019-2019</Copyright>
+		<PackageProjectUrl>https://github.com/SynergYFTW/HomeAssistant</PackageProjectUrl>
+		<RepositoryType>Git</RepositoryType>
+		<RepositoryUrl>https://github.com/SynergYFTW/HomeAssistant.git</RepositoryUrl>
+		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<RuntimeIdentifiers>linux-arm;win-x64</RuntimeIdentifiers>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.5.0" />
-    <PackageReference Include="Discord.Net" Version="2.1.0" />
-    <PackageReference Include="Google.Cloud.Speech.V1" Version="1.1.0" />
-    <PackageReference Include="IT2media.Extensions.String" Version="2.0.0" />
-    <PackageReference Include="MailKit" Version="2.1.5.1" />    
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="NLog" Version="4.6.4" />
-    <PackageReference Include="RestSharp" Version="106.6.9" />
-    <PackageReference Include="System.Device.Gpio" Version="0.1.0-prerelease.19171.3" />
-    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
-    <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
-    <PackageReference Include="Unosquare.Raspberry.IO" Version="0.20.0" />
-    <PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.3.0" />
-    <PackageReference Include="Unosquare.WiringPi" Version="0.3.1" />
-    <PackageReference Include="VideoLibrary" Version="2.0.3" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="CommandLineParser" Version="2.5.0" />
+		<PackageReference Include="Discord.Net" Version="2.1.1" />
+		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.1.0" />
+		<PackageReference Include="MailKit" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Diagnostics" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.ViewFeatures" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.0.0-preview5.19227.9" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.0.0-preview5.19227.9" />
+		<PackageReference Include="NLog.Web.AspNetCore" Version="4.8.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+		<PackageReference Include="NLog" Version="4.6.5" />
+		<PackageReference Include="JetBrains.Annotations" Version="2019.1.1" />
+		<PackageReference Include="RestSharp" Version="106.6.9" />
+		<PackageReference Include="System.Device.Gpio" Version="0.1.0-prerelease.19171.3" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.5.0" />
+		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
+		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
+		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.20.0" />
+		<PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.3.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc2" />
+		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.0.0-rc2" />
+		<PackageReference Include="Unosquare.WiringPi" Version="0.3.1" />
+		<PackageReference Include="VideoLibrary" Version="2.0.3" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>PublicResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Update="Config\GPIOConfig.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Config\TESS.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="HomeAssistant_GCloud.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="NLog.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\mail_push_notification.mp3">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\TTS\startup.mp3">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Resources\tts_alert.mp3">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Variables.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Update="Config\GPIOConfig.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Config\TESS.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="HomeAssistant_GCloud.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="NLog.config">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\mail_push_notification.mp3">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\TTS\startup.mp3">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\tts_alert.mp3">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Variables.txt">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
-  <PropertyGroup>
-    <SshDeployHost>192.168.1.38</SshDeployHost>
-    <SshDeployClean />
-    <SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
-    <SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
-    <SshDeployUsername>pi</SshDeployUsername>
-    <SshDeployPassword>miniprakash</SshDeployPassword>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-    <LangVersion>7.3</LangVersion>
-    <Authors>Arun Prakash (SynergyFTW)</Authors>
-    <Product>Home Assistant</Product>
-    <Description>Home automation and personal assistant running on raspberry pi using C# .NET CORE Framework.</Description>
-    <SignAssembly>false</SignAssembly>
-  </PropertyGroup>
+	<PropertyGroup>
+		<SshDeployHost>192.168.1.39</SshDeployHost>
+		<SshDeployClean />
+		<SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
+		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
+		<SshDeployUsername>pi</SshDeployUsername>
+		<SshDeployPassword>miniprakash</SshDeployPassword>
+		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+		<LangVersion>7.3</LangVersion>
+		<Authors>Arun Prakash (SynergyFTW)</Authors>
+		<Product>Home Assistant</Product>
+		<Description>Home automation and personal assistant running on raspberry pi using C# .NET CORE Framework.</Description>
+		<SignAssembly>false</SignAssembly>
+	</PropertyGroup>
 
-  <Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="cd $(ProjectDir)" Condition=" '$(OS)' == 'Windows_NT' " />
-    <Exec Command="dotnet-sshdeploy push" Condition=" '$(OS)' == 'Windows_NT' " />
-  </Target>
-  
+	<Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="cd $(ProjectDir)" Condition=" '$(OS)' == 'Windows_NT' " />
+		<Exec Command="dotnet-sshdeploy push" Condition=" '$(OS)' == 'Windows_NT' " />
+	</Target>
+
 </Project>

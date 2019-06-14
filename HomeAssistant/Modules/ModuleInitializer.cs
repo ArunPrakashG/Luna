@@ -10,11 +10,12 @@ using static HomeAssistant.Core.Enums;
 namespace HomeAssistant.Modules {
 
 	public class ModuleInitializer {
-		private Logger Logger = new Logger("MODULES");
+		private readonly Logger Logger = new Logger("MODULES");
 		public DiscordClient Discord;
 		public GoogleMap Map;
 		public Youtube Youtube;
-		public ConcurrentDictionary<string, Email> EmailClientCollection = new ConcurrentDictionary<string, Email>();
+		public Email Mail;
+		public ConcurrentDictionary<string, EmailBot> EmailClientCollection = new ConcurrentDictionary<string, EmailBot>();
 
 		public async Task StartModules() {
 			await StartDiscord().ConfigureAwait(false);
@@ -39,12 +40,19 @@ namespace HomeAssistant.Modules {
 		}
 
 		private bool StartEmail() {
+			if (!Tess.Config.Debug) {
+				Logger.Log("Disabled for now until email.cs bug fix.", LogLevels.Warn);
+				Logger.Log("Enable debug mode to start.", LogLevels.Warn);
+				return false;
+			}
+
 			if (Tess.Config.EmailDetails.Count <= 0 || !Tess.Config.EmailDetails.Any()) {
 				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
 				return false;
 			}
 
 			EmailClientCollection.Clear();
+			Mail = new Email();
 
 			int loadedCount = 0;
 			foreach (KeyValuePair<string, EmailConfig> entry in Tess.Config.EmailDetails) {
@@ -52,25 +60,39 @@ namespace HomeAssistant.Modules {
 					continue;
 				}
 
-				string UniqueID = entry.Key;
-				Email mailClient = new Email(UniqueID, entry.Value);
+				string uniqueId = entry.Key;
 
-				mailClient.StartImapClient(false);
+				(bool result, EmailBot emailBot) = Mail.InitBot(uniqueId, entry.Value);
 
-				if (mailClient.IsAccountLoaded) {
-					Logger.Log($"Sucessfully loaded {entry.Key.Trim()}", LogLevels.Trace);					
+				if (result) {
+					EmailClientCollection.TryAdd(uniqueId, emailBot);
 					loadedCount++;
+				}
+				else {
+					Logger.Log($"Failed to load {uniqueId} account.", LogLevels.Trace);
 				}
 			}
 
-			if (loadedCount == Tess.Config.EmailDetails.Count) {
-				Logger.Log("Sucessfully loaded all email accounts and started IMAP Idle!", LogLevels.Trace);
-			}
-			else {
-				Logger.Log($"{loadedCount} accounts loaded sucessfully, {Tess.Config.EmailDetails.Count - loadedCount} account(s) failed.", LogLevels.Trace);
-			}
+			Logger.Log(
+				loadedCount == Tess.Config.EmailDetails.Count
+					? "Successfully loaded all email accounts!"
+					: $"{loadedCount} accounts loaded successfully, {Tess.Config.EmailDetails.Count - loadedCount} account(s) failed.",
+				LogLevels.Trace);
 
 			return true;
+		}
+
+		public void DisposeEmailBot(string botUniqueId) {
+			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
+				return;
+			}
+
+			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
+				if (pair.Key.Equals(botUniqueId)) {
+					pair.Value.Dispose();
+					Logger.Log($"Disposed {botUniqueId} email account.", LogLevels.Trace);
+				}
+			}
 		}
 
 		public void DisposeAllEmailClients() {
@@ -78,17 +100,17 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			foreach (KeyValuePair<string, Email> pair in EmailClientCollection) {
+			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
-					pair.Value.DisposeClient();
-					Logger.Log($"Disconnected {pair.Key} email account sucessfully!", LogLevels.Trace);					
+					pair.Value.Dispose();
+					Logger.Log($"Disposed {pair.Key} email account successfully!", LogLevels.Trace);
 				}
 			}
 			EmailClientCollection.Clear();
 		}
 
 		public bool OnCoreShutdown() {
-			if (Discord.Client != null || Discord.IsServerOnline) {
+			if (Discord != null && (Discord.Client != null || Discord.IsServerOnline)) {
 				Logger.Log("Discord server shutting down...", LogLevels.Trace);
 				_ = Discord.StopServer().Result;
 			}
@@ -98,7 +120,7 @@ namespace HomeAssistant.Modules {
 				DisposeAllEmailClients();
 			}
 
-			Logger.Log("Modules sucessfully shutdown!");
+			Logger.Log("Modules successfully shutdown!");
 			return true;
 		}
 	}

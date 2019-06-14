@@ -8,7 +8,7 @@ using static HomeAssistant.Core.Enums;
 namespace HomeAssistant.Log {
 
 	public class Logger {
-		private NLog.Logger LogModule;
+		private readonly NLog.Logger LogModule;
 		private readonly string LogIdentifier;
 
 		public Logger(string loggerIdentifier) {
@@ -139,13 +139,13 @@ namespace HomeAssistant.Log {
 					break;
 
 				case LogLevels.UserInput:
-					Console.WriteLine(">>> " + message);
+					Console.WriteLine(@">>> " + message);
 					LogGenericTrace(message);
 					break;
 
 				case LogLevels.ServerResult:
 					Console.ForegroundColor = ConsoleColor.Cyan;
-					Console.WriteLine("> " + message);
+					Console.WriteLine(@"> " + message);
 					Console.ResetColor();
 					LogGenericTrace(message);
 					break;
@@ -167,12 +167,12 @@ namespace HomeAssistant.Log {
 		}
 
 		public void DiscordLogToChannel(string message) {
-			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.Modules.Discord.IsServerOnline) {
+			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable) {
 				return;
 			}
 
-			DiscordLogger Logger = new DiscordLogger(LogIdentifier);
-			Helpers.InBackground(async () => await Logger.LogToChannel(message).ConfigureAwait(false));
+			DiscordLogger logger = new DiscordLogger(LogIdentifier);
+			Helpers.InBackground(async () => await logger.LogToChannel(message).ConfigureAwait(false));
 		}
 	}
 }

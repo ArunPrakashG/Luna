@@ -66,21 +66,21 @@ namespace HomeAssistant.Core {
 
 			if (!Tess.CoreInitiationCompleted) { return; }
 
-			double SecondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
+			double secondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
 			LastRead = DateTime.Now;
 
-			if (SecondsSinceLastRead <= 10) {
+			if (secondsSinceLastRead <= 10) {
 				return;
 			}
 
 			string fileName = e.Name;
-			string AbsoluteFileName = Path.GetFileName(fileName);
+			string absoluteFileName = Path.GetFileName(fileName);
 
-			if (string.IsNullOrEmpty(AbsoluteFileName) || string.IsNullOrWhiteSpace(AbsoluteFileName)) {
+			if (string.IsNullOrEmpty(absoluteFileName) || string.IsNullOrWhiteSpace(absoluteFileName)) {
 				return;
 			}
 
-			switch (AbsoluteFileName) {
+			switch (absoluteFileName) {
 				case "TESS.json":
 					Logger.Log("Config watcher event raised for core config file.", LogLevels.Trace);
 					Logger.Log("Updating core config as the local config file as been updated...");
@@ -96,7 +96,7 @@ namespace HomeAssistant.Core {
 					Logger.Log("File watcher event raised for example configs, ignored.", LogLevels.Trace);
 					break;
 				default:
-					Logger.Log($"File watcher event raised for unknown file. ({AbsoluteFileName}) ignored.", LogLevels.Trace);
+					Logger.Log($"File watcher event raised for unknown file. ({absoluteFileName}) ignored.", LogLevels.Trace);
 					break;
 			}
 		}

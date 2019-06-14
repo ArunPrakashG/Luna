@@ -27,7 +27,7 @@ namespace HomeAssistant.Core {
 	}
 
 	public class GPIOConfigHandler {
-		private Logger Logger = new Logger("GPIO-CONFIG-HANDLER");
+		private readonly Logger Logger = new Logger("GPIO-CONFIG-HANDLER");
 
 		private GPIOConfigRoot RootObject;
 
@@ -63,7 +63,7 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			string JSON = null;
+			string JSON;
 			using (FileStream Stream = new FileStream(Constants.GPIOConfigPath, FileMode.Open, FileAccess.Read)) {
 				using (StreamReader ReadSettings = new StreamReader(Stream)) {
 					JSON = ReadSettings.ReadToEnd();
@@ -89,7 +89,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						System.Threading.Tasks.Task.Run(async () => await Tess.Exit(0).ConfigureAwait(false));
+						System.Threading.Tasks.Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
 						return false;
 
 					default:

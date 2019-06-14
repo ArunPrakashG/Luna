@@ -6,7 +6,7 @@ using VideoLibrary;
 namespace HomeAssistant.Modules {
 
 	public class Youtube {
-		private Logger Logger = new Logger("YOUTUBE");
+		private readonly Logger Logger = new Logger("YOUTUBE");
 
 		//TODO
 		//fetch youtube video

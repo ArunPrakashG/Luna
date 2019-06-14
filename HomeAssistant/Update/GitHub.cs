@@ -154,7 +154,7 @@ namespace HomeAssistant.Update {
 	}
 
 	internal class GitHub {
-		private Logger Logger = new Logger("GIT-HUB");
+		private readonly Logger Logger = new Logger("GIT-HUB");
 
 		public Rootobject FetchLatestAssest(string gitToken) {
 			if (string.IsNullOrEmpty(gitToken) || string.IsNullOrWhiteSpace(gitToken)) {

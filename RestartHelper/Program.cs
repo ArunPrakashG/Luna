@@ -8,16 +8,15 @@ using System.Threading.Tasks;
 namespace RestartHelper {
 
 	internal class Program {
-
-		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+		private static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
 
 		private static async Task Main(string[] args) {
 			Console.WriteLine("Started restart helper...");
-			Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent.FullName + "/AssistantCore/");
+			Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
 
 			int Delay = 0;
 
-			if (args != null && args.Count() > 0) {
+			if (args != null && args.Any()) {
 				Delay = Convert.ToInt32(args[0].Trim());
 			}
 			Console.WriteLine("Restarting in " + Delay + " ms...");
@@ -28,7 +27,7 @@ namespace RestartHelper {
 			Environment.Exit(0);
 		}
 
-		public static void ExecuteCommand(string command, bool redirectOutput = false) {
+		private static void ExecuteCommand(string command, bool redirectOutput = false) {
 			Process proc = new Process();
 			proc.StartInfo.FileName = "/bin/bash";
 			proc.StartInfo.Arguments = "-c \" " + command;

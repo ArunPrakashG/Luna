@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using HomeAssistant.Server;
 
 namespace HomeAssistant.Extensions {
 
@@ -15,6 +16,8 @@ namespace HomeAssistant.Extensions {
 		public const string CoreConfigPath = ConfigDirectory + "/TESS.json";
 		public const string IPBlacklistPath = ConfigDirectory + "/IPBlacklist.txt";
 		public const string TaskQueueFilePath = ConfigDirectory + "/TaskQueue.json";
+		public const string KestrelConfigurationFile = nameof(KestrelServer) + ".config";
+		public const string KestrelConfigFilePath = ConfigDirectory + "/" + KestrelConfigurationFile;
 
 		public const string BackupDirectoryPath = @"_old";
 		public const string UpdateZipFileName = @"Latest.zip";

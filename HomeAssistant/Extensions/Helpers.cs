@@ -14,30 +14,44 @@ using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using static HomeAssistant.Core.Enums;
+using ProcessThread = System.Diagnostics.ProcessThread;
 
 namespace HomeAssistant.Extensions {
 
 	public static class Helpers {
 		private static readonly Logger Logger = new Logger("HELPERS");
 		private static Timer TaskSchedulerTimer;
-		private static string FileSeprator = @"\";
+		private static string FileSeperator = @"\";
 
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-				FileSeprator = @"/";
-				Logger.Log("windows os decteted. setting file seperator as " + FileSeprator, LogLevels.Trace);
+				FileSeperator = "//";
+				Logger.Log("windows os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-				FileSeprator = @"\";
-				Logger.Log("linux os decteted. setting file seperator as " + FileSeprator, LogLevels.Trace);
+				FileSeperator = "\\";
+				Logger.Log("linux os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-				FileSeprator = @"/";
-				Logger.Log("osx os decteted. setting file seperator as " + FileSeprator, LogLevels.Trace);
+				FileSeperator = "//";
+				Logger.Log("osx os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
 			}
 		}
+
+		public static ProcessThread FetchThreadById(int id) {
+			ProcessThreadCollection currentThreads = Process.GetCurrentProcess().Threads;
+
+			foreach (ProcessThread thread in currentThreads) {
+				if (thread.Id.Equals(id)) {
+					return thread;
+				}
+			}
+
+			return null;
+		}
+		
 
 		public static OSPlatform GetOsPlatform() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -56,12 +70,7 @@ namespace HomeAssistant.Extensions {
 
 		public static void ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
-				Logger.Log($"Action is null! " + nameof(action), LogLevels.Error);
-				return;
-			}
-
-			if (delay == null) {
-				Logger.Log($"Delay is null! " + nameof(action), LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
 				return;
 			}
 
@@ -88,13 +97,12 @@ namespace HomeAssistant.Extensions {
 			if (part1 && part2) {
 				return false;
 			}
-			else {
-				return true;
-			}
+
+			return true;
 		}
 
 		public static void PlayNotification(NotificationContext context = NotificationContext.Normal, bool redirectOutput = false) {
-			if (Tess.IsUnknownOS) {
+			if (Tess.IsUnknownOs) {
 				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Error);
 				return;
 			}
@@ -116,7 +124,7 @@ namespace HomeAssistant.Extensions {
 						return;
 					}
 
-					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPPushFileName} -q", Tess.Config.Debug ? true : redirectOutput);
+					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPPushFileName} -q", Tess.Config.Debug || redirectOutput);
 					Logger.Log("Notification command processed sucessfully!", LogLevels.Trace);
 					break;
 
@@ -132,16 +140,12 @@ namespace HomeAssistant.Extensions {
 				case NotificationContext.Normal:
 					if (!Tess.IsNetworkAvailable) {
 						Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
-						return;
 					}
-					break;
-
-				default:
 					break;
 			}
 		}
 
-		public static string GetLocalIPAddress() {
+		public static string GetLocalIpAddress() {
 			IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
 			foreach (IPAddress ip in host.AddressList) {
 				if (ip.AddressFamily == AddressFamily.InterNetwork) {
@@ -165,25 +169,24 @@ namespace HomeAssistant.Extensions {
 			return dtDateTime;
 		}
 
-		public static string GetExternalIP() {
+		public static string GetExternalIp() {
 			if (Tess.IsNetworkAvailable) {
 				string result = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
 				return result;
 			}
-			else {
-				Logger.Log("No internet connection.", LogLevels.Error);
-				return null;
-			}
+
+			Logger.Log("No internet connection.", LogLevels.Error);
+			return null;
 		}
 
 		internal static string TimeRan() {
 			DateTime StartTime = Tess.StartupTime;
 			TimeSpan dt = DateTime.Now - StartTime;
 			string Duration = "Online for: ";
-			Duration += Math.Round(dt.TotalDays, 0).ToString() + " days, ";
-			Duration += Math.Round(dt.TotalHours, 0).ToString() + " hours, ";
-			Duration += Math.Round(dt.TotalMinutes, 0).ToString() + " minutes.";
-			return Duration.ToString();
+			Duration += Math.Round(dt.TotalDays, 0) + " days, ";
+			Duration += Math.Round(dt.TotalHours, 0) + " hours, ";
+			Duration += Math.Round(dt.TotalMinutes, 0) + " minutes.";
+			return Duration;
 		}
 
 		public static async Task DisplayTessASCII() {
@@ -212,16 +215,14 @@ namespace HomeAssistant.Extensions {
 
 			if (!string.IsNullOrEmpty(variables[arrayLine]) || !string.IsNullOrWhiteSpace(variables[arrayLine])) {
 				if (returnParsed) {
-					return ParseVariable(variables[arrayLine], varName, '=');
+					return ParseVariable(variables[arrayLine], varName);
 				}
-				else {
-					return variables[arrayLine];
-				}
+
+				return variables[arrayLine];
 			}
-			else {
-				Logger.Log("Line is empty.", LogLevels.Error);
-				return null;
-			}
+
+			Logger.Log("Line is empty.", LogLevels.Error);
+			return null;
 		}
 
 		private static string ParseVariable(string variableRaw, string variableName, char seperator = '=') {
@@ -240,10 +241,9 @@ namespace HomeAssistant.Extensions {
 			if (raw[0].Equals(variableName, StringComparison.OrdinalIgnoreCase)) {
 				return raw[1];
 			}
-			else {
-				Logger.Log("Failed to parse variable.", LogLevels.Error);
-				return null;
-			}
+
+			Logger.Log("Failed to parse variable.", LogLevels.Error);
+			return null;
 		}
 
 		public static string GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);
@@ -254,7 +254,7 @@ namespace HomeAssistant.Extensions {
 				return true;
 			}
 			catch (Exception e) {
-				Logger.Log(e, LogLevels.Error);
+				Logger.Log(e);
 				return false;
 			}
 		}
@@ -283,7 +283,7 @@ namespace HomeAssistant.Extensions {
 				}
 			}
 			catch (Exception e) {
-				Logger.Log(e, LogLevels.Error);
+				Logger.Log(e);
 				return null;
 			}
 
@@ -312,7 +312,7 @@ namespace HomeAssistant.Extensions {
 				IRestResponse response = client.Execute(request);
 
 				if (response.StatusCode != HttpStatusCode.OK) {
-					Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
+					Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
 					return null;
 				}
 
@@ -347,11 +347,11 @@ namespace HomeAssistant.Extensions {
 			IRestResponse response = client.Execute(request);
 
 			if (response.StatusCode != HttpStatusCode.OK) {
-				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
+				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
 				return null;
 			}
 
-			Logger.Log("Sucessfully downloaded", LogLevels.Trace);
+			Logger.Log("Successfully downloaded", LogLevels.Trace);
 			return response.RawBytes;
 		}
 
@@ -362,15 +362,14 @@ namespace HomeAssistant.Extensions {
 				await Tess.Restart().ConfigureAwait(false);
 				return true;
 			}
-			else {
-				Logger.Log("Exiting...");
-				await Task.Delay(5000).ConfigureAwait(false);
-				await Tess.Exit().ConfigureAwait(false);
-				return true;
-			}
+
+			Logger.Log("Exiting...");
+			await Task.Delay(5000).ConfigureAwait(false);
+			await Tess.Exit().ConfigureAwait(false);
+			return true;
 		}
 
-		public static string GetFileName(string path) => path.Substring(path.LastIndexOf(FileSeprator) + 1);
+		public static string GetFileName(string path) => path.Substring(path.LastIndexOf(FileSeperator, StringComparison.Ordinal) + 1);
 
 		public static void WriteBytesToFile(byte[] bytesToWrite, string filePath) {
 			if (bytesToWrite.Length <= 0 || string.IsNullOrEmpty(filePath) || string.IsNullOrWhiteSpace(filePath)) {
@@ -380,10 +379,10 @@ namespace HomeAssistant.Extensions {
 			File.WriteAllBytes(filePath, bytesToWrite);
 		}
 
-		public static void InBackgroundThread(Action action, string threadName, bool longRunning = false) {
+		public static (int, Thread) InBackgroundThread(Action action, string threadName, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log($"Action is null! " + nameof(action), LogLevels.Error);
-				return;
+				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
+				return (0, null);
 			}
 
 			ThreadStart threadStart = new ThreadStart(action);
@@ -396,11 +395,12 @@ namespace HomeAssistant.Extensions {
 			BackgroundThread.Name = threadName;
 			BackgroundThread.Priority = ThreadPriority.Normal;
 			BackgroundThread.Start();
+			return (BackgroundThread.ManagedThreadId, BackgroundThread);
 		}
 
 		public static void InBackground(Action action, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log($"Action is null! " + nameof(action), LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
 				return;
 			}
 
@@ -414,26 +414,24 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
-			if (Tess.IsUnknownOS && fileName == "/bin/bash") {
+			if (Tess.IsUnknownOs && fileName == "/bin/bash") {
 				Logger.Log("TESS is running on unknown OS. command cannot be executed.", LogLevels.Error);
 				return;
 			}
 
 			try {
-				Process proc = new Process();
-				proc.StartInfo.FileName = fileName;
-				proc.StartInfo.Arguments = "-c \" " + command + " \"";
-				proc.StartInfo.UseShellExecute = false;
-				proc.StartInfo.CreateNoWindow = true;
-				proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+				Process proc = new Process {
+					StartInfo = {
+						FileName = fileName,
+						Arguments = "-c \" " + command + " \"",
+						UseShellExecute = false,
+						CreateNoWindow = true,
+						WindowStyle = ProcessWindowStyle.Hidden
+					}
+				};
 
 
-				if (redirectOutput) {
-					proc.StartInfo.RedirectStandardOutput = true;
-				}
-				else {
-					proc.StartInfo.RedirectStandardOutput = false;
-				}
+				proc.StartInfo.RedirectStandardOutput = redirectOutput;
 
 				proc.Start();
 				proc.WaitForExit(4000);
@@ -446,25 +444,21 @@ namespace HomeAssistant.Extensions {
 			}
 			catch (PlatformNotSupportedException) {
 				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", LogLevels.Warn);
-				return;
 			}
 			catch (Win32Exception) {
 				Logger.Log("System cannot find the specified file.", LogLevels.Error);
-				return;
 			}
 			catch (ObjectDisposedException) {
 				Logger.Log("Object has been disposed already.", LogLevels.Error);
-				return;
 			}
 			catch (InvalidOperationException) {
 				Logger.Log("Invalid operation exception, internal error.", LogLevels.Error);
-				return;
 			}
 		}
 
 		public static void InBackground<T>(Func<T> function, bool longRunning = false) {
 			if (function == null) {
-				Logger.Log($"Function is null! " + nameof(function), LogLevels.Error);
+				Logger.Log("Function is null! " + nameof(function), LogLevels.Error);
 				return;
 			}
 
@@ -491,9 +485,8 @@ namespace HomeAssistant.Extensions {
 			if (Pi.Info.RaspberryPiVersion.ToString().Equals("Pi3ModelBEmbest", StringComparison.OrdinalIgnoreCase)) {
 				return true;
 			}
-			else {
-				return false;
-			}
+
+			return false;
 		}
 
 		public static async Task InParallel(IEnumerable<Task> tasks) {
@@ -513,7 +506,7 @@ namespace HomeAssistant.Extensions {
 				int timeout = 1000;
 				PingOptions pingOptions = new PingOptions();
 				PingReply reply = myPing.Send(host, timeout, buffer, pingOptions);
-				return reply.Status == IPStatus.Success;
+				return reply != null && reply.Status == IPStatus.Success;
 			}
 			catch (Exception) {
 				return false;
@@ -550,7 +543,7 @@ namespace HomeAssistant.Extensions {
 			string RunningProcess = Process.GetCurrentProcess().ProcessName;
 			Process[] processes = Process.GetProcessesByName(RunningProcess);
 			if (processes.Length > 1) {
-				Logger.Log($"Exiting current process as another instance of same application is running...");
+				Logger.Log("Exiting current process as another instance of same application is running...");
 				Process.GetCurrentProcess().Kill();
 			}
 		}

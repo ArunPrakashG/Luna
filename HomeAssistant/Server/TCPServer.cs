@@ -15,7 +15,7 @@ namespace HomeAssistant.Server {
 
 	public class TCPServer : Tess {
 		private readonly Logger Logger;
-		private byte[] Buffer = new byte[1024];
+		private readonly byte[] Buffer = new byte[1024];
 		private string ReceivedData;
 		private Socket Sock;
 		public bool ServerOn;
@@ -42,7 +42,7 @@ namespace HomeAssistant.Server {
 				IPEndPoint localEndpoint = new IPEndPoint(IPAddress.Any, Config.ServerPort);
 				string externalip = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
 				Logger.Log("Public ip fetched sucessfully => " + externalip, LogLevels.Trace);
-				Logger.Log("Local ip => " + Helpers.GetLocalIPAddress(), LogLevels.Trace);
+				Logger.Log("Local ip => " + Helpers.GetLocalIpAddress(), LogLevels.Trace);
 				Logger.Log("Starting assistant command server...", LogLevels.Trace);
 				Sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 				Logger.Log("Server started sucessfully on address: " + externalip + ":" + Config.ServerPort);
@@ -56,32 +56,36 @@ namespace HomeAssistant.Server {
 				Helpers.InBackgroundThread(() => {
 					while (true) {
 						try {
-							Socket Socket = Sock.Accept();
-							int b = Socket.Receive(Buffer);
-							EndPoint ep = Socket.RemoteEndPoint;
-							string[] IpData = ep.ToString().Split(':');
-							string clientIP = IpData[0].Trim();
-							Logger.Log("Client IP: " + clientIP, LogLevels.Trace);
+							if (Sock != null)
+							{
+								Socket Socket = Sock?.Accept();
+								int b = Socket.Receive(Buffer);
+								EndPoint ep = Socket.RemoteEndPoint;
+								string[] IpData = ep.ToString().Split(':');
+								string clientIP = IpData[0].Trim();
+								Logger.Log("Client IP: " + clientIP, LogLevels.Trace);
 
-							if (File.Exists(Constants.IPBlacklistPath) && File.ReadAllLines(Constants.IPBlacklistPath).Any(x => x.Equals(clientIP))) {
-								Logger.Log("Unauthorized IP Connected: " + clientIP, LogLevels.Error);
+								if (File.Exists(Constants.IPBlacklistPath) && File.ReadAllLines(Constants.IPBlacklistPath).Any(x => x.Equals(clientIP))) {
+									Logger.Log("Unauthorized IP Connected: " + clientIP, LogLevels.Error);
+									Socket.Close();
+								}
+
+								ReceivedData = Encoding.ASCII.GetString(Buffer, 0, b);
+								Logger.Log($"Client Connected > {clientIP} > {ReceivedData}", LogLevels.Trace);
+								string resultText = OnRecevied(ReceivedData).Result;
+
+								if (resultText != null) {
+									byte[] Message = Encoding.ASCII.GetBytes(resultText);
+									Socket.Send(Message);
+								}
+								else {
+									byte[] Message = Encoding.ASCII.GetBytes("Bad Command!");
+									Socket.Send(Message);
+								}
+
 								Socket.Close();
 							}
 
-							ReceivedData = Encoding.ASCII.GetString(Buffer, 0, b);
-							Logger.Log($"Client Connected > {clientIP} > {ReceivedData}", LogLevels.Trace);
-							string resultText = OnRecevied(ReceivedData).Result;
-
-							if (resultText != null) {
-								byte[] Message = Encoding.ASCII.GetBytes(resultText);
-								Socket.Send(Message);
-							}
-							else {
-								byte[] Message = Encoding.ASCII.GetBytes("Bad Command!");
-								Socket.Send(Message);
-							}
-
-							Socket.Close();
 							Logger.Log("Client Disconnected.", LogLevels.Trace);
 
 							if (!ServerOn) {
@@ -121,7 +125,6 @@ namespace HomeAssistant.Server {
 								Logger.Log("too many errors occured on TCP Server. stopping...", LogLevels.Error);
 								StopServer();
 							}
-							continue;
 						}
 					}
 				}, "TCP Server", true);

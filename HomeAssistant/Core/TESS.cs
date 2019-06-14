@@ -6,7 +6,6 @@ using HomeAssistant.Server;
 using HomeAssistant.Update;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -41,25 +40,21 @@ namespace HomeAssistant.Core {
 		private static readonly Logger Logger = new Logger("TESS");
 		public static GPIOController Controller;
 		public static Updater Update = new Updater();
-		public static TCPServer CoreServer = new TCPServer();
+		protected static TCPServer CoreServer = new TCPServer();
+		public static ProcessStatus TessStatus;
 		public static CoreConfig Config = new CoreConfig();
 		private static readonly ConfigWatcher ConfigWatcher = new ConfigWatcher();
 		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
 		public static ModuleInitializer Modules;
-
-		public static readonly string ProcessFileName = Process.GetCurrentProcess().MainModule.FileName;
 		public static DateTime StartupTime;
 		private static Timer RefreshConsoleTitleTimer;
-		public static bool CoreInitiationCompleted = false;
-		public static bool DisablePiMethods = false;
-		public static bool IsUnknownOS = false;
-		public static bool TessShutdownRequested = false;
-		public static bool IsNetworkDisconnected = false;
-		public static bool IsNetworkReconnected = false;
-		public static bool IsNetworkAvailable = true;
-		public static bool DisableFirstChanceLogWithDebug = false;		
+		public static bool CoreInitiationCompleted { get; set; }
+		private static bool DisablePiMethods { get; set; }
+		public static bool IsUnknownOs { get; set; }
+		public static bool IsNetworkAvailable { get; set; }
+		public static bool DisableFirstChanceLogWithDebug { get; set; }
 
 		public static async Task<bool> InitCore(string[] args) {
 			Helpers.CheckMultipleProcess();
@@ -80,7 +75,7 @@ namespace HomeAssistant.Core {
 
 			try {
 				await Helpers.DisplayTessASCII().ConfigureAwait(false);
-				Constants.ExternelIP = Helpers.GetExternalIP();
+				Constants.ExternelIP = Helpers.GetExternalIp();
 
 				if (string.IsNullOrEmpty(Constants.ExternelIP) || string.IsNullOrWhiteSpace(Constants.ExternelIP)) {
 					Constants.ExternelIP = "Failed. No internet connection.";
@@ -103,7 +98,7 @@ namespace HomeAssistant.Core {
 
 				if (!Helpers.IsRaspberryEnvironment() || Helpers.GetOsPlatform() != OSPlatform.Linux) {
 					DisablePiMethods = true;
-					IsUnknownOS = true;
+					IsUnknownOs = true;
 				}
 
 				Logger.Log("Loading GPIO config...", LogLevels.Trace);
@@ -118,6 +113,13 @@ namespace HomeAssistant.Core {
 					Logger.Log("Fatal error has occured during loading GPIO Config. exiting...", LogLevels.Error);
 					await Exit(1).ConfigureAwait(false);
 					return false;
+				}
+
+				if (IsUnknownOs) {
+					TessStatus = new ProcessStatus();
+				}
+				else {
+					Logger.Log("Could not start performence counters as it is not supported on this platform.", LogLevels.Warn);
 				}
 
 				Config.ProgramLastStartup = StartupTime;
@@ -146,8 +148,22 @@ namespace HomeAssistant.Core {
 					await Update.CheckAndUpdate(true).ConfigureAwait(false);
 				}
 
-				if (Config.TCPServer && IsNetworkAvailable) {
-					_ = CoreServer.StartServer();
+				if (Config.TCPServer) {
+					if (IsNetworkAvailable) {
+						_ = CoreServer.StartServer();
+					}
+					else {
+						Logger.Log("Could not start TCP server as network is unavailable.", LogLevels.Warn);
+					}
+				}
+
+				if (Config.KestrelServer) {
+					if (IsNetworkAvailable) {
+						await KestrelServer.Start().ConfigureAwait(false);
+					}
+					else {
+						Logger.Log("Could not start Kestrel server as network is unavailable.", LogLevels.Warn);
+					}
 				}
 
 				Modules = new ModuleInitializer();
@@ -170,6 +186,7 @@ namespace HomeAssistant.Core {
 
 		private static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", LogLevels.Trace);
+
 			if (!DisablePiMethods) {
 				Pi.Init<BootstrapWiringPi>();
 				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
@@ -255,7 +272,7 @@ namespace HomeAssistant.Core {
 		}
 
 		private static void ParseStartupArguments(string[] args) {
-			if (args.Count() <= 0 || args == null) {
+			if (!args.Any() || args == null) {
 				return;
 			}
 
@@ -287,7 +304,7 @@ namespace HomeAssistant.Core {
 			});
 		}
 
-		public static void DisplayCommandMenu() {
+		private static void DisplayCommandMenu() {
 			Logger.Log("--------------------COMMAND MENU--------------------", LogLevels.UserInput);
 			Logger.Log("1 | Relay pin 1", LogLevels.UserInput);
 			Logger.Log("2 | Relay pin 2", LogLevels.UserInput);
@@ -422,11 +439,8 @@ namespace HomeAssistant.Core {
 				case 9:
 					Logger.Log("Please enter the pin u want to configure: ", LogLevels.UserInput);
 					string pinNumberKey = Console.ReadLine();
-					int pinNumber = 0;
-					int delay = 0;
-					int pinStatus = 0;
 
-					if (!int.TryParse(pinNumberKey, out pinNumber) || Convert.ToInt32(pinNumberKey) <= 0) {
+					if (!int.TryParse(pinNumberKey, out int pinNumber) || Convert.ToInt32(pinNumberKey) <= 0) {
 						Logger.Log("Your entered pin number is incorrect. please enter again.", LogLevels.UserInput);
 
 						pinNumberKey = Console.ReadLine();
@@ -438,7 +452,7 @@ namespace HomeAssistant.Core {
 
 					Logger.Log("Please enter the amount of delay you want in between the task. (in minutes)", LogLevels.UserInput);
 					string delayInMinuteskey = Console.ReadLine();
-					if (!int.TryParse(delayInMinuteskey, out delay) || Convert.ToInt32(delayInMinuteskey) <= 0) {
+					if (!int.TryParse(delayInMinuteskey, out int delay) || Convert.ToInt32(delayInMinuteskey) <= 0) {
 						Logger.Log("Your entered delay is incorrect. please enter again.", LogLevels.UserInput);
 
 						delayInMinuteskey = Console.ReadLine();
@@ -451,7 +465,7 @@ namespace HomeAssistant.Core {
 					Logger.Log("Please enter the status u want the task to configure: (0 = OFF, 1 = ON)", LogLevels.UserInput);
 
 					string pinStatuskey = Console.ReadLine();
-					if (!int.TryParse(pinStatuskey, out pinStatus) || (Convert.ToInt32(pinStatuskey) != 0 && Convert.ToInt32(pinStatus) != 1)) {
+					if (!int.TryParse(pinStatuskey, out int pinStatus) || (Convert.ToInt32(pinStatuskey) != 0 && Convert.ToInt32(pinStatus) != 1)) {
 						Logger.Log("Your entered pin status is incorrect. please enter again.", LogLevels.UserInput);
 
 						pinStatuskey = Console.ReadLine();
@@ -495,12 +509,10 @@ namespace HomeAssistant.Core {
 						}
 					}, TimeSpan.FromMinutes(delay));
 
-					if (pinStatus.Equals(0)) {
-						Logger.Log($"Successfully scheduled a task: set {pinNumber} pin to OFF", LogLevels.Sucess);
-					}
-					else {
-						Logger.Log($"Successfully scheduled a task: set {pinNumber} pin to ON", LogLevels.Sucess);
-					}
+					Logger.Log(
+						pinStatus.Equals(0)
+							? $"Successfully scheduled a task: set {pinNumber} pin to OFF"
+							: $"Successfully scheduled a task: set {pinNumber} pin to ON", LogLevels.Sucess);
 					break;
 			}
 
@@ -512,7 +524,7 @@ namespace HomeAssistant.Core {
 			Logger.Log($"Press c to display command menu.");
 		}
 
-		public static async Task DisplayRelayMenu() {
+		private static async Task DisplayRelayMenu() {
 			if (DisablePiMethods) {
 				Logger.Log("You are running on incorrect OS or device. Pi controls are disabled.", LogLevels.Error);
 				return;
@@ -574,9 +586,8 @@ namespace HomeAssistant.Core {
 				case 5:
 					Logger.Log("\nPlease select the channel (2, 3, 4, 17, 27, 22, 10, 9, etc): ", LogLevels.UserInput);
 					ConsoleKeyInfo singleKey = Console.ReadKey();
-					int selectedsingleKey;
 
-					if (!int.TryParse(singleKey.KeyChar.ToString(), out selectedsingleKey)) {
+					if (!int.TryParse(singleKey.KeyChar.ToString(), out int selectedsingleKey)) {
 						Logger.Log("Could not prase the input key. please try again!", LogLevels.Error);
 						goto case 5;
 					}
@@ -604,12 +615,7 @@ namespace HomeAssistant.Core {
 					goto case 0;
 			}
 
-			if (Configured) {
-				Logger.Log("Test sucessfull!");
-			}
-			else {
-				Logger.Log("Test Failed!");
-			}
+			Logger.Log(Configured ? "Test sucessfull!" : "Test Failed!");
 
 			Logger.Log("Relay menu closed.");
 			Logger.Log($"Press q to quit in 5 seconds.");
@@ -655,7 +661,7 @@ namespace HomeAssistant.Core {
 
 		public static void OnNetworkReconnected() {
 			IsNetworkAvailable = true;
-			Constants.ExternelIP = Helpers.GetExternalIP();
+			Constants.ExternelIP = Helpers.GetExternalIp();
 
 			if (Config.AutoUpdates && IsNetworkAvailable) {
 				Logger.Log("Checking for any new version...", LogLevels.Trace);
@@ -693,6 +699,14 @@ namespace HomeAssistant.Core {
 				ConfigWatcher.StopConfigWatcher();
 			}
 
+			if (KestrelServer.IsServerOnline) {
+				await KestrelServer.Stop().ConfigureAwait(false);
+			}
+
+			if (TessStatus != null) {
+				TessStatus.Dispose();
+			}
+
 			if (Modules != null) {
 				_ = Modules.OnCoreShutdown();
 			}
@@ -712,7 +726,6 @@ namespace HomeAssistant.Core {
 		}
 
 		public static async Task Exit(byte exitCode = 0) {
-			TessShutdownRequested = true;
 			if (exitCode != 0) {
 				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
 				Logger.Log("Check TraceLog for debug information.", LogLevels.Error);

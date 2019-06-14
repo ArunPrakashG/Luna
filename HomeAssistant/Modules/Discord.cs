@@ -62,9 +62,7 @@ namespace HomeAssistant.Modules {
 					}
 				}
 
-				if (Client != null) {
-					Client.Dispose();
-				}
+				Client?.Dispose();
 
 				Logger.Log("Discord server stopped!");
 			}
@@ -136,7 +134,10 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			Logger.Log($"{Context.Message.Author.Id} | {Context.Message.Author.Username} => {Message.Content}", LogLevels.Trace);
+			if (Message != null) {
+				Logger.Log($"{Context.Message.Author.Id} | {Context.Message.Author.Username} => {Message.Content}",
+					LogLevels.Trace);
+			}
 
 			if (Context.Message == null || string.IsNullOrEmpty(Context.Message.Content) || string.IsNullOrWhiteSpace(Context.Message.Content) || Context.User.IsBot) {
 				return;
@@ -214,9 +215,7 @@ namespace HomeAssistant.Modules {
 			try {
 				_ = await StopServer().ConfigureAwait(false);
 
-				if (Client != null) {
-					Client.Dispose();
-				}
+				Client?.Dispose();
 
 				await Task.Delay(5000).ConfigureAwait(false);
 				await InitDiscordClient().ConfigureAwait(false);
@@ -582,7 +581,7 @@ namespace HomeAssistant.Modules {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted || Tess.Config == null || Tess.Modules == null) {
+			if (!Tess.CoreInitiationCompleted || Tess.Config == null || Tess.Modules == null || !Tess.IsNetworkAvailable) {
 				return;
 			}
 
@@ -601,8 +600,8 @@ namespace HomeAssistant.Modules {
 			}
 
 			try {
-				SocketGuild Guild = Client.Guilds.Where(x => x.Id == Tess.Config.DiscordServerID).FirstOrDefault();
-				SocketTextChannel Channel = Guild.Channels.Where(x => x.Id == Tess.Config.DiscordLogChannelID).FirstOrDefault() as SocketTextChannel;
+				SocketGuild Guild = Client?.Guilds?.FirstOrDefault(x => x.Id == Tess.Config.DiscordServerID);
+				SocketTextChannel Channel = Guild?.Channels?.FirstOrDefault(x => x.Id == Tess.Config.DiscordLogChannelID) as SocketTextChannel;
 				await Channel.SendMessageAsync(LogOutput).ConfigureAwait(false);
 			}
 			catch (NullReferenceException) {

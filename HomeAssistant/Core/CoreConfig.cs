@@ -67,6 +67,12 @@ namespace HomeAssistant.Core {
 		public bool TCPServer = true;
 
 		[JsonProperty]
+		public bool KestrelServer = true;
+
+		[JsonProperty]
+		public int KestrelServerPort { get; set; }
+
+		[JsonProperty]
 		public bool GPIOSafeMode = false;
 
 		[JsonProperty]
@@ -168,7 +174,7 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			string JSON = null;
+			string JSON;
 			using (FileStream Stream = new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read)) {
 				using (StreamReader ReadSettings = new StreamReader(Stream)) {
 					JSON = ReadSettings.ReadToEnd();
@@ -177,12 +183,7 @@ namespace HomeAssistant.Core {
 
 			CoreConfig returnConfig = JsonConvert.DeserializeObject<CoreConfig>(JSON);
 
-			if (eventRaisedByConfigWatcher) {
-				Logger.Log("Updated core config!");
-			}
-			else {
-				Logger.Log("Core Configuration Loaded Successfully!");
-			}
+			Logger.Log(eventRaisedByConfigWatcher ? "Updated core config!" : "Core Configuration Loaded Successfully!");
 
 			return returnConfig;
 		}
@@ -201,7 +202,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						System.Threading.Tasks.Task.Run(async () => await Tess.Exit(0).ConfigureAwait(false));
+						System.Threading.Tasks.Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
 						return false;
 
 					default:
@@ -248,6 +249,7 @@ namespace HomeAssistant.Core {
 				   ServerPort == other.ServerPort &&
 				   TCPServer == other.TCPServer &&
 				   GPIOSafeMode == other.GPIOSafeMode &&
+				   KestrelServer == other.KestrelServer &&
 				   EqualityComparer<int[]>.Default.Equals(RelayPins, other.RelayPins) &&
 				   EqualityComparer<int[]>.Default.Equals(IRSensorPins, other.IRSensorPins) &&
 				   DisplayStartupMenu == other.DisplayStartupMenu &&
@@ -280,6 +282,7 @@ namespace HomeAssistant.Core {
 			hash.Add(ServerAuthCode);
 			hash.Add(ServerPort);
 			hash.Add(TCPServer);
+			hash.Add(KestrelServer);
 			hash.Add(GPIOSafeMode);
 			hash.Add(RelayPins);
 			hash.Add(IRSensorPins);

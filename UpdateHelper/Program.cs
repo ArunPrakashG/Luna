@@ -9,23 +9,23 @@ namespace UpdateHelper {
 
 	internal class Program {
 
-		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
 
 		private static void Main(string[] args) {
 			Console.WriteLine("Starting Update Process...");
 			Console.WriteLine("1.0.0.0");
-			Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent.FullName + "/AssistantCore/");
+			Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
 			ZipArchive Archive = null;
 
 			try {
-				Archive = ZipFile.OpenRead($@"{Directory.GetParent(HomeDirectory).Parent.FullName + "/AssistantCore/"}Latest.zip");
+				Archive = ZipFile.OpenRead($@"{Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/"}Latest.zip");
 			}
 			catch (Exception e) {
 				Console.WriteLine($"{e.Source}/{e.Message}/{e.InnerException}");
 				Environment.Exit(0);
 			}
 
-			bool Updated = UpdateFromArchive(Archive, Directory.GetParent(HomeDirectory).Parent.FullName + "/AssistantCore/").Result;
+			bool Updated = UpdateFromArchive(Archive, Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/").Result;
 
 			if (Updated) {
 				Console.WriteLine("Sucessfully Updated! Restarting application...");
@@ -35,7 +35,7 @@ namespace UpdateHelper {
 			}
 		}
 
-		public static void ExecuteCommand(string command, bool redirectOutput = false) {
+		private static void ExecuteCommand(string command, bool redirectOutput = false) {
 			Process proc = new Process();
 			proc.StartInfo.FileName = "/bin/bash";
 			proc.StartInfo.Arguments = "-c \" " + command + " \"";
@@ -80,11 +80,11 @@ namespace UpdateHelper {
 				Console.WriteLine(e);
 			}
 
-			string BackupDirectorySaves = $"{Directory.GetParent(HomeDirectory).Parent.FullName}/Backups/{version.ToString()}";
+			string BackupDirectorySaves = $"{Directory.GetParent(HomeDirectory).Parent?.FullName}/Backups/{version.ToString()}";
 			Console.WriteLine("Starting Backup Process...");
 			Copy(pathtoUpdate, BackupDirectorySaves);
 
-			Console.WriteLine("Waiting 8 seconds for all remaing process to clear the memory...");
+			Console.WriteLine("Waiting 8 seconds for all remaining process to clear the memory...");
 			await Task.Delay(8000).ConfigureAwait(false);
 
 			try {

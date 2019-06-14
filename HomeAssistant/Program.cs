@@ -70,7 +70,7 @@ namespace HomeAssistant {
 			}
 		}
 
-		public static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {			
+		private static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {			
 			Logger.Log((Exception) e.ExceptionObject, LogLevels.Fatal);
 
 			if (e.IsTerminating) {

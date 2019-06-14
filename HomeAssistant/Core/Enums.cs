@@ -10,6 +10,40 @@ namespace HomeAssistant.Core {
 			RELAY
 		}
 
+		public enum HttpStatusCodes {
+			Accepted = 202,
+			Ambiguous = 300,
+			BadGateway = 502,
+			BadRequest = 400,
+			Conflict = 409,
+			Continue = 100,
+			Created = 201,
+			ExceptionFailed = 417,
+			Forbidden = 403,
+			Found = 302,
+			GatewayTimeout = 504,
+			Gone = 410,
+			HttpVersionNotSupported = 505,
+			InternalServerError = 500,
+			LengthRequired = 411,
+			MethodNotAllowed = 405,
+			Moved = 301,
+			MovedPermanently = 301,
+			MultipleChoices = 300,
+			NoContent = 204,
+			NonAuthoritativeInformation = 203,
+			NotAcceptable = 406,
+			NotFound = 404,
+			NotImplemented = 501,
+			NotModified = 304,
+			OK = 200,
+			Redirect = 302,
+			RequestTimeout  = 408,
+			ServiceUnavailable = 503,
+			Unauthorized = 401,
+
+		}
+
 		public enum ShutdownContext : byte {
 			TESS,
 			PI

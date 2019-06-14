@@ -1,6 +1,6 @@
 using System;
 
-namespace HomeAssistant.Modules {
+namespace HomeAssistant.Modules.Interfaces {
 
 	internal interface IModuleBase {
 
@@ -8,8 +8,8 @@ namespace HomeAssistant.Modules {
 
 		Version Version { get; set; }
 
-		void OnModuleStarted();
+		void ModuleStart();
 
-		void OnModuleShutdown();
+		void ModuleExit();
 	}
 }

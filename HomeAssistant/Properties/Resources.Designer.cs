@@ -59,5 +59,23 @@ namespace HomeAssistant.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string OnTessShutdown {
+            get {
+                return ResourceManager.GetString("OnTessShutdown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string OnTessStartup {
+            get {
+                return ResourceManager.GetString("OnTessStartup", resourceCulture);
+            }
+        }
     }
 }
