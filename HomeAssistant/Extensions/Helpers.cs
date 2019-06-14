@@ -508,7 +508,8 @@ namespace HomeAssistant.Extensions {
 				PingReply reply = myPing.Send(host, timeout, buffer, pingOptions);
 				return reply != null && reply.Status == IPStatus.Success;
 			}
-			catch (Exception) {
+			catch (Exception e) {
+				Logger.Log(e);
 				return false;
 			}
 		}
