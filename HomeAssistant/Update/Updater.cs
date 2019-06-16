@@ -50,9 +50,7 @@ namespace HomeAssistant.Update {
 				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(Tess.Config.UpdateIntervalInHours);
 
 				AutoUpdateTimer = new Timer(
-					async e => {
-						await CheckAndUpdate(true).ConfigureAwait(false);
-					},
+					e => CheckAndUpdate(true),
 					null,
 					autoUpdatePeriod, // Delay
 					autoUpdatePeriod // Period
@@ -64,7 +62,7 @@ namespace HomeAssistant.Update {
 			}
 		}
 
-		public async Task CheckAndUpdate(bool withTimer) {
+		public (bool, Version) CheckAndUpdate(bool withTimer) {
 			if (withTimer && AutoUpdateTimer == null) {
 				StartUpdateTimer();
 			}
@@ -74,7 +72,7 @@ namespace HomeAssistant.Update {
 
 			if (!Tess.Config.AutoUpdates) {
 				Logger.Log("Updates are disabled.");
-				return;
+				return (false, Constants.Version);
 			}
 
 			Rootobject GitRoot = null;
@@ -88,7 +86,7 @@ namespace HomeAssistant.Update {
 			}
 			catch (NullReferenceException) {
 				Logger.Log("Could not fetch the required details from github api.", LogLevels.Warn);
-				return;
+				return (false, Constants.Version);
 			}
 
 			string GitVersion;
@@ -97,7 +95,7 @@ namespace HomeAssistant.Update {
 			}
 			else {
 				Logger.Log("Failed to fetch the required details from github api.", LogLevels.Error);
-				return;
+				return (false, Constants.Version);
 			}
 
 			Version LatestVersion;
@@ -107,7 +105,7 @@ namespace HomeAssistant.Update {
 			}
 			catch (Exception) {
 				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", LogLevels.Warn);
-				return;
+				return (false, Constants.Version);
 			}
 
 			if (LatestVersion > Constants.Version) {
@@ -115,16 +113,19 @@ namespace HomeAssistant.Update {
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...");
 				UpdateAvailable = true;
-				await Task.Delay(10000).ConfigureAwait(false);
-				await InitUpdate().ConfigureAwait(false);
+				Helpers.InBackground(async () => {
+					await Task.Delay(10000).ConfigureAwait(false);
+					await InitUpdate().ConfigureAwait(false);
+				});
+				return (true, LatestVersion);
 			}
 			else if (LatestVersion < Constants.Version) {
 				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!");
-				return;
+				return (true, LatestVersion);
 			}
 			else {
 				Logger.Log($"You are up to date! ({LatestVersion}/{Constants.Version})");
-				return;
+				return (true, LatestVersion);
 			}
 		}
 

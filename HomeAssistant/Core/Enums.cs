@@ -75,8 +75,8 @@ namespace HomeAssistant.Core {
 		}
 
 		public enum PinMode {
-			Output,
-			Input
+			Output = 0,
+			Input = 1
 		}
 
 		public enum PiAudioState {

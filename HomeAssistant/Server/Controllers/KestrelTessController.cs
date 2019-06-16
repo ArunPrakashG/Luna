@@ -4,6 +4,9 @@ using HomeAssistant.Server.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Net;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Server.Controllers {
 
@@ -12,25 +15,37 @@ namespace HomeAssistant.Server.Controllers {
 
 		[HttpGet("status")]
 		public ActionResult<GenericResponse<string>> GetMemoryUsage() {
-			if (Tess.IsUnknownOs) {
-				TessUsage status = Tess.TessStatus.GetProcessStatus();
-				return Ok(new GenericResponse<TessUsage>(status, Enums.HttpStatusCodes.OK, DateTime.Now));
+			if (!Tess.CoreInitiationCompleted) {
+				return BadRequest(new GenericResponse<string>(
+					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					HttpStatusCodes.BadRequest, DateTime.Now));
 			}
-			else {
-				return Conflict(new GenericResponse<string>("Platform isn't supported for this api endpoint.",
-					Enums.HttpStatusCodes.Conflict, DateTime.Now));
-			}
+
+			StatusResponse response = new StatusResponse();
+			return Ok(new GenericResponse<StatusResponse>(response.GetResponse(), Helpers.GetOsPlatform() != OSPlatform.Windows ? "Libraries used for checking status are Windows platform dependent." : "Fetched status successfully!", HttpStatusCodes.OK, DateTime.Now));
 		}
 
-		[HttpPost("exit/{exitCode}")]
+		[HttpPost("exit")]
 		public ActionResult<GenericResponse<string>> ExitTess(byte exitCode) {
+			if (!Tess.CoreInitiationCompleted) {
+				return BadRequest(new GenericResponse<string>(
+					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
 			Helpers.ScheduleTask(async () => { await Tess.Exit(exitCode).ConfigureAwait(false); }, TimeSpan.FromSeconds(10));
 			return Ok(new GenericResponse<string>("Exiting tess in 10 seconds...", Enums.HttpStatusCodes.OK,
 				DateTime.Now));
 		}
 
-		[HttpPost("restart/{delay}")]
+		[HttpPost("restart")]
 		public ActionResult<GenericResponse<string>> ExitTess(int delay) {
+			if (!Tess.CoreInitiationCompleted) {
+				return BadRequest(new GenericResponse<string>(
+					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
 			Helpers.InBackground(async () => await Tess.Restart(delay).ConfigureAwait(false));
 			return Ok(new GenericResponse<string>($"Restarting tess in {delay} seconds...", Enums.HttpStatusCodes.OK,
 				DateTime.Now));
@@ -38,8 +53,14 @@ namespace HomeAssistant.Server.Controllers {
 
 		[HttpPost("update")]
 		public ActionResult<GenericResponse<string>> CheckAndUpdate() {
-			Helpers.InBackground(async () => await Tess.Update.CheckAndUpdate(false).ConfigureAwait(false));
-			return Ok(new GenericResponse<string>("Checking for update...", Enums.HttpStatusCodes.OK, DateTime.Now));
+			if (!Tess.CoreInitiationCompleted) {
+				return BadRequest(new GenericResponse<string>(
+					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			(bool updateCheckStatus, Version updateVersion) updateResult = Tess.Update.CheckAndUpdate(false);
+			return Ok(new GenericResponse<string>(Tess.Update.UpdateAvailable ? $"New update is available, Tess will automatically update in 10 seconds." : $"Tess is up-to-date! ({updateResult.updateVersion}/{Constants.Version})", Tess.Update.UpdateAvailable ? $"Local version: {Constants.Version} / Latest version: {updateResult.updateVersion}" : "Update check success!", Enums.HttpStatusCodes.OK, DateTime.Now));
 		}
 	}
 }

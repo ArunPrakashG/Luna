@@ -8,7 +8,41 @@ using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
 
-	public class GPIOConfigRoot {
+	public class GPIOConfigRoot : IEquatable<GPIOConfigRoot> {
+
+		public bool Equals (GPIOConfigRoot other) {
+			if (ReferenceEquals(null, other)) {
+				return false;
+			}
+
+			if (ReferenceEquals(this, other)) {
+				return true;
+			}
+
+			return Equals(GPIOData, other.GPIOData);
+		}
+
+		public override bool Equals (object obj) {
+			if (ReferenceEquals(null, obj)) {
+				return false;
+			}
+
+			if (ReferenceEquals(this, obj)) {
+				return true;
+			}
+
+			if (obj.GetType() != GetType()) {
+				return false;
+			}
+
+			return Equals((GPIOConfigRoot) obj);
+		}
+
+		public override int GetHashCode () => (GPIOData != null ? GPIOData.GetHashCode() : 0);
+
+		public static bool operator == (GPIOConfigRoot left, GPIOConfigRoot right) => Equals(left, right);
+
+		public static bool operator != (GPIOConfigRoot left, GPIOConfigRoot right) => !Equals(left, right);
 
 		[JsonProperty]
 		public List<GPIOPinConfig> GPIOData { get; set; }
@@ -31,7 +65,7 @@ namespace HomeAssistant.Core {
 
 		private GPIOConfigRoot RootObject;
 
-		public void SaveGPIOConfig(GPIOConfigRoot Config) {
+		public GPIOConfigRoot SaveGPIOConfig(GPIOConfigRoot Config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
@@ -46,6 +80,7 @@ namespace HomeAssistant.Core {
 					serializer.Serialize(writer, Config);
 					Logger.Log("Updated GPIO Config!");
 					sw.Dispose();
+					return Config;
 				}
 			}
 		}

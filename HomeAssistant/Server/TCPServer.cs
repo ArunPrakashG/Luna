@@ -20,6 +20,7 @@ namespace HomeAssistant.Server {
 		private Socket Sock;
 		public bool ServerOn;
 
+		[Obsolete("Use Kestrel server instead of TCP server.")]
 		public TCPServer() {
 			Logger = new Logger("SERVER");
 		}

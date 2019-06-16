@@ -1,26 +1,28 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
+using ByteSizeLib;
 using HomeAssistant.Log;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace HomeAssistant.Extensions {
-    public class TessUsage {
+	public class TessUsage {
 
-        [JsonProperty]
-        public string CpuUsage { get; set; }
-        [JsonProperty]
-        public string RamUsage { get; set; }
+		[JsonProperty]
+		public string TotalCpuUsage { get; set; }
+		[JsonProperty]
+		public string TotalRamUsage { get; set; }
+
+		[JsonProperty]
+		public string TessRamUsage { get; set; }
 	}
 
 	public class ProcessStatus : IDisposable {
 		private PerformanceCounter CpuCounter;
 		private PerformanceCounter RamCounter;
-		private TessUsage Usage = new TessUsage();
-		private Logger Logger = new Logger("PROCESS-STATUS");
+		private readonly TessUsage Usage = new TessUsage();
+		private readonly Logger Logger = new Logger("PROCESS-STATUS");
 
 		public ProcessStatus() {
 			InitialiseCPUCounter();
@@ -28,9 +30,19 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public TessUsage GetProcessStatus() {
-			Usage.CpuUsage = $"{CpuCounter.NextValue():##0} %";
-			Usage.RamUsage = $"{RamCounter.NextValue()} MB";
+			if (Helpers.GetOsPlatform().Equals(OSPlatform.Linux) || Helpers.GetOsPlatform().Equals(OSPlatform.OSX)) {
+				throw new PlatformNotSupportedException("Current OS platform isn't supported to run this method. Try on Windows. (Linux/OSX)");
+			}
+
+			Usage.TotalCpuUsage = $"{CpuCounter.NextValue():##0} %";
+			Usage.TotalRamUsage = $"{RamCounter.NextValue()} Mb";
+			Usage.TessRamUsage = TessRamUsage();
 			return Usage;
+		}
+
+		private string TessRamUsage() {
+			double memorySize = ByteSize.FromBytes(Convert.ToDouble(Process.GetCurrentProcess().PrivateMemorySize64)).MegaBytes;
+			return $"{memorySize} Mb";
 		}
 
 		private void InitialiseCPUCounter() {

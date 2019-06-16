@@ -21,37 +21,24 @@ namespace HomeAssistant.Extensions {
 	public static class Helpers {
 		private static readonly Logger Logger = new Logger("HELPERS");
 		private static Timer TaskSchedulerTimer;
-		private static string FileSeperator = @"\";
+		private static string FileSeperator { get; set; } = @"\";
 
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				FileSeperator = "//";
-				Logger.Log("windows os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
+				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 				FileSeperator = "\\";
-				Logger.Log("linux os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
+				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 				FileSeperator = "//";
-				Logger.Log("osx os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
+				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
 			}
 		}
-
-		public static ProcessThread FetchThreadById(int id) {
-			ProcessThreadCollection currentThreads = Process.GetCurrentProcess().Threads;
-
-			foreach (ProcessThread thread in currentThreads) {
-				if (thread.Id.Equals(id)) {
-					return thread;
-				}
-			}
-
-			return null;
-		}
-		
 
 		public static OSPlatform GetOsPlatform() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -65,7 +52,20 @@ namespace HomeAssistant.Extensions {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 				return OSPlatform.OSX;
 			}
+
 			return OSPlatform.Linux;
+		}
+
+		public static ProcessThread FetchThreadById(int id) {
+			ProcessThreadCollection currentThreads = Process.GetCurrentProcess().Threads;
+
+			foreach (ProcessThread thread in currentThreads) {
+				if (thread.Id.Equals(id)) {
+					return thread;
+				}
+			}
+
+			return null;
 		}
 
 		public static void ScheduleTask(Action action, TimeSpan delay) {
@@ -191,15 +191,15 @@ namespace HomeAssistant.Extensions {
 
 		public static async Task DisplayTessASCII() {
 			Logger.Log(@"  _______ ______  _____ _____ ", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await Task.Delay(200).ConfigureAwait(false);
 			Logger.Log(@" |__   __|  ____|/ ____/ ____|", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await Task.Delay(200).ConfigureAwait(false);
 			Logger.Log(@"    | |  | |__  | (___| (___  ", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await Task.Delay(200).ConfigureAwait(false);
 			Logger.Log(@"    | |  |  __|  \___ \\___ \ ", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await Task.Delay(200).ConfigureAwait(false);
 			Logger.Log(@"    | |  | |____ ____) |___) |", LogLevels.Ascii);
-			await Task.Delay(300).ConfigureAwait(false);
+			await Task.Delay(200).ConfigureAwait(false);
 			Logger.Log(@"    |_|  |______|_____/_____/ ", LogLevels.Ascii);
 			await Task.Delay(100).ConfigureAwait(false);
 			Logger.Log("\n", LogLevels.Ascii);
@@ -369,7 +369,12 @@ namespace HomeAssistant.Extensions {
 			return true;
 		}
 
-		public static string GetFileName(string path) => path.Substring(path.LastIndexOf(FileSeperator, StringComparison.Ordinal) + 1);
+		public static string GetFileName(string path) {
+			if (GetOsPlatform().Equals(OSPlatform.Windows)) {
+				return Path.GetFileName(path);
+			}
+			return path.Substring(path.LastIndexOf(FileSeperator, StringComparison.Ordinal) + 1);
+		}
 
 		public static void WriteBytesToFile(byte[] bytesToWrite, string filePath) {
 			if (bytesToWrite.Length <= 0 || string.IsNullOrEmpty(filePath) || string.IsNullOrWhiteSpace(filePath)) {

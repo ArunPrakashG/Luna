@@ -40,6 +40,7 @@ namespace HomeAssistant.Core {
 		private static readonly Logger Logger = new Logger("TESS");
 		public static GPIOController Controller;
 		public static Updater Update = new Updater();
+		[Obsolete("Use Kestrel server instead of TCP server.")]
 		protected static TCPServer CoreServer = new TCPServer();
 		public static ProcessStatus TessStatus;
 		public static CoreConfig Config = new CoreConfig();
@@ -59,13 +60,12 @@ namespace HomeAssistant.Core {
 		public static async Task<bool> InitCore(string[] args) {
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
-
 			Helpers.SetFileSeperator();
-
 			Logger.Log("Verifying internet connectivity...", LogLevels.Trace);
 
 			if (Helpers.CheckForInternetConnection()) {
 				Logger.Log("Internet connection verified!", LogLevels.Trace);
+				IsNetworkAvailable = true;
 			}
 			else {
 				Logger.Log("No internet connection detected!");
@@ -115,7 +115,7 @@ namespace HomeAssistant.Core {
 					return false;
 				}
 
-				if (IsUnknownOs) {
+				if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
 					TessStatus = new ProcessStatus();
 				}
 				else {
@@ -145,7 +145,7 @@ namespace HomeAssistant.Core {
 				if (Token && Config.AutoUpdates && IsNetworkAvailable) {
 					Logger.Log("Checking for any new version...", LogLevels.Trace);
 					File.WriteAllText("version.txt", Constants.Version.ToString());
-					await Update.CheckAndUpdate(true).ConfigureAwait(false);
+					Update.CheckAndUpdate(true);
 				}
 
 				if (Config.TCPServer) {
@@ -186,6 +186,11 @@ namespace HomeAssistant.Core {
 
 		private static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", LogLevels.Trace);
+
+			if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
+				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
+				Logger.Log("Gpio controller has been started despite OS differences, there are chances of crashs and some methods won't work.", LogLevels.Error);
+			}
 
 			if (!DisablePiMethods) {
 				Pi.Init<BootstrapWiringPi>();
@@ -654,6 +659,10 @@ namespace HomeAssistant.Core {
 				_ = Modules.OnCoreShutdown();
 			}
 
+			if (KestrelServer.IsServerOnline) {
+				Task.Run(async () => await KestrelServer.Stop().ConfigureAwait(false));
+			}
+
 			if (CoreServer != null && CoreServer.ServerOn) {
 				CoreServer.StopServer();
 			}
@@ -666,20 +675,22 @@ namespace HomeAssistant.Core {
 			if (Config.AutoUpdates && IsNetworkAvailable) {
 				Logger.Log("Checking for any new version...", LogLevels.Trace);
 				File.WriteAllText("version.txt", Constants.Version.ToString());
-				Task.Run(async () => await Update.CheckAndUpdate(true).ConfigureAwait(false));
+				Update.CheckAndUpdate(true);
 			}
 
 			if (Config.TCPServer && IsNetworkAvailable) {
 				_ = CoreServer.StartServer();
 			}
 
-			Modules = new ModuleInitializer();
+			if (!KestrelServer.IsServerOnline) {
+				Task.Run(async () => await KestrelServer.Start().ConfigureAwait(false));
+			}
 
-			if (IsNetworkAvailable) {
+			if (IsNetworkAvailable && Modules != null) {
 				Task.Run(async () => await Modules.StartModules().ConfigureAwait(false));
 			}
 			else {
-				Logger.Log("Could not start the modules as network is unavailable.", LogLevels.Warn);
+				Logger.Log("Could not start the modules as network is unavailable or modules is not initilized.", LogLevels.Warn);
 			}
 		}
 
@@ -720,6 +731,10 @@ namespace HomeAssistant.Core {
 				await Controller.InitShutdown().ConfigureAwait(false);
 			}
 
+			if(TessStatus != null) {
+				TessStatus.Dispose();
+			}
+			
 			if (CoreServer != null && CoreServer.ServerOn) {
 				CoreServer.StopServer();
 			}

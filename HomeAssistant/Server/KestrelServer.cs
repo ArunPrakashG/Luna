@@ -32,7 +32,12 @@ namespace HomeAssistant.Server {
 			}
 			else {
 				builder.UseKestrel(options => {
-					options.ListenLocalhost(Tess.Config.KestrelServerPort);
+					if (Tess.Config.ListernLocalHostOnly) {
+						options.ListenLocalhost(Tess.Config.KestrelServerPort);
+					}
+					else {
+						options.ListenAnyIP(Tess.Config.KestrelServerPort);
+					}
 				});
 			}
 

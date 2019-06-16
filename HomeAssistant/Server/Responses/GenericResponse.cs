@@ -32,5 +32,16 @@ namespace HomeAssistant.Server.Responses {
 			ResponseCode = responseCode;
 			DateTime = commandTime;
 		}
+
+		public GenericResponse([NotNull] T result, [NotNull] string response, HttpStatusCodes responseCode, DateTime commandTime) {
+			if (commandTime == null) {
+				throw new ArgumentNullException("commandTime is null.");
+			}
+
+			Result = result;
+			Response = response;
+			ResponseCode = responseCode;
+			DateTime = commandTime;
+		}
 	}
 }

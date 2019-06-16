@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -18,6 +18,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="ByteSize" Version="1.3.0" />
 		<PackageReference Include="CommandLineParser" Version="2.5.0" />
 		<PackageReference Include="Discord.Net" Version="2.1.1" />
 		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.1.0" />
@@ -39,6 +40,7 @@
 		<PackageReference Include="RestSharp" Version="106.6.9" />
 		<PackageReference Include="System.Device.Gpio" Version="0.1.0-prerelease.19171.3" />
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.5.0" />
+		<PackageReference Include="System.Interactive.Async" Version="3.2.0" />
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
 		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.20.0" />
@@ -85,6 +87,9 @@
 		</None>
 		<None Update="Resources\tts_alert.mp3">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="System.Interactive.Async.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="Variables.txt">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

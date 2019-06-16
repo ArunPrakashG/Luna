@@ -3,7 +3,6 @@ using HomeAssistant.Log;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 
 namespace HomeAssistant.Core {
@@ -42,6 +41,39 @@ namespace HomeAssistant.Core {
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 
+		public bool Equals(CoreConfig other) {
+			if (ReferenceEquals(null, other)) {
+				return false;
+			}
+
+			if (ReferenceEquals(this, other)) {
+				return true;
+			}
+
+			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
+			       EnableConfigWatcher == other.EnableConfigWatcher &&
+			       EnableImapIdleWorkaround == other.EnableImapIdleWorkaround &&
+			       UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
+			       KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
+			       Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
+			       DisplayStartupMenu == other.DisplayStartupMenu && GPIOControl == other.GPIOControl &&
+			       Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
+			       EnableTextToSpeech == other.EnableTextToSpeech && MuteAll == other.MuteAll &&
+			       DiscordLog == other.DiscordLog && DiscordBot == other.DiscordBot &&
+			       CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
+			       ServerPort == other.ServerPort && KestrelServerPort == other.KestrelServerPort &&
+			       string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
+			       string.Equals(TessEmailID, other.TessEmailID, StringComparison.OrdinalIgnoreCase) &&
+			       string.Equals(TessEmailPASS, other.TessEmailPASS, StringComparison.OrdinalIgnoreCase) &&
+			       ProgramLastStartup.Equals(other.ProgramLastStartup) &&
+			       ProgramLastShutdown.Equals(other.ProgramLastShutdown) && DiscordOwnerID == other.DiscordOwnerID &&
+			       DiscordServerID == other.DiscordServerID && DiscordLogChannelID == other.DiscordLogChannelID;
+		}
+
+		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
+
+		public static bool operator !=(CoreConfig left, CoreConfig right) => !Equals(left, right);
+
 		[JsonProperty]
 		public bool AutoRestart = false;
 
@@ -56,6 +88,9 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty]
 		public int UpdateIntervalInHours = 5;
+
+		[JsonProperty]
+		public bool ListernLocalHostOnly = false;
 
 		[JsonProperty]
 		public int ServerAuthCode { get; set; } = 3033;
@@ -143,7 +178,7 @@ namespace HomeAssistant.Core {
 		[JsonIgnore]
 		private readonly Logger Logger = new Logger("CORE-CONFIG");
 
-		public void SaveConfig(CoreConfig config) {
+		public CoreConfig SaveConfig(CoreConfig config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
@@ -158,6 +193,7 @@ namespace HomeAssistant.Core {
 					serializer.Serialize(writer, config);
 					Logger.Log("Updated Core Config!");
 					sw.Dispose();
+					return config;
 				}
 			}
 		}
@@ -235,84 +271,58 @@ namespace HomeAssistant.Core {
 		}
 
 		public override bool Equals(object obj) {
-			return Equals(obj as CoreConfig);
-		}
+			if (ReferenceEquals(null, obj)) {
+				return false;
+			}
 
-		public bool Equals(CoreConfig other) {
-			return other != null &&
-				   AutoRestart == other.AutoRestart &&
-				   AutoUpdates == other.AutoUpdates &&
-				   EnableConfigWatcher == other.EnableConfigWatcher &&
-				   EnableImapIdleWorkaround == other.EnableImapIdleWorkaround &&
-				   UpdateIntervalInHours == other.UpdateIntervalInHours &&
-				   ServerAuthCode == other.ServerAuthCode &&
-				   ServerPort == other.ServerPort &&
-				   TCPServer == other.TCPServer &&
-				   GPIOSafeMode == other.GPIOSafeMode &&
-				   KestrelServer == other.KestrelServer &&
-				   EqualityComparer<int[]>.Default.Equals(RelayPins, other.RelayPins) &&
-				   EqualityComparer<int[]>.Default.Equals(IRSensorPins, other.IRSensorPins) &&
-				   DisplayStartupMenu == other.DisplayStartupMenu &&
-				   GPIOControl == other.GPIOControl &&
-				   Debug == other.Debug &&
-				   EnableFirstChanceLog == other.EnableFirstChanceLog &&
-				   EnableTextToSpeech == other.EnableTextToSpeech &&
-				   MuteAll == other.MuteAll &&
-				   EqualityComparer<ConcurrentDictionary<string, EmailConfig>>.Default.Equals(EmailDetails, other.EmailDetails) &&
-				   TessEmailID == other.TessEmailID &&
-				   TessEmailPASS == other.TessEmailPASS &&
-				   ProgramLastStartup == other.ProgramLastStartup &&
-				   ProgramLastShutdown == other.ProgramLastShutdown &&
-				   DiscordOwnerID == other.DiscordOwnerID &&
-				   DiscordServerID == other.DiscordServerID &&
-				   DiscordLogChannelID == other.DiscordLogChannelID &&
-				   DiscordLog == other.DiscordLog &&
-				   DiscordBot == other.DiscordBot &&
-				   CloseRelayOnShutdown == other.CloseRelayOnShutdown &&
-				   EqualityComparer<Logger>.Default.Equals(Logger, other.Logger);
+			if (ReferenceEquals(this, obj)) {
+				return true;
+			}
+
+			if (obj.GetType() != this.GetType()) {
+				return false;
+			}
+
+			return Equals((CoreConfig) obj);
 		}
 
 		public override int GetHashCode() {
-			HashCode hash = new HashCode();
-			hash.Add(AutoRestart);
-			hash.Add(AutoUpdates);
-			hash.Add(EnableConfigWatcher);
-			hash.Add(EnableImapIdleWorkaround);
-			hash.Add(UpdateIntervalInHours);
-			hash.Add(ServerAuthCode);
-			hash.Add(ServerPort);
-			hash.Add(TCPServer);
-			hash.Add(KestrelServer);
-			hash.Add(GPIOSafeMode);
-			hash.Add(RelayPins);
-			hash.Add(IRSensorPins);
-			hash.Add(DisplayStartupMenu);
-			hash.Add(GPIOControl);
-			hash.Add(Debug);
-			hash.Add(EnableFirstChanceLog);
-			hash.Add(EnableTextToSpeech);
-			hash.Add(MuteAll);
-			hash.Add(EmailDetails);
-			hash.Add(TessEmailID);
-			hash.Add(TessEmailPASS);
-			hash.Add(ProgramLastStartup);
-			hash.Add(ProgramLastShutdown);
-			hash.Add(DiscordOwnerID);
-			hash.Add(DiscordServerID);
-			hash.Add(DiscordLogChannelID);
-			hash.Add(DiscordLog);
-			hash.Add(DiscordBot);
-			hash.Add(CloseRelayOnShutdown);
-			hash.Add(Logger);
-			return hash.ToHashCode();
+			unchecked {
+				int hashCode = AutoRestart.GetHashCode();
+				hashCode = (hashCode * 397) ^ AutoUpdates.GetHashCode();
+				hashCode = (hashCode * 397) ^ EnableConfigWatcher.GetHashCode();
+				hashCode = (hashCode * 397) ^ EnableImapIdleWorkaround.GetHashCode();
+				hashCode = (hashCode * 397) ^ UpdateIntervalInHours;
+				hashCode = (hashCode * 397) ^ TCPServer.GetHashCode();
+				hashCode = (hashCode * 397) ^ KestrelServer.GetHashCode();
+				hashCode = (hashCode * 397) ^ GPIOSafeMode.GetHashCode();
+				hashCode = (hashCode * 397) ^ (RelayPins != null ? RelayPins.GetHashCode() : 0);
+				hashCode = (hashCode * 397) ^ (IRSensorPins != null ? IRSensorPins.GetHashCode() : 0);
+				hashCode = (hashCode * 397) ^ DisplayStartupMenu.GetHashCode();
+				hashCode = (hashCode * 397) ^ GPIOControl.GetHashCode();
+				hashCode = (hashCode * 397) ^ Debug.GetHashCode();
+				hashCode = (hashCode * 397) ^ EnableFirstChanceLog.GetHashCode();
+				hashCode = (hashCode * 397) ^ EnableTextToSpeech.GetHashCode();
+				hashCode = (hashCode * 397) ^ MuteAll.GetHashCode();
+				hashCode = (hashCode * 397) ^ DiscordLog.GetHashCode();
+				hashCode = (hashCode * 397) ^ DiscordBot.GetHashCode();
+				hashCode = (hashCode * 397) ^ CloseRelayOnShutdown.GetHashCode();
+				hashCode = (hashCode * 397) ^ ServerAuthCode;
+				hashCode = (hashCode * 397) ^ ServerPort;
+				hashCode = (hashCode * 397) ^ KestrelServerPort;
+				hashCode = (hashCode * 397) ^ (OwnerEmailAddress != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(OwnerEmailAddress) : 0);
+				hashCode = (hashCode * 397) ^ (TessEmailID != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(TessEmailID) : 0);
+				hashCode = (hashCode * 397) ^ (TessEmailPASS != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(TessEmailPASS) : 0);
+				hashCode = (hashCode * 397) ^ ProgramLastStartup.GetHashCode();
+				hashCode = (hashCode * 397) ^ ProgramLastShutdown.GetHashCode();
+				hashCode = (hashCode * 397) ^ DiscordOwnerID.GetHashCode();
+				hashCode = (hashCode * 397) ^ DiscordServerID.GetHashCode();
+				hashCode = (hashCode * 397) ^ DiscordLogChannelID.GetHashCode();
+				return hashCode;
+			}
 		}
 
-		public static bool operator ==(CoreConfig left, CoreConfig right) {
-			return EqualityComparer<CoreConfig>.Default.Equals(left, right);
-		}
+		public override string ToString() => base.ToString();
 
-		public static bool operator !=(CoreConfig left, CoreConfig right) {
-			return !(left == right);
-		}
 	}
 }
