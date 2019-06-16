@@ -17,15 +17,17 @@ it can switch off various platform specific methods if it decteted that the curr
 when the network is back online, it can start the previously stopped tasks again.
 - Modular - it can customised according to the user running it through thr JSON config system whenever he needed.
 - File watcher - automatically update the core config and other config values if the config files inside the `Config` folder is changed/deleted/modified.
+- JSON Config file - Customize every aspect of the assistant from the JSON config files present in the Config directory.
 - Deep logging - it uses NLog under the hood, that means it has a logging system which is powerful as well as completly modular with the `NLog.config` configuration file.
 - GPIO pin control - complete control over the raspberry pi Gpio pins, including all 1 to 31 pins and states input and output and their values high and low.
 - Interactive console - console is a powerful tool in terms of controlling the app. many pre defined charecters are used to define various methods.
 - Multi threaded - Tess utilizes multi threading to perform at its best. it can run many tasks concurrently without delay.
 - Task queue - task based functions, such as setting remainders etc will be added to a concurrentqueue with FIFO principal. they will started in the background thread concurrently with the main thread.
 - Discord bot - allows to control tess using discord bot commands from home assistant discord chann
-- TTS service - text to speech system for various important updates.
+- TTS service - text to speech system for various important notifications and updates.
 - Updater - automatically check for updates and update tess.
-
+- Kestrel Http Server - Advanced REST Http server API with various endpoints to provide you with complete control over your assistant.
+- Performence Counter - System to monitor CPU and RAM usage in real-time. [Currently only for Windows platforms]
 
 **To be edited later on**
 
