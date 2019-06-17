@@ -1,7 +1,13 @@
-# TESS home assistant & home automation system
+# TESS ASSISTANT
 
-A simple console application written in C# using .NET Core framework.
-built and designed to run on raspberry pi 3 kin headless and completely unattended mode.
+A simple console application written in C# using .NET Core framework with a single goal, provide you with assistance in your home,
+turning on lights, and turning them off, just with your voice!
+
+
+## but wait !!!
+
+that's not all, it can be more than your personal assistant, it can be your J.A.R.V.I.S.
+Built and designed to run on raspberry pi 3 in headless and completely unattended mode.
 able to handle errors smartly and do the needful on certain circumstances.
 
 ## Installation and execution
@@ -28,6 +34,7 @@ when the network is back online, it can start the previously stopped tasks again
 - Updater - automatically check for updates and update tess.
 - Kestrel Http Server - Advanced REST Http server API with various endpoints to provide you with complete control over your assistant.
 - Performence Counter - System to monitor CPU and RAM usage in real-time. [Currently only for Windows platforms]
+- Swagger Docs - swagger integretion allows the user to view every available endpoints with their information on the route URL.
 
 **To be edited later on**
 
