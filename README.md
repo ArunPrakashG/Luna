@@ -28,6 +28,7 @@ when the network is back online, it can start the previously stopped tasks again
 - Updater - automatically check for updates and update tess.
 - Kestrel Http Server - Advanced REST Http server API with various endpoints to provide you with complete control over your assistant.
 - Performence Counter - System to monitor CPU and RAM usage in real-time. [Currently only for Windows platforms]
+- Swagger Docs - swagger integretion allows the user to view every available endpoints with their information on the route URL.
 
 **To be edited later on**
 
