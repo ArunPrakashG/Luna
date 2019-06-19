@@ -120,7 +120,7 @@ namespace HomeAssistant.Update {
 				return (true, LatestVersion);
 			}
 			else if (LatestVersion < Constants.Version) {
-				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!");
+				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", LogLevels.Warn);
 				return (true, LatestVersion);
 			}
 			else {

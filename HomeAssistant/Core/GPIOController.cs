@@ -36,6 +36,7 @@ namespace HomeAssistant.Core {
 		public List<GPIOPinConfig> GPIOConfig { get; set; }
 		public GPIOConfigRoot GPIOConfigRoot { get; private set; }
 		private bool IsWaitForValueCancellationRequested = false;
+		public bool StopIrSensorMonitor { get; set; }
 		private readonly ConcurrentQueue<GPIOTaskQueue> TaskQueue = new ConcurrentQueue<GPIOTaskQueue>();
 
 		public GPIOController(GPIOConfigRoot rootObject, List<GPIOPinConfig> config, GPIOConfigHandler configHandler) {
@@ -76,6 +77,26 @@ namespace HomeAssistant.Core {
 			Helpers.InBackground(() => OnDequeued(task));
 			return task;
 		}
+
+		public void IRSensorTest(Action value) {
+			_ = value ?? throw new ArgumentNullException("Action is empty or not set.");
+
+			StopIrSensorMonitor = false;
+			while (true) {
+				if (!StopIrSensorMonitor) {
+					if (WaitUntilPinValue(Tess.Config.IRSensorPins[0], GpioPinValue.Low, 10000)) {
+						Task.Run(value);
+					}
+				}
+				else {
+					return;
+				}
+
+				Task.Delay(40).Wait();
+			}
+		}
+
+		public void StopIRSensorMonitering() => StopIrSensorMonitor = true;
 
 		private bool CheckSafeMode() => Tess.Config.GPIOSafeMode;
 
@@ -202,18 +223,18 @@ namespace HomeAssistant.Core {
 			}
 		}
 
-		public bool WaitUntilPinValue(int pin, GpioPinValue value, int timeOutValue) {
+		public bool WaitUntilPinValue(int pin, GpioPinValue value, int timeOutValueMillisecond) {
 			if (pin <= 0) {
 				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
 				return false;
 			}
 
-			if (timeOutValue <= 0) {
+			if (timeOutValueMillisecond <= 0) {
 				Logger.Log("Time out value is set to unknown digit.", LogLevels.Error);
 			}
 
 			IGpioPin GPIOPin = Pi.Gpio[pin];
-			return GPIOPin.WaitForValue(value, timeOutValue);
+			return GPIOPin.WaitForValue(value, timeOutValueMillisecond);
 		}
 
 		public bool RunOnPinValue(int pin, bool pinValueConditon, Action action) {

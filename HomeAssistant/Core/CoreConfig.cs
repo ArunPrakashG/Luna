@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace HomeAssistant.Core {
 	public class EmailConfig {
@@ -238,7 +239,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						System.Threading.Tasks.Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
+						Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
 						return false;
 
 					default:

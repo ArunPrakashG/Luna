@@ -11,17 +11,19 @@ namespace HomeAssistant.Modules {
 
 	public class ModuleInitializer {
 		private readonly Logger Logger = new Logger("MODULES");
-		public DiscordClient Discord;
-		public GoogleMap Map;
-		public Youtube Youtube;
-		public Email Mail;
-		public ConcurrentDictionary<string, EmailBot> EmailClientCollection = new ConcurrentDictionary<string, EmailBot>();
+		public DiscordClient Discord { get; set; }
+		public GoogleMap Map { get; set; }
+		public Youtube Youtube { get; set; }
+		public Email Mail { get; set; }
 
-		public async Task StartModules() {
+		public ConcurrentDictionary<string, EmailBot> EmailClientCollection { get; set; } = new ConcurrentDictionary<string, EmailBot>();
+
+		public async Task<(DiscordClient, Email, GoogleMap, Youtube)> StartModules() {
 			await StartDiscord().ConfigureAwait(false);
 			StartEmail();
 			Map = new GoogleMap();
 			Youtube = new Youtube();
+			return (Discord, Mail, Map, Youtube);
 		}
 
 		private async Task<bool> StartDiscord() {
@@ -40,12 +42,6 @@ namespace HomeAssistant.Modules {
 		}
 
 		private bool StartEmail() {
-			if (!Tess.Config.Debug) {
-				Logger.Log("Disabled for now until email.cs bug fix.", LogLevels.Warn);
-				Logger.Log("Enable debug mode to start.", LogLevels.Warn);
-				return false;
-			}
-
 			if (Tess.Config.EmailDetails.Count <= 0 || !Tess.Config.EmailDetails.Any()) {
 				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
 				return false;
@@ -62,23 +58,27 @@ namespace HomeAssistant.Modules {
 
 				string uniqueId = entry.Key;
 
-				(bool result, EmailBot emailBot) = Mail.InitBot(uniqueId, entry.Value);
+				try {
+					(bool result, EmailBot emailBot) = Mail.InitBot(uniqueId, entry.Value);
 
-				if (result) {
-					EmailClientCollection.TryAdd(uniqueId, emailBot);
-					loadedCount++;
+					if (result) {
+						loadedCount++;
+					}
+					else {
+						Logger.Log($"Failed to load {entry.Value.EmailID} account.", LogLevels.Trace);
+					}
 				}
-				else {
-					Logger.Log($"Failed to load {uniqueId} account.", LogLevels.Trace);
+				catch (NullReferenceException) {
+					Logger.Log($"Failed to load {entry.Value.EmailID} account.", LogLevels.Trace);
+					continue;
 				}
 			}
 
-			Logger.Log(
-				loadedCount == Tess.Config.EmailDetails.Count
-					? "Successfully loaded all email accounts!"
-					: $"{loadedCount} accounts loaded successfully, {Tess.Config.EmailDetails.Count - loadedCount} account(s) failed.",
-				LogLevels.Trace);
-
+			if (Tess.Config.EmailDetails.Count - loadedCount > 0) {
+				Logger.Log($"{Tess.Config.EmailDetails.Count - loadedCount} account(s) failed to load.", LogLevels.Warn);
+			}
+			
+			Logger.Log($"{loadedCount} accounts loaded successfully.",LogLevels.Trace);
 			return true;
 		}
 
@@ -90,7 +90,7 @@ namespace HomeAssistant.Modules {
 			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
 				if (pair.Key.Equals(botUniqueId)) {
 					pair.Value.Dispose();
-					Logger.Log($"Disposed {botUniqueId} email account.", LogLevels.Trace);
+					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
 				}
 			}
 		}
@@ -103,7 +103,7 @@ namespace HomeAssistant.Modules {
 			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
 					pair.Value.Dispose();
-					Logger.Log($"Disposed {pair.Key} email account successfully!", LogLevels.Trace);
+					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
 				}
 			}
 			EmailClientCollection.Clear();
@@ -120,7 +120,7 @@ namespace HomeAssistant.Modules {
 				DisposeAllEmailClients();
 			}
 
-			Logger.Log("Modules successfully shutdown!");
+			Logger.Log("Module shutdown sucessfull.");
 			return true;
 		}
 	}

@@ -32,7 +32,7 @@ namespace HomeAssistant.Core {
 		[Option('t', "tts", Required = false, HelpText = "Enable text to speech system for assistant.")]
 		public bool TextToSpeech { get; set; }
 
-		[Option("df", Required = false, HelpText = "Disable first chance exception loggin when debug mode is enabled.")]
+		[Option("df", Required = false, HelpText = "Disable first chance exception logging when debug mode is enabled.")]
 		public bool DisableFirstChance { get; set; }
 	}
 
@@ -68,8 +68,8 @@ namespace HomeAssistant.Core {
 				IsNetworkAvailable = true;
 			}
 			else {
-				Logger.Log("No internet connection detected!");
-				Logger.Log("Starting TESS in offline mode.");
+				Logger.Log("No internet connection.", LogLevels.Warn);
+				Logger.Log("Starting TESS in offline mode...");
 				IsNetworkAvailable = false;
 			}
 
@@ -217,7 +217,7 @@ namespace HomeAssistant.Core {
 			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Constants.ExternelIP}:{Config.ServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
 			if (RefreshConsoleTitleTimer == null) {
-				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 			}
 		}
 
@@ -259,12 +259,36 @@ namespace HomeAssistant.Core {
 				}
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
-					Logger.Log("Setting Timer for charger controller.");
-					Logger.Log("Enter initial value 0 for OFF and 1 for ON", LogLevels.UserInput);
-					char initialvalue = Console.ReadKey().KeyChar;
-					Logger.Log("Enter final value 0 for OFF and 1 for ON", LogLevels.UserInput);
-					char finalvalue = Console.ReadKey().KeyChar;
-					Controller.ChargerController(9, TimeSpan.FromMinutes(2), initialvalue == 0 ? GpioPinValue.High : GpioPinValue.Low, finalvalue == 1 ? GpioPinValue.Low : GpioPinValue.High);
+					Helpers.InBackgroundThread(() => {
+						while (true) {
+							if (!Controller.StopIrSensorMonitor) {
+								if (Controller.WaitUntilPinValue(Config.IRSensorPins[0], GpioPinValue.Low, 10000)) {
+									if (!Controller.FetchPinStatus(Config.RelayPins[0]).IsOn) {
+										Logger.Log("pin is off. setting it to on.");
+										Controller.SetGPIO(Config.RelayPins[0], GpioPinDriveMode.Output,
+											GpioPinValue.Low);
+									}
+									else {
+										Logger.Log("pin is already in on state, continuing loop");
+										continue;
+									}
+								}
+							}
+							else {
+								return;
+							}
+
+							Task.Delay(40).Wait();
+						}
+					}, "Test");
+
+					Helpers.InBackgroundThread(() => {
+						Logger.Log("press y key to exit IR sensor monitor");
+						if (Console.ReadKey().KeyChar.Equals('y')) {
+							Controller.StopIRSensorMonitering();
+						}
+					}, "Stopping test method");
+
 					Logger.Log("No test tasks pending...");
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
@@ -646,7 +670,7 @@ namespace HomeAssistant.Core {
 		//	Logger.Log("Started network listerner...", LogLevels.Trace);
 		//}
 
-		public static void OnNetworkDisconnected() {
+		public static async Task OnNetworkDisconnected() {
 			IsNetworkAvailable = false;
 			Constants.ExternelIP = "Internet connection lost.";
 
@@ -660,7 +684,7 @@ namespace HomeAssistant.Core {
 			}
 
 			if (KestrelServer.IsServerOnline) {
-				Task.Run(async () => await KestrelServer.Stop().ConfigureAwait(false));
+				await KestrelServer.Stop().ConfigureAwait(false);
 			}
 
 			if (CoreServer != null && CoreServer.ServerOn) {
@@ -668,9 +692,9 @@ namespace HomeAssistant.Core {
 			}
 		}
 
-		public static void OnNetworkReconnected() {
+		public static async Task OnNetworkReconnected() {
 			IsNetworkAvailable = true;
-			Constants.ExternelIP = Helpers.GetExternalIp();
+			Constants.ExternelIP = Task.Run(Helpers.GetExternalIp).Result;
 
 			if (Config.AutoUpdates && IsNetworkAvailable) {
 				Logger.Log("Checking for any new version...", LogLevels.Trace);
@@ -683,11 +707,11 @@ namespace HomeAssistant.Core {
 			}
 
 			if (!KestrelServer.IsServerOnline) {
-				Task.Run(async () => await KestrelServer.Start().ConfigureAwait(false));
+				await KestrelServer.Start().ConfigureAwait(false);
 			}
 
 			if (IsNetworkAvailable && Modules != null) {
-				Task.Run(async () => await Modules.StartModules().ConfigureAwait(false));
+				await Modules.StartModules().ConfigureAwait(false);
 			}
 			else {
 				Logger.Log("Could not start the modules as network is unavailable or modules is not initilized.", LogLevels.Warn);
@@ -731,10 +755,10 @@ namespace HomeAssistant.Core {
 				await Controller.InitShutdown().ConfigureAwait(false);
 			}
 
-			if(TessStatus != null) {
+			if (TessStatus != null) {
 				TessStatus.Dispose();
 			}
-			
+
 			if (CoreServer != null && CoreServer.ServerOn) {
 				CoreServer.StopServer();
 			}

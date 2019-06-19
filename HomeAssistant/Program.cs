@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
@@ -11,6 +12,9 @@ namespace HomeAssistant {
 
 	public class Program {
 		private static readonly Logger Logger = new Logger("CORE");
+		private static bool NetworkBusy { get; set; }
+
+		private static CancellationTokenSource EndlessAwaitCancelletionToken;
 
 		// Handle Pre-init Tasks in here
 		private static async Task Main(string[] args) {
@@ -70,7 +74,7 @@ namespace HomeAssistant {
 			}
 		}
 
-		private static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {			
+		private static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {
 			Logger.Log((Exception) e.ExceptionObject, LogLevels.Fatal);
 
 			if (e.IsTerminating) {
@@ -78,20 +82,64 @@ namespace HomeAssistant {
 			}
 		}
 
-		private static void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
+		private static async Task NetworkReconnect() {
+			Logger.Log("Network is back online, reconnecting!");
+			NetworkBusy = true;
+			EndlessAwaitCancelletionToken = new CancellationTokenSource();
+			await Tess.OnNetworkReconnected().ConfigureAwait(false);
+			EndlessAwaitCancelletionToken?.Cancel();
+			NetworkBusy = false;
+		}
+
+		private static async Task NetworkDisconnect() {
+			Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
+			Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", LogLevels.Error);
+			NetworkBusy = true;
+			EndlessAwaitCancelletionToken = new CancellationTokenSource();
+			await Tess.OnNetworkDisconnected().ConfigureAwait(false);
+			EndlessAwaitCancelletionToken?.Cancel();
+			NetworkBusy = false;
+		}
+
+		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
+			if (NetworkBusy) {
+				if (EndlessAwaitCancelletionToken != null) {
+					try {
+						await Task.Delay(-1, EndlessAwaitCancelletionToken.Token).ConfigureAwait(false);
+
+						if (e.IsAvailable && Tess.IsNetworkAvailable) {
+							return;
+						}
+						else if (!e.IsAvailable && !Tess.IsNetworkAvailable) {
+							return;
+						}
+						else if (e.IsAvailable && !Tess.IsNetworkAvailable) {
+							await NetworkReconnect().ConfigureAwait(false);
+						}
+						else if (!e.IsAvailable && Tess.IsNetworkAvailable) {
+							await NetworkDisconnect().ConfigureAwait(false);
+						}
+						else {
+							return;
+						}
+					}
+					catch (TaskCanceledException) {
+						//endless loop ended
+					}
+					catch (OperationCanceledException) {
+
+					}
+				}
+			}
+
 			if (e.IsAvailable) {
-				Logger.Log("Network is back online, reconnecting!");
-				Tess.OnNetworkReconnected();
+				await NetworkReconnect().ConfigureAwait(false);
 			}
 			else {
-				Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
-				Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", LogLevels.Error);
-				Tess.OnNetworkDisconnected();
+				await NetworkDisconnect().ConfigureAwait(false);
 			}
 		}
 
-		private static void OnEnvironmentExit(object sender, EventArgs e) {
-			Task.Run(async () => await Tess.OnExit().ConfigureAwait(false));
-		}
+		private static void OnEnvironmentExit(object sender, EventArgs e) => Task.Run(async () => await Tess.OnExit().ConfigureAwait(false));
 	}
 }

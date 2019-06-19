@@ -115,7 +115,7 @@ namespace HomeAssistant.Log {
 
 			switch (level) {
 				case LogLevels.Trace:
-					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + message, previousMethodName);
+					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] {message}", previousMethodName);
 					break;
 				case LogLevels.Debug:
 					LogGenericDebug(message, previousMethodName);

@@ -36,6 +36,11 @@ namespace HomeAssistant.Core {
 				return;
 			}
 
+			if (Tess.IsUnknownOs) {
+				Logger.Log("TTS service disabled as we are running on unknown OS.", LogLevels.Warn);
+				return;
+			}
+
 			if (!Tess.IsNetworkAvailable) {
 				Logger.Log("Network is unavailable. TTS won't run.", LogLevels.Warn);
 				return;
@@ -121,6 +126,7 @@ namespace HomeAssistant.Core {
 					Task.Delay(200).Wait();
 					if (File.Exists(Constants.TextToSpeechDirectory + "/" + fileName)) {
 						Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {fileName} -q", false);
+						Logger.Log($"Played the file {fileName} sucessfully", LogLevels.Trace);
 					}
 					else {
 						Logger.Log("An error occured, either download failed, or the file doesn't exist!", LogLevels.Error);

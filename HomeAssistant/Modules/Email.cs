@@ -1,13 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Mail;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
@@ -15,11 +5,19 @@ using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Security;
 using MimeKit;
-using Unosquare.Swan.Abstractions;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Mail;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
-
 	public class EmailBot : IDisposable {
 		public class ReceviedMessageData {
 
@@ -34,7 +32,7 @@ namespace HomeAssistant.Modules {
 			public DateTime ArrivedTime { get; set; }
 		}
 
-		private string GmailId;
+		public string GmailId;
 		private string GmailPass;
 		private string UniqueAccountId;
 		private ImapClient IdleClient;
@@ -44,55 +42,10 @@ namespace HomeAssistant.Modules {
 		public List<ReceviedMessageData> MessagesArrivedDuringIdle = new List<ReceviedMessageData>();
 		private EmailConfig MailConfig;
 		private Logger BotLogger;
-		private (int, Thread) ImapThreadInfo;
+		private CancellationTokenSource ImapTokenSource { get; set; }
+		private CancellationTokenSource ImapCancelTokenSource { get; set; }
 
-		private CancellationToken CancellationToken { get; set; }
-		private CancellationToken DoneToken { get; set; }
-		private CancellationTokenSource ImapToken { get; set; }
-		private CancellationTokenSource Timeout { get; set; }
-
-		private bool IsCancellationRequested => CancellationToken.IsCancellationRequested || DoneToken.IsCancellationRequested;
-		private readonly object Mutex = new object();
-
-		private void CancelTimeout() {
-			lock (Mutex) {
-				Timeout?.Cancel();
-			}
-		}
-
-		private void SetTimeoutSource(CancellationTokenSource source) {
-			lock (Mutex) {
-				Timeout = source;
-
-				if (Timeout != null && IsCancellationRequested) {
-					Timeout.Cancel();
-				}
-			}
-		}
-
-		private void SetTokenValues(CancellationToken doneToken, CancellationToken cancellationToken = default) {
-			CancellationToken = cancellationToken;
-			DoneToken = doneToken;
-			doneToken.Register(CancelTimeout);
-		}
-
-		public async Task<(bool, EmailBot)> RegisterBot(Logger botLogger, EmailConfig botConfig, ImapClient coreClient, ImapClient helperClient, string botUniqueId) {
-			BotLogger = botLogger ?? throw new ArgumentNullException("botLogger is null");
-			MailConfig = botConfig ?? throw new ArgumentNullException("botConfig is null");
-			IdleClient = coreClient ?? throw new ArgumentNullException("coreClient is null");
-			HelperClient = helperClient ?? throw new ArgumentNullException("helperClient is null");
-			UniqueAccountId = botUniqueId ?? throw new ArgumentNullException("botUniqueId is null");
-			GmailId = MailConfig.EmailID ?? throw new Exception("email id is either empty or null.");
-			GmailPass = MailConfig.EmailPASS ?? throw new Exception("email password is either empty or null");
-			IsAccountLoaded = false;
-			AddBotToCollection();
-
-			if (MailConfig.ImapNotifications) {
-				_ = await InitImapNotifications().ConfigureAwait(false);
-			}
-
-			return (true, this);
-		}
+		private bool IsIdleCancelRequested { get; set; }
 
 		private void AddBotToCollection() {
 			if (Tess.Modules.EmailClientCollection.ContainsKey(UniqueAccountId)) {
@@ -111,7 +64,61 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		private async Task<bool> InitImapNotifications() {
+		public async Task<(bool, EmailBot)> RegisterBot(Logger botLogger, EmailConfig botConfig, ImapClient coreClient, ImapClient helperClient, string botUniqueId) {
+			BotLogger = botLogger ?? throw new ArgumentNullException("botLogger is null");
+			MailConfig = botConfig ?? throw new ArgumentNullException("botConfig is null");
+			IdleClient = coreClient ?? throw new ArgumentNullException("coreClient is null");
+			HelperClient = helperClient ?? throw new ArgumentNullException("helperClient is null");
+			UniqueAccountId = botUniqueId ?? throw new ArgumentNullException("botUniqueId is null");
+			GmailId = MailConfig.EmailID ?? throw new Exception("email id is either empty or null.");
+			GmailPass = MailConfig.EmailPASS ?? throw new Exception("email password is either empty or null");
+			IsAccountLoaded = false;
+			AddBotToCollection();
+
+			if (MailConfig.ImapNotifications) {
+				if (await InitImapNotifications(false).ConfigureAwait(false)) {
+				}
+			}
+
+			return (true, this);
+		}
+
+		private async Task ReconnectImapClient(bool withImapIdle = true) {
+			if (IdleClient != null) {
+				if (IdleClient.IsConnected) {
+					if (IdleClient.IsIdle) {
+						StopImapIdle();
+					}
+					else {
+						lock (IdleClient.SyncRoot) {
+							IdleClient.Disconnect(true);
+							BotLogger.Log("Disconnected IMAP client (ReconnectImapClient())", LogLevels.Trace);
+						}
+					}
+				}
+			}
+
+			IsAccountLoaded = false;
+			IdleClient = new ImapClient {
+				ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+			};
+
+			BotLogger.Log("Reconnecting to imap server (ReconnectImapClient())", LogLevels.Trace);
+			IdleClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
+			IdleClient.Authenticate(GmailId, GmailPass);
+			IdleClient.Inbox.Open(FolderAccess.ReadWrite);
+			if (IdleClient.IsConnected && IdleClient.IsAuthenticated) {
+				BotLogger.Log("Re-established the client connection!");
+				IsAccountLoaded = true;
+
+				if (withImapIdle) {
+					if (await InitImapNotifications(false).ConfigureAwait(false)) {
+					}
+				}
+			}
+		}
+
+		private async Task<bool> InitImapNotifications(bool idleReconnect) {
 			if (!MailConfig.Enabled) {
 				BotLogger.Log("This account has been disabled in the config file.");
 				return false;
@@ -130,98 +137,71 @@ namespace HomeAssistant.Modules {
 			}
 
 			if (!IdleClient.IsConnected || !IdleClient.IsAuthenticated) {
-				BotLogger.Log("Account isn't connected or authenticated. failure in registration.");
+				BotLogger.Log("Account isn't connected or authenticated. failure in registration.", LogLevels.Warn);
 				return false;
 			}
 
 			InboxMessagesCount = IdleClient.Inbox.Count;
-			BotLogger.Log($"There are {InboxMessagesCount} messages in inbox folder. starting imap idle...");
+			BotLogger.Log($"There are {InboxMessagesCount} messages in inbox folder. Starting imap idle...", LogLevels.Trace);
 			IsAccountLoaded = true;
+			IsIdleCancelRequested = false;
 
 			IdleClient.Inbox.MessageExpunged += OnMessageExpunged;
 			IdleClient.Inbox.CountChanged += OnInboxCountChanged;
 
-			ImapToken = new CancellationTokenSource();
-			SetTokenValues(ImapToken.Token);
+			ImapTokenSource?.Dispose();
+			ImapCancelTokenSource?.Dispose();
+			ImapTokenSource = new CancellationTokenSource();
+			ImapCancelTokenSource = new CancellationTokenSource();
 
-			ImapToken.Token.ThrowIfCancellationRequested();
-			ImapThreadInfo = Helpers.InBackgroundThread(ImapIdleLoop, UniqueAccountId, true);
+			ImapTokenSource.Token.Register(async () => {
+				if (!IsIdleCancelRequested) {
+					BotLogger.Log("Restarting imap idle as connection got disconnected", LogLevels.Trace);
+					IdleClient.Inbox.MessageExpunged -= OnMessageExpunged;
+					IdleClient.Inbox.CountChanged -= OnInboxCountChanged;
+					await InitImapNotifications(true).ConfigureAwait(false);
+				}
+			});
 
-			await Task.Delay(1000).ConfigureAwait(false);
-			BotLogger.Log($"Started notifications service for {GmailId}");
+			Helpers.InBackground(async () => {
+				if (IdleClient.Capabilities.HasFlag(ImapCapabilities.Idle)) {
+					ImapTokenSource.CancelAfter(TimeSpan.FromMinutes(9));
+					try {
+						lock (IdleClient.SyncRoot) {
+							BotLogger.Log($"Mail notification service started for {GmailId}", idleReconnect ? LogLevels.Trace : LogLevels.Info);
+							IdleClient.Idle(ImapTokenSource.Token, ImapCancelTokenSource.Token);
+						}
+					}
+					catch (OperationCanceledException) {
+						BotLogger.Log("Idle cancelled.", LogLevels.Trace);
+						//idle cancelled
+					}
+					catch (IOException) {
+						if (Tess.Config.EnableImapIdleWorkaround) {
+							BotLogger.Log("Starting mobile hotspot workaround...", LogLevels.Warn);
+							if (!IsIdleCancelRequested) {
+								BotLogger.Log("Restarting imap idle as connection got disconnected", LogLevels.Trace);
+								await ReconnectImapClient(true).ConfigureAwait(false);
+							}
+						}
+						//mobile hotspot error
+					}
+				}
+				else {
+					BotLogger.Log("Mail server doesn't support imap idle.", LogLevels.Warn);
+					return;
+				}
+			}, true);
+
+			await Task.Delay(500).ConfigureAwait(false);
 			return true;
 		}
 
-		public void StopImapIdle(bool clientDisconnect) {
-            ImapToken.Cancel();
-			try {
-				Task.Factory.StartNew(() => {
-					ImapThreadInfo.Item2?.Join();
-				});
-				ImapToken.Dispose();
-
-				if (!clientDisconnect) {
-					return;
-				}
-
-				if (IdleClient.IsConnected && IdleClient.IsIdle) {
-					while (true) {
-						if (!IdleClient.IsIdle) {
-							BotLogger.Log("Idling has been stopped.", LogLevels.Trace);
-							break;
-						}
-						BotLogger.Log("Waiting for idle client to stop idling...", LogLevels.Trace);
-					}
-				}
-
-				lock (IdleClient.SyncRoot) {
-					IdleClient.Disconnect(true);
-					BotLogger.Log("Imap client has been disconnected.", LogLevels.Trace);
-				}
-			}
-			catch (NullReferenceException) {
-				BotLogger.Log("There is no thread with the specified uniqueID", LogLevels.Warn);
-			}
-			IsAccountLoaded = false;
-		}
-
-		private async Task ReconnectImapClient(bool withImapIdle = true) {
-			if (IdleClient != null) {
-				if (IdleClient.IsConnected) {
-					if (IdleClient.IsIdle) {
-						StopImapIdle(true);
-					}
-					else {
-						lock (IdleClient.SyncRoot) {
-							IdleClient.Disconnect(true);
-							BotLogger.Log("Disconnected imap client.", LogLevels.Trace);
-						}
-					}
-				}
-			}
-			else {
-				IsAccountLoaded = false;
-				IdleClient = new ImapClient {
-					ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-				};
-
-				BotLogger.Log("Reconnecting to imap server...");
-				IdleClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
-				IdleClient.Authenticate(GmailId, GmailPass);
-				IdleClient.Inbox.Open(FolderAccess.ReadWrite);
-				if (IdleClient.IsConnected && IdleClient.IsAuthenticated) {
-					BotLogger.Log("Reconnected and authenticated!");
-
-					if (withImapIdle) {
-						bool imapStarted = await InitImapNotifications().ConfigureAwait(false);
-
-						if (imapStarted) {
-							BotLogger.Log("Restarted imap notifications service!");
-						}
-					}
-				}
-
-				IsAccountLoaded = true;
+		public void StopImapIdle() {
+			if (ImapCancelTokenSource != null) {
+				ImapCancelTokenSource.Cancel();
+				IsIdleCancelRequested = true;
+				BotLogger.Log("IDLE token cancel requested.", LogLevels.Trace);
 			}
 		}
 
@@ -239,16 +219,18 @@ namespace HomeAssistant.Modules {
 				Helpers.PlayNotification(NotificationContext.Imap);
 			}
 
-			StopImapIdle(true);
-			await ReconnectImapClient(false).ConfigureAwait(false);
-			await OnMessageArrived().ConfigureAwait(false);
-			Helpers.InBackground(async () => {
-				bool imapStarted = await InitImapNotifications().ConfigureAwait(false);
+			StopImapIdle();
 
-				if (imapStarted) {
-					BotLogger.Log("Restarted imap notifications service!");
+			if (Monitor.TryEnter(IdleClient.SyncRoot, TimeSpan.FromSeconds(20)) == true) {
+				await ReconnectImapClient(false).ConfigureAwait(false);
+				await OnMessageArrived().ConfigureAwait(false);
+				if (await InitImapNotifications(false).ConfigureAwait(false)) {
 				}
-			});
+			}
+			else {
+				BotLogger.Log("failed to secure the lock object at the given time of 20 seconds.", LogLevels.Error);
+				return;
+			}
 		}
 
 		private async Task OnMessageArrived() {
@@ -259,34 +241,29 @@ namespace HomeAssistant.Modules {
 				}
 
 				BotLogger.Log("Waiting for client to shutdown idling connection...", LogLevels.Trace);
-				await Task.Delay(20).ConfigureAwait(false);
 			}
 
 			List<IMessageSummary> messages;
-			if (IdleClient != null && IdleClient.Inbox.Count > InboxMessagesCount) {
+			if ((IdleClient != null && IdleClient.IsConnected) && IdleClient.Inbox.Count > InboxMessagesCount) {
 				if (!IdleClient.IsConnected) {
 					return;
 				}
 
-				lock (IdleClient.SyncRoot) {
-					messages = IdleClient.Inbox.Fetch(InboxMessagesCount, -1,
-						MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
-					BotLogger.Log("Message fetched.", LogLevels.Trace);
+				lock (IdleClient.Inbox.SyncRoot) {
+					messages = IdleClient.Inbox.Fetch(InboxMessagesCount, -1, MessageSummaryItems.Full | MessageSummaryItems.UniqueId).ToList();
+					BotLogger.Log("New message(s) have been fetched to local cache.", LogLevels.Trace);
 				}
 
 				IMessageSummary latestMessage = null;
 
+                BotLogger.Log("Searching for latest message in local cache...", LogLevels.Trace);
 				foreach (IMessageSummary msg in messages) {
 					if (MessagesArrivedDuringIdle.Count <= 0) {
 						latestMessage = msg;
-						BotLogger.Log(
-							"fetched latest message data. (first index of MessageArrivedDuringIdle<> Dictionary)",
-							LogLevels.Trace);
-						BotLogger.Log(
-							$"{latestMessage.Envelope.Sender.FirstOrDefault()?.Name} / {latestMessage.Envelope.Subject}");
+						BotLogger.Log("Processed latest message. (No message in local cache, new message is the latest message)", LogLevels.Trace);
+						BotLogger.Log($"{latestMessage.Envelope.Sender.FirstOrDefault()?.Name} / {latestMessage.Envelope.Subject}");
 						Helpers.InBackgroundThread(
-							() => TTSService.SpeakText(
-								$"You got an email from {latestMessage.Envelope.Sender.FirstOrDefault()?.Name} with subject {latestMessage.Envelope.Subject}",
+							() => TTSService.SpeakText($"You got an email from {latestMessage.Envelope.Sender.FirstOrDefault()?.Name} with subject {latestMessage.Envelope.Subject}",
 								SpeechContext.Custom), "TTS Service");
 						break;
 					}
@@ -294,7 +271,7 @@ namespace HomeAssistant.Modules {
 					foreach (ReceviedMessageData msgdata in MessagesArrivedDuringIdle) {
 						if (msg.UniqueId.Id != msgdata.UniqueId) {
 							latestMessage = msg;
-							BotLogger.Log("fetched latest message data.", LogLevels.Trace);
+							BotLogger.Log("Processed latest message.", LogLevels.Trace);
 							BotLogger.Log(
 								$"{latestMessage.Envelope.Sender.FirstOrDefault()?.Name} / {latestMessage.Envelope.Subject}");
 							IMessageSummary message = latestMessage;
@@ -307,6 +284,8 @@ namespace HomeAssistant.Modules {
 					}
 				}
 
+				await Task.Delay(500).ConfigureAwait(false);
+
 				foreach (IMessageSummary message in messages) {
 					MessagesArrivedDuringIdle.Add(new ReceviedMessageData {
 						UniqueId = message.UniqueId.Id,
@@ -315,7 +294,7 @@ namespace HomeAssistant.Modules {
 						MarkedAsDeleted = false,
 						ArrivedTime = DateTime.Now
 					});
-					BotLogger.Log("Added a new messageData() object to messagesArrivedDuringIdle.", LogLevels.Trace);
+					BotLogger.Log("updated local arrived message(s) cache with a new message.", LogLevels.Trace);
 				}
 
 				if ((!string.IsNullOrEmpty(MailConfig.AutoReplyText) || !string.IsNullOrWhiteSpace(MailConfig.AutoReplyText)) && latestMessage != null) {
@@ -328,6 +307,9 @@ namespace HomeAssistant.Modules {
 					AutoReplyEmail(msg, MailConfig.AutoReplyText);
 					BotLogger.Log($"Successfully send auto reply message to {msg.Sender.Address}");
 				}
+			}
+			else {
+				BotLogger.Log("Either idle client not connected or no new messages.", LogLevels.Trace);
 			}
 		}
 
@@ -375,86 +357,47 @@ namespace HomeAssistant.Modules {
 			BotLogger.Log("A message has been expunged, inbox messages count has been reduced by one.", LogLevels.Trace);
 		}
 
-		private void ImapIdleLoop() {
-			while (!IsCancellationRequested) {
-				Timeout = new CancellationTokenSource(new TimeSpan(0, 9, 0));
-
-				try {
-					SetTimeoutSource(Timeout);
-					if (IdleClient.Capabilities.HasFlag(ImapCapabilities.Idle)) {
-						lock (IdleClient.SyncRoot) {
-							IdleClient.Idle(Timeout.Token, CancellationToken);
-						}
-					}
-					else {
-						lock (IdleClient.SyncRoot) {
-							IdleClient.NoOp(CancellationToken);
-						}
-						WaitHandle.WaitAny(new[] { Timeout.Token.WaitHandle, CancellationToken.WaitHandle });
-					}
-				}
-				catch (OperationCanceledException) {
-					// This means that idle.CancellationToken was cancelled, not the DoneToken nor the timeout.
-					break;
-				}
-				catch (ImapProtocolException) {
-					// The IMAP server sent garbage in a response and the ImapClient was unable to deal with it.
-					// This should never happen in practice, but it's probably still a good idea to handle it.
-					// 
-					// Note: an ImapProtocolException almost always results in the ImapClient getting disconnected.
-					IsAccountLoaded = false;
-					break;
-				}
-				catch (ImapCommandException) {
-					// The IMAP server responded with "NO" or "BAD" to either the IDLE command or the NOOP command.
-					// This should never happen... but again, we're catching it for the sake of completeness.
-					break;
-				}
-				catch (SocketException) {
-					//Ignore has this only seems to happen during shutdown
-					break;
-				}
-				catch (ServiceNotConnectedException) {
-					BotLogger.Log("An error has occured. IMAP client is not connected to gmail servers. we will attempt to reconnect.", LogLevels.Warn);
-					IsAccountLoaded = false;
-					Helpers.InBackground(async () => await ReconnectImapClient().ConfigureAwait(false));
-				}
-				catch (IOException) {
-					BotLogger.Log("IO Exception thrown. possibly, tess is connected to a mobile hotspot connection.", LogLevels.Warn);
-					IsAccountLoaded = false;
-					BotLogger.Log("Applying mobile hotspot connection workaround...", LogLevels.Warn);
-					Helpers.InBackground(async () => await ReconnectImapClient().ConfigureAwait(false));
-				}
-				finally {
-					// We're about to Dispose() the timeout source, so set it to null.
-					SetTimeoutSource(null);
-				}
-				Timeout?.Dispose();
-			}
-		}
-
 		public void Dispose() {
-			StopImapIdle(true);
+			StopImapIdle();
+			ImapCancelTokenSource?.Cancel();
+            BotLogger.Log("Waiting for IDLE Client to release the SyncRoot lock...");
+			if (Monitor.TryEnter(IdleClient.SyncRoot, TimeSpan.FromSeconds(20)) == true) {
+				if (IdleClient != null) {
+					if (IdleClient.IsConnected) {
+						if (IdleClient.IsIdle) {
+							StopImapIdle();
+						}
+						else {
+							lock (IdleClient.SyncRoot) {
+								IdleClient.Disconnect(true);
+								BotLogger.Log("Disconnected imap client.", LogLevels.Trace);
+							}
+						}
+					}
+				}
 
-			if (IdleClient != null) {
-				IdleClient.Dispose();
+				IsAccountLoaded = false;
+
+				if (IdleClient != null) {
+					IdleClient.Dispose();
+				}
 			}
 
 			if (HelperClient != null) {
 				HelperClient.Dispose();
 			}
 
-			Timeout?.Dispose();
-			ImapToken.Dispose();
+			ImapCancelTokenSource?.Dispose();
+			ImapTokenSource?.Dispose();
 
 			RemoveBotFromCollection();
-			BotLogger.Log("Disposed current bot instance of " + UniqueAccountId);
+			BotLogger.Log("Disposed current bot instance of " + UniqueAccountId, LogLevels.Trace);
 		}
 	}
 
 	public class Email {
 
-		private List<EmailBot> BotsCollection = new List<EmailBot>();
+		private readonly List<EmailBot> BotsCollection = new List<EmailBot>();
 		private readonly Logger Logger = new Logger("EMAIL-HANDLER");
 
 		public (bool, EmailBot) InitBot(string uniqueId, EmailConfig botConfig) {
@@ -474,12 +417,18 @@ namespace HomeAssistant.Modules {
 
 				try {
 					Logger BotLogger = new Logger(botConfig.EmailID?.Split('@')?.FirstOrDefault()?.Trim());
-					ImapClient BotClient = new ImapClient(new ProtocolLogger(uniqueId + ".txt"));
+					Logger.Log($"Loaded {botConfig.EmailID} mail account to processing state.", LogLevels.Trace);
+					ImapClient BotClient = new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
+						ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
+					};
 
-					BotClient.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
 					BotClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
 					BotClient.Authenticate(botConfig.EmailID, botConfig.EmailPASS);
 					BotClient.Inbox.Open(FolderAccess.ReadWrite);
+
+					if (BotClient.IsConnected && BotClient.IsAuthenticated) {
+                        Logger.Log($"Connected and authenticated IDLE-CLIENT for {botConfig.EmailID}", LogLevels.Trace);
+					}
 
 					Task.Delay(500).Wait();
 
@@ -491,13 +440,18 @@ namespace HomeAssistant.Modules {
 					BotHelperClient.Authenticate(botConfig.EmailID, botConfig.EmailPASS);
 					BotHelperClient.Inbox.Open(FolderAccess.ReadWrite);
 
+					if (BotHelperClient.IsConnected && BotHelperClient.IsAuthenticated) {
+						Logger.Log($"Connected and authenticated HELPER-CLIENT for {botConfig.EmailID}", LogLevels.Trace);
+					}
+
 					EmailBot Bot = new EmailBot();
 					(bool, EmailBot) registerResult = Bot.RegisterBot(BotLogger, botConfig, BotClient, BotHelperClient, uniqueId).Result;
 
 					if ((registerResult.Item2.IsAccountLoaded || registerResult.Item1) && Tess.Modules.EmailClientCollection.ContainsKey(uniqueId)) {
-						Logger.Log($"Loaded {botConfig.EmailID} mail account.");
+						
 						BotsCollection.Add(registerResult.Item2);
-						Logger.Log("Added email bot instance to bot collection.");
+						Logger.Log("Added email bot instance to bot collection.", LogLevels.Trace);
+						Logger.Log($"Connected and authenticated {registerResult.Item2.GmailId} account!");
 						return (true, Bot);
 					}
 				}
