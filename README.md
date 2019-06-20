@@ -2,19 +2,19 @@
 
 A simple console application written in C# using .NET Core framework with a single goal, provide you with assistance in your home,
 turning on lights, and turning them off, just with your voice!
-
-
-## but wait !!!
-
 that's not all, it can be more than your personal assistant, it can be your J.A.R.V.I.S.
 Built and designed to run on raspberry pi 3 in headless and completely unattended mode.
 able to handle errors smartly and do the needful on certain circumstances.
 
-## Installation and execution
+## Installation
 - Install .NET Core on your raspberry pi first. see here for installation [.net core installation](https://www.hanselman.com/blog/InstallingTheNETCore2xSDKOnARaspberryPiAndBlinkingAnLEDWithSystemDeviceGpio.aspx)
 - Download the latest release from here [Release](https://github.com/SynergYFTW/HomeAssistant/releases)
 - Create a new directory called Tess and extract downloaded .zip file to that folder.
-- Open a terminal on tess folder and run HomeAssistant.dll using command `dotnet HomeAssistant.dll` on terminal.
+
+## Startup (assuming you followed the above installnation steps...)
+- Open a terminal on tess folder.
+- Run HomeAssistant.dll using command `dotnet HomeAssistant.dll` on terminal.
+- Wait for tess to initialise.
 
 ## Features
 - Cross-platform - not just because its made on dotnet core, but because it is smart enough to know its platform and adapt accordingly.
@@ -35,6 +35,9 @@ when the network is back online, it can start the previously stopped tasks again
 - Kestrel Http Server - Advanced REST Http server API with various endpoints to provide you with complete control over your assistant.
 - Performence Counter - System to monitor CPU and RAM usage in real-time. [Currently only for Windows platforms]
 - Swagger Docs - swagger integretion allows the user to view every available endpoints with their information on the route URL.
+- On-the-fly config updater - Update config using the endpoints of Kestrel server!
+- Email System - Login with your email accounts to send, receive, delete or even search emails in your inbox. Supports 50+ accounts at a time!
+- Email IMAP Notifier - get notified of new emails u receive by taking control of the IMAP server push notifications. simply login your account and enable the push notifications service on config file!
 
 **To be edited later on**
 
