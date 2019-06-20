@@ -26,8 +26,8 @@ able to handle errors smartly and do the needful on certain circumstances.
 - GPIO pin control - complete control over the raspberry pi Gpio pins, including all 1 to 31 pins and states input and output and their values high and low.
 - Interactive console - console is a powerful tool in terms of controlling the app. many pre defined charecters are used to define various methods.
 - Multi threaded - Tess utilizes multi threading to perform at its best. it can run many tasks concurrently without delay.
-- Task queue - task based functions, such as setting remainders etc will be added to a concurrentqueue with FIFO principal. they will started in the background thread concurrently with the main thread.
-- Discord bot - allows to control tess using discord bot commands from home assistant discord chann
+- Task queue - task based functions, such as setting remainders etc will be added to a concurrent queue with FIFO principal. they will started in the background thread concurrently with the main thread.
+- Discord bot - allows to control tess using discord bot commands from home assistant discord channel.
 - TTS service - text to speech system for various important notifications and updates.
 - Updater - automatically check for updates and update tess.
 - Kestrel Http Server - Advanced REST Http server API with various endpoints to provide you with complete control over your assistant.
