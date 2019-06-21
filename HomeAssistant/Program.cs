@@ -23,8 +23,11 @@ namespace HomeAssistant {
 			AppDomain.CurrentDomain.FirstChanceException += HandleFirstChanceExceptions;
 			NetworkChange.NetworkAvailabilityChanged += AvailabilityChanged;
 			AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
+			Console.CancelKeyPress += OnForceQuitTess;
 			bool Init = await Tess.InitCore(args).ConfigureAwait(false);
 		}
+
+		private static async void OnForceQuitTess(object sender, ConsoleCancelEventArgs e) => await Tess.Exit(0).ConfigureAwait(false);
 
 		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
 			Logger.Log($"{e.Exception.Message}", LogLevels.Error);

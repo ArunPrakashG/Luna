@@ -454,18 +454,22 @@ namespace HomeAssistant.Modules {
 						Logger.Log($"Connected and authenticated {registerResult.Item2.GmailId} account!");
 						return (true, Bot);
 					}
+					else {
+						connectionTry++;
+						continue;
+					}
 				}
 				catch (AuthenticationException) {
-					Logger.Log($"Account password must be incorrect. we will retry to connect. ({connectionTry}/{maxConnectionRetry})");
+					Logger.Log($"Account password must be incorrect. we will retry to connect. ({connectionTry++}/{maxConnectionRetry})");
 				}
 				catch (SocketException) {
-					Logger.Log($"Network connectivity problem occured, we will retry to connect. ({connectionTry}/{maxConnectionRetry})", LogLevels.Warn);
+					Logger.Log($"Network connectivity problem occured, we will retry to connect. ({connectionTry++}/{maxConnectionRetry})", LogLevels.Warn);
 				}
 				catch (OperationCanceledException) {
-					Logger.Log($"An operation has been cancelled, we will retry to connect. ({connectionTry}/{maxConnectionRetry})", LogLevels.Warn);
+					Logger.Log($"An operation has been cancelled, we will retry to connect. ({connectionTry++}/{maxConnectionRetry})", LogLevels.Warn);
 				}
 				catch (IOException) {
-					Logger.Log($"IO exception occured. we will retry to connect. ({connectionTry}/{maxConnectionRetry})", LogLevels.Warn);
+					Logger.Log($"IO exception occured. we will retry to connect. ({connectionTry++}/{maxConnectionRetry})", LogLevels.Warn);
 				}
 				catch (Exception e) {
 					Logger.Log(e, LogLevels.Error);

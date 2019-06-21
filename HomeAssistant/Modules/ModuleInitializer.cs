@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using HomeAssistant.Extensions;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
@@ -20,7 +21,7 @@ namespace HomeAssistant.Modules {
 
 		public async Task<(DiscordClient, Email, GoogleMap, Youtube)> StartModules() {
 			await StartDiscord().ConfigureAwait(false);
-			StartEmail();
+			Helpers.InBackground(StartEmail);
 			Map = new GoogleMap();
 			Youtube = new Youtube();
 			return (Discord, Mail, Map, Youtube);

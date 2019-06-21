@@ -10,6 +10,22 @@ namespace HomeAssistant.Core {
 			RELAY
 		}
 
+		public enum SteamUserInputType {
+			DeviceID,
+			Login,
+			Password,
+			SteamGuard,
+			SteamParentalPIN,
+			TwoFactorAuthentication,
+			Unknown
+		}
+
+		public enum SteamPermissionLevels{
+			Owner,
+			Master,
+			Operator
+		}
+
 		public enum HttpStatusCodes {
 			Accepted = 202,
 			Ambiguous = 300,
@@ -38,7 +54,7 @@ namespace HomeAssistant.Core {
 			NotModified = 304,
 			OK = 200,
 			Redirect = 302,
-			RequestTimeout  = 408,
+			RequestTimeout = 408,
 			ServiceUnavailable = 503,
 			Unauthorized = 401,
 
@@ -100,7 +116,7 @@ namespace HomeAssistant.Core {
 			Info,
 			Warn,
 			Error,
-			Fatal,			
+			Fatal,
 			DebugException,
 			Ascii,
 			UserInput,

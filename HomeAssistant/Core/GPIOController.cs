@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
+using PinMode = HomeAssistant.Core.Enums.PinMode;
 
 namespace HomeAssistant.Core {
 
@@ -78,22 +79,31 @@ namespace HomeAssistant.Core {
 			return task;
 		}
 
-		public void IRSensorTest(Action value) {
-			_ = value ?? throw new ArgumentNullException("Action is empty or not set.");
+		public void IRSensorTest() {
+			IGpioPin pin = Pi.Gpio[Tess.Config.IRSensorPins[0]];
+			pin.PinMode = GpioPinDriveMode.Input;
 
-			StopIrSensorMonitor = false;
-			while (true) {
-				if (!StopIrSensorMonitor) {
-					if (WaitUntilPinValue(Tess.Config.IRSensorPins[0], GpioPinValue.Low, 10000)) {
-						Task.Run(value);
-					}
-				}
-				else {
-					return;
-				}
+			//Pi.Gpio[Tess.Config.RelayPins[0]].RegisterInterruptCallback(EdgeDetection.FallingEdge, relaypinFallingedge);
+			//Pi.Gpio[Tess.Config.RelayPins[0]].RegisterInterruptCallback(EdgeDetection.RisingEdge, relaypinRisingedge);
 
-				Task.Delay(40).Wait();
-			}
+			pin.RegisterInterruptCallback(EdgeDetection.FallingEdge, callbackFallingEdge);
+			pin.RegisterInterruptCallback(EdgeDetection.RisingEdge, callbackRisingEdge);
+		}
+
+		private void relaypinFallingedge() {
+			Logger.Log("relay pin falling edge");
+		}
+
+		private void relaypinRisingedge() {
+			Logger.Log("relay pin rising edge");
+		}
+
+		private void callbackFallingEdge() {
+			Logger.Log("pin falling edge");
+		}
+
+		private void callbackRisingEdge() {
+			Logger.Log("pin rising edge");
 		}
 
 		public void StopIRSensorMonitering() => StopIrSensorMonitor = true;

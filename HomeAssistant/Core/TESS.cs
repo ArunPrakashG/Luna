@@ -15,6 +15,7 @@ using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.WiringPi;
 using static HomeAssistant.Core.Enums;
+using Logging = HomeAssistant.Log.Logging;
 
 namespace HomeAssistant.Core {
 
@@ -174,7 +175,7 @@ namespace HomeAssistant.Core {
 				else {
 					Logger.Log("Could not start the modules as network is unavailable.", LogLevels.Warn);
 				}
-
+				
 				await PostInitTasks().ConfigureAwait(false);
 			}
 			catch (Exception e) {
@@ -196,7 +197,8 @@ namespace HomeAssistant.Core {
 				Pi.Init<BootstrapWiringPi>();
 				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
 				Controller.DisplayPiInfo();
-				Logger.Log("Sucessfully Initiated Pi Configuration!");
+				Logger.Log("Successfully Initiated Pi Configuration!");
+				Controller.IRSensorTest();
 			}
 			else {
 				Logger.Log("Disabled Raspberry Pi related methods and initiation tasks.");
@@ -258,38 +260,8 @@ namespace HomeAssistant.Core {
 					Modules.DisposeAllEmailClients();
 				}
 				else if (pressedKey.Equals(testKey)) {
-					Logger.Log("Running pre-configured tests...");
-					Helpers.InBackgroundThread(() => {
-						while (true) {
-							if (!Controller.StopIrSensorMonitor) {
-								if (Controller.WaitUntilPinValue(Config.IRSensorPins[0], GpioPinValue.Low, 10000)) {
-									if (!Controller.FetchPinStatus(Config.RelayPins[0]).IsOn) {
-										Logger.Log("pin is off. setting it to on.");
-										Controller.SetGPIO(Config.RelayPins[0], GpioPinDriveMode.Output,
-											GpioPinValue.Low);
-									}
-									else {
-										Logger.Log("pin is already in on state, continuing loop");
-										continue;
-									}
-								}
-							}
-							else {
-								return;
-							}
-
-							Task.Delay(40).Wait();
-						}
-					}, "Test");
-
-					Helpers.InBackgroundThread(() => {
-						Logger.Log("press y key to exit IR sensor monitor");
-						if (Console.ReadKey().KeyChar.Equals('y')) {
-							Controller.StopIRSensorMonitering();
-						}
-					}, "Stopping test method");
-
-					Logger.Log("No test tasks pending...");
+					//Logger.Log("Running pre-configured tests...");
+					
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
 					DisplayCommandMenu();

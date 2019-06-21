@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
@@ -374,6 +375,35 @@ namespace HomeAssistant.Extensions {
 				return Path.GetFileName(path);
 			}
 			return path.Substring(path.LastIndexOf(FileSeperator, StringComparison.Ordinal) + 1);
+		}
+
+		public static string ReadLineMasked(char mask = '*') {
+			StringBuilder result = new StringBuilder();
+
+			ConsoleKeyInfo keyInfo;
+			while ((keyInfo = Console.ReadKey(true)).Key != ConsoleKey.Enter) {
+				if (!char.IsControl(keyInfo.KeyChar)) {
+					result.Append(keyInfo.KeyChar);
+					Console.Write(mask);
+				}
+				else if ((keyInfo.Key == ConsoleKey.Backspace) && (result.Length > 0)) {
+					result.Remove(result.Length - 1, 1);
+
+					if (Console.CursorLeft == 0) {
+						Console.SetCursorPosition(Console.BufferWidth - 1, Console.CursorTop - 1);
+						Console.Write(' ');
+						Console.SetCursorPosition(Console.BufferWidth - 1, Console.CursorTop - 1);
+					}
+					else {
+
+						// There are two \b characters here
+						Console.Write(@" ");
+					}
+				}
+			}
+
+			Console.WriteLine();
+			return result.ToString();
 		}
 
 		public static void WriteBytesToFile(byte[] bytesToWrite, string filePath) {

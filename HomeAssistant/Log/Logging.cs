@@ -4,12 +4,14 @@ using NLog.Config;
 using NLog.Targets;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace HomeAssistant.Log {
 
 	public class Logging {
 		private const string GeneralTraceLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${level:uppercase=true} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";
 		private const string GeneralDebugLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";
+		private static bool IsWaitingForUserInput;
 
 		public static NLog.Logger RegisterLogger(string loggerName) {
 			if (string.IsNullOrEmpty(loggerName)) {
