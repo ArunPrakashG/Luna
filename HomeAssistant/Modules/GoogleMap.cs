@@ -9,6 +9,7 @@ namespace HomeAssistant.Modules {
 		//search locations etc
 		public string ModuleIdentifier { get; set; } = nameof(GoogleMap);
 		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
+		public string ModuleAuthor { get; set; } = "Arun";
 
 		public GoogleMap() {
 

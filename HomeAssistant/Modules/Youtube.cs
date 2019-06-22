@@ -10,8 +10,9 @@ namespace HomeAssistant.Modules {
 	public class Youtube : IModuleBase {
 		private readonly Logger Logger = new Logger("YOUTUBE");
 
-		public string ModuleIdentifier { get; set; } = nameof(Youtube);
-		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
+		public string ModuleIdentifier { get; } = nameof(Youtube);
+		public Version ModuleVersion { get; } = new Version("4.9.0.0");
+		public string ModuleAuthor { get; } = "Arun";
 
 		//TODO youtube module
 		//fetch youtube video

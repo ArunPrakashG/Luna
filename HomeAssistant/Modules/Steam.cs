@@ -277,8 +277,9 @@ namespace HomeAssistant.Modules {
 		private readonly Logger Logger = new Logger("STEAM");
 		private ConcurrentDictionary<string, SteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, SteamBot>();
 		private string BotConfigDirectory => Constants.ConfigDirectory + "/SteamBots/";
-		public string ModuleIdentifier { get; set; } = nameof(Steam);
-		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
+		public string ModuleIdentifier { get; } = nameof(Steam);
+		public Version ModuleVersion { get; } = new Version("4.9.0.0");
+		public string ModuleAuthor { get; } = "Arun";
 
 		public (bool, ConcurrentDictionary<string, SteamBot>) InitSteamBots() {
 			if (!Directory.Exists(BotConfigDirectory)) {

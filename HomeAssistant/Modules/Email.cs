@@ -387,6 +387,7 @@ namespace HomeAssistant.Modules {
 		private readonly Logger Logger = new Logger("EMAIL-HANDLER");
 		public string ModuleIdentifier { get; set; } = nameof(Email);
 		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
+		public string ModuleAuthor { get; set; } = "Arun";
 		public ConcurrentDictionary<string, EmailBot> EmailClientCollection { get; set; } = new ConcurrentDictionary<string, EmailBot>();
 
 		public (bool, ConcurrentDictionary<string, EmailBot>) InitEmailBots() {

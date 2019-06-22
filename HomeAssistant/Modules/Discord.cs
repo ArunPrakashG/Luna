@@ -24,8 +24,9 @@ namespace HomeAssistant.Modules {
 		internal CoreConfig Config = Tess.Config;
 		private readonly DiscordLogger DiscordLogger;
 		private readonly string DiscordToken;
-		public string ModuleIdentifier { get; set; } = nameof(DiscordClient);
-		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
+		public string ModuleIdentifier { get; } = nameof(DiscordClient);
+		public Version ModuleVersion { get; } = new Version("4.9.0.0");
+		public string ModuleAuthor { get; } = "Arun";
 
 		public DiscordClient() {
 			Logger = new Logger("DISCORD-CLIENT");
