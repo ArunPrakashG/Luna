@@ -30,7 +30,7 @@ namespace HomeAssistant.Core {
 			}
 
 			if (!File.Exists(Constants.CoreConfigPath)) {
-				Logger.Log("Core config file doesn't exist. cannot start file system watcher.", LogLevels.Error);
+				Logger.Log("Core config directory doesn't exist. cannot start file system watcher.", LogLevels.Error);
 				return;
 			}
 
@@ -61,6 +61,11 @@ namespace HomeAssistant.Core {
 		private void OnFileEventRaised(object sender, FileSystemEventArgs e) {
 			if ((sender == null) || (e == null)) {
 				Logger.Log(nameof(sender) + " || " + nameof(e), LogLevels.Error);
+				return;
+			}
+
+			//TODO make file system watcher monitor entire config directory, disable until steam bot system is fixed
+			if (File.GetAttributes(e.FullPath).HasFlag(FileAttributes.Directory)) {
 				return;
 			}
 

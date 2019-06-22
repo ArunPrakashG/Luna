@@ -1,11 +1,10 @@
 using HomeAssistant.Core;
+using HomeAssistant.Extensions;
 using HomeAssistant.Log;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using HomeAssistant.Extensions;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
@@ -17,97 +16,26 @@ namespace HomeAssistant.Modules {
 		public Youtube Youtube { get; set; }
 		public Email Mail { get; set; }
 
-		public ConcurrentDictionary<string, EmailBot> EmailClientCollection { get; set; } = new ConcurrentDictionary<string, EmailBot>();
-
-		public async Task<(DiscordClient, Email, GoogleMap, Youtube)> StartModules() {
-			await StartDiscord().ConfigureAwait(false);
-			Helpers.InBackground(StartEmail);
-			Map = new GoogleMap();
-			Youtube = new Youtube();
-			return (Discord, Mail, Map, Youtube);
-		}
-
-		private async Task<bool> StartDiscord() {
-			try {
+		public (DiscordClient, Email, GoogleMap, Youtube) StartModules() {
+			if (Tess.Config.DiscordBot) {
 				Discord = new DiscordClient();
-				if (await Discord.InitDiscordClient().ConfigureAwait(false)) {
-					Logger.Log("Sucessfully started discord module!");
-					return true;
-				}
-			}
-			catch (Exception e) {
-				Logger.Log(e, LogLevels.Error);
-				return false;
-			}
-			return false;
-		}
-
-		private bool StartEmail() {
-			if (Tess.Config.EmailDetails.Count <= 0 || !Tess.Config.EmailDetails.Any()) {
-				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
-				return false;
+				(bool, DiscordClient) discordResult = Task.Run(async () => await Discord.RegisterDiscordClient().ConfigureAwait(false)).Result;
 			}
 
-			EmailClientCollection.Clear();
-			Mail = new Email();
-
-			int loadedCount = 0;
-			foreach (KeyValuePair<string, EmailConfig> entry in Tess.Config.EmailDetails) {
-				if (string.IsNullOrEmpty(entry.Value.EmailID) || string.IsNullOrWhiteSpace(entry.Value.EmailPASS)) {
-					continue;
-				}
-
-				string uniqueId = entry.Key;
-
-				try {
-					(bool result, EmailBot emailBot) = Mail.InitBot(uniqueId, entry.Value);
-
-					if (result) {
-						loadedCount++;
-					}
-					else {
-						Logger.Log($"Failed to load {entry.Value.EmailID} account.", LogLevels.Trace);
-					}
-				}
-				catch (NullReferenceException) {
-					Logger.Log($"Failed to load {entry.Value.EmailID} account.", LogLevels.Trace);
-					continue;
-				}
+			if (Tess.Config.EnableEmail) {
+				Mail = new Email();
+				(bool, ConcurrentDictionary<string, EmailBot>) emailResult = Mail.InitEmailBots();
 			}
 
-			if (Tess.Config.EmailDetails.Count - loadedCount > 0) {
-				Logger.Log($"{Tess.Config.EmailDetails.Count - loadedCount} account(s) failed to load.", LogLevels.Warn);
+			if (Tess.Config.EnableGoogleMap) {
+				Map = new GoogleMap();
+			}
+
+			if (Tess.Config.EnableYoutube) {
+				Youtube = new Youtube();
 			}
 			
-			Logger.Log($"{loadedCount} accounts loaded successfully.",LogLevels.Trace);
-			return true;
-		}
-
-		public void DisposeEmailBot(string botUniqueId) {
-			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
-				return;
-			}
-
-			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
-				if (pair.Key.Equals(botUniqueId)) {
-					pair.Value.Dispose();
-					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
-				}
-			}
-		}
-
-		public void DisposeAllEmailClients() {
-			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
-				return;
-			}
-
-			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
-				if (pair.Value.IsAccountLoaded) {
-					pair.Value.Dispose();
-					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
-				}
-			}
-			EmailClientCollection.Clear();
+			return (Discord ?? null, Mail ?? null, Map ?? null, Youtube ?? null);
 		}
 
 		public bool OnCoreShutdown() {
@@ -116,12 +44,12 @@ namespace HomeAssistant.Modules {
 				_ = Discord.StopServer().Result;
 			}
 
-			if (EmailClientCollection.Count > 0 && EmailClientCollection != null) {
+			if (Mail != null && Mail.EmailClientCollection.Count > 0) {
 				Logger.Log("Email clients shutting down...", LogLevels.Trace);
-				DisposeAllEmailClients();
+				Mail.DisposeAllEmailBots();
 			}
 
-			Logger.Log("Module shutdown sucessfull.");
+			Logger.Log("Module shutdown sucessfull.", LogLevels.Trace);
 			return true;
 		}
 	}

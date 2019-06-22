@@ -3,6 +3,7 @@ using System;
 
 namespace HomeAssistant.Modules {
 
+	//TODO for setting remainders and such small activites
 	public class MiscModule {
 		private Logger Logger = new Logger("MISC-MODULE");
 

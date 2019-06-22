@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
+using HomeAssistant.Modules.Interfaces;
 using System;
 using System.IO;
 using System.Linq;
@@ -15,8 +16,7 @@ using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
-
-	public class DiscordClient {
+	public class DiscordClient : IModuleBase {
 		public DiscordSocketClient Client;
 		private readonly CommandService Commands;
 		public bool IsServerOnline;
@@ -24,6 +24,8 @@ namespace HomeAssistant.Modules {
 		internal CoreConfig Config = Tess.Config;
 		private readonly DiscordLogger DiscordLogger;
 		private readonly string DiscordToken;
+		public string ModuleIdentifier { get; set; } = nameof(DiscordClient);
+		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
 
 		public DiscordClient() {
 			Logger = new Logger("DISCORD-CLIENT");
@@ -81,9 +83,9 @@ namespace HomeAssistant.Modules {
 			return true;
 		}
 
-		public async Task<bool> InitDiscordClient() {
+		public async Task<(bool, DiscordClient)> RegisterDiscordClient() {
 			if (!Config.DiscordBot) {
-				return false;
+				return (false, this);
 			}
 
 			Logger.Log("Starting discord client...");
@@ -95,7 +97,7 @@ namespace HomeAssistant.Modules {
 				if (connectionTry > 5) {
 					Logger.Log($"Connection failed after 5 attempts. cannot proceed to connect.", LogLevels.Error);
 					IsServerOnline = false;
-					return false;
+					return (false, this);
 				}
 
 				try {
@@ -122,7 +124,7 @@ namespace HomeAssistant.Modules {
 					connectionTry++;
 				}
 			}
-			return true;
+			return (true, this);
 		}
 
 		private async Task OnMessageReceived(SocketMessage message) {
@@ -218,12 +220,21 @@ namespace HomeAssistant.Modules {
 				Client?.Dispose();
 
 				await Task.Delay(5000).ConfigureAwait(false);
-				await InitDiscordClient().ConfigureAwait(false);
+				await RegisterDiscordClient().ConfigureAwait(false);
 			}
 			catch (Exception) {
 				throw;
 			}
 		}
+
+		public (bool, DiscordClient) InitModuleService<DiscordClient>() {
+
+		}
+
+		public bool InitModuleShutdown() {
+
+		}
+
 	}
 
 	public sealed class DiscordCommandBase : ModuleBase<SocketCommandContext> {

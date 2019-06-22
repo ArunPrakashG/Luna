@@ -42,39 +42,6 @@ namespace HomeAssistant.Core {
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 
-		public bool Equals(CoreConfig other) {
-			if (ReferenceEquals(null, other)) {
-				return false;
-			}
-
-			if (ReferenceEquals(this, other)) {
-				return true;
-			}
-
-			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
-			       EnableConfigWatcher == other.EnableConfigWatcher &&
-			       EnableImapIdleWorkaround == other.EnableImapIdleWorkaround &&
-			       UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
-			       KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
-			       Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
-			       DisplayStartupMenu == other.DisplayStartupMenu && GPIOControl == other.GPIOControl &&
-			       Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
-			       EnableTextToSpeech == other.EnableTextToSpeech && MuteAll == other.MuteAll &&
-			       DiscordLog == other.DiscordLog && DiscordBot == other.DiscordBot &&
-			       CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
-			       ServerPort == other.ServerPort && KestrelServerPort == other.KestrelServerPort &&
-			       string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
-			       string.Equals(TessEmailID, other.TessEmailID, StringComparison.OrdinalIgnoreCase) &&
-			       string.Equals(TessEmailPASS, other.TessEmailPASS, StringComparison.OrdinalIgnoreCase) &&
-			       ProgramLastStartup.Equals(other.ProgramLastStartup) &&
-			       ProgramLastShutdown.Equals(other.ProgramLastShutdown) && DiscordOwnerID == other.DiscordOwnerID &&
-			       DiscordServerID == other.DiscordServerID && DiscordLogChannelID == other.DiscordLogChannelID;
-		}
-
-		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
-
-		public static bool operator !=(CoreConfig left, CoreConfig right) => !Equals(left, right);
-
 		[JsonProperty]
 		public bool AutoRestart = false;
 
@@ -142,6 +109,15 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty]
 		public bool MuteAll = false;
+
+		[JsonProperty]
+		public bool EnableEmail = true;
+
+		[JsonProperty]
+		public bool EnableGoogleMap = true;
+
+		[JsonProperty]
+		public bool EnableYoutube = true;
 
 		[JsonProperty]
 		public ConcurrentDictionary<string, EmailConfig> EmailDetails = new ConcurrentDictionary<string, EmailConfig>();
@@ -324,6 +300,39 @@ namespace HomeAssistant.Core {
 		}
 
 		public override string ToString() => base.ToString();
+
+		public bool Equals(CoreConfig other) {
+			if (ReferenceEquals(null, other)) {
+				return false;
+			}
+
+			if (ReferenceEquals(this, other)) {
+				return true;
+			}
+
+			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
+				   EnableConfigWatcher == other.EnableConfigWatcher &&
+				   EnableImapIdleWorkaround == other.EnableImapIdleWorkaround &&
+				   UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
+				   KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
+				   Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
+				   DisplayStartupMenu == other.DisplayStartupMenu && GPIOControl == other.GPIOControl &&
+				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
+				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAll == other.MuteAll &&
+				   DiscordLog == other.DiscordLog && DiscordBot == other.DiscordBot &&
+				   CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
+				   ServerPort == other.ServerPort && KestrelServerPort == other.KestrelServerPort &&
+				   string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
+				   string.Equals(TessEmailID, other.TessEmailID, StringComparison.OrdinalIgnoreCase) &&
+				   string.Equals(TessEmailPASS, other.TessEmailPASS, StringComparison.OrdinalIgnoreCase) &&
+				   ProgramLastStartup.Equals(other.ProgramLastStartup) &&
+				   ProgramLastShutdown.Equals(other.ProgramLastShutdown) && DiscordOwnerID == other.DiscordOwnerID &&
+				   DiscordServerID == other.DiscordServerID && DiscordLogChannelID == other.DiscordLogChannelID;
+		}
+
+		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
+
+		public static bool operator !=(CoreConfig left, CoreConfig right) => !Equals(left, right);
 
 	}
 }

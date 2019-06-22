@@ -575,6 +575,8 @@ namespace HomeAssistant.Extensions {
 			}
 		}
 
+		public static bool IsNullOrEmpty(string value) => string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value);
+
 		public static void CheckMultipleProcess() {
 			string RunningProcess = Process.GetCurrentProcess().ProcessName;
 			Process[] processes = Process.GetProcessesByName(RunningProcess);

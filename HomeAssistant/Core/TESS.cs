@@ -170,12 +170,12 @@ namespace HomeAssistant.Core {
 				Modules = new ModuleInitializer();
 
 				if (IsNetworkAvailable) {
-					await Modules.StartModules().ConfigureAwait(false);
+					Modules.StartModules();
 				}
 				else {
 					Logger.Log("Could not start the modules as network is unavailable.", LogLevels.Warn);
 				}
-				
+
 				await PostInitTasks().ConfigureAwait(false);
 			}
 			catch (Exception e) {
@@ -212,7 +212,7 @@ namespace HomeAssistant.Core {
 
 			TTSService.SpeakText("TESS Home assistant have been sucessfully started!", SpeechContext.TessStartup, true);
 			Logger.Log("Waiting for commands...");
-			await KeepAlive('q', 'm', 'e', 'i', 't', 'c').ConfigureAwait(false);
+			await KeepAlive('q', 'm', 'e', 't', 'c').ConfigureAwait(false);
 		}
 
 		private static void SetConsoleTitle() {
@@ -223,7 +223,7 @@ namespace HomeAssistant.Core {
 			}
 		}
 
-		private static async Task KeepAlive(char loopBreaker = 'q', char menuKey = 'm', char quickShutDown = 'e', char imapIdleShutdown = 'i', char testKey = 't', char commandKey = 'c') {
+		private static async Task KeepAlive(char loopBreaker = 'q', char menuKey = 'm', char quickShutDown = 'e', char testKey = 't', char commandKey = 'c') {
 			Logger.Log($"Press {loopBreaker} to quit in 5 seconds.");
 			Logger.Log($"Press {quickShutDown} to exit application immediately.");
 
@@ -231,7 +231,6 @@ namespace HomeAssistant.Core {
 				Logger.Log($"Press {menuKey} to display GPIO menu.");
 			}
 
-			Logger.Log($"Press {imapIdleShutdown} to stop all IMAP Idle notifications.");
 			Logger.Log($"Press {testKey} to execute the TEST methods.");
 
 			if (!DisablePiMethods) {
@@ -255,13 +254,9 @@ namespace HomeAssistant.Core {
 					Logger.Log("Exiting...");
 					await Exit(0).ConfigureAwait(false);
 				}
-				else if (pressedKey.Equals(imapIdleShutdown)) {
-					Logger.Log("Exiting all email account imap idle...");
-					Modules.DisposeAllEmailClients();
-				}
 				else if (pressedKey.Equals(testKey)) {
 					//Logger.Log("Running pre-configured tests...");
-					
+
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
 					DisplayCommandMenu();
@@ -683,7 +678,7 @@ namespace HomeAssistant.Core {
 			}
 
 			if (IsNetworkAvailable && Modules != null) {
-				await Modules.StartModules().ConfigureAwait(false);
+				Modules.StartModules();
 			}
 			else {
 				Logger.Log("Could not start the modules as network is unavailable or modules is not initilized.", LogLevels.Warn);

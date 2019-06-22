@@ -1,20 +1,34 @@
 using HomeAssistant.Log;
+using HomeAssistant.Modules.Interfaces;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using VideoLibrary;
 
 namespace HomeAssistant.Modules {
 
-	public class Youtube {
+	public class Youtube : IModuleBase {
 		private readonly Logger Logger = new Logger("YOUTUBE");
 
-		//TODO
+		public string ModuleIdentifier { get; set; } = nameof(Youtube);
+		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
+
+		//TODO youtube module
 		//fetch youtube video
 		//download youtube video
 		//search youtube video
 		//extract songs
 
 		public Youtube() {
+
+		}
+
+		public (bool, Youtube) InitModuleService<Youtube>() {
+			
+		}
+
+		public bool InitModuleShutdown() {
+			
 		}
 
 		private async Task<YouTubeVideo> FetchYoutubeVideo(string url) {

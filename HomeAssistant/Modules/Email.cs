@@ -6,6 +6,7 @@ using MailKit.Net.Imap;
 using MailKit.Security;
 using MimeKit;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,6 +16,9 @@ using System.Net.Mail;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using HomeAssistant.Modules.Interfaces;
+using MimeKit.Cryptography;
+using Org.BouncyCastle.Asn1.Pkcs;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
@@ -42,38 +46,23 @@ namespace HomeAssistant.Modules {
 		public List<ReceviedMessageData> MessagesArrivedDuringIdle = new List<ReceviedMessageData>();
 		private EmailConfig MailConfig;
 		private Logger BotLogger;
+		private Email EmailHandler;
+
 		private CancellationTokenSource ImapTokenSource { get; set; }
 		private CancellationTokenSource ImapCancelTokenSource { get; set; }
 
 		private bool IsIdleCancelRequested { get; set; }
 
-		private void AddBotToCollection() {
-			if (Tess.Modules.EmailClientCollection.ContainsKey(UniqueAccountId)) {
-				BotLogger.Log("Deleting duplicate entry of current instance.", LogLevels.Trace);
-				Tess.Modules.EmailClientCollection.TryRemove(UniqueAccountId, out _);
-			}
-
-			Tess.Modules.EmailClientCollection.TryAdd(UniqueAccountId, this);
-			BotLogger.Log("Added current instance to client collection.", LogLevels.Trace);
-		}
-
-		private void RemoveBotFromCollection() {
-			if (Tess.Modules.EmailClientCollection.ContainsKey(UniqueAccountId)) {
-				BotLogger.Log("Remove current bot instance from collection.", LogLevels.Trace);
-				Tess.Modules.EmailClientCollection.TryRemove(UniqueAccountId, out _);
-			}
-		}
-
-		public async Task<(bool, EmailBot)> RegisterBot(Logger botLogger, EmailConfig botConfig, ImapClient coreClient, ImapClient helperClient, string botUniqueId) {
+		public async Task<(bool, EmailBot)> RegisterBot(Logger botLogger, Email mailHandler, EmailConfig botConfig, ImapClient coreClient, ImapClient helperClient, string botUniqueId) {
 			BotLogger = botLogger ?? throw new ArgumentNullException("botLogger is null");
 			MailConfig = botConfig ?? throw new ArgumentNullException("botConfig is null");
 			IdleClient = coreClient ?? throw new ArgumentNullException("coreClient is null");
+			EmailHandler = mailHandler ?? throw new ArgumentNullException("Email handler is null");
 			HelperClient = helperClient ?? throw new ArgumentNullException("helperClient is null");
 			UniqueAccountId = botUniqueId ?? throw new ArgumentNullException("botUniqueId is null");
 			GmailId = MailConfig.EmailID ?? throw new Exception("email id is either empty or null.");
 			GmailPass = MailConfig.EmailPASS ?? throw new Exception("email password is either empty or null");
 			IsAccountLoaded = false;
-			AddBotToCollection();
 
 			if (MailConfig.ImapNotifications) {
 				if (await InitImapNotifications(false).ConfigureAwait(false)) {
@@ -389,93 +378,191 @@ namespace HomeAssistant.Modules {
 
 			ImapCancelTokenSource?.Dispose();
 			ImapTokenSource?.Dispose();
-
-			RemoveBotFromCollection();
+			EmailHandler.RemoveBotFromCollection(UniqueAccountId);
 			BotLogger.Log("Disposed current bot instance of " + UniqueAccountId, LogLevels.Trace);
 		}
 	}
 
-	public class Email {
-
-		private readonly List<EmailBot> BotsCollection = new List<EmailBot>();
+	public class Email : IModuleBase {
 		private readonly Logger Logger = new Logger("EMAIL-HANDLER");
+		public string ModuleIdentifier { get; set; } = nameof(Email);
+		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
+		public ConcurrentDictionary<string, EmailBot> EmailClientCollection { get; set; } = new ConcurrentDictionary<string, EmailBot>();
 
-		public (bool, EmailBot) InitBot(string uniqueId, EmailConfig botConfig) {
-			_ = uniqueId ?? throw new ArgumentNullException("uniqueId is null");
-			_ = botConfig ?? throw new ArgumentNullException("botConfig is null");
-			_ = botConfig.EmailID ?? throw new ArgumentNullException("email ID is null");
-			_ = botConfig.EmailPASS ?? throw new ArgumentNullException("email pass is null");
+		public (bool, ConcurrentDictionary<string, EmailBot>) InitEmailBots() {
+			if (Tess.Config.EmailDetails.Count <= 0 || !Tess.Config.EmailDetails.Any()) {
+				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
+				return (false, new ConcurrentDictionary<string, EmailBot>());
+			}
 
-			int connectionTry = 1;
-			int maxConnectionRetry = 5;
+			EmailClientCollection.Clear();
+			int loadedAccounts = 0;
 
-			while (true) {
-				if (connectionTry > maxConnectionRetry) {
-					Logger.Log($"Connection to gmail account {botConfig.EmailID} failed after {maxConnectionRetry} attempts. cannot proceed for this account.", LogLevels.Error);
-					return (false, null);
-				}
-
-				try {
-					Logger BotLogger = new Logger(botConfig.EmailID?.Split('@')?.FirstOrDefault()?.Trim());
-					Logger.Log($"Loaded {botConfig.EmailID} mail account to processing state.", LogLevels.Trace);
-					ImapClient BotClient = new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
-						ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-					};
-
-					BotClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
-					BotClient.Authenticate(botConfig.EmailID, botConfig.EmailPASS);
-					BotClient.Inbox.Open(FolderAccess.ReadWrite);
-
-					if (BotClient.IsConnected && BotClient.IsAuthenticated) {
-                        Logger.Log($"Connected and authenticated IDLE-CLIENT for {botConfig.EmailID}", LogLevels.Trace);
-					}
-
-					Task.Delay(500).Wait();
-
-					ImapClient BotHelperClient = new ImapClient {
-						ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
-					};
-
-					BotHelperClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
-					BotHelperClient.Authenticate(botConfig.EmailID, botConfig.EmailPASS);
-					BotHelperClient.Inbox.Open(FolderAccess.ReadWrite);
-
-					if (BotHelperClient.IsConnected && BotHelperClient.IsAuthenticated) {
-						Logger.Log($"Connected and authenticated HELPER-CLIENT for {botConfig.EmailID}", LogLevels.Trace);
-					}
-
-					EmailBot Bot = new EmailBot();
-					(bool, EmailBot) registerResult = Bot.RegisterBot(BotLogger, botConfig, BotClient, BotHelperClient, uniqueId).Result;
-
-					if ((registerResult.Item2.IsAccountLoaded || registerResult.Item1) && Tess.Modules.EmailClientCollection.ContainsKey(uniqueId)) {
-						
-						BotsCollection.Add(registerResult.Item2);
-						Logger.Log("Added email bot instance to bot collection.", LogLevels.Trace);
-						Logger.Log($"Connected and authenticated {registerResult.Item2.GmailId} account!");
-						return (true, Bot);
-					}
-					else {
-						connectionTry++;
+			try {
+				foreach (KeyValuePair<string, EmailConfig> entry in Tess.Config.EmailDetails) {
+					if (string.IsNullOrEmpty(entry.Value.EmailID) || string.IsNullOrWhiteSpace(entry.Value.EmailPASS)) {
 						continue;
 					}
-				}
-				catch (AuthenticationException) {
-					Logger.Log($"Account password must be incorrect. we will retry to connect. ({connectionTry++}/{maxConnectionRetry})");
-				}
-				catch (SocketException) {
-					Logger.Log($"Network connectivity problem occured, we will retry to connect. ({connectionTry++}/{maxConnectionRetry})", LogLevels.Warn);
-				}
-				catch (OperationCanceledException) {
-					Logger.Log($"An operation has been cancelled, we will retry to connect. ({connectionTry++}/{maxConnectionRetry})", LogLevels.Warn);
-				}
-				catch (IOException) {
-					Logger.Log($"IO exception occured. we will retry to connect. ({connectionTry++}/{maxConnectionRetry})", LogLevels.Warn);
-				}
-				catch (Exception e) {
-					Logger.Log(e, LogLevels.Error);
-					return (false, null);
+
+					string uniqueId = entry.Key;
+					int connectionTry = 1;
+					int maxConnectionRetry = 5;
+
+					while (true) {
+						if (connectionTry > maxConnectionRetry) {
+							Logger.Log(
+								$"Connection to gmail account {entry.Value.EmailID} failed after {maxConnectionRetry} attempts. cannot proceed for this account.",
+								LogLevels.Error);
+							return (false, null);
+						}
+
+						try {
+							Logger BotLogger = new Logger(entry.Value.EmailID?.Split('@')?.FirstOrDefault()?.Trim());
+							Logger.Log($"Loaded {entry.Value.EmailID} mail account to processing state.",
+								LogLevels.Trace);
+
+							ImapClient BotClient;
+							if (Tess.Config.Debug) {
+								BotClient = new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
+									ServerCertificateValidationCallback =
+										(sender, certificate, chain, sslPolicyErrors) => true
+								};
+							}
+							else {
+								BotClient = new ImapClient() {
+									ServerCertificateValidationCallback =
+										(sender, certificate, chain, sslPolicyErrors) => true
+								};
+							}
+
+							BotClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
+							BotClient.Authenticate(entry.Value.EmailID, entry.Value.EmailPASS);
+							BotClient.Inbox.Open(FolderAccess.ReadWrite);
+
+							if (BotClient.IsConnected && BotClient.IsAuthenticated) {
+								Logger.Log($"Connected and authenticated IDLE-CLIENT for {entry.Value.EmailID}",
+									LogLevels.Trace);
+							}
+
+							Task.Delay(500).Wait();
+
+							ImapClient BotHelperClient = new ImapClient {
+								ServerCertificateValidationCallback =
+									(sender, certificate, chain, sslPolicyErrors) => true
+							};
+
+							BotHelperClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
+							BotHelperClient.Authenticate(entry.Value.EmailID, entry.Value.EmailPASS);
+							BotHelperClient.Inbox.Open(FolderAccess.ReadWrite);
+
+							if (BotHelperClient.IsConnected && BotHelperClient.IsAuthenticated) {
+								Logger.Log($"Connected and authenticated HELPER-CLIENT for {entry.Value.EmailID}",
+									LogLevels.Trace);
+							}
+
+							EmailBot Bot = new EmailBot();
+							(bool, EmailBot) registerResult =
+								Bot.RegisterBot(BotLogger, this, entry.Value, BotClient, BotHelperClient, uniqueId).Result;
+
+							if (registerResult.Item1) {
+								AddBotToCollection(uniqueId, Bot);
+							}
+
+							if ((registerResult.Item2.IsAccountLoaded || registerResult.Item1) &&
+							    EmailClientCollection.ContainsKey(uniqueId)) {
+								Logger.Log($"Connected and authenticated {registerResult.Item2.GmailId} account!");
+								loadedAccounts++;
+								continue;
+							}
+							else {
+								connectionTry++;
+								continue;
+							}
+						}
+						catch (AuthenticationException) {
+							Logger.Log(
+								$"Account password must be incorrect. we will retry to connect. ({connectionTry++}/{maxConnectionRetry})");
+						}
+						catch (SocketException) {
+							Logger.Log(
+								$"Network connectivity problem occured, we will retry to connect. ({connectionTry++}/{maxConnectionRetry})",
+								LogLevels.Warn);
+						}
+						catch (OperationCanceledException) {
+							Logger.Log(
+								$"An operation has been cancelled, we will retry to connect. ({connectionTry++}/{maxConnectionRetry})",
+								LogLevels.Warn);
+						}
+						catch (IOException) {
+							Logger.Log(
+								$"IO exception occured. we will retry to connect. ({connectionTry++}/{maxConnectionRetry})",
+								LogLevels.Warn);
+						}
+						catch (Exception e) {
+							Logger.Log(e, LogLevels.Error);
+						}
+					}
 				}
 			}
+			catch (Exception e) {
+				Logger.Log(e);
+				return (false, EmailClientCollection);
+			}
+
+			Logger.Log($"Loaded {loadedAccounts} accounts out of {Tess.Config.EmailDetails.Count} accounts in config.", LogLevels.Trace);
+			return (true, EmailClientCollection);
+		}
+
+		public void DisposeEmailClient (string botUniqueId) {
+			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
+				return;
+			}
+
+			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
+				if (pair.Key.Equals(botUniqueId)) {
+					pair.Value.Dispose();
+					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
+				}
+			}
+		}
+
+		public void DisposeAllEmailBots () {
+			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
+				return;
+			}
+
+			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
+				if (pair.Value.IsAccountLoaded) {
+					pair.Value.Dispose();
+					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
+				}
+			}
+			EmailClientCollection.Clear();
+		}
+
+		public void AddBotToCollection(string uniqueId, EmailBot bot) {
+			if (EmailClientCollection.ContainsKey(uniqueId)) {
+				Logger.Log("Deleting duplicate entry of current instance.", LogLevels.Trace);
+				EmailClientCollection.TryRemove(uniqueId, out _);
+			}
+
+			EmailClientCollection.TryAdd(uniqueId, bot);
+			Logger.Log("Added current instance to client collection.", LogLevels.Trace);
+		}
+
+		public void RemoveBotFromCollection(string uniqueId) {
+			if (EmailClientCollection.ContainsKey(uniqueId)) {
+				Logger.Log("Remove current bot instance from collection.", LogLevels.Trace);
+				EmailClientCollection.TryRemove(uniqueId, out _);
+			}
+		}
+
+		public (bool, Email) InitModuleService<Email>() {
+			
+		}
+
+		public bool InitModuleShutdown() {
+			
 		}
 	}
 }
