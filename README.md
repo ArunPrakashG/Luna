@@ -11,7 +11,7 @@ able to handle errors smartly and do the needful on certain circumstances.
 - Download the latest release from here [Release](https://github.com/SynergYFTW/HomeAssistant/releases)
 - Create a new directory called Tess and extract downloaded .zip file to that folder.
 
-## Startup (assuming you followed the above installnation steps...)
+## Startup (assuming you followed the above installation steps...)
 - Open a terminal on tess folder.
 - Run HomeAssistant.dll using command `dotnet HomeAssistant.dll` on terminal.
 - Wait for tess to initialise.
