@@ -72,7 +72,7 @@
 
 	<ItemGroup>
 		<None Update="Config\GPIOConfig.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="Config\MailConfig.json">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
