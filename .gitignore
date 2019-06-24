@@ -9,6 +9,7 @@
 *.json
 Variables.txt
 TESS.json
+MailConfig.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
