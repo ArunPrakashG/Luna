@@ -49,7 +49,7 @@ namespace HomeAssistant.Core {
 		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
-		public static ModuleInitializer Modules;
+		public static ModuleInitializer Modules { get; set; }
 		public static DateTime StartupTime;
 		private static Timer RefreshConsoleTitleTimer;
 		public static bool CoreInitiationCompleted { get; set; }
@@ -170,7 +170,13 @@ namespace HomeAssistant.Core {
 				Modules = new ModuleInitializer();
 
 				if (IsNetworkAvailable) {
-					Modules.StartModules();
+					(bool, Modules.Modules) loadStatus = Modules.LoadModules();
+					if (!loadStatus.Item1) {
+						Logger.Log("Failed to load modules.", LogLevels.Warn);
+					}
+					else {
+
+					}
 				}
 				else {
 					Logger.Log("Could not start the modules as network is unavailable.", LogLevels.Warn);
@@ -678,7 +684,9 @@ namespace HomeAssistant.Core {
 			}
 
 			if (IsNetworkAvailable && Modules != null) {
-				Modules.StartModules();
+				if (Modules.LoadModules().Item1) {
+					Logger.Log("Failed to load modules.", LogLevels.Warn);
+				}
 			}
 			else {
 				Logger.Log("Could not start the modules as network is unavailable or modules is not initilized.", LogLevels.Warn);
@@ -710,7 +718,7 @@ namespace HomeAssistant.Core {
 			}
 
 			if (Modules != null) {
-				_ = Modules.OnCoreShutdown();
+				_ = await Modules.OnCoreShutdown().ConfigureAwait(false);
 			}
 
 			if (Config != null) {

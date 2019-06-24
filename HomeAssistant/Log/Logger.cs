@@ -3,21 +3,32 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Modules;
 using System;
 using System.Runtime.CompilerServices;
+using HomeAssistant.Modules.Interfaces;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Log {
 
-	public class Logger {
-		private readonly NLog.Logger LogModule;
-		private readonly string LogIdentifier;
+	public class Logger : ILoggerBase {
+		private NLog.Logger LogModule;
+		public string LogIdentifier { get; set; }
 
-		public Logger(string loggerIdentifier) {
-			if (string.IsNullOrEmpty(loggerIdentifier)) {
-				throw new ArgumentNullException(nameof(loggerIdentifier));
+		public string ModuleIdentifier => nameof(Logger);
+
+		public string ModuleAuthor => "Arun";
+
+		public Version ModuleVersion => new Version("6.0.0.0");
+
+		public Logger LoggerInstance { get; set; }
+
+		public Logger(string loggerIdentifier) => RegisterLogger(loggerIdentifier);
+
+		private void RegisterLogger (string logId) {
+			if (string.IsNullOrEmpty(logId)) {
+				throw new ArgumentNullException(nameof(logId));
 			}
 
-			LogModule = Logging.RegisterLogger(loggerIdentifier);
-			LogIdentifier = loggerIdentifier;
+			LogModule = Logging.RegisterLogger(logId);
+			LogIdentifier = logId;
 		}
 
 		private void LogGenericDebug(string message, [CallerMemberName] string previousMethodName = null) {
@@ -96,7 +107,7 @@ namespace HomeAssistant.Log {
 					else {
 						LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.TargetSite}", previousMethodName);
 					}
-					
+
 					DiscordLogToChannel($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}");
 					break;
 				case LogLevels.Fatal:
@@ -167,12 +178,16 @@ namespace HomeAssistant.Log {
 		}
 
 		public void DiscordLogToChannel(string message) {
-			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable) {
+			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable || Tess.Modules.Discord == null || Tess.Modules.Discord.Count <= 0) {
 				return;
 			}
 
-			DiscordLogger logger = new DiscordLogger(LogIdentifier);
-			Helpers.InBackground(async () => await logger.LogToChannel(message).ConfigureAwait(false));
+			Helpers.InBackground(async () => await Tess.Modules.Discord[0].LogToChannel(message).ConfigureAwait(false));
 		}
+
+		public void InitLogger (string logId) => RegisterLogger(logId);
+
+		public void ShutdownLogger () => Logging.LoggerOnShutdown();
+
 	}
 }

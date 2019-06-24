@@ -1,5 +1,6 @@
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
+using HomeAssistant.Modules.Interfaces;
 using Newtonsoft.Json;
 using SteamKit2;
 using System;
@@ -10,12 +11,11 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using HomeAssistant.Modules.Interfaces;
 using static HomeAssistant.Core.Enums;
 
-namespace HomeAssistant.Modules {
-	public class SteamBot : IDisposable {
-		public class SteamBotConfig {
+namespace Steam {
+	public class SteamBot : IDisposable, ISteamBot {
+		public class SteamBotConfig : ISteamBotConfig {
 			[JsonProperty] public string SteamID { get; set; }
 			[JsonProperty] public string SteamPass { get; set; }
 			[JsonProperty(Required = Required.DisallowNull)] public bool Enabled { get; set; } = true;
@@ -34,8 +34,8 @@ namespace HomeAssistant.Modules {
 		}
 
 		private Logger Logger;
-		private Steam SteamHandler;
-		private SteamBotConfig BotConfig;
+		private ISteamClient SteamHandler;
+		private ISteamBotConfig BotConfig;
 		private SteamClient SteamClient;
 		private SteamUser SteamUser;
 		private SteamApps SteamApps;
@@ -55,7 +55,7 @@ namespace HomeAssistant.Modules {
 
 		private string SentryFilePath => Constants.ConfigDirectory + "/" + BotName + ".bin";
 
-		public async Task<(bool, SteamBot)> RegisterSteamBot(string botName, Logger logger, SteamClient steamClient, Steam steamHandler, CallbackManager callbackManager, SteamBotConfig botConfig) {
+		public async Task<(bool, ISteamBot)> RegisterSteamBot(string botName, Logger logger, SteamClient steamClient, ISteamClient steamHandler, CallbackManager callbackManager, ISteamBotConfig botConfig) {
 			BotName = botName ?? throw new ArgumentNullException();
 			Logger = logger ?? throw new ArgumentNullException();
 			SteamClient = steamClient ?? throw new ArgumentNullException();
@@ -262,6 +262,7 @@ namespace HomeAssistant.Modules {
 
 			if (SteamClient.IsConnected) {
 				SteamClient.Disconnect();
+				IsBotRunning = false;
 			}
 		}
 
@@ -273,29 +274,31 @@ namespace HomeAssistant.Modules {
 		}
 	}
 
-	public class Steam : IModuleBase {
+	public class Steam : IModuleBase, ISteamClient {
 		private readonly Logger Logger = new Logger("STEAM");
-		private ConcurrentDictionary<string, SteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, SteamBot>();
+		public Steam SteamInstance { get; set; }
+		public bool RequiresInternetConnection { get; set; }
+		public ConcurrentDictionary<string, ISteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, ISteamBot>();
 		private string BotConfigDirectory => Constants.ConfigDirectory + "/SteamBots/";
 		public string ModuleIdentifier { get; } = nameof(Steam);
 		public Version ModuleVersion { get; } = new Version("4.9.0.0");
 		public string ModuleAuthor { get; } = "Arun";
 
-		public (bool, ConcurrentDictionary<string, SteamBot>) InitSteamBots() {
+		public (bool, ConcurrentDictionary<string, ISteamBot>) InitSteamBots() {
 			if (!Directory.Exists(BotConfigDirectory)) {
 				Logger.Log("Config directory doesn't exist!", LogLevels.Warn);
-				return (false, new ConcurrentDictionary<string, SteamBot>());
+				return (false, new ConcurrentDictionary<string, ISteamBot>());
 			}
 
 			SteamBotCollection.Clear();
 
 			try {
-				List<SteamBot.SteamBotConfig> botConfigs = LoadConfig();
+				List<ISteamBotConfig> botConfigs = LoadConfig();
 
 				Logger.Log($"{botConfigs.Count} accounts found, starting creation of bot instances...",
 					LogLevels.Trace);
 
-				foreach (SteamBot.SteamBotConfig config in botConfigs) {
+				foreach (ISteamBotConfig config in botConfigs) {
 					if (config == null) {
 						continue;
 					}
@@ -325,15 +328,8 @@ namespace HomeAssistant.Modules {
 							Logger BotLogger = new Logger(botName);
 							SteamBot Bot = new SteamBot();
 
-							(bool initStatus, SteamBot botInstance) steamBotStatus = Task.Run(async () =>
-								await Bot
-									  .RegisterSteamBot(
-										  botName,
-										  BotLogger,
-										  botClient, this,
-										  manager, config)
-									  .ConfigureAwait(
-										  false)).Result;
+							(bool initStatus, ISteamBot botInstance) steamBotStatus = Task.Run(async () =>
+								await Bot.RegisterSteamBot(botName, BotLogger, botClient, this, manager, config).ConfigureAwait(false)).Result;
 
 							if (steamBotStatus.initStatus && steamBotStatus.botInstance != null) {
 								Logger.Log($"{botName} account connected and authenticated successfully!");
@@ -365,20 +361,20 @@ namespace HomeAssistant.Modules {
 			return (true, SteamBotCollection);
 		}
 
-		public List<SteamBot.SteamBotConfig> LoadConfig() {
+		public List<ISteamBotConfig> LoadConfig() {
 			if (!Directory.Exists(BotConfigDirectory)) {
 				Logger.Log("Steam bot config directory doesn't exist!", LogLevels.Warn);
-				return new List<SteamBot.SteamBotConfig>();
+				return new List<ISteamBotConfig>();
 			}
 
 			List<string> configfiles = Directory.GetFiles(BotConfigDirectory).ToList();
 
 			if (configfiles.Count <= 0 || configfiles == null) {
 				Logger.Log("There are no config files present in the directory.", LogLevels.Trace);
-				return new List<SteamBot.SteamBotConfig>();
+				return new List<ISteamBotConfig>();
 			}
 
-			List<SteamBot.SteamBotConfig> resultConfigFiles = new List<SteamBot.SteamBotConfig>();
+			List<ISteamBotConfig> resultConfigFiles = new List<ISteamBotConfig>();
 
 			int counter = 0;
 
@@ -402,7 +398,7 @@ namespace HomeAssistant.Modules {
 			return resultConfigFiles;
 		}
 
-		public bool SaveConfig(string botName, SteamBot.SteamBotConfig updatedConfig) {
+		public bool SaveConfig(string botName, ISteamBotConfig updatedConfig) {
 			if (!Directory.Exists(BotConfigDirectory)) {
 				Logger.Log("Steam bot config directory doesn't exist!", LogLevels.Warn);
 				return false;
@@ -433,7 +429,7 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		public void AddBotToCollection(string botName, SteamBot bot) {
+		public void AddBotToCollection(string botName, ISteamBot bot) {
 			if (SteamBotCollection.ContainsKey(botName)) {
 				Logger.Log("Deleting duplicate entry of current instance.", LogLevels.Trace);
 				SteamBotCollection.TryRemove(botName, out _);
@@ -448,6 +444,18 @@ namespace HomeAssistant.Modules {
 				Logger.Log("Remove current bot instance from collection.", LogLevels.Trace);
 				SteamBotCollection.TryRemove(botName, out _);
 			}
+		}
+
+		public bool DisposeAllBots() {
+			if (SteamBotCollection.Count <= 0) {
+				return false;
+			}
+
+			foreach (KeyValuePair<string, ISteamBot> bot in SteamBotCollection) {
+				bot.Value.Dispose();
+			}
+
+			return true;
 		}
 
 		public string GetUserInput(SteamUserInputType userInputType) {
@@ -506,12 +514,18 @@ namespace HomeAssistant.Modules {
 			return !string.IsNullOrEmpty(result) ? result.Trim() : null;
 		}
 
-		public (bool, Steam) InitModuleService<Steam>() {
-			
+		public bool InitModuleService() {
+			RequiresInternetConnection = true;
+			(bool, ConcurrentDictionary<string, ISteamBot>) result = InitSteamBots();
+			if (result.Item1) {
+				SteamInstance = this;
+				return true;
+			}
+
+			return false;
 		}
 
-		public bool InitModuleShutdown() {
-			
-		}
+		public bool InitModuleShutdown() => DisposeAllBots();
+
 	}
 }

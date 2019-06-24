@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -39,6 +39,7 @@
 		<PackageReference Include="JetBrains.Annotations" Version="2019.1.1" />
 		<PackageReference Include="RestSharp" Version="106.6.9" />
 		<PackageReference Include="SteamKit2" Version="2.1.0" />
+		<PackageReference Include="System.Composition" Version="1.2.0" />
 		<!--<PackageReference Include="System.Device.Gpio" Version="0.1.0-prerelease.19310.5" />-->
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.5.0" />
 		<PackageReference Include="System.Interactive.Async" Version="3.2.0" />
@@ -73,11 +74,35 @@
 		<None Update="Config\GPIOConfig.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<None Update="Config\MailConfig.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="Config\TESS.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="HomeAssistant_GCloud.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\Discord.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\Email.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\GoogleMap.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\MiscModule.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\Steam.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\Youtube.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="NLog.config">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -114,13 +139,15 @@
 		<LangVersion>7.3</LangVersion>
 		<Authors>Arun Prakash (SynergyFTW)</Authors>
 		<Product>Home Assistant</Product>
-		<Description>Home automation and personal assistant running on raspberry pi using C# .NET CORE Framework.</Description>
+		<Description>Home automation and personal assistant running on raspberry pi using C# .NET Core Framework.</Description>
 		<SignAssembly>false</SignAssembly>
 	</PropertyGroup>
 
 	<Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="cd $(ProjectDir)" Condition=" '$(OS)' == 'Windows_NT' " />
-		<Exec Command="dotnet-sshdeploy push" Condition=" '$(OS)' == 'Windows_NT' " />
+		<Exec Command="cd $(ProjectDir)" Condition="'$(Configuration)' == 'Release' " />
+		<Exec Command="dotnet-sshdeploy push" Condition="'$(Configuration)' == 'Release' " />
 	</Target>
+
+	<ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
 
 </Project>

@@ -5,40 +5,10 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Threading.Tasks;
+using HomeAssistant.Modules.Interfaces;
 
 namespace HomeAssistant.Core {
-	public class EmailConfig {
-
-		[JsonProperty]
-		public string EmailID { get; set; }
-
-		[JsonProperty]
-		public string EmailPASS { get; set; }
-
-		[JsonProperty]
-		public bool MarkAllMessagesAsRead = false;
-
-		[JsonProperty]
-		public bool MuteNotifications { get; set; } = false;
-
-		[JsonProperty]
-		public string AutoReplyText { get; set; }
-
-		[JsonProperty]
-		public bool DownloadEmails { get; set; } = false;
-
-		[JsonProperty]
-		public bool Enabled { get; set; } = true;
-
-		[JsonProperty]
-		public bool ImapNotifications { get; set; } = true;
-
-		[JsonProperty]
-		public string NotificationSoundPath { get; set; }
-
-		[JsonProperty]
-		public ConcurrentDictionary<bool, string> AutoForwardEmails = new ConcurrentDictionary<bool, string>();
-	}
+	
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 
@@ -118,9 +88,6 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty]
 		public bool EnableYoutube = true;
-
-		[JsonProperty]
-		public ConcurrentDictionary<string, EmailConfig> EmailDetails = new ConcurrentDictionary<string, EmailConfig>();
 
 		[JsonProperty]
 		public string TessEmailID { get; set; }

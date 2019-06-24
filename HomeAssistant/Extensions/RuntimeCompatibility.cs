@@ -15,7 +15,7 @@ namespace HomeAssistant.Extensions {
 
 #pragma warning disable 1998
 
-		internal static class File {
+		public static class File {
 
 			internal static async Task AppendAllTextAsync(string path, string contents) =>
 #if NET472
@@ -25,7 +25,7 @@ namespace HomeAssistant.Extensions {
 
 #endif
 
-			internal static async Task<byte[]> ReadAllBytesAsync(string path) =>
+			public static async Task<byte[]> ReadAllBytesAsync(string path) =>
 #if NET472
 				System.IO.File.ReadAllBytes(path);
 #else

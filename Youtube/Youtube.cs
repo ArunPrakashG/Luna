@@ -5,11 +5,11 @@ using System.IO;
 using System.Threading.Tasks;
 using VideoLibrary;
 
-namespace HomeAssistant.Modules {
-
-	public class Youtube : IModuleBase {
+namespace Youtube {
+	public class Youtube : IModuleBase, IYoutubeClient {
 		private readonly Logger Logger = new Logger("YOUTUBE");
-
+		public Youtube YoutubeInstance { get; set; }
+		public bool RequiresInternetConnection { get; set; }
 		public string ModuleIdentifier { get; } = nameof(Youtube);
 		public Version ModuleVersion { get; } = new Version("4.9.0.0");
 		public string ModuleAuthor { get; } = "Arun";
@@ -24,12 +24,14 @@ namespace HomeAssistant.Modules {
 
 		}
 
-		public (bool, Youtube) InitModuleService<Youtube>() {
-			
+		public bool InitModuleService() {
+			RequiresInternetConnection = true;
+			YoutubeInstance = this;
+			return true;
 		}
 
 		public bool InitModuleShutdown() {
-			
+			return true;
 		}
 
 		private async Task<YouTubeVideo> FetchYoutubeVideo(string url) {

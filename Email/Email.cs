@@ -1,14 +1,15 @@
 using HomeAssistant.Core;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
+using HomeAssistant.Modules.Interfaces;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Security;
 using MimeKit;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -16,14 +17,50 @@ using System.Net.Mail;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using HomeAssistant.Modules.Interfaces;
-using MimeKit.Cryptography;
-using Org.BouncyCastle.Asn1.Pkcs;
 using static HomeAssistant.Core.Enums;
 
-namespace HomeAssistant.Modules {
-	public class EmailBot : IDisposable {
-		public class ReceviedMessageData {
+namespace Email {
+
+	public class EmailConfigRoot {
+		[JsonProperty]
+		public ConcurrentDictionary<string, EmailConfig> EmailDetails { get; set; } = new ConcurrentDictionary<string, EmailConfig>();
+	}
+
+	public class EmailConfig : IEmailConfig {
+
+		[JsonProperty]
+		public string EmailID { get; set; }
+
+		[JsonProperty]
+		public string EmailPASS { get; set; }
+
+		[JsonProperty]
+		public bool MarkAllMessagesAsRead { get; set; } = false;
+
+		[JsonProperty]
+		public bool MuteNotifications { get; set; } = false;
+
+		[JsonProperty]
+		public string AutoReplyText { get; set; }
+
+		[JsonProperty]
+		public bool DownloadEmails { get; set; } = false;
+
+		[JsonProperty]
+		public bool Enabled { get; set; } = true;
+
+		[JsonProperty]
+		public bool ImapNotifications { get; set; } = true;
+
+		[JsonProperty]
+		public string NotificationSoundPath { get; set; }
+
+		[JsonProperty]
+		public ConcurrentDictionary<bool, string> AutoForwardEmails { get; set; } = new ConcurrentDictionary<bool, string>();
+	}
+
+	public class EmailBot : IDisposable, IEmailBot {
+		public class ReceviedMessageData : IReceviedMessageDuringIdle {
 
 			public IMessageSummary Message { get; set; }
 
@@ -36,24 +73,24 @@ namespace HomeAssistant.Modules {
 			public DateTime ArrivedTime { get; set; }
 		}
 
-		public string GmailId;
+		public string GmailId { get; set; }
 		private string GmailPass;
 		private string UniqueAccountId;
 		private ImapClient IdleClient;
 		private ImapClient HelperClient;
 		private int InboxMessagesCount;
-		public bool IsAccountLoaded;
-		public List<ReceviedMessageData> MessagesArrivedDuringIdle = new List<ReceviedMessageData>();
-		private EmailConfig MailConfig;
+		public bool IsAccountLoaded { get; set; }
+		public List<IReceviedMessageDuringIdle> MessagesArrivedDuringIdle { get; set; } = new List<IReceviedMessageDuringIdle>();
+		private IEmailConfig MailConfig;
 		private Logger BotLogger;
-		private Email EmailHandler;
+		private IEmailClient EmailHandler;
 
 		private CancellationTokenSource ImapTokenSource { get; set; }
 		private CancellationTokenSource ImapCancelTokenSource { get; set; }
 
 		private bool IsIdleCancelRequested { get; set; }
 
-		public async Task<(bool, EmailBot)> RegisterBot(Logger botLogger, Email mailHandler, EmailConfig botConfig, ImapClient coreClient, ImapClient helperClient, string botUniqueId) {
+		public async Task<(bool, IEmailBot)> RegisterBot(Logger botLogger, IEmailClient mailHandler, IEmailConfig botConfig, ImapClient coreClient, ImapClient helperClient, string botUniqueId) {
 			BotLogger = botLogger ?? throw new ArgumentNullException("botLogger is null");
 			MailConfig = botConfig ?? throw new ArgumentNullException("botConfig is null");
 			IdleClient = coreClient ?? throw new ArgumentNullException("coreClient is null");
@@ -245,7 +282,7 @@ namespace HomeAssistant.Modules {
 
 				IMessageSummary latestMessage = null;
 
-                BotLogger.Log("Searching for latest message in local cache...", LogLevels.Trace);
+				BotLogger.Log("Searching for latest message in local cache...", LogLevels.Trace);
 				foreach (IMessageSummary msg in messages) {
 					if (MessagesArrivedDuringIdle.Count <= 0) {
 						latestMessage = msg;
@@ -349,7 +386,7 @@ namespace HomeAssistant.Modules {
 		public void Dispose() {
 			StopImapIdle();
 			ImapCancelTokenSource?.Cancel();
-            BotLogger.Log("Waiting for IDLE Client to release the SyncRoot lock...");
+			BotLogger.Log("Waiting for IDLE Client to release the SyncRoot lock...");
 			if (Monitor.TryEnter(IdleClient.SyncRoot, TimeSpan.FromSeconds(20)) == true) {
 				if (IdleClient != null) {
 					if (IdleClient.IsConnected) {
@@ -383,24 +420,38 @@ namespace HomeAssistant.Modules {
 		}
 	}
 
-	public class Email : IModuleBase {
+	public class Email : IModuleBase, IEmailClient {
 		private readonly Logger Logger = new Logger("EMAIL-HANDLER");
+		public bool RequiresInternetConnection { get; set; }
 		public string ModuleIdentifier { get; set; } = nameof(Email);
 		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
 		public string ModuleAuthor { get; set; } = "Arun";
-		public ConcurrentDictionary<string, EmailBot> EmailClientCollection { get; set; } = new ConcurrentDictionary<string, EmailBot>();
 
-		public (bool, ConcurrentDictionary<string, EmailBot>) InitEmailBots() {
-			if (Tess.Config.EmailDetails.Count <= 0 || !Tess.Config.EmailDetails.Any()) {
+		public EmailConfigRoot ConfigRoot { get; set; }
+
+		public ConcurrentDictionary<string, IEmailBot> EmailClientCollection { get; set; } = new ConcurrentDictionary<string, IEmailBot>();
+
+		public Email() {
+
+		}
+
+		public (bool, ConcurrentDictionary<string, IEmailBot>) InitEmailBots() {
+			ConfigRoot = LoadConfig();
+
+			if (ConfigRoot == null) {
+				return (false, null);
+			}
+
+			if (ConfigRoot.EmailDetails.Count <= 0 || !ConfigRoot.EmailDetails.Any()) {
 				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
-				return (false, new ConcurrentDictionary<string, EmailBot>());
+				return (false, new ConcurrentDictionary<string, IEmailBot>());
 			}
 
 			EmailClientCollection.Clear();
 			int loadedAccounts = 0;
 
 			try {
-				foreach (KeyValuePair<string, EmailConfig> entry in Tess.Config.EmailDetails) {
+				foreach (KeyValuePair<string, EmailConfig> entry in ConfigRoot.EmailDetails) {
 					if (string.IsNullOrEmpty(entry.Value.EmailID) || string.IsNullOrWhiteSpace(entry.Value.EmailPASS)) {
 						continue;
 					}
@@ -422,19 +473,15 @@ namespace HomeAssistant.Modules {
 							Logger.Log($"Loaded {entry.Value.EmailID} mail account to processing state.",
 								LogLevels.Trace);
 
-							ImapClient BotClient;
-							if (Tess.Config.Debug) {
-								BotClient = new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
+							ImapClient BotClient = Tess.Config.Debug
+								? new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
+									ServerCertificateValidationCallback =
+										(sender, certificate, chain, sslPolicyErrors) => true
+								}
+								: new ImapClient() {
 									ServerCertificateValidationCallback =
 										(sender, certificate, chain, sslPolicyErrors) => true
 								};
-							}
-							else {
-								BotClient = new ImapClient() {
-									ServerCertificateValidationCallback =
-										(sender, certificate, chain, sslPolicyErrors) => true
-								};
-							}
 
 							BotClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
 							BotClient.Authenticate(entry.Value.EmailID, entry.Value.EmailPASS);
@@ -462,7 +509,7 @@ namespace HomeAssistant.Modules {
 							}
 
 							EmailBot Bot = new EmailBot();
-							(bool, EmailBot) registerResult =
+							(bool, IEmailBot) registerResult =
 								Bot.RegisterBot(BotLogger, this, entry.Value, BotClient, BotHelperClient, uniqueId).Result;
 
 							if (registerResult.Item1) {
@@ -470,10 +517,10 @@ namespace HomeAssistant.Modules {
 							}
 
 							if ((registerResult.Item2.IsAccountLoaded || registerResult.Item1) &&
-							    EmailClientCollection.ContainsKey(uniqueId)) {
+								EmailClientCollection.ContainsKey(uniqueId)) {
 								Logger.Log($"Connected and authenticated {registerResult.Item2.GmailId} account!");
 								loadedAccounts++;
-								continue;
+								break;
 							}
 							else {
 								connectionTry++;
@@ -510,16 +557,16 @@ namespace HomeAssistant.Modules {
 				return (false, EmailClientCollection);
 			}
 
-			Logger.Log($"Loaded {loadedAccounts} accounts out of {Tess.Config.EmailDetails.Count} accounts in config.", LogLevels.Trace);
+			Logger.Log($"Loaded {loadedAccounts} accounts out of {ConfigRoot.EmailDetails.Count} accounts in config.", LogLevels.Trace);
 			return (true, EmailClientCollection);
 		}
 
-		public void DisposeEmailClient (string botUniqueId) {
+		public void DisposeEmailBot(string botUniqueId) {
 			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
 				return;
 			}
 
-			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
+			foreach (KeyValuePair<string, IEmailBot> pair in EmailClientCollection) {
 				if (pair.Key.Equals(botUniqueId)) {
 					pair.Value.Dispose();
 					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
@@ -527,21 +574,22 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		public void DisposeAllEmailBots () {
+		public bool DisposeAllEmailBots() {
 			if (EmailClientCollection.Count <= 0 || EmailClientCollection == null) {
-				return;
+				return false;
 			}
 
-			foreach (KeyValuePair<string, EmailBot> pair in EmailClientCollection) {
+			foreach (KeyValuePair<string, IEmailBot> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
 					pair.Value.Dispose();
 					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
 				}
 			}
 			EmailClientCollection.Clear();
+			return true;
 		}
 
-		public void AddBotToCollection(string uniqueId, EmailBot bot) {
+		public void AddBotToCollection(string uniqueId, IEmailBot bot) {
 			if (EmailClientCollection.ContainsKey(uniqueId)) {
 				Logger.Log("Deleting duplicate entry of current instance.", LogLevels.Trace);
 				EmailClientCollection.TryRemove(uniqueId, out _);
@@ -551,6 +599,50 @@ namespace HomeAssistant.Modules {
 			Logger.Log("Added current instance to client collection.", LogLevels.Trace);
 		}
 
+		private EmailConfigRoot LoadConfig() {
+			if (!Directory.Exists(Constants.ConfigDirectory)) {
+				Logger.Log("Config folder doesn't exist, creating one...");
+				Directory.CreateDirectory(Constants.ConfigDirectory);
+			}
+
+			string JSON;
+			string EmailConfigPath = Constants.ConfigDirectory + "/MailConfig.json";
+			using (FileStream Stream = new FileStream(EmailConfigPath, FileMode.Open, FileAccess.Read)) {
+				using (StreamReader ReadSettings = new StreamReader(Stream)) {
+					JSON = ReadSettings.ReadToEnd();
+				}
+			}
+
+			EmailConfigRoot returnConfig = JsonConvert.DeserializeObject<EmailConfigRoot>(JSON);
+			Logger.Log("Email Configuration Loaded Successfully!");
+			return returnConfig;
+		}
+
+		private EmailConfigRoot SaveConfig(EmailConfigRoot config) {
+			if (!Directory.Exists(Constants.ConfigDirectory)) {
+				Logger.Log("Config folder doesn't exist, creating one...");
+				Directory.CreateDirectory(Constants.ConfigDirectory);
+			}
+
+			string EmailConfigPath = Constants.ConfigDirectory + "/MailConfig.json";
+
+			if (!File.Exists(EmailConfigPath)) {
+				return null;
+			}
+
+			JsonSerializer serializer = new JsonSerializer();
+			JsonConvert.SerializeObject(config, Formatting.Indented);
+			using (StreamWriter sw = new StreamWriter(EmailConfigPath, false)) {
+				using (JsonWriter writer = new JsonTextWriter(sw)) {
+					writer.Formatting = Formatting.Indented;
+					serializer.Serialize(writer, config);
+					Logger.Log("Updated Email Config!");
+					sw.Dispose();
+					return config;
+				}
+			}
+		}
+
 		public void RemoveBotFromCollection(string uniqueId) {
 			if (EmailClientCollection.ContainsKey(uniqueId)) {
 				Logger.Log("Remove current bot instance from collection.", LogLevels.Trace);
@@ -558,12 +650,19 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		public (bool, Email) InitModuleService<Email>() {
-			
+		public bool InitModuleService() {
+			RequiresInternetConnection = true;
+			(bool, ConcurrentDictionary<string, IEmailBot>) result = InitEmailBots();
+			if (result.Item1) {
+				return true;
+			}
+
+			return false;
 		}
 
 		public bool InitModuleShutdown() {
-			
-		}
+			SaveConfig(ConfigRoot);
+			return DisposeAllEmailBots();
+		} 
 	}
 }

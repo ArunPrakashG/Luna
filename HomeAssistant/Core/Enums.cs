@@ -20,7 +20,18 @@ namespace HomeAssistant.Core {
 			Unknown
 		}
 
-		public enum SteamPermissionLevels{
+		public enum ModulesContext {
+			Email,
+			Discord,
+			GoogleMap,
+			Steam,
+			Youtube,
+			Logger,
+			Misc,
+			Default
+		}
+
+		public enum SteamPermissionLevels {
 			Owner,
 			Master,
 			Operator

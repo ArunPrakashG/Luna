@@ -1,12 +1,18 @@
 using System;
+using System.Collections.Concurrent;
 
 namespace HomeAssistant.Modules.Interfaces {
-	internal interface IModuleBase {
+	public interface IModuleBase {
 
 		///<summary>
 		/// Identifier for the Module.
 		///</summary>
 		string ModuleIdentifier { get; }
+
+		///<summary>
+		/// Specifies if the module requires a stable constant internet connection to function.
+		///</summary>
+		bool RequiresInternetConnection { get; }
 
 		///<summary>
 		/// Author of the Module.
@@ -21,7 +27,7 @@ namespace HomeAssistant.Modules.Interfaces {
 		///<summary>
 		/// Invoked during module startup.
 		///</summary>
-		(bool, T) InitModuleService<T>();
+		bool InitModuleService();
 
 		///<summary>
 		/// Invoked to shutdown module.

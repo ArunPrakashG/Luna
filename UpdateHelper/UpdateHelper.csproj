@@ -20,8 +20,8 @@
 	</PropertyGroup>
 
 	<Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="cd $(ProjectDir)" />
-		<Exec Command="dotnet-sshdeploy push" />
+		<Exec Command="cd $(ProjectDir)" Condition="'$(Configuration)' == 'Release' " />
+		<Exec Command="dotnet-sshdeploy push" Condition="'$(Configuration)' == 'Release' " />
 	</Target>
 
 </Project>

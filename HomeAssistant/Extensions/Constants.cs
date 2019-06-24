@@ -10,6 +10,7 @@ namespace HomeAssistant.Extensions {
 		public const string DebugLogPath = @"DebugLog.txt";
 		public const string ConfigDirectory = @"Config";		
 		public const string ResourcesDirectory = @"Resources";
+		public const string ModuleDirectory = "Modules";
 		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 		
 		public const string GPIOConfigPath = ConfigDirectory + "/GPIOConfig.json";
@@ -21,7 +22,7 @@ namespace HomeAssistant.Extensions {
 
 		[Obsolete("Using temporarily")]
 		public const int KestrelAuthCode = 3033;
-
+		
 		public const string BackupDirectoryPath = @"_old";
 		public const string UpdateZipFileName = @"Latest.zip";
 		public const string GitHubUserID = "SynergyFTW";

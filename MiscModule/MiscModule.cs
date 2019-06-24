@@ -2,24 +2,26 @@ using HomeAssistant.Log;
 using System;
 using HomeAssistant.Modules.Interfaces;
 
-namespace HomeAssistant.Modules {
+namespace MiscModule {
 
 	//TODO for setting remainders and such small activites
-	public class MiscModule : IModuleBase {
+	public class MiscModule : IModuleBase, IMiscModule {
 		private Logger Logger = new Logger("MISC-MODULE");
 		public string ModuleIdentifier => nameof(MiscModule);
+		public bool RequiresInternetConnection { get; set; }
 		public string ModuleAuthor => "Arun";
 		public Version ModuleVersion => new Version("4.9.0.0");
 
 		public MiscModule() {
 		}
 
-		public (bool, MiscModule) InitModuleService<MiscModule>() {
-			
+		public bool InitModuleService() {
+			RequiresInternetConnection = false;
+			return true;
 		}
 
 		public bool InitModuleShutdown() {
-			
+			return true;
 		}
 
 		public DateTime ConvertTo24Hours(DateTime source) {
