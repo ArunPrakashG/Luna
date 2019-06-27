@@ -22,6 +22,9 @@ namespace HomeAssistant.Core {
 		public bool EnableConfigWatcher = true;
 
 		[JsonProperty]
+		public bool EnableModuleWatcher = true;
+
+		[JsonProperty]
 		public bool EnableImapIdleWorkaround = true;
 
 		[JsonProperty]
@@ -43,7 +46,7 @@ namespace HomeAssistant.Core {
 		public bool KestrelServer = true;
 
 		[JsonProperty]
-		public int KestrelServerPort { get; set; }
+		public int KestrelServerPort { get; set; } = 9090;
 
 		[JsonProperty]
 		public bool GPIOSafeMode = false;
@@ -56,7 +59,7 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty]
 		public int[] IRSensorPins = new int[] {
-			12
+			24
 		};
 
 		[JsonProperty]

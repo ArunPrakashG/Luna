@@ -11,11 +11,13 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using HomeAssistant.Extensions.Attributes;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.WiringPi;
 using static HomeAssistant.Core.Enums;
 using Logging = HomeAssistant.Log.Logging;
+using PinMode = System.Device.Gpio.PinMode;
 
 namespace HomeAssistant.Core {
 
@@ -41,11 +43,10 @@ namespace HomeAssistant.Core {
 		private static readonly Logger Logger = new Logger("TESS");
 		public static GPIOController Controller;
 		public static Updater Update = new Updater();
-		[Obsolete("Use Kestrel server instead of TCP server.")]
-		protected static TCPServer CoreServer = new TCPServer();
 		public static ProcessStatus TessStatus;
 		public static CoreConfig Config = new CoreConfig();
 		private static readonly ConfigWatcher ConfigWatcher = new ConfigWatcher();
+		private static readonly ModuleWatcher ModuleWatcher = new ModuleWatcher();
 		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
@@ -57,6 +58,10 @@ namespace HomeAssistant.Core {
 		public static bool IsUnknownOs { get; set; }
 		public static bool IsNetworkAvailable { get; set; }
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
+
+		public static bool DisableEmailMethods { get; set; }
+		public static bool DisableDiscordMethods { get; set; }
+		public static bool DisableSteamMethods { get; set; }
 
 		public static async Task<bool> InitCore(string[] args) {
 			Helpers.CheckMultipleProcess();
@@ -83,7 +88,7 @@ namespace HomeAssistant.Core {
 				}
 
 				Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater");
-				Logger.Log($"X--------  Starting TESS Assistant v{Constants.Version}  --------X", LogLevels.Ascii);
+				Logger.Log($"X---------------- Starting TESS Assistant v{Constants.Version} ----------------X", LogLevels.Ascii);
 				Logger.Log("Loading core config...", LogLevels.Trace);
 				try {
 					Config = Config.LoadConfig();
@@ -120,7 +125,7 @@ namespace HomeAssistant.Core {
 					TessStatus = new ProcessStatus();
 				}
 				else {
-					Logger.Log("Could not start performence counters as it is not supported on this platform.", LogLevels.Warn);
+					Logger.Log("Could not start performence counters as it is not supported on this platform.", LogLevels.Trace);
 				}
 
 				Config.ProgramLastStartup = StartupTime;
@@ -147,15 +152,6 @@ namespace HomeAssistant.Core {
 					Logger.Log("Checking for any new version...", LogLevels.Trace);
 					File.WriteAllText("version.txt", Constants.Version.ToString());
 					Update.CheckAndUpdate(true);
-				}
-
-				if (Config.TCPServer) {
-					if (IsNetworkAvailable) {
-						_ = CoreServer.StartServer();
-					}
-					else {
-						Logger.Log("Could not start TCP server as network is unavailable.", LogLevels.Warn);
-					}
 				}
 
 				if (Config.KestrelServer) {
@@ -193,7 +189,7 @@ namespace HomeAssistant.Core {
 
 		private static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", LogLevels.Trace);
-
+			ModuleWatcher.InitConfigWatcher();
 			if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
 				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
 				Logger.Log("Gpio controller has been started despite OS differences, there are chances of crashs and some methods won't work.", LogLevels.Error);
@@ -204,7 +200,6 @@ namespace HomeAssistant.Core {
 				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
 				Controller.DisplayPiInfo();
 				Logger.Log("Successfully Initiated Pi Configuration!");
-				Controller.IRSensorTest();
 			}
 			else {
 				Logger.Log("Disabled Raspberry Pi related methods and initiation tasks.");
@@ -261,8 +256,9 @@ namespace HomeAssistant.Core {
 					await Exit(0).ConfigureAwait(false);
 				}
 				else if (pressedKey.Equals(testKey)) {
-					//Logger.Log("Running pre-configured tests...");
-
+					Logger.Log("Running pre-configured tests...");
+					Controller.RegisterPinEvents(Config.RelayPins[0], GpioPinDriveMode.Output);
+					Controller.PinPollingManager.GPIOPinValueChanged += OnPinValueChanged;
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
 					DisplayCommandMenu();
@@ -271,6 +267,11 @@ namespace HomeAssistant.Core {
 					continue;
 				}
 			}
+		}
+
+		[Obsolete("Temporary use")]
+		private static void OnPinValueChanged (int pin, bool currentvalue, bool previousvalue) {
+			Logger.Log($"Value for {pin} pin changed to {currentvalue.ToString()} from {previousvalue.ToString()}");
 		}
 
 		private static void ParseStartupArguments(string[] args) {
@@ -659,10 +660,6 @@ namespace HomeAssistant.Core {
 			if (KestrelServer.IsServerOnline) {
 				await KestrelServer.Stop().ConfigureAwait(false);
 			}
-
-			if (CoreServer != null && CoreServer.ServerOn) {
-				CoreServer.StopServer();
-			}
 		}
 
 		public static async Task OnNetworkReconnected() {
@@ -673,10 +670,6 @@ namespace HomeAssistant.Core {
 				Logger.Log("Checking for any new version...", LogLevels.Trace);
 				File.WriteAllText("version.txt", Constants.Version.ToString());
 				Update.CheckAndUpdate(true);
-			}
-
-			if (Config.TCPServer && IsNetworkAvailable) {
-				_ = CoreServer.StartServer();
 			}
 
 			if (!KestrelServer.IsServerOnline) {
@@ -717,6 +710,14 @@ namespace HomeAssistant.Core {
 				TessStatus.Dispose();
 			}
 
+			if (Controller.PinPollingManager != null) {
+				Controller.PinPollingManager.GPIOPinValueChanged -= OnPinValueChanged;
+			}
+
+			if (ModuleWatcher != null && ModuleWatcher.ModuleWatcherOnline) {
+				ModuleWatcher.StopModuleWatcher();
+			}
+
 			if (Modules != null) {
 				_ = await Modules.OnCoreShutdown().ConfigureAwait(false);
 			}
@@ -732,10 +733,6 @@ namespace HomeAssistant.Core {
 
 			if (TessStatus != null) {
 				TessStatus.Dispose();
-			}
-
-			if (CoreServer != null && CoreServer.ServerOn) {
-				CoreServer.StopServer();
 			}
 		}
 

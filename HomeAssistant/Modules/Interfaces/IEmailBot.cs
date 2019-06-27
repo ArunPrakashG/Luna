@@ -24,7 +24,7 @@ namespace HomeAssistant.Modules.Interfaces {
 
 		void StopImapIdle ();
 
-		void Dispose ();
+		void Dispose (bool force);
 
 	}
 }

@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using HomeAssistant.Core;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
@@ -52,7 +53,7 @@ namespace HomeAssistant.Modules {
 
 	public class ModuleInitializer {
 		private readonly Logger Logger = new Logger("MODULES");
-		public Modules Modules { get; private set; } = new Modules();
+		public Modules Modules { get; set; } = new Modules();
 		public List<IDiscordBot> Discord { get; private set; } = new List<IDiscordBot>();
 		public List<IGoogleMap> Map { get; private set; } = new List<IGoogleMap>();
 		public List<IYoutubeClient> Youtube { get; private set; } = new List<IYoutubeClient>();
@@ -118,6 +119,18 @@ namespace HomeAssistant.Modules {
 
 			if (Load<IMiscModule>(ModulesContext.Misc)) {
 				Logger.Log("Misc modules have been loaded.", LogLevels.Trace);
+			}
+
+			if (Modules.IsEmailModuleEmpty) {
+				Tess.DisableEmailMethods = true;
+			}
+
+			if (Modules.IsDiscordModuleEmpty) {
+				Tess.DisableDiscordMethods = true;
+			}
+
+			if (Modules.IsSteamModuleEmpty) {
+				Tess.DisableSteamMethods = true;
 			}
 
 			return (true, Modules);
@@ -411,6 +424,7 @@ namespace HomeAssistant.Modules {
 				}
 			}
 
+			await Task.Delay(10).ConfigureAwait(false);
 			if (Mail.Count > 0) {
 				foreach (IEmailClient Mbot in Mail) {
 					if (Mbot.EmailClientCollection.Count > 0) {

@@ -12,9 +12,6 @@ namespace HomeAssistant {
 
 	public class Program {
 		private static readonly Logger Logger = new Logger("CORE");
-		private static bool NetworkBusy { get; set; }
-
-		private static CancellationTokenSource EndlessAwaitCancelletionToken;
 
 		// Handle Pre-init Tasks in here
 		private static async Task Main(string[] args) {
@@ -87,58 +84,22 @@ namespace HomeAssistant {
 
 		private static async Task NetworkReconnect() {
 			Logger.Log("Network is back online, reconnecting!");
-			NetworkBusy = true;
-			EndlessAwaitCancelletionToken = new CancellationTokenSource();
 			await Tess.OnNetworkReconnected().ConfigureAwait(false);
-			EndlessAwaitCancelletionToken?.Cancel();
-			NetworkBusy = false;
 		}
 
 		private static async Task NetworkDisconnect() {
 			Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
 			Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", LogLevels.Error);
-			NetworkBusy = true;
-			EndlessAwaitCancelletionToken = new CancellationTokenSource();
 			await Tess.OnNetworkDisconnected().ConfigureAwait(false);
-			EndlessAwaitCancelletionToken?.Cancel();
-			NetworkBusy = false;
 		}
 
 		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
-			if (NetworkBusy) {
-				if (EndlessAwaitCancelletionToken != null) {
-					try {
-						await Task.Delay(-1, EndlessAwaitCancelletionToken.Token).ConfigureAwait(false);
-
-						if (e.IsAvailable && Tess.IsNetworkAvailable) {
-							return;
-						}
-						else if (!e.IsAvailable && !Tess.IsNetworkAvailable) {
-							return;
-						}
-						else if (e.IsAvailable && !Tess.IsNetworkAvailable) {
-							await NetworkReconnect().ConfigureAwait(false);
-						}
-						else if (!e.IsAvailable && Tess.IsNetworkAvailable) {
-							await NetworkDisconnect().ConfigureAwait(false);
-						}
-						else {
-							return;
-						}
-					}
-					catch (TaskCanceledException) {
-						//endless loop ended
-					}
-					catch (OperationCanceledException) {
-
-					}
-				}
-			}
-
 			if (e.IsAvailable) {
 				await NetworkReconnect().ConfigureAwait(false);
+				return;
 			}
-			else {
+
+			if (!e.IsAvailable) {
 				await NetworkDisconnect().ConfigureAwait(false);
 			}
 		}

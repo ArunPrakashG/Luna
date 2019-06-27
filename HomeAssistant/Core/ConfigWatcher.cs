@@ -30,7 +30,7 @@ namespace HomeAssistant.Core {
 			}
 
 			if (!File.Exists(Constants.CoreConfigPath)) {
-				Logger.Log("Core config directory doesn't exist. cannot start file system watcher.", LogLevels.Error);
+				Logger.Log("Core config directory doesn't exist. cannot start config watcher.", LogLevels.Error);
 				return;
 			}
 

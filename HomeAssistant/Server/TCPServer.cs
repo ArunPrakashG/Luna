@@ -8,11 +8,13 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using HomeAssistant.Extensions.Attributes;
 using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Server {
 
+	[Obsolete("Use Kestrel server instead of TCP server.")]
 	public class TCPServer : Tess {
 		private readonly Logger Logger;
 		private readonly byte[] Buffer = new byte[1024];
@@ -20,7 +22,6 @@ namespace HomeAssistant.Server {
 		private Socket Sock;
 		public bool ServerOn;
 
-		[Obsolete("Use Kestrel server instead of TCP server.")]
 		public TCPServer() {
 			Logger = new Logger("SERVER");
 		}
@@ -142,7 +143,6 @@ namespace HomeAssistant.Server {
 			catch (SocketException se) {
 				Logger.Log(se.Message, LogLevels.Error);
 				Helpers.ScheduleTask(() => {
-					CoreServer.StopServer();
 					StartServer();
 				}, TimeSpan.FromMinutes(1));
 				Logger.Log("Restarting server in 1 minute as it went offline.");

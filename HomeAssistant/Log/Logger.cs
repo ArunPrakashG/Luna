@@ -18,8 +18,6 @@ namespace HomeAssistant.Log {
 
 		public Version ModuleVersion => new Version("6.0.0.0");
 
-		public Logger LoggerInstance { get; set; }
-
 		public Logger(string loggerIdentifier) => RegisterLogger(loggerIdentifier);
 
 		private void RegisterLogger (string logId) {

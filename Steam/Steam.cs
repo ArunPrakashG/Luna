@@ -231,7 +231,7 @@ namespace Steam {
 
 			if (File.Exists(SentryFilePath)) {
 				try {
-					byte[] sentryFileContent = await RuntimeCompatibility.File.ReadAllBytesAsync(SentryFilePath).ConfigureAwait(false);
+					byte[] sentryFileContent = await Compatibility.File.ReadAllBytesAsync(SentryFilePath).ConfigureAwait(false);
 					sentryFileHash = CryptoHelper.SHAHash(sentryFileContent);
 				}
 				catch (Exception e) {

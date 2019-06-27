@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
+using System.Device.Gpio;
+using System.Device.Gpio.Drivers;
 using static HomeAssistant.Core.Enums;
 using PinMode = HomeAssistant.Core.Enums.PinMode;
 
@@ -36,19 +38,28 @@ namespace HomeAssistant.Core {
 		private readonly GPIOConfigHandler GPIOConfigHandler;
 		public List<GPIOPinConfig> GPIOConfig { get; set; }
 		public GPIOConfigRoot GPIOConfigRoot { get; private set; }
-		private bool IsWaitForValueCancellationRequested = false;
-		public bool StopIrSensorMonitor { get; set; }
+		private bool IsWaitForValueCancellationRequested { get; set; } = false;
+		public GpioPinEventManager PinPollingManager { get; private set; }
+
 		private readonly ConcurrentQueue<GPIOTaskQueue> TaskQueue = new ConcurrentQueue<GPIOTaskQueue>();
 
 		public GPIOController(GPIOConfigRoot rootObject, List<GPIOPinConfig> config, GPIOConfigHandler configHandler) {
 			GPIOConfig = config;
 			GPIOConfigHandler = configHandler;
 			GPIOConfigRoot = rootObject;
+			PinPollingManager = new GpioPinEventManager(this);
 			Logger.Log("Initiated GPIO Controller class!", LogLevels.Trace);
 		}
 
-		private void OnEnqueued(GPIOTaskQueue item) {
+		public void RegisterPinEvents (int pin, GpioPinDriveMode mode = GpioPinDriveMode.Output) {
+			if (PinPollingManager == null) {
+				return;
+			}
 
+			PinPollingManager.StartPinPolling(pin, mode);
+		}
+
+		private void OnEnqueued(GPIOTaskQueue item) {
 		}
 
 		private void OnDequeued(GPIOTaskQueue item) {
@@ -78,35 +89,6 @@ namespace HomeAssistant.Core {
 			Helpers.InBackground(() => OnDequeued(task));
 			return task;
 		}
-
-		public void IRSensorTest() {
-			IGpioPin pin = Pi.Gpio[Tess.Config.IRSensorPins[0]];
-			pin.PinMode = GpioPinDriveMode.Input;
-
-			//Pi.Gpio[Tess.Config.RelayPins[0]].RegisterInterruptCallback(EdgeDetection.FallingEdge, relaypinFallingedge);
-			//Pi.Gpio[Tess.Config.RelayPins[0]].RegisterInterruptCallback(EdgeDetection.RisingEdge, relaypinRisingedge);
-
-			pin.RegisterInterruptCallback(EdgeDetection.FallingEdge, callbackFallingEdge);
-			pin.RegisterInterruptCallback(EdgeDetection.RisingEdge, callbackRisingEdge);
-		}
-
-		private void relaypinFallingedge() {
-			Logger.Log("relay pin falling edge");
-		}
-
-		private void relaypinRisingedge() {
-			Logger.Log("relay pin rising edge");
-		}
-
-		private void callbackFallingEdge() {
-			Logger.Log("pin falling edge");
-		}
-
-		private void callbackRisingEdge() {
-			Logger.Log("pin rising edge");
-		}
-
-		public void StopIRSensorMonitering() => StopIrSensorMonitor = true;
 
 		private bool CheckSafeMode() => Tess.Config.GPIOSafeMode;
 

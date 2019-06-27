@@ -59,7 +59,7 @@ namespace Email {
 		public ConcurrentDictionary<bool, string> AutoForwardEmails { get; set; } = new ConcurrentDictionary<bool, string>();
 	}
 
-	public class EmailBot : IDisposable, IEmailBot {
+	public class EmailBot : IEmailBot {
 		public class ReceviedMessageData : IReceviedMessageDuringIdle {
 
 			public IMessageSummary Message { get; set; }
@@ -383,29 +383,40 @@ namespace Email {
 			BotLogger.Log("A message has been expunged, inbox messages count has been reduced by one.", LogLevels.Trace);
 		}
 
-		public void Dispose() {
-			StopImapIdle();
-			ImapCancelTokenSource?.Cancel();
-			BotLogger.Log("Waiting for IDLE Client to release the SyncRoot lock...");
-			if (Monitor.TryEnter(IdleClient.SyncRoot, TimeSpan.FromSeconds(20)) == true) {
-				if (IdleClient != null) {
-					if (IdleClient.IsConnected) {
-						if (IdleClient.IsIdle) {
-							StopImapIdle();
-						}
-						else {
-							lock (IdleClient.SyncRoot) {
-								IdleClient.Disconnect(true);
-								BotLogger.Log("Disconnected imap client.", LogLevels.Trace);
-							}
-						}
-					}
-				}
+		public void Dispose(bool force) {
+			if (force) {
+				ImapCancelTokenSource?.Cancel();
 
 				IsAccountLoaded = false;
 
 				if (IdleClient != null) {
 					IdleClient.Dispose();
+				}
+			}
+			else {
+				StopImapIdle();
+				ImapCancelTokenSource?.Cancel();
+				BotLogger.Log("Waiting for IDLE Client to release the SyncRoot lock...");
+				if (Monitor.TryEnter(IdleClient.SyncRoot, TimeSpan.FromSeconds(20)) == true) {
+					if (IdleClient != null) {
+						if (IdleClient.IsConnected) {
+							if (IdleClient.IsIdle) {
+								StopImapIdle();
+							}
+							else {
+								lock (IdleClient.SyncRoot) {
+									IdleClient.Disconnect(true);
+									BotLogger.Log("Disconnected imap client.", LogLevels.Trace);
+								}
+							}
+						}
+					}
+
+					IsAccountLoaded = false;
+
+					if (IdleClient != null) {
+						IdleClient.Dispose();
+					}
 				}
 			}
 
@@ -568,7 +579,7 @@ namespace Email {
 
 			foreach (KeyValuePair<string, IEmailBot> pair in EmailClientCollection) {
 				if (pair.Key.Equals(botUniqueId)) {
-					pair.Value.Dispose();
+					pair.Value.Dispose(false);
 					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
 				}
 			}
@@ -581,7 +592,7 @@ namespace Email {
 
 			foreach (KeyValuePair<string, IEmailBot> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
-					pair.Value.Dispose();
+					pair.Value.Dispose(true);
 					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
 				}
 			}

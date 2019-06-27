@@ -7,11 +7,6 @@ namespace HomeAssistant.Modules.Interfaces {
 	public interface ILoggerBase {
 
 		///<summary>
-		/// Instnace of the logger.
-		///</summary>
-		Logger LoggerInstance { get; set; }
-
-		///<summary>
 		/// Logger name.
 		///</summary>
 		string LogIdentifier { get; set; }
