@@ -33,6 +33,8 @@ able to handle errors smartly and do the needful on certain circumstances.
 - Performence Counter - System to monitor CPU and RAM usage in real-time. [Currently only for Windows platforms]
 - Swagger Docs - swagger integretion allows the user to view every available endpoints with their information on the route URL.
 - On-the-fly config updater - Update config using the endpoints of Kestrel server!
+- Dynamic assembly loader - Load modules and integret with core assistant process automatically from `Modules` directory during the run-time as well as during a pre-configured check on the directory on assistant startup.
+- Polling system - generate events based on GPIO pin value change by using polling technique on GPIO pin value.
 
 ### Modules
 Modules are extensions, by which you can modify most of the core parts (excluding crucial core files which are required to run assistant ofcourse) of your assistant with your own definitions. The definitions can be anything, starting from, displaying an ASCII dog on console window to changing the general logging systems.
