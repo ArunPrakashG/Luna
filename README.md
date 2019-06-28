@@ -37,8 +37,8 @@ able to handle errors smartly and do the needful on certain circumstances.
 - Polling system - generate events based on GPIO pin value change by using polling technique on GPIO pin value.
 
 ### Modules
-Modules are extensions, by which you can modify most of the core parts (excluding crucial core files which are required to run assistant ofcourse) of your assistant with your own definitions. The definitions can be anything, starting from, displaying an ASCII dog on console window to changing the general logging systems.
-These modules are created a Class library project on the HomeAssistant solution, then by adding a reference to the HomeAssistant project to use the interfaces. once it is done, you have define the interface you want to use, such as IMailClient interface for implementing methods for custom mail client (IMAP notifications etc) to ILoggerBase interface to modify the general logging system.
+Modules are extensions, by which you can modify most of the core parts (excluding crucial core files which are required to run assistant ofcourse) of your assistant with your own definitions. The definitions can be anything, starting from, displaying an ASCII doggo on console window to changing the general logging systems.
+These modules are created by starting a Class library project on the HomeAssistant solution, then by adding reference to the HomeAssistant project to use the interfaces. once it is done, you have to define the interface you want to use, such as IMailClient interface for implementing methods for custom mail client (IMAP notifications etc) to ILoggerBase interface to modify the general logging system.
 The module will be compiled and placed inside the `HomeAssistant/Modules/` directory and will automatically load at runtime of the assistant.
 This way, without modifying the Core project, you can customize your Assistant! more Interface's will be added soon!
 
