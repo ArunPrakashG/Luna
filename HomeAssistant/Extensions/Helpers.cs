@@ -24,6 +24,8 @@ namespace HomeAssistant.Extensions {
 		private static Timer TaskSchedulerTimer;
 		private static string FileSeperator { get; set; } = @"\";
 
+		public static void InBackgroundThread (Action action) => Pi.Threading.StartThread(action);
+
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				FileSeperator = "//";
@@ -69,6 +71,29 @@ namespace HomeAssistant.Extensions {
 			return null;
 		}
 
+		public static void ScheduleTask<T>(Func<T> action, TimeSpan delay) {
+			if (action == null) {
+				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
+				return;
+			}
+
+			if (TaskSchedulerTimer != null) {
+				TaskSchedulerTimer.Dispose();
+				TaskSchedulerTimer = null;
+			}
+
+			if (TaskSchedulerTimer == null) {
+				TaskSchedulerTimer = new Timer(e => {
+					InBackground(action);
+
+					if (TaskSchedulerTimer != null) {
+						TaskSchedulerTimer.Dispose();
+						TaskSchedulerTimer = null;
+					}
+				}, null, delay, delay);
+			}
+		}
+
 		public static void ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
 				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
@@ -108,7 +133,7 @@ namespace HomeAssistant.Extensions {
 				return;
 			}
 
-			if (Tess.Config.MuteAll) {
+			if (Tess.Config.MuteAssistant) {
 				Logger.Log("Notifications are muted in config.", LogLevels.Trace);
 				return;
 			}

@@ -2,54 +2,38 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.IO;
 using System.Threading.Tasks;
-using HomeAssistant.Modules.Interfaces;
 
 namespace HomeAssistant.Core {
-	
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 
-		[JsonProperty]
-		public bool AutoRestart = false;
+		[JsonProperty] public bool AutoRestart { get; set; } = false;
 
-		[JsonProperty]
-		public bool AutoUpdates = true;
+		[JsonProperty] public bool AutoUpdates { get; set; } = true;
 
-		[JsonProperty]
-		public bool EnableConfigWatcher = true;
+		[JsonProperty] public bool EnableConfigWatcher { get; set; } = true;
 
-		[JsonProperty]
-		public bool EnableModuleWatcher = true;
+		[JsonProperty] public bool EnableModuleWatcher { get; set; } = true;
 
-		[JsonProperty]
-		public bool EnableImapIdleWorkaround = true;
+		[JsonProperty] public bool EnableModules { get; set; } = true;
 
-		[JsonProperty]
-		public int UpdateIntervalInHours = 5;
+		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
 
-		[JsonProperty]
-		public bool ListernLocalHostOnly = false;
+		[JsonProperty] public bool ListernLocalHostOnly { get; set; } = false;
 
-		[JsonProperty]
-		public int ServerAuthCode { get; set; } = 3033;
+		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
 
-		[JsonProperty]
-		public int ServerPort { get; set; } = 6060;
+		[JsonProperty] public int TCPServerPort { get; set; } = 6060;
 
-		[JsonProperty]
-		public bool TCPServer = true;
+		[JsonProperty] public bool TCPServer { get; set; } = true;
 
-		[JsonProperty]
-		public bool KestrelServer = true;
+		[JsonProperty] public bool KestrelServer { get; set; } = true;
 
-		[JsonProperty]
-		public int KestrelServerPort { get; set; } = 9090;
+		[JsonProperty] public int KestrelServerPort { get; set; } = 9090;
 
-		[JsonProperty]
-		public bool GPIOSafeMode = false;
+		[JsonProperty] public bool GPIOSafeMode { get; set; } = false;
 
 		[JsonProperty]
 		public int[] RelayPins = new int[]
@@ -62,68 +46,45 @@ namespace HomeAssistant.Core {
 			24
 		};
 
-		[JsonProperty]
-		public bool DisplayStartupMenu = false;
+		[JsonProperty] public bool DisplayStartupMenu { get; set; } = false;
 
-		[JsonProperty]
-		public bool GPIOControl = true;
+		[JsonProperty] public bool EnableGpioControl { get; set; } = true;
 
-		[JsonProperty]
-		public bool Debug = false;
+		[JsonProperty] public bool Debug { get; set; } = false;
 
-		[JsonProperty]
-		public string OwnerEmailAddress { get; set; }
+		[JsonProperty] public string OwnerEmailAddress { get; set; } = "arun.prakash.456789@gmail.com";
 
-		[JsonProperty]
-		public bool EnableFirstChanceLog = false;
+		[JsonProperty] public bool EnableFirstChanceLog { get; set; } = false;
 
-		[JsonProperty]
-		public bool EnableTextToSpeech = true;
+		[JsonProperty] public bool EnableTextToSpeech { get; set; } = true;
 
-		[JsonProperty]
-		public bool MuteAll = false;
+		[JsonProperty] public bool MuteAssistant { get; set; } = false;
 
-		[JsonProperty]
-		public bool EnableEmail = true;
+		[JsonProperty] public bool EnableGoogleMapModules { get; set; } = true;
 
-		[JsonProperty]
-		public bool EnableGoogleMap = true;
+		[JsonProperty] public bool EnableYoutubeModules { get; set; } = true;
 
-		[JsonProperty]
-		public bool EnableYoutube = true;
+		[JsonProperty] public string TessEmailID { get; set; }
 
-		[JsonProperty]
-		public string TessEmailID { get; set; }
+		[JsonProperty] public string TessEmailPASS { get; set; }
 
-		[JsonProperty]
-		public string TessEmailPASS { get; set; }
+		[JsonProperty(Required = Required.Default)] public DateTime ProgramLastStartup { get; set; }
 
-		[JsonProperty]
-		public DateTime ProgramLastStartup { get; set; }
+		[JsonProperty(Required = Required.Default)] public DateTime ProgramLastShutdown { get; set; }
 
-		[JsonProperty]
-		public DateTime ProgramLastShutdown { get; set; }
+		[JsonProperty] public ulong DiscordOwnerID { get; set; } = 161859532920848384;
 
-		[JsonProperty]
-		public ulong DiscordOwnerID { get; set; } = 161859532920848384;
+		[JsonProperty] public ulong DiscordServerID { get; set; } = 580995322369802240;
 
-		[JsonProperty]
-		public ulong DiscordServerID { get; set; } = 580995322369802240;
+		[JsonProperty] public ulong DiscordLogChannelID { get; set; } = 580995512526831616;
 
-		[JsonProperty]
-		public ulong DiscordLogChannelID { get; set; } = 580995512526831616;
+		[JsonProperty] public bool DiscordLog { get; set; } = true;
 
-		[JsonProperty]
-		public bool DiscordLog = true;
+		[JsonProperty] public bool DiscordBot { get; set; } = true;
 
-		[JsonProperty]
-		public bool DiscordBot = true;
+		[JsonProperty] public bool CloseRelayOnShutdown { get; set; } = false;
 
-		[JsonProperty]
-		public bool CloseRelayOnShutdown = false;
-
-		[JsonIgnore]
-		private readonly Logger Logger = new Logger("CORE-CONFIG");
+		[JsonIgnore] private readonly Logger Logger = new Logger("CORE-CONFIG");
 
 		public CoreConfig SaveConfig(CoreConfig config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
@@ -238,7 +199,6 @@ namespace HomeAssistant.Core {
 				int hashCode = AutoRestart.GetHashCode();
 				hashCode = (hashCode * 397) ^ AutoUpdates.GetHashCode();
 				hashCode = (hashCode * 397) ^ EnableConfigWatcher.GetHashCode();
-				hashCode = (hashCode * 397) ^ EnableImapIdleWorkaround.GetHashCode();
 				hashCode = (hashCode * 397) ^ UpdateIntervalInHours;
 				hashCode = (hashCode * 397) ^ TCPServer.GetHashCode();
 				hashCode = (hashCode * 397) ^ KestrelServer.GetHashCode();
@@ -246,16 +206,16 @@ namespace HomeAssistant.Core {
 				hashCode = (hashCode * 397) ^ (RelayPins != null ? RelayPins.GetHashCode() : 0);
 				hashCode = (hashCode * 397) ^ (IRSensorPins != null ? IRSensorPins.GetHashCode() : 0);
 				hashCode = (hashCode * 397) ^ DisplayStartupMenu.GetHashCode();
-				hashCode = (hashCode * 397) ^ GPIOControl.GetHashCode();
+				hashCode = (hashCode * 397) ^ EnableGpioControl.GetHashCode();
 				hashCode = (hashCode * 397) ^ Debug.GetHashCode();
 				hashCode = (hashCode * 397) ^ EnableFirstChanceLog.GetHashCode();
 				hashCode = (hashCode * 397) ^ EnableTextToSpeech.GetHashCode();
-				hashCode = (hashCode * 397) ^ MuteAll.GetHashCode();
+				hashCode = (hashCode * 397) ^ MuteAssistant.GetHashCode();
 				hashCode = (hashCode * 397) ^ DiscordLog.GetHashCode();
 				hashCode = (hashCode * 397) ^ DiscordBot.GetHashCode();
 				hashCode = (hashCode * 397) ^ CloseRelayOnShutdown.GetHashCode();
 				hashCode = (hashCode * 397) ^ ServerAuthCode;
-				hashCode = (hashCode * 397) ^ ServerPort;
+				hashCode = (hashCode * 397) ^ TCPServerPort;
 				hashCode = (hashCode * 397) ^ KestrelServerPort;
 				hashCode = (hashCode * 397) ^ (OwnerEmailAddress != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(OwnerEmailAddress) : 0);
 				hashCode = (hashCode * 397) ^ (TessEmailID != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(TessEmailID) : 0);
@@ -282,16 +242,15 @@ namespace HomeAssistant.Core {
 
 			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
 				   EnableConfigWatcher == other.EnableConfigWatcher &&
-				   EnableImapIdleWorkaround == other.EnableImapIdleWorkaround &&
 				   UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
 				   KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
 				   Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
-				   DisplayStartupMenu == other.DisplayStartupMenu && GPIOControl == other.GPIOControl &&
+				   DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
 				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
-				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAll == other.MuteAll &&
+				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
 				   DiscordLog == other.DiscordLog && DiscordBot == other.DiscordBot &&
 				   CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
-				   ServerPort == other.ServerPort && KestrelServerPort == other.KestrelServerPort &&
+				   TCPServerPort == other.TCPServerPort && KestrelServerPort == other.KestrelServerPort &&
 				   string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
 				   string.Equals(TessEmailID, other.TessEmailID, StringComparison.OrdinalIgnoreCase) &&
 				   string.Equals(TessEmailPASS, other.TessEmailPASS, StringComparison.OrdinalIgnoreCase) &&

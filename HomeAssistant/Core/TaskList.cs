@@ -1,42 +1,28 @@
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
-	public class TaskStructure {
-		[JsonProperty]
+	public class TaskStructure<T> where T : Task {
 		public string TaskIdentifier { get; set; }
-		[JsonProperty]
 		public string TaskMessage { get; set; }
-		[JsonProperty]
 		public bool IsAlreadyCompleted { get; set; }
-		[JsonProperty]
+		public bool LongRunning { get; set; }
 		public DateTime TimeAdded { get; set; }
-		[JsonProperty]
 		public DateTime TimeEnding { get; set; }
-		[JsonProperty]
-		public object TaskData { get; set; }
-	}
-
-	public class TaskQueueRoot {
-		[JsonProperty]
-		public ConcurrentQueue<TaskStructure> TaskList { get; set; }
+		public T Task { get; set; }
 	}
 
 	public class TaskList {
 
-		private TaskQueueRoot TaskRootObject;
-		public ConcurrentQueue<TaskStructure> ConcurrentTasks = new ConcurrentQueue<TaskStructure>();
-
+		public ConcurrentQueue<TaskStructure<Task>> ConcurrentTasks = new ConcurrentQueue<TaskStructure<Task>>();
 		private readonly Logger Logger = new Logger("TASKS");
 		private bool CancelTaskListener = false;
 
-		private void TryEnqueue(TaskStructure task) {
+		public void TryEnqueue(TaskStructure<Task> task) {
 			if (task == null) {
 				Logger.Log("Task is null.", LogLevels.Warn);
 				return;
@@ -47,9 +33,8 @@ namespace HomeAssistant.Core {
 			Logger.Log("Task added sucessfully.", LogLevels.Trace);
 		}
 
-		private TaskStructure TryDequeue() {
-			bool result = ConcurrentTasks.TryDequeue(out TaskStructure task);
-
+		public TaskStructure<Task> TryDequeue() {
+			bool result = ConcurrentTasks.TryDequeue(out TaskStructure<Task> task);
 			if (!result) {
 				Logger.Log("Failed to fetch from the queue.", LogLevels.Error);
 				return null;
@@ -60,107 +45,23 @@ namespace HomeAssistant.Core {
 			return task;
 		}
 
-		private void OnEnqueued(TaskStructure item) {
-
-		}
-
-		private void OnDequeued(TaskStructure item) {
-
-		}
-
-		public void SaveGPIOConfig(GPIOConfigRoot Config) {
-			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Logger.Log("Config folder doesn't exist, creating one...");
-				Directory.CreateDirectory(Constants.ConfigDirectory);
+		private void OnEnqueued(TaskStructure<Task> item) {
+			if (item.IsAlreadyCompleted) {
+				return;
 			}
 
-			JsonSerializer serializer = new JsonSerializer();
-			JsonConvert.SerializeObject(Config, Formatting.Indented);
-			string pathName = Constants.TaskQueueFilePath;
-			using (StreamWriter sw = new StreamWriter(pathName, false)) {
-				using (JsonWriter writer = new JsonTextWriter(sw)) {
-					writer.Formatting = Formatting.Indented;
-					serializer.Serialize(writer, Config);
-					Logger.Log("Updated task config!");
-					sw.Dispose();
-				}
-			}
-		}
-
-		public TaskQueueRoot LoadConfig() {
-			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Logger.Log("Such a folder doesn't exist, creating one...");
-				Directory.CreateDirectory(Constants.ConfigDirectory);
-			}
-
-			if (!File.Exists(Constants.TaskQueueFilePath)) {
-				bool loaded = GenerateDefaultConfig();
-				if (!loaded) {
-					return null;
-				}
-			}
-
-			string json = null;
-			using (FileStream Stream = new FileStream(Constants.TaskQueueFilePath, FileMode.Open, FileAccess.Read)) {
-				using (StreamReader ReadSettings = new StreamReader(Stream)) {
-					json = ReadSettings.ReadToEnd();
-				}
-			}
-
-			TaskRootObject = JsonConvert.DeserializeObject<TaskQueueRoot>(json);
-			ConcurrentTasks = TaskRootObject.TaskList;
-			Logger.Log("Tasks loaded sucessfully!");
-			return TaskRootObject;
-		}
-
-		public bool GenerateDefaultConfig() {
-			Logger.Log("Tasks file doesnt exist. press c to continue generating default config or q to quit.");
-
-			ConsoleKeyInfo? Key = Helpers.FetchUserInputSingleChar(TimeSpan.FromMinutes(1));
-
-			if (!Key.HasValue) {
-				Logger.Log("No value has been entered, continuing to run the program...");
+			if (DateTime.Now == item.TimeEnding) {
+				Helpers.InBackground(() => item.Task, item.LongRunning);
 			}
 			else {
-				switch (Key.Value.KeyChar) {
-					case 'c':
-						break;
-
-					case 'q':
-						Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
-						return false;
-
-					default:
-						Logger.Log("Unknown value entered! continuing to run the program...");
-						break;
-				}
+				long delay = (item.TimeEnding - DateTime.Now).Ticks;
+				TimeSpan delaySpan = new TimeSpan(delay);
+				Helpers.ScheduleTask(() => item.Task, delaySpan);
 			}
+		}
 
-			Logger.Log("Generating default GPIO Config...");
+		private void OnDequeued(TaskStructure<Task> item) {
 
-			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Logger.Log("Config directory doesnt exist, creating one...");
-				Directory.CreateDirectory(Constants.ConfigDirectory);
-			}
-
-			if (File.Exists(Constants.GPIOConfigPath)) {
-				return true;
-			}
-
-			TaskQueueRoot Config = new TaskQueueRoot {
-				TaskList = new ConcurrentQueue<TaskStructure>()
-			};
-
-			JsonSerializer serializer = new JsonSerializer();
-			JsonConvert.SerializeObject(Config, Formatting.Indented);
-			string pathName = Constants.TaskQueueFilePath;
-			using (StreamWriter sw = new StreamWriter(pathName, false))
-			using (JsonWriter writer = new JsonTextWriter(sw)) {
-				writer.Formatting = Formatting.Indented;
-				serializer.Serialize(writer, Config);
-				sw.Dispose();
-			}
-			return true;
 		}
 
 		public void StopTaskListener() => CancelTaskListener = true;
@@ -179,7 +80,7 @@ namespace HomeAssistant.Core {
 						break;
 					}
 
-					Task.Delay(100).Wait();
+					Task.Delay(1).Wait();
 				}
 			}, "Task queue listener");
 		}

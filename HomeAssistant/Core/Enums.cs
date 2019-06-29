@@ -2,6 +2,13 @@ namespace HomeAssistant.Core {
 
 	public static class Enums {
 
+		public enum GpioPinEventStates : byte {
+			ON,
+			OFF,
+			ALL,
+			NONE
+		}
+
 		public enum PiContext : byte {
 			GPIO,
 			RESTART,
@@ -67,15 +74,9 @@ namespace HomeAssistant.Core {
 			Redirect = 302,
 			RequestTimeout = 408,
 			ServiceUnavailable = 503,
-			Unauthorized = 401,
-
+			Unauthorized = 401
 		}
-
-		public enum ShutdownContext : byte {
-			TESS,
-			PI
-		}
-
+		
 		public enum SpeechContext : byte {
 			TessStartup,
 			TessShutdown,
@@ -95,10 +96,6 @@ namespace HomeAssistant.Core {
 			EmailSendFailed,
 			FatalError,
 			Normal
-		}
-
-		public enum RestartContext : byte {
-			TESS
 		}
 
 		public enum PinMode {

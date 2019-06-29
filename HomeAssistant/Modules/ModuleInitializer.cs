@@ -72,11 +72,11 @@ namespace HomeAssistant.Modules {
 		//		(bool, ConcurrentDictionary<string, EmailBot>) emailResult = Mail.InitEmailBots();
 		//	}
 
-		//	if (Tess.Config.EnableGoogleMap) {
+		//	if (Tess.Config.EnableGoogleMapModules) {
 		//		Map = new GoogleMap();
 		//	}
 
-		//	if (Tess.Config.EnableYoutube) {
+		//	if (Tess.Config.EnableYoutubeModules) {
 		//		Youtube = new Youtube();
 		//	}
 
@@ -119,18 +119,6 @@ namespace HomeAssistant.Modules {
 
 			if (Load<IMiscModule>(ModulesContext.Misc)) {
 				Logger.Log("Misc modules have been loaded.", LogLevels.Trace);
-			}
-
-			if (Modules.IsEmailModuleEmpty) {
-				Tess.DisableEmailMethods = true;
-			}
-
-			if (Modules.IsDiscordModuleEmpty) {
-				Tess.DisableDiscordMethods = true;
-			}
-
-			if (Modules.IsSteamModuleEmpty) {
-				Tess.DisableSteamMethods = true;
 			}
 
 			return (true, Modules);

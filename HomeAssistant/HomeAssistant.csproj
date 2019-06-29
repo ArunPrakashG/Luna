@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -113,7 +113,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<SshDeployHost>192.168.1.37</SshDeployHost>
+		<SshDeployHost>192.168.1.38</SshDeployHost>
 		<SshDeployClean />
 		<SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
 		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>

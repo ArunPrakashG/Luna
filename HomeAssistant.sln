@@ -18,17 +18,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Email", "Email\Email.csproj", "{32818B85-D9E3-48A8-9D98-38AEBBA73576}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Email", "Email\Email.csproj", "{32818B85-D9E3-48A8-9D98-38AEBBA73576}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Discord", "Discord\Discord.csproj", "{254F658C-2D7C-4293-B4DA-7B77DA98BD9B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Discord", "Discord\Discord.csproj", "{254F658C-2D7C-4293-B4DA-7B77DA98BD9B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Youtube", "Youtube\Youtube.csproj", "{A155F95B-7C3A-44DC-B09B-CB956B9438A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Youtube", "Youtube\Youtube.csproj", "{A155F95B-7C3A-44DC-B09B-CB956B9438A9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Steam", "Steam\Steam.csproj", "{1926B03D-D0C2-43E0-A4F3-CF0F02F9CDAB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Steam", "Steam\Steam.csproj", "{1926B03D-D0C2-43E0-A4F3-CF0F02F9CDAB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleMap", "GoogleMap\GoogleMap.csproj", "{678AEB8E-AAD5-4656-B626-6E47CE42E2AB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoogleMap", "GoogleMap\GoogleMap.csproj", "{678AEB8E-AAD5-4656-B626-6E47CE42E2AB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiscModule", "MiscModule\MiscModule.csproj", "{42B36EA2-9A76-4A8D-9356-C67447592FCD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MiscModule", "MiscModule\MiscModule.csproj", "{42B36EA2-9A76-4A8D-9356-C67447592FCD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

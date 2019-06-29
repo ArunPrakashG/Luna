@@ -11,16 +11,14 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using HomeAssistant.Extensions.Attributes;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
+using Unosquare.Swan;
 using Unosquare.WiringPi;
 using static HomeAssistant.Core.Enums;
 using Logging = HomeAssistant.Log.Logging;
-using PinMode = System.Device.Gpio.PinMode;
 
 namespace HomeAssistant.Core {
-
 	public class Options {
 
 		[Option('d', "debug", Required = false, HelpText = "Displays all Trace level messages to console. (for debugging)")]
@@ -58,10 +56,7 @@ namespace HomeAssistant.Core {
 		public static bool IsUnknownOs { get; set; }
 		public static bool IsNetworkAvailable { get; set; }
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
-
-		public static bool DisableEmailMethods { get; set; }
-		public static bool DisableDiscordMethods { get; set; }
-		public static bool DisableSteamMethods { get; set; }
+		public static bool GracefullModuleShutdown { get; set; } = false;
 
 		public static async Task<bool> InitCore(string[] args) {
 			Helpers.CheckMultipleProcess();
@@ -166,12 +161,17 @@ namespace HomeAssistant.Core {
 				Modules = new ModuleInitializer();
 
 				if (IsNetworkAvailable) {
-					(bool, Modules.Modules) loadStatus = Modules.LoadModules();
-					if (!loadStatus.Item1) {
-						Logger.Log("Failed to load modules.", LogLevels.Warn);
+					if (Config.EnableModules) {
+						(bool, Modules.Modules) loadStatus = Modules.LoadModules();
+						if (!loadStatus.Item1) {
+							Logger.Log("Failed to load modules.", LogLevels.Warn);
+						}
+						else {
+
+						}
 					}
 					else {
-
+						Logger.Log("Not starting modules as its disabled in config file.", LogLevels.Trace);
 					}
 				}
 				else {
@@ -196,10 +196,16 @@ namespace HomeAssistant.Core {
 			}
 
 			if (!DisablePiMethods) {
-				Pi.Init<BootstrapWiringPi>();
-				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
-				Controller.DisplayPiInfo();
-				Logger.Log("Successfully Initiated Pi Configuration!");
+				if (Config.EnableGpioControl) {
+					Pi.Init<BootstrapWiringPi>();
+					Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
+					Controller.DisplayPiInfo();
+					Logger.Log("Successfully Initiated Pi Configuration!");
+				}
+				else {
+					Logger.Log("Not starting GPIO controller as its disabled in config file.");
+				}
+
 			}
 			else {
 				Logger.Log("Disabled Raspberry Pi related methods and initiation tasks.");
@@ -217,7 +223,7 @@ namespace HomeAssistant.Core {
 		}
 
 		private static void SetConsoleTitle() {
-			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Constants.ExternelIP}:{Config.ServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
+			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Constants.ExternelIP}:{Config.TCPServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
 			if (RefreshConsoleTitleTimer == null) {
 				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
@@ -242,7 +248,8 @@ namespace HomeAssistant.Core {
 				char pressedKey = Console.ReadKey().KeyChar;
 
 				if (pressedKey.Equals(loopBreaker)) {
-					Logger.Log("Exiting in 5 secs as per the admin.");
+					Logger.Log("Gracefully shutting down assistant...");
+					GracefullModuleShutdown = true;
 					await Task.Delay(5000).ConfigureAwait(false);
 					await Exit(0).ConfigureAwait(false);
 				}
@@ -252,13 +259,14 @@ namespace HomeAssistant.Core {
 					continue;
 				}
 				else if (pressedKey.Equals(quickShutDown)) {
-					Logger.Log("Exiting...");
-					await Exit(0).ConfigureAwait(false);
+					Logger.Log("Force quitting assistant...");
+					await Exit(true).ConfigureAwait(false);
 				}
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
-					Controller.RegisterPinEvents(Config.RelayPins[0], GpioPinDriveMode.Output);
+					Controller.RegisterPinEvents(Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinEventStates.ALL);
 					Controller.PinPollingManager.GPIOPinValueChanged += OnPinValueChanged;
+					Logger.Log("test task ran successfully.");
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
 					DisplayCommandMenu();
@@ -270,8 +278,24 @@ namespace HomeAssistant.Core {
 		}
 
 		[Obsolete("Temporary use")]
-		private static void OnPinValueChanged (int pin, bool currentvalue, bool previousvalue) {
-			Logger.Log($"Value for {pin} pin changed to {currentvalue.ToString()} from {previousvalue.ToString()}");
+		private static void OnPinValueChanged(object sender, GpioPinValueChangedEventArgs e) {
+			switch (e.PinState) {
+				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.OFF:
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)");
+					break;
+				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.ON:
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)");
+					break;
+				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.OFF:
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)");
+					break;
+				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.ON:
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)");
+					break;
+				default:
+					Logger.Log($"Value for {e.PinNumber} pin changed to {e.PinCurrentDigitalValue} from {e.PinPreviousDigitalValue.ToString()}");
+					break;
+			}
 		}
 
 		private static void ParseStartupArguments(string[] args) {
@@ -328,7 +352,6 @@ namespace HomeAssistant.Core {
 				Logger.Log($"Press q to quit in 5 seconds.");
 				Logger.Log($"Press e to exit application immediately.");
 				Logger.Log($"Press m to display GPIO menu.");
-				Logger.Log($"Press i to stop IMAP Idle notifications.");
 				Logger.Log($"Press c to display command menu.");
 				return;
 			}
@@ -523,7 +546,6 @@ namespace HomeAssistant.Core {
 			Logger.Log($"Press q to quit in 5 seconds.");
 			Logger.Log($"Press e to exit application immediately.");
 			Logger.Log($"Press m to display GPIO menu.");
-			Logger.Log($"Press i to stop IMAP Idle notifications.");
 			Logger.Log($"Press c to display command menu.");
 		}
 
@@ -628,22 +650,6 @@ namespace HomeAssistant.Core {
 			Logger.Log($"Press c to display command menu.");
 		}
 
-		//I still cant remember why i coded this method so lets just comment until i remember
-		//private static void NetworkConnectionListerner() {
-		//	Helpers.InBackgroundThread(() => {
-		//		while (true) {
-		//			if (IsNetworkDisconnected) {
-		//				OnNetworkDisconnected();
-		//			}
-		//			Task.Delay(100).Wait();
-		//			if (IsNetworkReconnected) {
-		//				OnNetworkReconnected();
-		//			}
-		//		}
-		//	}, "Network Change Listerner");
-		//	Logger.Log("Started network listerner...", LogLevels.Trace);
-		//}
-
 		public static async Task OnNetworkDisconnected() {
 			IsNetworkAvailable = false;
 			Constants.ExternelIP = "Internet connection lost.";
@@ -676,7 +682,7 @@ namespace HomeAssistant.Core {
 				await KestrelServer.Start().ConfigureAwait(false);
 			}
 
-			if (IsNetworkAvailable && Modules != null) {
+			if (IsNetworkAvailable && Modules != null && Config.EnableModules) {
 				if (Modules.LoadModules().Item1) {
 					Logger.Log("Failed to load modules.", LogLevels.Warn);
 				}
@@ -710,7 +716,7 @@ namespace HomeAssistant.Core {
 				TessStatus.Dispose();
 			}
 
-			if (Controller.PinPollingManager != null) {
+			if (Controller?.PinPollingManager != null) {
 				Controller.PinPollingManager.GPIOPinValueChanged -= OnPinValueChanged;
 			}
 
@@ -720,33 +726,45 @@ namespace HomeAssistant.Core {
 
 			if (Modules != null) {
 				_ = await Modules.OnCoreShutdown().ConfigureAwait(false);
+				Modules = null;
 			}
 
 			if (Config != null) {
 				Config.ProgramLastShutdown = DateTime.Now;
 				Config.SaveConfig(Config);
+				Config = null;
 			}
 
 			if (Controller != null) {
 				await Controller.InitShutdown().ConfigureAwait(false);
-			}
-
-			if (TessStatus != null) {
-				TessStatus.Dispose();
+				Controller = null;
 			}
 		}
 
-		public static async Task Exit(byte exitCode = 0) {
+		public static async Task Exit(bool quickShutdown) {
+			if (quickShutdown) {
+				GracefullModuleShutdown = false;
+				await OnExit().ConfigureAwait(false);
+				Logging.LoggerOnShutdown();
+				Environment.Exit(0);
+			}
+		}
+
+		public static async Task Exit(int exitCode = 0) {
 			if (exitCode != 0) {
+				GracefullModuleShutdown = false;
 				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
-				Logger.Log("Check TraceLog for debug information.", LogLevels.Error);
 			}
 
 			if (exitCode == 0) {
+				GracefullModuleShutdown = true;
 				await OnExit().ConfigureAwait(false);
 			}
 
-			Logging.LoggerOnShutdown();
+			if (Logging.IsLoggerOnline) {
+				Logging.LoggerOnShutdown();
+			}
+			
 			Environment.Exit(exitCode);
 		}
 

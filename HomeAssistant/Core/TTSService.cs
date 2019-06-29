@@ -32,7 +32,7 @@ namespace HomeAssistant.Core {
 		}
 
 		public static void SpeakText(string text, SpeechContext context, bool disableTTSalert = true) {
-			if (Tess.Config.MuteAll) {
+			if (Tess.Config.MuteAssistant) {
 				return;
 			}
 

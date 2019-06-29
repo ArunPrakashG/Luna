@@ -23,7 +23,7 @@ namespace HomeAssistant.Core {
 
 		public void InitConfigWatcher() {
 			Logger.Log("Starting module watcher...", Enums.LogLevels.Trace);
-			if (!Tess.Config.EnableModuleWatcher) {
+			if (!Tess.Config.EnableModuleWatcher && !Tess.Config.EnableModules) {
 				Logger.Log("module watcher is disabled.", Enums.LogLevels.Trace);
 				return;
 			}

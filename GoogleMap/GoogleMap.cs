@@ -1,4 +1,6 @@
 using System;
+using HomeAssistant.Core;
+using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
 
 namespace GoogleMap {
@@ -13,8 +15,13 @@ namespace GoogleMap {
 		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
 		public string ModuleAuthor { get; set; } = "Arun";
 
-		public GoogleMap() {
+		private Logger Logger = new Logger("G-MAP");
 
+		public GoogleMap() {
+			if (!Tess.Config.EnableGoogleMapModules) {
+				Logger.Log("Not starting google map as its disabled in config file.");
+				return;
+			}
 		}
 
 		public bool InitModuleService() {

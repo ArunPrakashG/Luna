@@ -6,7 +6,7 @@ using System.Text;
 namespace HomeAssistant.Modules.Interfaces {
 	public interface IEmailConfig {
 		string EmailID { get; set; }
-		string EmailPASS { get; set; }
+		string EmailPass { get; set; }
 		bool MarkAllMessagesAsRead { get; set; }
 		bool MuteNotifications { get; set; }
 		string AutoReplyText { get; set; }

@@ -10,7 +10,7 @@ namespace HomeAssistant.Extensions {
 		public const string DebugLogPath = @"DebugLog.txt";
 		public const string ConfigDirectory = @"Config";		
 		public const string ResourcesDirectory = @"Resources";
-		public const string ModuleDirectory = "Modules";
+		public const string ModuleDirectory = @"Modules";
 		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 		
 		public const string GPIOConfigPath = ConfigDirectory + "/GPIOConfig.json";

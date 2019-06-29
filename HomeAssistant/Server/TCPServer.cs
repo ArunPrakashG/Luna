@@ -41,13 +41,13 @@ namespace HomeAssistant.Server {
 
 		public bool StartServer() {
 			try {
-				IPEndPoint localEndpoint = new IPEndPoint(IPAddress.Any, Config.ServerPort);
+				IPEndPoint localEndpoint = new IPEndPoint(IPAddress.Any, Config.TCPServerPort);
 				string externalip = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
 				Logger.Log("Public ip fetched sucessfully => " + externalip, LogLevels.Trace);
 				Logger.Log("Local ip => " + Helpers.GetLocalIpAddress(), LogLevels.Trace);
 				Logger.Log("Starting assistant command server...", LogLevels.Trace);
 				Sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-				Logger.Log("Server started sucessfully on address: " + externalip + ":" + Config.ServerPort);
+				Logger.Log("Server started sucessfully on address: " + externalip + ":" + Config.TCPServerPort);
 
 				Sock.Bind(localEndpoint);
 				Sock.Listen(15);
