@@ -61,28 +61,6 @@ namespace HomeAssistant.Modules {
 		public List<ISteamClient> Steam { get; private set; } = new List<ISteamClient>();
 		public List<IMiscModule> MiscModule { get; private set; } = new List<IMiscModule>();
 
-		//public (Discord, Email, GoogleMap, Youtube) StartModules() {
-		//	if (Tess.Config.DiscordBot) {
-		//		Discord = new Discord();
-		//		(bool, Discord) discordResult = Task.Run(async () => await Discord.RegisterDiscordClient().ConfigureAwait(false)).Result;
-		//	}
-
-		//	if (Tess.Config.EnableEmail) {
-		//		Mail = new Email();
-		//		(bool, ConcurrentDictionary<string, EmailBot>) emailResult = Mail.InitEmailBots();
-		//	}
-
-		//	if (Tess.Config.EnableGoogleMapModules) {
-		//		Map = new GoogleMap();
-		//	}
-
-		//	if (Tess.Config.EnableYoutubeModules) {
-		//		Youtube = new Youtube();
-		//	}
-
-		//	return (Discord ?? null, Mail ?? null, Map ?? null, Youtube ?? null);
-		//}
-
 		[NotNull]
 		public (bool, Modules) LoadModules() {
 			if (!Modules.IsModulesEmpty) {
