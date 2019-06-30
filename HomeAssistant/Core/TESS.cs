@@ -265,11 +265,17 @@ namespace HomeAssistant.Core {
 				}
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
+					List<GpioPinEventData> pinData = new List<GpioPinEventData>();
+
 					foreach (int pin in Config.RelayPins) {
-						Controller.RegisterPinEvents(pin, GpioPinDriveMode.Output, GpioPinEventStates.ALL);
+						pinData.Add(new GpioPinEventData() {
+							PinMode = GpioPinDriveMode.Output,
+							GpioPin = pin,
+							PinEventState = GpioPinEventStates.ALL
+						});
 					}
-					
-					Controller.PinPollingManager.GPIOPinValueChanged += OnPinValueChanged;
+
+					Controller.RegisterPinEvents(pinData);
 					Logger.Log("test task ran successfully.");
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
@@ -712,8 +718,8 @@ namespace HomeAssistant.Core {
 				ConfigWatcher.StopConfigWatcher();
 			}
 
-			if (Controller?.PinPollingManager != null) {
-				Controller.PinPollingManager.GPIOPinValueChanged -= OnPinValueChanged;
+			if (Controller?.GpioPollingManager != null) {
+				Controller.GpioPollingManager.GPIOPinValueChanged -= OnPinValueChanged;
 			}
 
 			if (ModuleWatcher != null && ModuleWatcher.ModuleWatcherOnline) {

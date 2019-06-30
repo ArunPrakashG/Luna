@@ -39,8 +39,7 @@ namespace HomeAssistant.Core {
 		public List<GPIOPinConfig> GPIOConfig { get; set; }
 		public GPIOConfigRoot GPIOConfigRoot { get; private set; }
 		private bool IsWaitForValueCancellationRequested { get; set; } = false;
-		
-		public GpioPinEventManager PinPollingManager { get; private set; }
+		public GpioEventManager GpioPollingManager { get; private set; }
 
 		private readonly ConcurrentQueue<GPIOTaskQueue> TaskQueue = new ConcurrentQueue<GPIOTaskQueue>();
 
@@ -48,16 +47,32 @@ namespace HomeAssistant.Core {
 			GPIOConfig = config;
 			GPIOConfigHandler = configHandler;
 			GPIOConfigRoot = rootObject;
-			PinPollingManager = new GpioPinEventManager(this);
+			GpioPollingManager = new GpioEventManager(this);
 			Logger.Log("Initiated GPIO Controller class!", LogLevels.Trace);
 		}
 
-		public void RegisterPinEvents (int pin, GpioPinDriveMode mode = GpioPinDriveMode.Output, GpioPinEventStates state = GpioPinEventStates.ALL) {
-			if (PinPollingManager == null) {
+		public void RegisterPinEvents (GpioPinEventData pinData) {
+			if (GpioPollingManager == null) {
 				return;
 			}
 
-			PinPollingManager.StartPinPolling(pin, mode, state);
+			if (pinData == null) {
+				return;
+			}
+
+			GpioPollingManager.RegisterGpioEvent(pinData);
+		}
+
+		public void RegisterPinEvents(List<GpioPinEventData> pinDataList) {
+			if (GpioPollingManager == null) {
+				return;
+			}
+
+			if (pinDataList == null || pinDataList.Count <= 0) {
+				return;
+			}
+
+			GpioPollingManager.RegisterGpioEvent(pinDataList);
 		}
 
 		private void OnEnqueued(GPIOTaskQueue item) {
@@ -482,7 +497,7 @@ namespace HomeAssistant.Core {
 
 			await Task.Delay(100).ConfigureAwait(false);
 
-			PinPollingManager.OverrideEvents();
+			GpioPollingManager.ExitEventGenerator();
 
 			if (Tess.Config.CloseRelayOnShutdown) {
 				foreach (GPIOPinConfig value in GPIOConfig) {
