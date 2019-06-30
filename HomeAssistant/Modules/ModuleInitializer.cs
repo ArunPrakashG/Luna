@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using HomeAssistant.Core;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
@@ -383,19 +382,39 @@ namespace HomeAssistant.Modules {
 		public async Task<bool> OnCoreShutdown() {
 			if (Discord.Count > 0) {
 				foreach (IDiscordBot Dbot in Discord) {
-					if (Dbot.IsServerOnline) {
-						Logger.Log("Discord server shutting down...", LogLevels.Trace);
-						Dbot.InitModuleShutdown();
-					}
+					Dbot.InitModuleShutdown();
 				}
 			}
 
 			await Task.Delay(10).ConfigureAwait(false);
+
 			if (Mail.Count > 0) {
 				foreach (IEmailClient Mbot in Mail) {
-					if (Mbot.EmailClientCollection.Count > 0) {
-						Mbot.InitModuleShutdown();
-					}
+					Mbot.InitModuleShutdown();
+				}
+			}
+
+			if (Map.Count > 0) {
+				foreach (IGoogleMap map in Map) {
+					map.InitModuleShutdown();
+				}
+			}
+
+			if (Youtube.Count > 0) {
+				foreach (IYoutubeClient youtube in Youtube) {
+					youtube.InitModuleShutdown();
+				}
+			}
+
+			if (Steam.Count > 0) {
+				foreach (ISteamClient steam in Steam) {
+					steam.InitModuleShutdown();
+				}
+			}
+
+			if (MiscModule.Count > 0) {
+				foreach (IMiscModule misc in MiscModule) {
+					misc.InitModuleShutdown();
 				}
 			}
 

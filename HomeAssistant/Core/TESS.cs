@@ -48,6 +48,7 @@ namespace HomeAssistant.Core {
 		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
+		public static TaskList TaskManager = new TaskList();
 		public static ModuleInitializer Modules { get; set; }
 		public static DateTime StartupTime;
 		private static Timer RefreshConsoleTitleTimer;
@@ -264,7 +265,10 @@ namespace HomeAssistant.Core {
 				}
 				else if (pressedKey.Equals(testKey)) {
 					Logger.Log("Running pre-configured tests...");
-					Controller.RegisterPinEvents(Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinEventStates.ALL);
+					foreach (int pin in Config.RelayPins) {
+						Controller.RegisterPinEvents(pin, GpioPinDriveMode.Output, GpioPinEventStates.ALL);
+					}
+					
 					Controller.PinPollingManager.GPIOPinValueChanged += OnPinValueChanged;
 					Logger.Log("test task ran successfully.");
 				}
@@ -708,14 +712,6 @@ namespace HomeAssistant.Core {
 				ConfigWatcher.StopConfigWatcher();
 			}
 
-			if (KestrelServer.IsServerOnline) {
-				await KestrelServer.Stop().ConfigureAwait(false);
-			}
-
-			if (TessStatus != null) {
-				TessStatus.Dispose();
-			}
-
 			if (Controller?.PinPollingManager != null) {
 				Controller.PinPollingManager.GPIOPinValueChanged -= OnPinValueChanged;
 			}
@@ -724,27 +720,35 @@ namespace HomeAssistant.Core {
 				ModuleWatcher.StopModuleWatcher();
 			}
 
+			if (TessStatus != null) {
+				TessStatus.Dispose();
+			}
+
+			if (KestrelServer.IsServerOnline) {
+				await KestrelServer.Stop().ConfigureAwait(false);
+			}
+
 			if (Modules != null) {
 				_ = await Modules.OnCoreShutdown().ConfigureAwait(false);
-				Modules = null;
+			}
+
+			if (Controller != null) {
+				await Controller.InitShutdown().ConfigureAwait(false);
 			}
 
 			if (Config != null) {
 				Config.ProgramLastShutdown = DateTime.Now;
 				Config.SaveConfig(Config);
-				Config = null;
 			}
 
-			if (Controller != null) {
-				await Controller.InitShutdown().ConfigureAwait(false);
-				Controller = null;
-			}
+			Logger.Log("Finished on exit tasks...", LogLevels.Trace);
 		}
 
 		public static async Task Exit(bool quickShutdown) {
 			if (quickShutdown) {
 				GracefullModuleShutdown = false;
 				await OnExit().ConfigureAwait(false);
+				Logger.Log("Bye, have a good day sir!");
 				Logging.LoggerOnShutdown();
 				Environment.Exit(0);
 			}
@@ -761,10 +765,8 @@ namespace HomeAssistant.Core {
 				await OnExit().ConfigureAwait(false);
 			}
 
-			if (Logging.IsLoggerOnline) {
-				Logging.LoggerOnShutdown();
-			}
-			
+			Logger.Log("Bye, have a good day sir!");
+			Logging.LoggerOnShutdown();
 			Environment.Exit(exitCode);
 		}
 

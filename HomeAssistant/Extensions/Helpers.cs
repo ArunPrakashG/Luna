@@ -71,7 +71,7 @@ namespace HomeAssistant.Extensions {
 			return null;
 		}
 
-		public static void ScheduleTask<T>(Func<T> action, TimeSpan delay) {
+		public static void ScheduleTask<T>(Func<T> action, TimeSpan delay, bool longrunning) {
 			if (action == null) {
 				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
 				return;
@@ -84,7 +84,7 @@ namespace HomeAssistant.Extensions {
 
 			if (TaskSchedulerTimer == null) {
 				TaskSchedulerTimer = new Timer(e => {
-					InBackground(action);
+					InBackground(action, longrunning);
 
 					if (TaskSchedulerTimer != null) {
 						TaskSchedulerTimer.Dispose();

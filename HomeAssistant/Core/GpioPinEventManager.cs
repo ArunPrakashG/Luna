@@ -24,7 +24,6 @@ namespace HomeAssistant.Core {
 		private GPIOController Controller { get; set; }
 		private Logger Logger = new Logger("GPIO-EVENTS");
 		private bool OverrideEventWatcher { get; set; }
-		public (int, Thread) PollingThreadData { get; private set; }
 
 		public (object sender, GpioPinValueChangedEventArgs e) GPIOEventPinValueStorage { get; private set; }
 
@@ -38,7 +37,6 @@ namespace HomeAssistant.Core {
 
 		public delegate void GPIOPinValueChangedEventHandler(object sender, GpioPinValueChangedEventArgs e);
 		public event GPIOPinValueChangedEventHandler GPIOPinValueChanged;
-
 		public GpioPinEventManager(GPIOController controller) => Controller = controller ?? throw new ArgumentNullException();
 
 		public void OverrideEvents () => OverrideEventWatcher = true;
@@ -54,7 +52,11 @@ namespace HomeAssistant.Core {
 			}
 
 			IGpioPin GPIOPin = Pi.Gpio[pin];
-			Controller.SetGPIO(pin, mode, GpioPinValue.High);
+			if (!Controller.SetGPIO(pin, mode, GpioPinValue.High)) {
+				Logger.Log($"Failed to set the pin status, cannot continue with the event for pin > {pin}", Enums.LogLevels.Warn);
+				return;
+			}
+
 			bool val = GPIOPin.Read();
 
 			GPIOEventPinValueStorage = (this, new GpioPinValueChangedEventArgs() {
@@ -69,11 +71,11 @@ namespace HomeAssistant.Core {
 				PinState = val ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
 				PinPreviousState = Enums.GpioPinEventStates.OFF
 			});
-
+			
 			Logger.Log($"Started pin polling for {pin}.", Tess.Config.Debug ? Enums.LogLevels.Info : Enums.LogLevels.Trace);
 			Enums.GpioPinEventStates previousValue = val ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
 
-			PollingThreadData = Helpers.InBackgroundThread(async () => {
+			Helpers.InBackgroundThread(async () => {
 				while (true) {
 					if (OverrideEventWatcher) {
 						return;

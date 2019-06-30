@@ -346,12 +346,12 @@ namespace HomeAssistant.Core {
 				case GpioPinDriveMode.Input:
 					switch (state) {
 						case GpioPinValue.High:
-							Logger.Log($"Configured {pin} pin to OFF. (INPUT)");
+							Logger.Log($"Configured {pin} pin to OFF. (INPUT)", LogLevels.Trace);
 							UpdatePinStatus(pin, false, PinMode.Input);
 							break;
 
 						case GpioPinValue.Low:
-							Logger.Log($"Configured {pin} pin to ON. (INPUT)");
+							Logger.Log($"Configured {pin} pin to ON. (INPUT)", LogLevels.Trace);
 							UpdatePinStatus(pin, true, PinMode.Input);
 							break;
 					}
@@ -360,12 +360,12 @@ namespace HomeAssistant.Core {
 				case GpioPinDriveMode.Output:
 					switch (state) {
 						case GpioPinValue.High:
-							Logger.Log($"Configured {pin} pin to OFF. (OUTPUT)");
+							Logger.Log($"Configured {pin} pin to OFF. (OUTPUT)", LogLevels.Trace);
 							UpdatePinStatus(pin, false);
 							break;
 
 						case GpioPinValue.Low:
-							Logger.Log($"Configured {pin} pin to ON. (OUTPUT)");
+							Logger.Log($"Configured {pin} pin to ON. (OUTPUT)", LogLevels.Trace);
 							UpdatePinStatus(pin, true);
 							break;
 					}
@@ -418,12 +418,12 @@ namespace HomeAssistant.Core {
 					case GpioPinDriveMode.Input:
 						switch (state) {
 							case GpioPinValue.High:
-								Logger.Log($"Configured {pin.ToString()} pin to OFF. (INPUT)");
+								Logger.Log($"Configured {pin.ToString()} pin to OFF. (INPUT)", LogLevels.Trace);
 								UpdatePinStatus(pin, false, PinMode.Input);
 								break;
 
 							case GpioPinValue.Low:
-								Logger.Log($"Configured {pin.ToString()} pin to ON. (INPUT)");
+								Logger.Log($"Configured {pin.ToString()} pin to ON. (INPUT)", LogLevels.Trace);
 								UpdatePinStatus(pin, true, PinMode.Input);
 								break;
 						}
@@ -432,12 +432,12 @@ namespace HomeAssistant.Core {
 					case GpioPinDriveMode.Output:
 						switch (state) {
 							case GpioPinValue.High:
-								Logger.Log($"Configured {pin.ToString()} pin to OFF. (OUTPUT)");
+								Logger.Log($"Configured {pin.ToString()} pin to OFF. (OUTPUT)", LogLevels.Trace);
 								UpdatePinStatus(pin, false);
 								break;
 
 							case GpioPinValue.Low:
-								Logger.Log($"Configured {pin.ToString()} pin to ON. (OUTPUT)");
+								Logger.Log($"Configured {pin.ToString()} pin to ON. (OUTPUT)", LogLevels.Trace);
 								UpdatePinStatus(pin, true);
 								break;
 						}

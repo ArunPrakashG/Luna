@@ -104,6 +104,7 @@ namespace HomeAssistant {
 			}
 		}
 
-		private static void OnEnvironmentExit(object sender, EventArgs e) => Task.Run(async () => await Tess.OnExit().ConfigureAwait(false));
+		private static void OnEnvironmentExit(object sender, EventArgs e){
+		}
 	}
 }

@@ -50,38 +50,41 @@ namespace Discord {
 		}
 
 		public async Task<bool> StopServer() {
-			try {
-				if (Client.ConnectionState == ConnectionState.Connected || Client.ConnectionState == ConnectionState.Connecting) {
-					await Client.StopAsync().ConfigureAwait(false);
-				}
-
-				while (true) {
-					if (Client.ConnectionState == ConnectionState.Disconnected) {
-						IsServerOnline = false;
-						break;
+			if (Client != null) {
+				try {
+					if (Client.ConnectionState == ConnectionState.Connected || Client.ConnectionState == ConnectionState.Connecting) {
+						await Client.StopAsync().ConfigureAwait(false);
 					}
-					else {
-						Logger.Log("Waiting for Discord client to disconnect...", LogLevels.Trace);
-						await Task.Delay(100).ConfigureAwait(false);
+
+					while (true) {
+						if (Client.ConnectionState == ConnectionState.Disconnected) {
+							IsServerOnline = false;
+							break;
+						}
+						else {
+							Logger.Log("Waiting for Discord client to disconnect...", LogLevels.Trace);
+							await Task.Delay(90).ConfigureAwait(false);
+						}
 					}
+
+					Client?.Dispose();
+
+					Logger.Log("Discord server stopped!");
 				}
-
-				Client?.Dispose();
-
-				Logger.Log("Discord server stopped!");
+				catch (IOException io) {
+					Logger.Log($"IO Exception: {io.Message}/{io.TargetSite}", LogLevels.Error);
+					return false;
+				}
+				catch (SocketException so) {
+					Logger.Log($"Socket Exception: {so.Message}/{so.TargetSite}", LogLevels.Error);
+					return false;
+				}
+				catch (TaskCanceledException tc) {
+					Logger.Log($"Task Canceled Exception: {tc.Message}/{tc.TargetSite}", LogLevels.Error);
+					return false;
+				}
 			}
-			catch (IOException io) {
-				Logger.Log($"IO Exception: {io.Message}/{io.TargetSite}", LogLevels.Error);
-				return false;
-			}
-			catch (SocketException so) {
-				Logger.Log($"Socket Exception: {so.Message}/{so.TargetSite}", LogLevels.Error);
-				return false;
-			}
-			catch (TaskCanceledException tc) {
-				Logger.Log($"Task Canceled Exception: {tc.Message}/{tc.TargetSite}", LogLevels.Error);
-				return false;
-			}
+			
 			return true;
 		}
 

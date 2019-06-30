@@ -281,7 +281,7 @@ namespace Steam {
 		public ConcurrentDictionary<string, ISteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, ISteamBot>();
 		private string BotConfigDirectory => Constants.ConfigDirectory + "/SteamBots/";
 		public string ModuleIdentifier { get; } = nameof(Steam);
-		public Version ModuleVersion { get; } = new Version("4.9.0.0");
+		public Version ModuleVersion { get; } = new Version("2.0.0.0");
 		public string ModuleAuthor { get; } = "Arun";
 
 		public (bool, ConcurrentDictionary<string, ISteamBot>) InitSteamBots() {

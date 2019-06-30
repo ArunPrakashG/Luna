@@ -1,66 +1,81 @@
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
 	public class TaskStructure<T> where T : Task {
-		public string TaskIdentifier { get; set; }
+		public float TaskIdentifier { get; set; }
 		public string TaskMessage { get; set; }
-		public bool IsAlreadyCompleted { get; set; }
 		public bool LongRunning { get; set; }
+		public TimeSpan Delay { get; set; }
 		public DateTime TimeAdded { get; set; }
-		public DateTime TimeEnding { get; set; }
 		public T Task { get; set; }
 	}
 
 	public class TaskList {
 
-		public ConcurrentQueue<TaskStructure<Task>> ConcurrentTasks = new ConcurrentQueue<TaskStructure<Task>>();
+		public List<TaskStructure<Task>> TaskFactoryCollection { get; private set; } = new List<TaskStructure<Task>>();
 		private readonly Logger Logger = new Logger("TASKS");
 		private bool CancelTaskListener = false;
 
-		public void TryEnqueue(TaskStructure<Task> task) {
+		public void TryAddTask(TaskStructure<Task> task) {
 			if (task == null) {
 				Logger.Log("Task is null.", LogLevels.Warn);
 				return;
 			}
 
-			ConcurrentTasks.Enqueue(task);
-			Helpers.InBackground(() => OnEnqueued(task));
+			TaskFactoryCollection.Add(task);
+			OnTaskAdded(TaskFactoryCollection.IndexOf(task));
 			Logger.Log("Task added sucessfully.", LogLevels.Trace);
 		}
 
-		public TaskStructure<Task> TryDequeue() {
-			bool result = ConcurrentTasks.TryDequeue(out TaskStructure<Task> task);
-			if (!result) {
-				Logger.Log("Failed to fetch from the queue.", LogLevels.Error);
-				return null;
+		public TaskStructure<Task> TryRemoveTask(float taskId) {
+			TaskStructure<Task> cachedTaskStruct = null;
+
+			if (TaskFactoryCollection.Count <= 0) {
+				return cachedTaskStruct;
 			}
 
-			Logger.Log("Fetching task sucessfully!", LogLevels.Trace);
-			Helpers.InBackground(() => OnDequeued(task));
-			return task;
+			foreach (TaskStructure<Task> task in TaskFactoryCollection) {
+				if (task.TaskIdentifier.Equals(taskId)) {
+					cachedTaskStruct = task;
+					TaskFactoryCollection.Remove(task);
+					Logger.Log($"A task with identifier {taskId} and message {task.TaskMessage} has been removed from the queue.", LogLevels.Trace);
+					OnTaskRemoved(cachedTaskStruct);
+					return cachedTaskStruct;
+				}
+			}
+
+			return cachedTaskStruct;
 		}
 
-		private void OnEnqueued(TaskStructure<Task> item) {
-			if (item.IsAlreadyCompleted) {
+		private void OnTaskAdded(int index) {
+			if (TaskFactoryCollection.Count <= 0) {
 				return;
 			}
 
-			if (DateTime.Now == item.TimeEnding) {
-				Helpers.InBackground(() => item.Task, item.LongRunning);
+			TaskStructure<Task> item = TaskFactoryCollection[index];
+
+			if (item == null) {
+				return;
+			}
+
+			if (item.TimeAdded.AddMilliseconds(item.Delay.Milliseconds) <= DateTime.Now) {
+				TimeSpan delay = DateTime.Now.Subtract(item.TimeAdded.AddMilliseconds(item.Delay.Milliseconds));
+				Logger.Log($"TASK > {item.TaskMessage} will be executed {delay.Hours}/{delay.Minutes}/{delay.Seconds} (hr/min/sec) from now. ({item.TaskIdentifier})");
+				Helpers.ScheduleTask(() => item.Task, delay, item.LongRunning);
 			}
 			else {
-				long delay = (item.TimeEnding - DateTime.Now).Ticks;
-				TimeSpan delaySpan = new TimeSpan(delay);
-				Helpers.ScheduleTask(() => item.Task, delaySpan);
+				TryRemoveTask(item.TaskIdentifier);
+				Logger.Log($"Cannot execute TASK > {item.TaskMessage} as the delay time is over or not set correctly. Removed the task.", LogLevels.Warn);
 			}
 		}
 
-		private void OnDequeued(TaskStructure<Task> item) {
+		private void OnTaskRemoved(TaskStructure<Task> item) {
 
 		}
 
@@ -68,10 +83,10 @@ namespace HomeAssistant.Core {
 
 		private void TaskChangeListerner() {
 			Helpers.InBackgroundThread(() => {
-				int taskCount = ConcurrentTasks.Count;
+				int taskCount = TaskFactoryCollection.Count;
 				while (true) {
-					if (taskCount < ConcurrentTasks.Count) {
-						taskCount = ConcurrentTasks.Count;
+					if (taskCount < TaskFactoryCollection.Count) {
+						taskCount = TaskFactoryCollection.Count;
 						Logger.Log("A task has been added.", LogLevels.Trace);
 						//TODO: On task added
 					}
