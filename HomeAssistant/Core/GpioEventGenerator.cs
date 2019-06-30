@@ -2,19 +2,16 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 
 namespace HomeAssistant.Core {
 	public sealed class GpioPinEventData {
-
 		public int GpioPin { get; set; } = 2;
-
 		public GpioPinDriveMode PinMode { get; set; } = GpioPinDriveMode.Output;
-
 		public Enums.GpioPinEventStates PinEventState { get; set; } = Enums.GpioPinEventStates.ALL;
-
 	}
 
 	public class GpioPinValueChangedEventArgs {
@@ -36,8 +33,11 @@ namespace HomeAssistant.Core {
 		private GpioEventManager Manager { get; set; }
 		private bool OverrideEventWatcher { get; set; }
 		public GpioPinEventData EventData { get; private set; }
+		public (int, Thread) PollingThreadInfo { get; private set; }
 
 		public (object sender, GpioPinValueChangedEventArgs e) GPIOEventPinValueStorage { get; private set; }
+		public delegate void GPIOPinValueChangedEventHandler(object sender, GpioPinValueChangedEventArgs e);
+		public event GPIOPinValueChangedEventHandler GPIOPinValueChanged;
 
 		private (object sender, GpioPinValueChangedEventArgs e) GPIOPinValue {
 			get => GPIOEventPinValueStorage;
@@ -90,7 +90,7 @@ namespace HomeAssistant.Core {
 			Logger.Log($"Started pin polling for {pinData.GpioPin}.", Tess.Config.Debug ? Enums.LogLevels.Info : Enums.LogLevels.Trace);
 			Enums.GpioPinEventStates previousValue = val ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
 
-			Helpers.InBackgroundThread(async () => {
+			PollingThreadInfo = Helpers.InBackgroundThread(async () => {
 				while (true) {
 					if (OverrideEventWatcher) {
 						return;
@@ -163,16 +163,12 @@ namespace HomeAssistant.Core {
 
 			}, $"Polling thread {pinData.GpioPin}", true);
 		}
-
-		public event GpioEventManager.GPIOPinValueChangedEventHandler GPIOPinValueChanged;
 	}
 
 	public class GpioEventManager {
 		internal readonly Logger Logger = new Logger("GPIO-EVENTS");
 		public GPIOController Controller;
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();
-		public delegate void GPIOPinValueChangedEventHandler(object sender, GpioPinValueChangedEventArgs e);
-		public event GPIOPinValueChangedEventHandler GPIOPinValueChanged;
 
 		public GpioEventManager(GPIOController controller) {
 			Controller = controller ?? throw new ArgumentNullException();

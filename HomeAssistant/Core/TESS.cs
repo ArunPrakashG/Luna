@@ -48,6 +48,7 @@ namespace HomeAssistant.Core {
 		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
+		public static GpioEventManager EventManager { get; set; }
 		public static TaskList TaskManager = new TaskList();
 		public static ModuleInitializer Modules { get; set; }
 		public static DateTime StartupTime;
@@ -201,6 +202,7 @@ namespace HomeAssistant.Core {
 					Pi.Init<BootstrapWiringPi>();
 					Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
 					Controller.DisplayPiInfo();
+					EventManager = Controller.GpioPollingManager;
 					Logger.Log("Successfully Initiated Pi Configuration!");
 				}
 				else {
@@ -276,6 +278,11 @@ namespace HomeAssistant.Core {
 					}
 
 					Controller.RegisterPinEvents(pinData);
+
+					foreach (GpioEventGenerator c in EventManager.GpioPinEventGenerators) {
+						c.GPIOPinValueChanged += OnPinValueChanged;
+					}
+
 					Logger.Log("test task ran successfully.");
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
@@ -719,7 +726,9 @@ namespace HomeAssistant.Core {
 			}
 
 			if (Controller?.GpioPollingManager != null) {
-				Controller.GpioPollingManager.GPIOPinValueChanged -= OnPinValueChanged;
+				foreach (GpioEventGenerator c in EventManager.GpioPinEventGenerators) {
+					c.GPIOPinValueChanged -= OnPinValueChanged;
+				}
 			}
 
 			if (ModuleWatcher != null && ModuleWatcher.ModuleWatcherOnline) {
