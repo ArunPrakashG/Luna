@@ -9,6 +9,18 @@ namespace HomeAssistant.Core {
 			NONE
 		}
 
+		public enum ModuleLoaderContext : byte {
+			EmailClients,
+			DiscordClients,
+			GoogleMaps,
+			MiscModules,
+			SteamClients,
+			YoutubeClients,
+			Logger,
+			All,
+			None
+		}
+
 		public enum PiContext : byte {
 			GPIO,
 			RESTART,

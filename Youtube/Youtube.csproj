@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Youtube\bin\Debug\netcoreapp2.1\Youtube.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)Youtube\bin\Debug\netcoreapp2.1\Youtube.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules\YoutubeModules&quot; /Y /I" />
   </Target>
 
 </Project>

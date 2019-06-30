@@ -61,7 +61,7 @@ namespace HomeAssistant.Modules {
 		public List<IMiscModule> MiscModule { get; private set; } = new List<IMiscModule>();
 
 		[NotNull]
-		public (bool, Modules) LoadModules() {
+		public (bool, Modules) LoadModules(ModuleLoaderContext loadContext = ModuleLoaderContext.All) {
 			if (!Modules.IsModulesEmpty) {
 				return (false, Modules);
 			}
@@ -74,28 +74,73 @@ namespace HomeAssistant.Modules {
 			}
 
 			Logger.Log("Loading modules...");
-			if (Load<IEmailClient>(ModulesContext.Email)) {
-				Logger.Log("All Email modules have been loaded.", LogLevels.Trace);
-			}
 
-			if (Load<IDiscordBot>(ModulesContext.Discord)) {
-				Logger.Log("Discord bot has been loaded.", LogLevels.Trace);
-			}
+			switch (loadContext) {
+				case ModuleLoaderContext.All:
+					if (Load<IEmailClient>(ModulesContext.Email)) {
+						Logger.Log("All Email modules have been loaded.", LogLevels.Trace);
+					}
 
-			if (Load<ISteamClient>(ModulesContext.Steam)) {
-				Logger.Log("Steam client has been loaded.", LogLevels.Trace);
-			}
+					if (Load<IDiscordBot>(ModulesContext.Discord)) {
+						Logger.Log("Discord bot has been loaded.", LogLevels.Trace);
+					}
 
-			if (Load<IGoogleMap>(ModulesContext.GoogleMap)) {
-				Logger.Log("Google map serivces has been loaded.", LogLevels.Trace);
-			}
+					if (Load<ISteamClient>(ModulesContext.Steam)) {
+						Logger.Log("Steam client has been loaded.", LogLevels.Trace);
+					}
 
-			if (Load<IYoutubeClient>(ModulesContext.Youtube)) {
-				Logger.Log("Youtube client has been loaded.", LogLevels.Trace);
-			}
+					if (Load<IGoogleMap>(ModulesContext.GoogleMap)) {
+						Logger.Log("Google map serivces has been loaded.", LogLevels.Trace);
+					}
 
-			if (Load<IMiscModule>(ModulesContext.Misc)) {
-				Logger.Log("Misc modules have been loaded.", LogLevels.Trace);
+					if (Load<IYoutubeClient>(ModulesContext.Youtube)) {
+						Logger.Log("Youtube client has been loaded.", LogLevels.Trace);
+					}
+
+					if (Load<IMiscModule>(ModulesContext.Misc)) {
+						Logger.Log("Misc modules have been loaded.", LogLevels.Trace);
+					}
+
+					break;
+				case ModuleLoaderContext.DiscordClients:
+					if (Load<IDiscordBot>(ModulesContext.Discord)) {
+						Logger.Log("Discord bot has been loaded.", LogLevels.Trace);
+					}
+
+					break;
+				case ModuleLoaderContext.EmailClients:
+					if (Load<IEmailClient>(ModulesContext.Email)) {
+						Logger.Log("All Email modules have been loaded.", LogLevels.Trace);
+					}
+
+					break;
+				case ModuleLoaderContext.GoogleMaps:
+					if (Load<IGoogleMap>(ModulesContext.GoogleMap)) {
+						Logger.Log("Google map serivces has been loaded.", LogLevels.Trace);
+					}
+
+					break;
+				case ModuleLoaderContext.MiscModules:
+					if (Load<IMiscModule>(ModulesContext.Misc)) {
+						Logger.Log("Misc modules have been loaded.", LogLevels.Trace);
+					}
+
+					break;
+				case ModuleLoaderContext.SteamClients:
+					if (Load<ISteamClient>(ModulesContext.Steam)) {
+						Logger.Log("Steam client has been loaded.", LogLevels.Trace);
+					}
+
+					break;
+				case ModuleLoaderContext.YoutubeClients:
+					if (Load<IYoutubeClient>(ModulesContext.Youtube)) {
+						Logger.Log("Youtube client has been loaded.", LogLevels.Trace);
+					}
+
+					break;
+				case ModuleLoaderContext.None:
+					Logger.Log("Loader context is set to load none of modules. therefore, aborting the loading process.");
+					break;
 			}
 
 			return (true, Modules);

@@ -70,22 +70,22 @@
 		<None Update="HomeAssistant_GCloud.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\Discord.dll">
+		<None Update="Modules\DiscordModules\Discord.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\Email.dll">
+		<None Update="Modules\EmailModules\Email.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\GoogleMap.dll">
+		<None Update="Modules\GoogleMapModules\GoogleMap.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\MiscModule.dll">
+		<None Update="Modules\MiscModules\MiscModule.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\Steam.dll">
+		<None Update="Modules\SteamModules\Steam.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\Youtube.dll">
+		<None Update="Modules\YoutubeModules\Youtube.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="NLog.config">
@@ -110,6 +110,7 @@
 
 	<ItemGroup>
 	  <Folder Include="Config\SteamBots\" />
+	  <Folder Include="Modules\Loggers\" />
 	</ItemGroup>
 
 	<PropertyGroup>

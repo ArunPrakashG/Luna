@@ -35,13 +35,14 @@ namespace HomeAssistant.Core {
 			}
 
 			FileSystemWatcher = new FileSystemWatcher(Constants.ConfigDirectory) {
-				NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.LastAccess | NotifyFilters.CreationTime,
+				NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
 				Filter = "*.json"
 			};
 
 			FileSystemWatcher.Created += OnFileEventRaised;
 			FileSystemWatcher.Changed += OnFileEventRaised;
 			FileSystemWatcher.Renamed += OnFileEventRaised;
+			FileSystemWatcher.IncludeSubdirectories = false;
 			FileSystemWatcher.EnableRaisingEvents = true;
 			ConfigWatcherOnline = true;
 			Logger.Log("Config watcher started sucessfully!");
@@ -74,7 +75,7 @@ namespace HomeAssistant.Core {
 			double secondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
 			LastRead = DateTime.Now;
 
-			if (secondsSinceLastRead <= 10) {
+			if (secondsSinceLastRead <= 2) {
 				return;
 			}
 

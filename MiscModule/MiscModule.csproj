@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)MiscModule\bin\Debug\netcoreapp2.1\MiscModule.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)MiscModule\bin\Debug\netcoreapp2.1\MiscModule.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules\MiscModules&quot; /Y /I" />
   </Target>
 
 </Project>

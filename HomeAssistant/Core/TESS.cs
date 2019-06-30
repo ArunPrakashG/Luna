@@ -266,24 +266,7 @@ namespace HomeAssistant.Core {
 					await Exit(true).ConfigureAwait(false);
 				}
 				else if (pressedKey.Equals(testKey)) {
-					Logger.Log("Running pre-configured tests...");
-					List<GpioPinEventData> pinData = new List<GpioPinEventData>();
-
-					foreach (int pin in Config.RelayPins) {
-						pinData.Add(new GpioPinEventData() {
-							PinMode = GpioPinDriveMode.Output,
-							GpioPin = pin,
-							PinEventState = GpioPinEventStates.ALL
-						});
-					}
-
-					Controller.RegisterPinEvents(pinData);
-
-					foreach (GpioEventGenerator c in EventManager.GpioPinEventGenerators) {
-						c.GPIOPinValueChanged += OnPinValueChanged;
-					}
-
-					Logger.Log("test task ran successfully.");
+					Logger.Log("No test tasks configured.");
 				}
 				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
 					DisplayCommandMenu();
@@ -291,27 +274,6 @@ namespace HomeAssistant.Core {
 				else {
 					continue;
 				}
-			}
-		}
-
-		[Obsolete("Temporary use")]
-		private static void OnPinValueChanged(object sender, GpioPinValueChangedEventArgs e) {
-			switch (e.PinState) {
-				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.OFF:
-					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)");
-					break;
-				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.ON:
-					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)");
-					break;
-				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.OFF:
-					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)");
-					break;
-				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.ON:
-					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)");
-					break;
-				default:
-					Logger.Log($"Value for {e.PinNumber} pin changed to {e.PinCurrentDigitalValue} from {e.PinPreviousDigitalValue.ToString()}");
-					break;
 			}
 		}
 
@@ -723,12 +685,6 @@ namespace HomeAssistant.Core {
 
 			if (ConfigWatcher.ConfigWatcherOnline) {
 				ConfigWatcher.StopConfigWatcher();
-			}
-
-			if (Controller?.GpioPollingManager != null) {
-				foreach (GpioEventGenerator c in EventManager.GpioPinEventGenerators) {
-					c.GPIOPinValueChanged -= OnPinValueChanged;
-				}
 			}
 
 			if (ModuleWatcher != null && ModuleWatcher.ModuleWatcherOnline) {

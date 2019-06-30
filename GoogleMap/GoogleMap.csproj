@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)GoogleMap\bin\Debug\netcoreapp2.1\GoogleMap.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)GoogleMap\bin\Debug\netcoreapp2.1\GoogleMap.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules\GoogleMapModules&quot; /Y /I" />
   </Target>
 
   <ItemGroup>

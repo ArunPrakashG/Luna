@@ -48,7 +48,47 @@ namespace HomeAssistant.Core {
 			GPIOConfigHandler = configHandler;
 			GPIOConfigRoot = rootObject;
 			GpioPollingManager = new GpioEventManager(this);
+
+			Helpers.ScheduleTask(() => {
+				List<GpioPinEventData> pinData = new List<GpioPinEventData>();
+
+				foreach (int pin in Tess.Config.RelayPins) {
+					pinData.Add(new GpioPinEventData() {
+						PinMode = GpioPinDriveMode.Output,
+						GpioPin = pin,
+						PinEventState = GpioPinEventStates.ALL
+					});
+				}
+
+				RegisterPinEvents(pinData);
+
+				foreach (GpioEventGenerator c in GpioPollingManager.GpioPinEventGenerators) {
+					c.GPIOPinValueChanged += OnGpioPinValueChanged;
+				}
+
+			}, TimeSpan.FromSeconds(5));
+
 			Logger.Log("Initiated GPIO Controller class!", LogLevels.Trace);
+		}
+
+		private void OnGpioPinValueChanged (object sender, GpioPinValueChangedEventArgs e) {
+			switch (e.PinState) {
+				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.OFF:
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)");
+					break;
+				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.ON:
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)");
+					break;
+				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.OFF:
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)");
+					break;
+				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.ON:
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)");
+					break;
+				default:
+					Logger.Log($"Value for {e.PinNumber} pin changed to {e.PinCurrentDigitalValue} from {e.PinPreviousDigitalValue.ToString()}");
+					break;
+			}
 		}
 
 		public void RegisterPinEvents (GpioPinEventData pinData) {
@@ -496,6 +536,12 @@ namespace HomeAssistant.Core {
 			}
 
 			await Task.Delay(100).ConfigureAwait(false);
+
+			if (GpioPollingManager != null) {
+				foreach (GpioEventGenerator c in GpioPollingManager.GpioPinEventGenerators) {
+					c.GPIOPinValueChanged -= OnGpioPinValueChanged;
+				}
+			}
 
 			GpioPollingManager.ExitEventGenerator();
 
