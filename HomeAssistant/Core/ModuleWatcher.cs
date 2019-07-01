@@ -116,6 +116,7 @@ namespace HomeAssistant.Core {
 					break;
 				default:
 					Helpers.InBackground(() => {
+						Logger.Log("Loading dll...", Enums.LogLevels.Trace);
 						(bool, Modules.Modules) status = Tess.Modules.LoadModules(loaderContext);
 					});
 					break;

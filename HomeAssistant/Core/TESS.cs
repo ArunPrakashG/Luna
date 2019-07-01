@@ -45,15 +45,15 @@ namespace HomeAssistant.Core {
 		public static CoreConfig Config = new CoreConfig();
 		private static readonly ConfigWatcher ConfigWatcher = new ConfigWatcher();
 		private static readonly ModuleWatcher ModuleWatcher = new ModuleWatcher();
-		public static GPIOConfigHandler GPIOConfigHandler = new GPIOConfigHandler();
+		public static GPIOConfigHandler GPIOConfigHandler {get; private set; } = new GPIOConfigHandler();
 		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
 		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
 		public static GpioEventManager EventManager { get; set; }
-		public static TaskList TaskManager = new TaskList();
-		public static ModuleInitializer Modules { get; set; }
+		public static TaskList TaskManager {get; private set;}= new TaskList();
+		public static ModuleInitializer Modules { get; private set; }
 		public static DateTime StartupTime;
 		private static Timer RefreshConsoleTitleTimer;
-		public static bool CoreInitiationCompleted { get; set; }
+		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; set; }
 		public static bool IsUnknownOs { get; set; }
 		public static bool IsNetworkAvailable { get; set; }
@@ -79,6 +79,7 @@ namespace HomeAssistant.Core {
 			try {
 				await Helpers.DisplayTessASCII().ConfigureAwait(false);
 				Constants.ExternelIP = Helpers.GetExternalIp();
+				Constants.LocalIP = Helpers.GetLocalIpAddress();
 
 				if (string.IsNullOrEmpty(Constants.ExternelIP) || string.IsNullOrWhiteSpace(Constants.ExternelIP)) {
 					Constants.ExternelIP = "Failed. No internet connection.";
@@ -226,7 +227,7 @@ namespace HomeAssistant.Core {
 		}
 
 		private static void SetConsoleTitle() {
-			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Constants.ExternelIP}:{Config.TCPServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
+			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Constants.LocalIP}:{Config.KestrelServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
 			if (RefreshConsoleTitleTimer == null) {
 				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));

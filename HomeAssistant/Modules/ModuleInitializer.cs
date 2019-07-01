@@ -73,7 +73,7 @@ namespace HomeAssistant.Modules {
 				return (false, Modules);
 			}
 
-			Logger.Log("Loading modules...");
+			Logger.Log("Loading modules...", LogLevels.Trace);
 
 			switch (loadContext) {
 				case ModuleLoaderContext.All:
@@ -177,7 +177,7 @@ namespace HomeAssistant.Modules {
 								Discord.Add(plugin);
 							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!");
+							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 							return true;
 						}
 						catch (Exception e) {
@@ -211,7 +211,7 @@ namespace HomeAssistant.Modules {
 								Mail.Add(plugin);
 							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!");
+							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 							return true;
 						}
 						catch (Exception e) {
@@ -247,7 +247,7 @@ namespace HomeAssistant.Modules {
 								Map.Add(plugin);
 							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!");
+							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 							return true;
 						}
 						catch (Exception e) {
@@ -283,7 +283,7 @@ namespace HomeAssistant.Modules {
 								Youtube.Add(plugin);
 							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!");
+							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 							return true;
 						}
 						catch (Exception e) {
@@ -318,7 +318,7 @@ namespace HomeAssistant.Modules {
 								Steam.Add(plugin);
 							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!");
+							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 							return true;
 						}
 						catch (Exception e) {
@@ -353,7 +353,7 @@ namespace HomeAssistant.Modules {
 								MiscModule.Add(plugin);
 							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!");
+							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 							return true;
 						}
 						catch (Exception e) {
@@ -408,7 +408,7 @@ namespace HomeAssistant.Modules {
 						assembly = Assembly.LoadFrom(assemblyPath);
 					}
 					catch (Exception e) {
-						Logger.Log($"Assembly path is invalid. {assemblyPath}");
+						Logger.Log($"Assembly path is invalid. {assemblyPath}", LogLevels.Warn);
 						Logger.Log(e);
 						continue;
 					}
