@@ -205,7 +205,7 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Tess.CoreInitiationCompleted || Tess.DisablePiMethods) {
 				return;
 			}
 

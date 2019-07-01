@@ -54,7 +54,7 @@ namespace HomeAssistant.Core {
 		public static DateTime StartupTime;
 		private static Timer RefreshConsoleTitleTimer;
 		public static bool CoreInitiationCompleted { get; set; }
-		private static bool DisablePiMethods { get; set; }
+		public static bool DisablePiMethods { get; set; }
 		public static bool IsUnknownOs { get; set; }
 		public static bool IsNetworkAvailable { get; set; }
 		public static bool DisableFirstChanceLogWithDebug { get; set; }

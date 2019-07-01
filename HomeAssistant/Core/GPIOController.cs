@@ -50,6 +50,10 @@ namespace HomeAssistant.Core {
 			GpioPollingManager = new GpioEventManager(this);
 
 			Helpers.ScheduleTask(() => {
+				if (GpioPollingManager == null) {
+					return;
+				}
+
 				List<GpioPinEventData> pinData = new List<GpioPinEventData>();
 
 				foreach (int pin in Tess.Config.RelayPins) {
@@ -60,7 +64,7 @@ namespace HomeAssistant.Core {
 					});
 				}
 
-				RegisterPinEvents(pinData);
+				GpioPollingManager.RegisterGpioEvent(pinData);
 
 				foreach (GpioEventGenerator c in GpioPollingManager.GpioPinEventGenerators) {
 					c.GPIOPinValueChanged += OnGpioPinValueChanged;
@@ -89,30 +93,6 @@ namespace HomeAssistant.Core {
 					Logger.Log($"Value for {e.PinNumber} pin changed to {e.PinCurrentDigitalValue} from {e.PinPreviousDigitalValue.ToString()}");
 					break;
 			}
-		}
-
-		public void RegisterPinEvents (GpioPinEventData pinData) {
-			if (GpioPollingManager == null) {
-				return;
-			}
-
-			if (pinData == null) {
-				return;
-			}
-
-			GpioPollingManager.RegisterGpioEvent(pinData);
-		}
-
-		public void RegisterPinEvents(List<GpioPinEventData> pinDataList) {
-			if (GpioPollingManager == null) {
-				return;
-			}
-
-			if (pinDataList == null || pinDataList.Count <= 0) {
-				return;
-			}
-
-			GpioPollingManager.RegisterGpioEvent(pinDataList);
 		}
 
 		private void OnEnqueued(GPIOTaskQueue item) {
@@ -168,7 +148,7 @@ namespace HomeAssistant.Core {
 
 			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(pin);
 
-			//TODO: Task based system for scheduling various tasks like remainders and charger controller		
+			//TODO: Task based system for scheduling various tasks like remainders and charger controller
 			if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.Low) {
 				if (PinStatus.IsOn) {
 					GPIOTaskQueue task = new GPIOTaskQueue() {
@@ -396,7 +376,7 @@ namespace HomeAssistant.Core {
 			IGpioPin GPIOPin = Pi.Gpio[pin];
 			GPIOPin.PinMode = mode;
 			GPIOPin.Write(state);
-			
+
 			switch (mode) {
 				case GpioPinDriveMode.Input:
 					switch (state) {
