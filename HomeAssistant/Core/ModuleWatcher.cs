@@ -11,7 +11,7 @@ namespace HomeAssistant.Core {
 		public bool ModuleWatcherOnline = false;
 
 		public ModuleWatcher() {
-			if (FileSystemWatcher != null) {
+			if (FileSystemWatcher != null){
 				FileSystemWatcher.Dispose();
 				FileSystemWatcher = null;
 			}
@@ -117,9 +117,6 @@ namespace HomeAssistant.Core {
 				default:
 					Helpers.InBackground(() => {
 						(bool, Modules.Modules) status = Tess.Modules.LoadModules(loaderContext);
-						if (status.Item1) {
-							Tess.Modules.Modules = status.Item2;
-						}
 					});
 					break;
 			}
