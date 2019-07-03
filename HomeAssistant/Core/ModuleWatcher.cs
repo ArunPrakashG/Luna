@@ -81,7 +81,7 @@ namespace HomeAssistant.Core {
 			if (t.Equals("DiscordModules", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.DiscordClients;
 			}
-			else if (t.Equals("EmailModules", StringComparison.OrdinalIgnoreCase)) {
+			else if (t.Equals("EmailClients", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.EmailClients;
 			}
 			else if (t.Equals("GoogleMapModules", StringComparison.OrdinalIgnoreCase)) {
@@ -90,10 +90,10 @@ namespace HomeAssistant.Core {
 			else if (t.Equals("MiscModules", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.MiscModules;
 			}
-			else if (t.Equals("SteamModules", StringComparison.OrdinalIgnoreCase)) {
+			else if (t.Equals("SteamClients", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.SteamClients;
 			}
-			else if (t.Equals("YoutubeModules", StringComparison.OrdinalIgnoreCase)) {
+			else if (t.Equals("YoutubeClients", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.YoutubeClients;
 			}
 			else if (t.Equals("Loggers", StringComparison.OrdinalIgnoreCase)) {
@@ -117,7 +117,7 @@ namespace HomeAssistant.Core {
 				default:
 					Helpers.InBackground(() => {
 						Logger.Log("Loading dll...", Enums.LogLevels.Trace);
-						(bool, Modules.Modules) status = Tess.Modules.LoadModules(loaderContext);
+						(bool, Modules.LoadedModules) status = Tess.ModuleLoader.LoadModules(loaderContext);
 					});
 					break;
 			}

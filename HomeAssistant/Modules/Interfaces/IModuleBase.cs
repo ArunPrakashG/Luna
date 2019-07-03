@@ -7,7 +7,7 @@ namespace HomeAssistant.Modules.Interfaces {
 		///<summary>
 		/// Identifier for the Module.
 		///</summary>
-		string ModuleIdentifier { get; }
+		long ModuleIdentifier { get; set; }
 
 		///<summary>
 		/// Specifies if the module requires a stable constant internet connection to function.

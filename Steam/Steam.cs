@@ -277,12 +277,12 @@ namespace Steam {
 	public class Steam : IModuleBase, ISteamClient {
 		private readonly Logger Logger = new Logger("STEAM");
 		public Steam SteamInstance { get; set; }
-		public bool RequiresInternetConnection { get; set; }
+		public bool RequiresInternetConnection { get; set; } = true;
 		public ConcurrentDictionary<string, ISteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, ISteamBot>();
 		private string BotConfigDirectory => Constants.ConfigDirectory + "/SteamBots/";
-		public string ModuleIdentifier { get; } = nameof(Steam);
+		public long ModuleIdentifier { get; set; }
 		public Version ModuleVersion { get; } = new Version("2.0.0.0");
-		public string ModuleAuthor { get; } = "Arun";
+		public string ModuleAuthor { get; } = "Arun Prakash";
 
 		public (bool, ConcurrentDictionary<string, ISteamBot>) InitSteamBots() {
 			if (!Directory.Exists(BotConfigDirectory)) {

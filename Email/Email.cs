@@ -20,9 +20,9 @@ namespace Email {
 	public class Email : IModuleBase, IEmailClient {
 		private readonly Logger Logger = new Logger("EMAIL-HANDLER");
 		public bool RequiresInternetConnection { get; set; }
-		public string ModuleIdentifier { get; set; } = nameof(Email);
-		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
-		public string ModuleAuthor { get; set; } = "Arun";
+		public long ModuleIdentifier { get; set; }
+		public Version ModuleVersion { get; set; } = new Version("5.0.0.0");
+		public string ModuleAuthor { get; set; } = "Arun Prakash";
 
 		public static EmailConfigRoot ConfigRoot { get; set; }
 

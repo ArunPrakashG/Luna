@@ -39,22 +39,22 @@ namespace HomeAssistant.Core {
 
 	public class Tess {
 		private static readonly Logger Logger = new Logger("TESS");
-		public static GPIOController Controller;
-		public static Updater Update = new Updater();
-		public static ProcessStatus TessStatus;
-		public static CoreConfig Config = new CoreConfig();
-		private static readonly ConfigWatcher ConfigWatcher = new ConfigWatcher();
-		private static readonly ModuleWatcher ModuleWatcher = new ModuleWatcher();
-		public static GPIOConfigHandler GPIOConfigHandler {get; private set; } = new GPIOConfigHandler();
-		private static GPIOConfigRoot GPIORootObject = new GPIOConfigRoot();
-		private static List<GPIOPinConfig> GPIOConfig = new List<GPIOPinConfig>();
+		public static GPIOController Controller { get; private set; }
+		public static Updater Update { get; private set; } = new Updater();
+		public static ProcessStatus TessStatus { get; private set; }
+		public static CoreConfig Config { get; set; } = new CoreConfig();
+		private static ConfigWatcher ConfigWatcher { get; set; } = new ConfigWatcher();
+		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
+		public static GPIOConfigHandler GPIOConfigHandler { get; private set; } = new GPIOConfigHandler();
+		private static GPIOConfigRoot GPIORootObject { get; set; } = new GPIOConfigRoot();
+		private static List<GPIOPinConfig> GPIOConfig { get; set; } = new List<GPIOPinConfig>();
 		public static GpioEventManager EventManager { get; set; }
-		public static TaskList TaskManager {get; private set;}= new TaskList();
-		public static ModuleInitializer Modules { get; private set; }
-		public static DateTime StartupTime;
-		private static Timer RefreshConsoleTitleTimer;
+		public static TaskList TaskManager { get; private set; } = new TaskList();
+		public static ModuleInitializer ModuleLoader { get; private set; }
+		public static DateTime StartupTime { get; private set; }
+		private static Timer RefreshConsoleTitleTimer { get; set; }
 		public static bool CoreInitiationCompleted { get; private set; }
-		public static bool DisablePiMethods { get; set; }
+		public static bool DisablePiMethods { get; private set; }
 		public static bool IsUnknownOs { get; set; }
 		public static bool IsNetworkAvailable { get; set; }
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
@@ -161,11 +161,11 @@ namespace HomeAssistant.Core {
 					}
 				}
 
-				Modules = new ModuleInitializer();
+				ModuleLoader = new ModuleInitializer();
 
 				if (IsNetworkAvailable) {
 					if (Config.EnableModules) {
-						(bool, Modules.Modules) loadStatus = Modules.LoadModules();
+						(bool, Modules.LoadedModules) loadStatus = ModuleLoader.LoadModules();
 						if (!loadStatus.Item1) {
 							Logger.Log("Failed to load modules.", LogLevels.Warn);
 						}
@@ -218,12 +218,11 @@ namespace HomeAssistant.Core {
 			CoreInitiationCompleted = true;
 
 			if (Config.DisplayStartupMenu && !DisablePiMethods) {
-				await DisplayRelayMenu().ConfigureAwait(false);
+				await DisplayRelayCycleMenu().ConfigureAwait(false);
 			}
 
 			TTSService.SpeakText("TESS Home assistant have been sucessfully started!", SpeechContext.TessStartup, true);
-			Logger.Log("Waiting for commands...");
-			await KeepAlive('q', 'm', 'e', 't', 'c').ConfigureAwait(false);
+			await KeepAlive().ConfigureAwait(false);
 		}
 
 		private static void SetConsoleTitle() {
@@ -234,46 +233,118 @@ namespace HomeAssistant.Core {
 			}
 		}
 
-		private static async Task KeepAlive(char loopBreaker = 'q', char menuKey = 'm', char quickShutDown = 'e', char testKey = 't', char commandKey = 'c') {
-			Logger.Log($"Press {loopBreaker} to quit in 5 seconds.");
-			Logger.Log($"Press {quickShutDown} to exit application immediately.");
+		private static async Task DisplayConsoleCommandMenu() {
+			Logger.Log("Displaying console command window", LogLevels.Trace);
+			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", LogLevels.UserInput);
+			Logger.Log($"{Constants.ConsoleQuickShutdownKey} - Quick shutdown the assistant.", LogLevels.UserInput);
+			Logger.Log($"{Constants.ConsoleDelayedShutdownKey} - Shutdown assistant in 5 seconds.", LogLevels.UserInput);
 
 			if (!DisablePiMethods) {
-				Logger.Log($"Press {menuKey} to display GPIO menu.");
+				Logger.Log($"{Constants.ConsoleRelayCommandMenuKey} - Display relay pin control menu.", LogLevels.UserInput);
+				Logger.Log($"{Constants.ConsoleRelayCycleMenuKey} - Display relay cycle control menu.", LogLevels.UserInput);
 			}
+			
+			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run pre-configured test methods or tasks.", LogLevels.UserInput);
 
-			Logger.Log($"Press {testKey} to execute the TEST methods.");
-
-			if (!DisablePiMethods) {
-				Logger.Log($"Press {commandKey} to display command menu.");
+			if (Config.EnableModules) {
+				Logger.Log($"{Constants.ConsoleModuleShutdownKey} - Invoke shutdown method on all currently running modules.", LogLevels.UserInput);
 			}
+			
+			Logger.Log($"-------------------------------------------------------------------", LogLevels.UserInput);
+			Logger.Log("Awaiting user input: \n", LogLevels.UserInput);
+
+			int failedTriesCount = 0;
+			int maxTries = 3;
+
+			while (true) {
+				if (failedTriesCount > maxTries) {
+					Logger.Log($"Multiple wrong inputs. please start the command menu again  by pressing {Constants.ConsoleCommandMenuKey} key.", LogLevels.Warn);
+					return;
+				}
+
+				char pressedKey = Console.ReadKey().KeyChar;
+
+				switch (pressedKey) {
+					case Constants.ConsoleQuickShutdownKey: {
+							Logger.Log("Force quitting assistant...", LogLevels.Warn);
+							await Exit(true).ConfigureAwait(false);
+						}
+						return;
+
+					case Constants.ConsoleDelayedShutdownKey: {
+							Logger.Log("Gracefully shutting down assistant...", LogLevels.Warn);
+							GracefullModuleShutdown = true;
+							await Task.Delay(5000).ConfigureAwait(false);
+							await Exit(0).ConfigureAwait(false);
+						}
+						return;
+
+					case Constants.ConsoleRelayCommandMenuKey when !DisablePiMethods: {
+							Logger.Log("Displaying relay command menu...", LogLevels.Warn);
+							DisplayRelayCommandMenu();
+						}
+						return;
+
+					case Constants.ConsoleRelayCycleMenuKey when !DisablePiMethods: {
+							Logger.Log("Displaying relay cycle menu...", LogLevels.Warn);
+							await DisplayRelayCycleMenu().ConfigureAwait(false);
+						}
+						return;
+
+					case Constants.ConsoleRelayCommandMenuKey when DisablePiMethods: {
+							Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", LogLevels.Warn);
+
+						}
+						return;
+
+					case Constants.ConsoleRelayCycleMenuKey when DisablePiMethods: {
+							Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", LogLevels.Warn);
+
+						}
+						return;
+
+					case Constants.ConsoleTestMethodExecutionKey: {
+							Logger.Log("Executing test methods/tasks", LogLevels.Warn);
+							Logger.Log("Test method execution finished successfully!", LogLevels.Sucess);
+						}
+						return;
+
+					case Constants.ConsoleModuleShutdownKey when !ModuleLoader.LoadedModules.IsModulesEmpty && Config.EnableModules: {
+							Logger.Log("Shutting down all modules...", LogLevels.Warn);
+							await ModuleLoader.OnCoreShutdown().ConfigureAwait(false);
+						}
+						return;
+					case Constants.ConsoleModuleShutdownKey when ModuleLoader.LoadedModules.IsModulesEmpty: {
+							Logger.Log("There are no modules to shutdown...");
+						}
+						return;
+
+					default: {
+							if (failedTriesCount > maxTries) {
+								Logger.Log($"Unknown key was pressed. ({maxTries - failedTriesCount} tries left)", LogLevels.Warn);
+							}
+
+							failedTriesCount++;
+							continue;
+						}
+				}
+			}
+		}
+
+		private static async Task KeepAlive() {
+			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Sucess);
 
 			while (true) {
 				char pressedKey = Console.ReadKey().KeyChar;
 
-				if (pressedKey.Equals(loopBreaker)) {
-					Logger.Log("Gracefully shutting down assistant...");
-					GracefullModuleShutdown = true;
-					await Task.Delay(5000).ConfigureAwait(false);
-					await Exit(0).ConfigureAwait(false);
-				}
-				else if (pressedKey.Equals(menuKey) && !DisablePiMethods) {
-					Logger.Log("Displaying relay testing menu...", LogLevels.Trace);
-					await DisplayRelayMenu().ConfigureAwait(false);
-					continue;
-				}
-				else if (pressedKey.Equals(quickShutDown)) {
-					Logger.Log("Force quitting assistant...");
-					await Exit(true).ConfigureAwait(false);
-				}
-				else if (pressedKey.Equals(testKey)) {
-					Logger.Log("No test tasks configured.");
-				}
-				else if (pressedKey.Equals(commandKey) && !DisablePiMethods) {
-					DisplayCommandMenu();
-				}
-				else {
-					continue;
+				switch (pressedKey) {
+					case Constants.ConsoleCommandMenuKey:
+						await DisplayConsoleCommandMenu().ConfigureAwait(false);
+						break;
+
+					default:
+						Logger.Log("Unknown key pressed during KeepAlive() command", LogLevels.Trace);
+						continue;
 				}
 			}
 		}
@@ -311,8 +382,8 @@ namespace HomeAssistant.Core {
 			});
 		}
 
-		private static void DisplayCommandMenu() {
-			Logger.Log("--------------------COMMAND MENU--------------------", LogLevels.UserInput);
+		private static void DisplayRelayCommandMenu() {
+			Logger.Log("-------------------- RELAY COMMAND MENU --------------------", LogLevels.UserInput);
 			Logger.Log("1 | Relay pin 1", LogLevels.UserInput);
 			Logger.Log("2 | Relay pin 2", LogLevels.UserInput);
 			Logger.Log("3 | Relay pin 3", LogLevels.UserInput);
@@ -329,10 +400,7 @@ namespace HomeAssistant.Core {
 			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
 				Logger.Log("Could not parse the input key. please try again!", LogLevels.Error);
 				Logger.Log("Command menu closed.");
-				Logger.Log($"Press q to quit in 5 seconds.");
-				Logger.Log($"Press e to exit application immediately.");
-				Logger.Log($"Press m to display GPIO menu.");
-				Logger.Log($"Press c to display command menu.");
+				Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Sucess);
 				return;
 			}
 
@@ -523,13 +591,10 @@ namespace HomeAssistant.Core {
 			}
 
 			Logger.Log("Command menu closed.");
-			Logger.Log($"Press q to quit in 5 seconds.");
-			Logger.Log($"Press e to exit application immediately.");
-			Logger.Log($"Press m to display GPIO menu.");
-			Logger.Log($"Press c to display command menu.");
+			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Sucess);
 		}
 
-		private static async Task DisplayRelayMenu() {
+		private static async Task DisplayRelayCycleMenu() {
 			if (DisablePiMethods) {
 				Logger.Log("You are running on incorrect OS or device. Pi controls are disabled.", LogLevels.Error);
 				return;
@@ -639,8 +704,8 @@ namespace HomeAssistant.Core {
 				Logger.Log("Stopped update timer.", LogLevels.Warn);
 			}
 
-			if (Modules != null) {
-				_ = Modules.OnCoreShutdown();
+			if (ModuleLoader != null) {
+				_ = ModuleLoader.OnCoreShutdown();
 			}
 
 			if (KestrelServer.IsServerOnline) {
@@ -662,8 +727,8 @@ namespace HomeAssistant.Core {
 				await KestrelServer.Start().ConfigureAwait(false);
 			}
 
-			if (IsNetworkAvailable && Modules != null && Config.EnableModules) {
-				if (Modules.LoadModules().Item1) {
+			if (IsNetworkAvailable && ModuleLoader != null && Config.EnableModules) {
+				if (ModuleLoader.LoadModules().Item1) {
 					Logger.Log("Failed to load modules.", LogLevels.Warn);
 				}
 			}
@@ -700,8 +765,8 @@ namespace HomeAssistant.Core {
 				await KestrelServer.Stop().ConfigureAwait(false);
 			}
 
-			if (Modules != null) {
-				_ = await Modules.OnCoreShutdown().ConfigureAwait(false);
+			if (ModuleLoader != null) {
+				_ = await ModuleLoader.OnCoreShutdown().ConfigureAwait(false);
 			}
 
 			if (Controller != null) {

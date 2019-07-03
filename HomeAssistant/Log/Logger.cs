@@ -1,9 +1,8 @@
 using HomeAssistant.Core;
 using HomeAssistant.Extensions;
-using HomeAssistant.Modules;
+using HomeAssistant.Modules.Interfaces;
 using System;
 using System.Runtime.CompilerServices;
-using HomeAssistant.Modules.Interfaces;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Log {
@@ -20,7 +19,7 @@ namespace HomeAssistant.Log {
 
 		public Logger(string loggerIdentifier) => RegisterLogger(loggerIdentifier);
 
-		private void RegisterLogger (string logId) {
+		private void RegisterLogger(string logId) {
 			if (string.IsNullOrEmpty(logId)) {
 				throw new ArgumentNullException(nameof(logId));
 			}
@@ -176,16 +175,28 @@ namespace HomeAssistant.Log {
 		}
 
 		public void DiscordLogToChannel(string message) {
-			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable || Tess.Modules.Discord == null || Tess.Modules.Discord.Count <= 0) {
+			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable || Tess.ModuleLoader.LoadedModules.DiscordBots == null || Tess.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
 				return;
 			}
 
-			Helpers.InBackground(async () => await Tess.Modules.Discord[0].LogToChannel(message).ConfigureAwait(false));
+			if (Helpers.IsNullOrEmpty(message)) {
+				return;
+			}
+
+			Helpers.InBackground(async () => {
+				foreach ((long id, IDiscordBot bot) Dbot in Tess.ModuleLoader.LoadedModules.DiscordBots) {
+					//TODO: create configs for each bot
+					if (Dbot.id != 0 && Dbot.bot.IsServerOnline) {
+						await Dbot.bot.LogToChannel(message).ConfigureAwait(false);
+					}
+				}
+			});
+			
 		}
 
-		public void InitLogger (string logId) => RegisterLogger(logId);
+		public void InitLogger(string logId) => RegisterLogger(logId);
 
-		public void ShutdownLogger () => Logging.LoggerOnShutdown();
+		public void ShutdownLogger() => Logging.LoggerOnShutdown();
 
 	}
 }

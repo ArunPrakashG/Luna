@@ -64,16 +64,16 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// Discord channel logging method.
 		///</summary>
 		/// <param name="message">The log message to be send to the channel.</param>
-
 		void DiscordLogToChannel(string message);
 
 		///<summary>
 		/// Logger startup method.
 		///</summary>
 		/// <param name="logId">Logger name</param>
-
 		void InitLogger(string logId);
-
+		/// <summary>
+		/// Disposes the logger
+		/// </summary>
 		void ShutdownLogger();
 	}
 }

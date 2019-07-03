@@ -10,7 +10,7 @@ namespace HomeAssistant.Extensions {
 		public const string DebugLogPath = @"DebugLog.txt";
 		public const string ConfigDirectory = @"Config";
 		public const string ResourcesDirectory = @"Resources";
-		public const string ModuleDirectory = @"Modules";
+		public const string ModuleDirectory = @"LoadedModules";
 		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 
 		public const string GPIOConfigPath = ConfigDirectory + "/GPIOConfig.json";
@@ -46,15 +46,21 @@ namespace HomeAssistant.Extensions {
 		public const string IMAPPushFileName = "mail_push_notification.mp3";
 		public const string TTSAlertFileName = "tts_alert.mp3";
 
+		public const char ConsoleCommandMenuKey = 'c';
+		public const char ConsoleDelayedShutdownKey = 'q';
+		public const char ConsoleQuickShutdownKey = 'e';
+		public const char ConsoleRelayCommandMenuKey = 'g';
+		public const char ConsoleTestMethodExecutionKey = 't';
+		public const char ConsoleModuleShutdownKey = 'm';
+		public const char ConsoleRelayCycleMenuKey = 'r';
+
 		public static string ExternelIP { get; set; }
 		public static string LocalIP {get; set;}
 		public const string GitHubReleaseURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";
 		public const string GitHubAssetDownloadURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/assets/";
 
 		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-
 		public static Guid ModuleVersion => Assembly.GetEntryAssembly().ManifestModule.ModuleVersionId;
-
 		public static Version Version => Assembly.GetEntryAssembly().GetName().Version;
 	}
 }

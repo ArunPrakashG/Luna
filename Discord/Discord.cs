@@ -16,22 +16,19 @@ using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
 
 namespace Discord {
-	public class Discord : IModuleBase, IDiscordBot {
+	public class Discord : IModuleBase, IDiscordBot, IDiscordLogger {
 		public DiscordSocketClient Client { get; set; }
 		public bool RequiresInternetConnection { get; set; }
 		private readonly CommandService Commands;
 		public bool IsServerOnline { get; set; }
-		internal Logger Logger;
+		internal Logger Logger = new Logger("DISCORD-CLIENT");
 		public CoreConfig Config { get; set; } = Tess.Config;
-		private readonly DiscordLogger DiscordLogger;
 		private readonly string DiscordToken;
-		public string ModuleIdentifier { get; } = nameof(Discord);
-		public Version ModuleVersion { get; } = new Version("4.9.0.0");
-		public string ModuleAuthor { get; } = "Arun";
+		public long ModuleIdentifier { get; set; }
+		public Version ModuleVersion { get; } = new Version("5.0.0.0");
+		public string ModuleAuthor { get; } = "Arun Prakash";
 
 		public Discord() {
-			Logger = new Logger("DISCORD-CLIENT");
-
 			Client = new DiscordSocketClient(new DiscordSocketConfig {
 				LogLevel = LogSeverity.Info,
 				MessageCacheSize = 5,
@@ -46,7 +43,6 @@ namespace Discord {
 			});
 
 			DiscordToken = Helpers.FetchVariable(2, true, "DISCORD_TOKEN");
-			DiscordLogger = new DiscordLogger("DISCORD-CLIENT");
 		}
 
 		public async Task<bool> StopServer() {
@@ -84,7 +80,7 @@ namespace Discord {
 					return false;
 				}
 			}
-			
+
 			return true;
 		}
 
@@ -186,19 +182,19 @@ namespace Discord {
 						return;
 				}
 
-				await DiscordLogger.LogToChannel("Error: " + context.Message.Content + " : " + result.Error + " : " + result.ErrorReason).ConfigureAwait(false);
+				await LogToChannel("Error: " + context.Message.Content + " : " + result.Error + " : " + result.ErrorReason).ConfigureAwait(false);
 				Logger.Log("Error: " + context.Message.Content + " : " + result.Error + " : " + result.ErrorReason, LogLevels.Warn);
 			}
 		}
 
 		private async Task OnClientReady() {
 			await Client.SetGameAsync("Tess home assistant!", null, ActivityType.Playing).ConfigureAwait(false);
-			await DiscordLogger.LogToChannel("TESS discord command bot is ready!").ConfigureAwait(false);
+			await LogToChannel("TESS discord command bot is ready!").ConfigureAwait(false);
 		}
 
 		//Discord Core Logger
 		//Not to be confused with HomeAssistant Discord channel logger
-		public async Task DiscordCoreLogger(LogMessage message) {
+		private async Task DiscordCoreLogger(LogMessage message) {
 			if (!Tess.Config.DiscordBot || !Tess.Config.DiscordLog || !IsServerOnline) {
 				return;
 			}
@@ -255,7 +251,7 @@ namespace Discord {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable || Tess.Modules.Discord == null || Tess.Modules.Discord.Count <= 0) {
+			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable || Tess.ModuleLoader.LoadedModules.DiscordBots == null || Tess.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
 				return;
 			}
 
@@ -624,67 +620,6 @@ namespace Discord {
 		public async Task TessRestart(int delay = 8) {
 			await Response($"Restarting in {delay} seconds").ConfigureAwait(false);
 			await Tess.Restart(8);
-		}
-	}
-
-	public class DiscordLogger : IDiscordLogger {
-		private readonly Logger Logger = new Logger("DISCORD-LOGGER");
-		private readonly string LogIdentifier;
-
-		public DiscordLogger(string logIdentifier) {
-			LogIdentifier = logIdentifier;
-		}
-
-		private string LogOutputFormat(string message) {
-			string shortDate = DateTime.Now.ToShortDateString();
-			string shortTime = DateTime.Now.ToShortTimeString();
-			return $"{shortDate} : {shortTime} | {LogIdentifier} | {message}";
-		}
-
-		public async Task LogToChannel(string message) {
-			if (string.IsNullOrEmpty(message) || string.IsNullOrWhiteSpace(message)) {
-				return;
-			}
-
-			if (!Tess.CoreInitiationCompleted || Tess.Config == null || Tess.Modules == null || !Tess.IsNetworkAvailable) {
-				return;
-			}
-
-			if (!Tess.Config.DiscordBot || !Tess.Config.DiscordLog || !Tess.Modules.Discord[0].IsServerOnline) {
-				return;
-			}
-
-			DiscordSocketClient Client = null;
-			string LogOutput = LogOutputFormat(message);
-			if (Tess.CoreInitiationCompleted && Tess.Modules.Discord != null && Tess.Modules.Discord[0].Client != null && Tess.Modules.Discord[0].Client.ConnectionState == ConnectionState.Connected) {
-				Client = Tess.Modules.Discord[0].Client;
-			}
-			else {
-				Logger.Log("Failed to log to discord as the client appears to be null or unuseable.", LogLevels.Trace);
-				return;
-			}
-
-			try {
-				SocketGuild Guild = Client?.Guilds?.FirstOrDefault(x => x.Id == Tess.Config.DiscordServerID);
-				SocketTextChannel Channel = Guild?.Channels?.FirstOrDefault(x => x.Id == Tess.Config.DiscordLogChannelID) as SocketTextChannel;
-				await Channel.SendMessageAsync(LogOutput).ConfigureAwait(false);
-			}
-			catch (NullReferenceException) {
-				Logger.Log("Null reference exception thrown. possibly, client is null.", LogLevels.Trace);
-				return;
-			}
-			catch (ArgumentOutOfRangeException) {
-				Logger.Log($"The message to send has charecters more than 2000 which is discord limit. ({message.Length} charecters)", LogLevels.Trace);
-				return;
-			}
-			catch (ArgumentException) {
-				Logger.Log($"One of the arguments provided is null or unknown.", LogLevels.Trace);
-				return;
-			}
-			catch (TaskCanceledException) {
-				Logger.Log("A task has been cancelled by waiting.", LogLevels.Trace);
-				return;
-			}
 		}
 	}
 }

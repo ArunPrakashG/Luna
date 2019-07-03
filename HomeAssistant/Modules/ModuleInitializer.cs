@@ -13,64 +13,169 @@ using System.Threading.Tasks;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Modules {
-	public class Modules {
-		public HashSet<IEmailClient> EmailModules { get; set; } = new HashSet<IEmailClient>();
-		public HashSet<IDiscordBot> DiscordModules { get; set; } = new HashSet<IDiscordBot>();
-		public HashSet<IGoogleMap> GoogleMapModules { get; set; } = new HashSet<IGoogleMap>();
-		public HashSet<ISteamClient> SteamModules { get; set; } = new HashSet<ISteamClient>();
-		public HashSet<IYoutubeClient> YoutubeModules { get; set; } = new HashSet<IYoutubeClient>();
-		public HashSet<ILoggerBase> LoggerBase { get; set; } = new HashSet<ILoggerBase>();
-		public HashSet<IMiscModule> MiscModules { get; set; } = new HashSet<IMiscModule>();
+	public class LoadedModules {
+		public HashSet<(long, IEmailClient)> EmailClients { get; set; } = new HashSet<(long, IEmailClient)>();
+		public HashSet<(long, IDiscordBot)> DiscordBots { get; set; } = new HashSet<(long, IDiscordBot)>();
+		public HashSet<(long, IGoogleMap)> GoogleMapModules { get; set; } = new HashSet<(long, IGoogleMap)>();
+		public HashSet<(long, ISteamClient)> SteamClients { get; set; } = new HashSet<(long, ISteamClient)>();
+		public HashSet<(long, IYoutubeClient)> YoutubeClients { get; set; } = new HashSet<(long, IYoutubeClient)>();
+		public HashSet<(long, ILoggerBase)> LoggerBase { get; set; } = new HashSet<(long, ILoggerBase)>();
+		public HashSet<(long, IMiscModule)> MiscModules { get; set; } = new HashSet<(long, IMiscModule)>();
 
 		public HashSet<Assembly> LoadedAssemblies { get; set; } = new HashSet<Assembly>();
 
-		public HashSet<IEmailClient> FailedEmailModules { get; set; } = new HashSet<IEmailClient>();
-		public HashSet<IDiscordBot> FailedDiscordModules { get; set; } = new HashSet<IDiscordBot>();
-		public HashSet<IGoogleMap> FailedGoogleMapModules { get; set; } = new HashSet<IGoogleMap>();
-		public HashSet<ISteamClient> FailedSteamModules { get; set; } = new HashSet<ISteamClient>();
-		public HashSet<IYoutubeClient> FailedYoutubeModules { get; set; } = new HashSet<IYoutubeClient>();
-		public HashSet<ILoggerBase> FailedLoggerBases { get; set; } = new HashSet<ILoggerBase>();
-		public HashSet<IMiscModule> FailedMiscModules { get; set; } = new HashSet<IMiscModule>();
-
 		public bool IsModulesEmpty =>
-			EmailModules.Count <= 0 && DiscordModules.Count <= 0 && GoogleMapModules.Count <= 0 &&
-			SteamModules.Count <= 0 && YoutubeModules.Count <= 0 && LoggerBase.Count <= 0;
-
-		public bool IsEmailModuleEmpty => EmailModules.Count <= 0;
-
-		public bool IsDiscordModuleEmpty => DiscordModules.Count <= 0;
-
-		public bool IsGoogleMapModuleEmpty => GoogleMapModules.Count <= 0;
-
-		public bool IsSteamModuleEmpty => SteamModules.Count <= 0;
-
-		public bool IsYoutubeModuleEmpty => YoutubeModules.Count <= 0;
-
-		public bool IsLoggerBaseEmpty => LoggerBase.Count <= 0;
-		public bool IsMiscModuleEmpty => MiscModules.Count <= 0;
+			EmailClients.Count <= 0 && DiscordBots.Count <= 0 && GoogleMapModules.Count <= 0 &&
+			SteamClients.Count <= 0 && YoutubeClients.Count <= 0 && LoggerBase.Count <= 0;
 	}
 
 	public class ModuleInitializer {
 		private readonly Logger Logger = new Logger("MODULES");
-		public Modules Modules { get; set; } = new Modules();
-		public List<IDiscordBot> Discord { get; private set; } = new List<IDiscordBot>();
-		public List<IGoogleMap> Map { get; private set; } = new List<IGoogleMap>();
-		public List<IYoutubeClient> Youtube { get; private set; } = new List<IYoutubeClient>();
-		public List<IEmailClient> Mail { get; private set; } = new List<IEmailClient>();
-		public List<ISteamClient> Steam { get; private set; } = new List<ISteamClient>();
-		public List<IMiscModule> MiscModule { get; private set; } = new List<IMiscModule>();
+		public LoadedModules LoadedModules { get; private set; } = new LoadedModules();
+		private readonly Random Random = new Random();
 
-		[NotNull]
-		public (bool, Modules) LoadModules(ModuleLoaderContext loadContext = ModuleLoaderContext.All) {
-			if (!Modules.IsModulesEmpty) {
-				return (false, Modules);
+		private bool IsExisitingModule<T>(ModuleLoaderContext context, T module) where T : IModuleBase {
+			if (module == null) {
+				return false;
 			}
 
-			Modules.LoadedAssemblies = LoadAssemblies();
+			switch (context) {
+				case ModuleLoaderContext.DiscordClients: {
+						IDiscordBot bot = (IDiscordBot) module;
 
-			if ((Modules.LoadedAssemblies == null) || (Modules.LoadedAssemblies.Count == 0)) {
+						if (LoadedModules.DiscordBots.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long, IDiscordBot) mod in LoadedModules.DiscordBots) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
+				case ModuleLoaderContext.EmailClients: {
+						IEmailClient bot = (IEmailClient) module;
+
+						if (LoadedModules.EmailClients.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long, IEmailClient) mod in LoadedModules.EmailClients) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
+				case ModuleLoaderContext.GoogleMaps: {
+						IGoogleMap bot = (IGoogleMap) module;
+
+						if (LoadedModules.GoogleMapModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long, IGoogleMap) mod in LoadedModules.GoogleMapModules) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
+				case ModuleLoaderContext.MiscModules: {
+						IMiscModule bot = (IMiscModule) module;
+
+						if (LoadedModules.MiscModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long, IMiscModule) mod in LoadedModules.MiscModules) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
+				case ModuleLoaderContext.SteamClients: {
+						ISteamClient bot = (ISteamClient) module;
+
+						if (LoadedModules.SteamClients.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long, ISteamClient) mod in LoadedModules.SteamClients) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
+				case ModuleLoaderContext.YoutubeClients: {
+						IYoutubeClient bot = (IYoutubeClient) module;
+
+						if (LoadedModules.YoutubeClients.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long, IYoutubeClient) mod in LoadedModules.YoutubeClients) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
+				case ModuleLoaderContext.Logger: {
+						ILoggerBase bot = (ILoggerBase) module;
+
+						if (LoadedModules.LoggerBase.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long, ILoggerBase) mod in LoadedModules.LoggerBase) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
+				default: {
+						return true;
+					}
+			}
+		}
+
+		[NotNull]
+		public (bool, LoadedModules) LoadModules(ModuleLoaderContext loadContext = ModuleLoaderContext.All) {
+			if (!LoadedModules.IsModulesEmpty) {
+				return (false, LoadedModules);
+			}
+
+			LoadedModules.LoadedAssemblies = LoadAssemblies();
+
+			if ((LoadedModules.LoadedAssemblies == null) || (LoadedModules.LoadedAssemblies.Count == 0)) {
 				Logger.Log("No modules found.", LogLevels.Error);
-				return (false, Modules);
+				return (false, LoadedModules);
 			}
 
 			Logger.Log("Loading modules...", LogLevels.Trace);
@@ -143,20 +248,29 @@ namespace HomeAssistant.Modules {
 					break;
 			}
 
-			return (true, Modules);
+			return (true, LoadedModules);
 		}
 
 		[NotNull]
 		private bool Load<T>(ModulesContext context) where T : IModuleBase {
 			ConventionBuilder conventions = new ConventionBuilder();
 			conventions.ForTypesDerivedFrom<T>().Export<T>();
-			ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(Modules.LoadedAssemblies, conventions);
+			ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(LoadedModules.LoadedAssemblies, conventions);
 
 			switch (context) {
-				case ModulesContext.Discord:
+				case ModulesContext.Discord: {
+					HashSet<(long, IDiscordBot)> DiscordModules = new HashSet<(long, IDiscordBot)>();
 					try {
 						using (CompositionHost container = configuration.CreateContainer()) {
-							Modules.DiscordModules = container.GetExports<IDiscordBot>().ToHashSet();
+							HashSet<IDiscordBot> hashSet = container.GetExports<IDiscordBot>().ToHashSet();
+
+							if (hashSet.Count > 0) {
+								foreach (IDiscordBot bot in hashSet) {
+									bot.ModuleIdentifier = GenerateModuleIdentifier();
+									DiscordModules.Add((bot.ModuleIdentifier, bot));
+									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+								}
+							}
 						}
 					}
 					catch (Exception e) {
@@ -164,33 +278,42 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-					if (Modules.IsDiscordModuleEmpty) {
+					if (DiscordModules.Count <= 0) {
 						return false;
 					}
 
-					Modules.FailedDiscordModules = new HashSet<IDiscordBot>();
-
-					foreach (IDiscordBot plugin in Modules.DiscordModules) {
+					foreach ((long uniqueId, IDiscordBot plugin) in DiscordModules) {
 						try {
 							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
-							if (plugin.InitModuleService()) {
-								Discord.Add(plugin);
-							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
-							return true;
+							if (!IsExisitingModule(ModuleLoaderContext.DiscordClients, plugin)) {
+								if (plugin.InitModuleService()) {
+									LoadedModules.DiscordBots.Add((uniqueId, plugin));
+									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								}
+							}
 						}
 						catch (Exception e) {
 							Logger.Log(e);
-							Modules.FailedDiscordModules.Add(plugin);
 						}
 					}
 
-					break;
-				case ModulesContext.Email:
+					return true;
+				}
+
+				case ModulesContext.Email: {
+					HashSet<(long, IEmailClient)> EmailModules = new HashSet<(long, IEmailClient)>();
 					try {
 						using (CompositionHost container = configuration.CreateContainer()) {
-							Modules.EmailModules = container.GetExports<IEmailClient>().ToHashSet();
+							HashSet<IEmailClient> hashSet = container.GetExports<IEmailClient>().ToHashSet();
+
+							if (hashSet.Count > 0) {
+								foreach (IEmailClient bot in hashSet) {
+									bot.ModuleIdentifier = GenerateModuleIdentifier();
+									EmailModules.Add((bot.ModuleIdentifier, bot));
+									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+								}
+							}
 						}
 					}
 					catch (Exception e) {
@@ -198,34 +321,42 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-					if (Modules.IsEmailModuleEmpty) {
+					if (EmailModules.Count <= 0) {
 						return false;
 					}
 
-					Modules.FailedEmailModules = new HashSet<IEmailClient>();
-
-					foreach (IEmailClient plugin in Modules.EmailModules) {
+					foreach ((long uniqueId, IEmailClient plugin) in EmailModules) {
 						try {
 							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
-							if (plugin.InitModuleService()) {
-								Mail.Add(plugin);
-							}
 
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
-							return true;
+							if (!IsExisitingModule(ModuleLoaderContext.EmailClients, plugin)) {
+								if (plugin.InitModuleService()) {
+									LoadedModules.EmailClients.Add((uniqueId, plugin));
+									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								}
+							}
 						}
 						catch (Exception e) {
 							Logger.Log(e);
-							Modules.FailedEmailModules.Add(plugin);
 						}
 					}
 
-					break;
+					return true;
+				}
 
-				case ModulesContext.GoogleMap:
+				case ModulesContext.GoogleMap: {
+					HashSet<(long, IGoogleMap)> MapModules = new HashSet<(long, IGoogleMap)>();
 					try {
 						using (CompositionHost container = configuration.CreateContainer()) {
-							Modules.GoogleMapModules = container.GetExports<IGoogleMap>().ToHashSet();
+							HashSet<IGoogleMap> hashSet = container.GetExports<IGoogleMap>().ToHashSet();
+
+							if (hashSet.Count > 0) {
+								foreach (IGoogleMap bot in hashSet) {
+									bot.ModuleIdentifier = GenerateModuleIdentifier();
+									MapModules.Add((bot.ModuleIdentifier, bot));
+									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+								}
+							}
 						}
 					}
 					catch (Exception e) {
@@ -233,35 +364,128 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-					if (Modules.IsGoogleMapModuleEmpty) {
+					if (MapModules.Count <= 0) {
 						return false;
 					}
 
-					Modules.FailedGoogleMapModules = new HashSet<IGoogleMap>();
-
-					foreach (IGoogleMap plugin in Modules.GoogleMapModules) {
+					foreach ((long uniqueId, IGoogleMap plugin) in MapModules) {
 						try {
 							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
 
-							if (plugin.InitModuleService()) {
-								Map.Add(plugin);
+							if (!IsExisitingModule(ModuleLoaderContext.GoogleMaps, plugin)) {
+								if (plugin.InitModuleService()) {
+									LoadedModules.GoogleMapModules.Add((uniqueId, plugin));
+									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								}
 							}
-
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
-							return true;
 						}
 						catch (Exception e) {
 							Logger.Log(e);
-							Modules.FailedGoogleMapModules.Add(plugin);
 						}
 					}
 
-					break;
+					return true;
+				}
 
-				case ModulesContext.Youtube:
+				case ModulesContext.Youtube: {
+						HashSet<(long, IYoutubeClient)> YoutubeModules = new HashSet<(long, IYoutubeClient)>();
+						try {
+							using (CompositionHost container = configuration.CreateContainer()) {
+								HashSet<IYoutubeClient> hashSet = container.GetExports<IYoutubeClient>().ToHashSet();
+
+								if (hashSet.Count > 0) {
+									foreach (IYoutubeClient bot in hashSet) {
+										bot.ModuleIdentifier = GenerateModuleIdentifier();
+										YoutubeModules.Add((bot.ModuleIdentifier, bot));
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+									}
+								}
+							}
+						}
+						catch (Exception e) {
+							Logger.Log(e);
+							return false;
+						}
+
+						if (YoutubeModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long uniqueId, IYoutubeClient plugin) in YoutubeModules) {
+							try {
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+
+								if (!IsExisitingModule(ModuleLoaderContext.YoutubeClients, plugin)) {
+									if (plugin.InitModuleService()) {
+										LoadedModules.YoutubeClients.Add((uniqueId, plugin));
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+									}
+								}
+							}
+							catch (Exception e) {
+								Logger.Log(e);
+							}
+						}
+
+						return true;
+					}
+
+				case ModulesContext.Steam: {
+						HashSet<(long, ISteamClient)> SteamModules = new HashSet<(long, ISteamClient)>();
+						try {
+							using (CompositionHost container = configuration.CreateContainer()) {
+								HashSet<ISteamClient> hashSet = container.GetExports<ISteamClient>().ToHashSet();
+
+								if (hashSet.Count > 0) {
+									foreach (ISteamClient bot in hashSet) {
+										bot.ModuleIdentifier = GenerateModuleIdentifier();
+										SteamModules.Add((bot.ModuleIdentifier, bot));
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+									}
+								}
+							}
+						}
+						catch (Exception e) {
+							Logger.Log(e);
+							return false;
+						}
+
+						if (SteamModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long uniqueId, ISteamClient plugin) in SteamModules) {
+							try {
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+
+								if (!IsExisitingModule(ModuleLoaderContext.SteamClients, plugin)) {
+									if (plugin.InitModuleService()) {
+										LoadedModules.SteamClients.Add((uniqueId, plugin));
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+									}
+								}
+							}
+							catch (Exception e) {
+								Logger.Log(e);
+							}
+						}
+
+						return true;
+					}
+
+				case ModulesContext.Misc: {
+					HashSet<(long, IMiscModule)> MiscModules = new HashSet<(long, IMiscModule)>();
 					try {
 						using (CompositionHost container = configuration.CreateContainer()) {
-							Modules.YoutubeModules = container.GetExports<IYoutubeClient>().ToHashSet();
+							HashSet<IMiscModule> hashSet = container.GetExports<IMiscModule>().ToHashSet();
+
+							if (hashSet.Count > 0) {
+								foreach (IMiscModule bot in hashSet) {
+									bot.ModuleIdentifier = GenerateModuleIdentifier();
+									MiscModules.Add((bot.ModuleIdentifier, bot));
+									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+								}
+							}
 						}
 					}
 					catch (Exception e) {
@@ -269,105 +493,33 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-					if (Modules.IsYoutubeModuleEmpty) {
+					if (MiscModules.Count <= 0) {
 						return false;
 					}
 
-					Modules.FailedYoutubeModules = new HashSet<IYoutubeClient>();
-
-					foreach (IYoutubeClient plugin in Modules.YoutubeModules) {
+					foreach ((long uniqueId, IMiscModule plugin) in MiscModules) {
 						try {
 							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
 
-							if (plugin.InitModuleService()) {
-								Youtube.Add(plugin);
+							if (!IsExisitingModule(ModuleLoaderContext.MiscModules, plugin)) {
+								if (plugin.InitModuleService()) {
+									LoadedModules.MiscModules.Add((uniqueId, plugin));
+									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								}
 							}
-
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
-							return true;
 						}
 						catch (Exception e) {
 							Logger.Log(e);
-							Modules.FailedYoutubeModules.Add(plugin);
 						}
 					}
 
-					break;
-				case ModulesContext.Steam:
-					try {
-						using (CompositionHost container = configuration.CreateContainer()) {
-							Modules.SteamModules = container.GetExports<ISteamClient>().ToHashSet();
-						}
-					}
-					catch (Exception e) {
-						Logger.Log(e);
-						return false;
-					}
+					return true;
+				}
 
-					if (Modules.IsSteamModuleEmpty) {
-						return false;
-					}
-
-					Modules.FailedSteamModules = new HashSet<ISteamClient>();
-
-					foreach (ISteamClient plugin in Modules.SteamModules) {
-						try {
-							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
-
-							if (plugin.InitModuleService()) {
-								Steam.Add(plugin);
-							}
-
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
-							return true;
-						}
-						catch (Exception e) {
-							Logger.Log(e);
-							Modules.FailedSteamModules.Add(plugin);
-						}
-					}
-
-					break;
-				case ModulesContext.Misc:
-					try {
-						using (CompositionHost container = configuration.CreateContainer()) {
-							Modules.MiscModules = container.GetExports<IMiscModule>().ToHashSet();
-						}
-					}
-					catch (Exception e) {
-						Logger.Log(e);
-						return false;
-					}
-
-					if (Modules.IsMiscModuleEmpty) {
-						return false;
-					}
-
-					Modules.FailedMiscModules = new HashSet<IMiscModule>();
-
-					foreach (IMiscModule plugin in Modules.MiscModules) {
-						try {
-							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
-
-							if (plugin.InitModuleService()) {
-								MiscModule.Add(plugin);
-							}
-
-							Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
-							return true;
-						}
-						catch (Exception e) {
-							Logger.Log(e);
-							Modules.FailedMiscModules.Add(plugin);
-						}
-					}
-
-					break;
 				default:
 					Logger.Log("Unknown type of plugin loaded. cannot integret with tess.", LogLevels.Warn);
 					return false;
 			}
-			return false;
 		}
 
 		[NotNull]
@@ -425,46 +577,58 @@ namespace HomeAssistant.Modules {
 		}
 
 		public async Task<bool> OnCoreShutdown() {
-			if (Discord.Count > 0) {
-				foreach (IDiscordBot Dbot in Discord) {
+			if (LoadedModules.IsModulesEmpty) {
+				return true;
+			}
+
+			if (LoadedModules.DiscordBots.Count > 0) {
+				foreach ((long UniqueId, IDiscordBot Dbot) in LoadedModules.DiscordBots) {
 					Dbot.InitModuleShutdown();
 				}
 			}
 
 			await Task.Delay(10).ConfigureAwait(false);
 
-			if (Mail.Count > 0) {
-				foreach (IEmailClient Mbot in Mail) {
+			if (LoadedModules.EmailClients.Count > 0) {
+				foreach ((long UniqueId, IEmailClient Mbot) in LoadedModules.EmailClients) {
 					Mbot.InitModuleShutdown();
 				}
 			}
 
-			if (Map.Count > 0) {
-				foreach (IGoogleMap map in Map) {
+			if (LoadedModules.GoogleMapModules.Count > 0) {
+				foreach ((long UniqueId, IGoogleMap map) in LoadedModules.GoogleMapModules) {
 					map.InitModuleShutdown();
 				}
 			}
 
-			if (Youtube.Count > 0) {
-				foreach (IYoutubeClient youtube in Youtube) {
+			if (LoadedModules.YoutubeClients.Count > 0) {
+				foreach ((long UniqueId, IYoutubeClient youtube) in LoadedModules.YoutubeClients) {
 					youtube.InitModuleShutdown();
 				}
 			}
 
-			if (Steam.Count > 0) {
-				foreach (ISteamClient steam in Steam) {
+			if (LoadedModules.SteamClients.Count > 0) {
+				foreach ((long UniqueId, ISteamClient steam) in LoadedModules.SteamClients) {
 					steam.InitModuleShutdown();
 				}
 			}
 
-			if (MiscModule.Count > 0) {
-				foreach (IMiscModule misc in MiscModule) {
+			if (LoadedModules.MiscModules.Count > 0) {
+				foreach ((long UniqueId, IMiscModule misc) in LoadedModules.MiscModules) {
 					misc.InitModuleShutdown();
 				}
 			}
 
 			Logger.Log("Module shutdown successfull.", LogLevels.Trace);
 			return true;
+		}
+
+		private long GenerateModuleIdentifier() {
+			byte[] buffer = new byte[8];
+			Random.NextBytes(buffer);
+			long longRand = BitConverter.ToInt64(buffer, 0);
+
+			return Math.Abs(longRand % (100000000000000000 - 100000000000000050)) + 100000000000000050;
 		}
 	}
 }

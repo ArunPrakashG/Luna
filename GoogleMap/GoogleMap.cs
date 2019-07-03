@@ -11,9 +11,9 @@ namespace GoogleMap {
 		//search locations etc
 		public GoogleMap MapInstance { get; set; }
 		public bool RequiresInternetConnection { get; set; }
-		public string ModuleIdentifier { get; set; } = nameof(GoogleMap);
-		public Version ModuleVersion { get; set; } = new Version("4.9.0.0");
-		public string ModuleAuthor { get; set; } = "Arun";
+		public long ModuleIdentifier { get; set; }
+		public Version ModuleVersion { get; set; } = new Version("5.0.0.0");
+		public string ModuleAuthor { get; set; } = "Arun Prakash";
 
 		private Logger Logger = new Logger("G-MAP");
 

@@ -10,7 +10,7 @@ namespace Youtube {
 		private readonly Logger Logger = new Logger("YOUTUBE");
 		public Youtube YoutubeInstance { get; set; }
 		public bool RequiresInternetConnection { get; set; }
-		public string ModuleIdentifier { get; } = nameof(Youtube);
+		public long ModuleIdentifier { get; set;}
 		public Version ModuleVersion { get; } = new Version("4.9.0.0");
 		public string ModuleAuthor { get; } = "Arun";
 
