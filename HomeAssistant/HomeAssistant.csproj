@@ -71,10 +71,10 @@
 		<None Update="Config\TESS.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
 		<None Update="HomeAssistant_GCloud.json">
+		  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="Modules\DiscordModules\Discord.dll">
@@ -121,7 +121,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<SshDeployHost>192.168.1.38</SshDeployHost>
+		<SshDeployHost>192.168.1.42</SshDeployHost>
 		<SshDeployClean />
 		<SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
 		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
