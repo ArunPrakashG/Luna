@@ -2,6 +2,7 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.IO;
+using System.Linq;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Core {
@@ -96,6 +97,12 @@ namespace HomeAssistant.Core {
 					Logger.Log("Config watcher event raised for GPIO Config file.", LogLevels.Trace);
 					Logger.Log("Updating gpio config as the local config as been updated...");
 					Helpers.InBackground(() => Tess.Controller.GPIOConfig = Tess.GPIOConfigHandler.LoadConfig().GPIOData);
+					break;
+				case "MailConfig.json":
+					Logger.Log("Mail config has been modified.", LogLevels.Trace);
+					break;
+				case "DiscordBot.json":
+					Logger.Log("Discord bot config has been modified.", LogLevels.Trace);
 					break;
 				case "TESS_EXAMPLE.json":
 				case "GPIOConfig_EXAMPLE.json":

@@ -38,7 +38,7 @@ namespace HomeAssistant.Core {
 			return Equals((GPIOConfigRoot) obj);
 		}
 
-		public override int GetHashCode () => (GPIOData != null ? GPIOData.GetHashCode() : 0);
+		public override int GetHashCode () => GPIOData != null ? GPIOData.GetHashCode() : 0;
 
 		public static bool operator == (GPIOConfigRoot left, GPIOConfigRoot right) => Equals(left, right);
 

@@ -175,23 +175,25 @@ namespace HomeAssistant.Log {
 		}
 
 		public void DiscordLogToChannel(string message) {
-			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable || Tess.ModuleLoader.LoadedModules.DiscordBots == null || Tess.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
-				return;
-			}
-
 			if (Helpers.IsNullOrEmpty(message)) {
 				return;
 			}
 
-			Helpers.InBackground(async () => {
-				foreach ((long id, IDiscordBot bot) Dbot in Tess.ModuleLoader.LoadedModules.DiscordBots) {
-					//TODO: create configs for each bot
-					if (Dbot.id != 0 && Dbot.bot.IsServerOnline) {
-						await Dbot.bot.LogToChannel(message).ConfigureAwait(false);
+			if (!Tess.CoreInitiationCompleted || !Tess.IsNetworkAvailable) {
+				return;
+			}
+
+			if (Tess.ModuleLoader != null && Tess.ModuleLoader.LoadedModules != null && Tess.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
+				foreach ((long, IDiscordBot) bot in Tess.ModuleLoader.LoadedModules.DiscordBots) {
+					if (bot.Item2.IsServerOnline && bot.Item2.BotConfig.EnableDiscordBot &&
+					    bot.Item2.BotConfig.DiscordLogChannelID != 0 && bot.Item2.BotConfig.DiscordLog) {
+						Helpers.InBackground(async () => {
+							await bot.Item2.LogToChannel(message).ConfigureAwait(false);
+						});
 					}
 				}
-			});
-			
+				
+			}
 		}
 
 		public void InitLogger(string logId) => RegisterLogger(logId);

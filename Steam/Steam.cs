@@ -286,7 +286,7 @@ namespace Steam {
 
 		public (bool, ConcurrentDictionary<string, ISteamBot>) InitSteamBots() {
 			if (!Directory.Exists(BotConfigDirectory)) {
-				Logger.Log("Config directory doesn't exist!", LogLevels.Warn);
+				Logger.Log("BotConfig directory doesn't exist!", LogLevels.Warn);
 				return (false, new ConcurrentDictionary<string, ISteamBot>());
 			}
 

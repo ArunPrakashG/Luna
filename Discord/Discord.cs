@@ -1,8 +1,6 @@
-using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using HomeAssistant.Core;
-using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
 using System;
@@ -12,7 +10,6 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
-using Unosquare.RaspberryIO.Abstractions;
 using static HomeAssistant.Core.Enums;
 
 namespace Discord {
@@ -20,13 +17,14 @@ namespace Discord {
 		public DiscordSocketClient Client { get; set; }
 		public bool RequiresInternetConnection { get; set; }
 		private readonly CommandService Commands;
+		private ModuleInfo DiscordModuleInfo { get; set; }
 		public bool IsServerOnline { get; set; }
-		internal Logger Logger = new Logger("DISCORD-CLIENT");
-		public CoreConfig Config { get; set; } = Tess.Config;
-		private readonly string DiscordToken;
+		public Logger Logger = new Logger("DISCORD-CLIENT");
+		public IDiscordBotConfig BotConfig { get; set; }
 		public long ModuleIdentifier { get; set; }
 		public Version ModuleVersion { get; } = new Version("5.0.0.0");
 		public string ModuleAuthor { get; } = "Arun Prakash";
+		public static long ModuleIdentifierInternal { get; private set; }
 
 		public Discord() {
 			Client = new DiscordSocketClient(new DiscordSocketConfig {
@@ -42,7 +40,9 @@ namespace Discord {
 				ThrowOnError = true
 			});
 
-			DiscordToken = Helpers.FetchVariable(2, true, "DISCORD_TOKEN");
+			DiscordModuleInfo = Commands.AddModuleAsync<DiscordCommandBase>(null).Result;
+			BotConfig = DiscordBotConfig.LoadConfig();
+			ModuleIdentifierInternal = ModuleIdentifier;
 		}
 
 		public async Task<bool> StopServer() {
@@ -85,7 +85,7 @@ namespace Discord {
 		}
 
 		public async Task<(bool, IDiscordBot)> RegisterDiscordClient() {
-			if (!Config.DiscordBot) {
+			if (BotConfig == null || !BotConfig.EnableDiscordBot) {
 				return (false, this);
 			}
 
@@ -103,7 +103,7 @@ namespace Discord {
 
 				try {
 					await Commands.AddModulesAsync(Assembly.GetEntryAssembly(), null).ConfigureAwait(false);
-					await Client.LoginAsync(TokenType.Bot, DiscordToken);
+					await Client.LoginAsync(TokenType.Bot, BotConfig.DiscordBotToken);
 					await Client.StartAsync().ConfigureAwait(false);
 					IsServerOnline = true;
 					Logger.Log($"Discord server is online!");
@@ -134,7 +134,7 @@ namespace Discord {
 			SocketCommandContext Context = new SocketCommandContext(Client, Message);
 			Client = Context.Client;
 
-			if (Context.Channel.Id.Equals(Tess.Config.DiscordLogChannelID)) {
+			if (Context.Channel.Id.Equals(BotConfig.DiscordLogChannelID)) {
 				return;
 			}
 
@@ -147,38 +147,34 @@ namespace Discord {
 				return;
 			}
 
-			Helpers.InBackgroundThread(async () => {
-				IResult Result = await Commands.ExecuteAsync(Context, 0, null).ConfigureAwait(false);
-				await CommandExecutedResult(Result, Context).ConfigureAwait(false);
-			}, "Discord Message Handler");
-
-			await System.Threading.Tasks.Task.Delay(10).ConfigureAwait(false);
+			IResult Result = await Commands.ExecuteAsync(Context, 0, null).ConfigureAwait(false);
+			await CommandExecutedResult(Result, Context).ConfigureAwait(false);
 		}
 
 		private async Task CommandExecutedResult(IResult result, SocketCommandContext context) {
 			if (!result.IsSuccess) {
 				switch (result.Error.ToString()) {
 					case "BadArgCount":
-						await context.Channel.SendMessageAsync("Your Input doesn't satisfy the command Syntax.").ConfigureAwait(false);
+						await context.Channel.SendMessageAsync("Your input doesn't satisfy the command syntax.").ConfigureAwait(false);
 						return;
 
 					case "UnknownCommand":
-						await context.Channel.SendMessageAsync("Unknown Command. Please send **!commands** for full list of valid commands!").ConfigureAwait(false);
+						await context.Channel.SendMessageAsync("Invalid command. Please send **!commands** for full list of valid commands!").ConfigureAwait(false);
 						return;
 				}
 
 				switch (result.ErrorReason) {
 					case "Command must be used in a guild channel":
-						await context.Channel.SendMessageAsync("This command is supposed to be used in a Channel.").ConfigureAwait(false);
+						await context.Channel.SendMessageAsync("This command is supposed to be used in a channel.").ConfigureAwait(false);
 						return;
 
 					case "Invalid context for command; accepted contexts: DM":
-						await context.Channel.SendMessageAsync("This command can only be used in Private Chat Session with the BoT.").ConfigureAwait(false);
+						await context.Channel.SendMessageAsync("This command can only be used in private chat session with the bot.").ConfigureAwait(false);
 						return;
 
 					case "User requires guild permission ChangeNickname":
 					case "User requires guild permission Administrator":
-						await context.Channel.SendMessageAsync("Sorry, You lack the permissions required to run this command.").ConfigureAwait(false);
+						await context.Channel.SendMessageAsync("Sorry, you lack the permissions required to run this command.").ConfigureAwait(false);
 						return;
 				}
 
@@ -195,7 +191,7 @@ namespace Discord {
 		//Discord Core Logger
 		//Not to be confused with HomeAssistant Discord channel logger
 		private async Task DiscordCoreLogger(LogMessage message) {
-			if (!Tess.Config.DiscordBot || !Tess.Config.DiscordLog || !IsServerOnline) {
+			if (!BotConfig.EnableDiscordBot || !BotConfig.DiscordLog || !IsServerOnline) {
 				return;
 			}
 
@@ -203,6 +199,8 @@ namespace Discord {
 			switch (message.Severity) {
 				case LogSeverity.Critical:
 				case LogSeverity.Error:
+					Logger.Log(message.Message, LogLevels.Warn);
+					break;
 				case LogSeverity.Warning:
 				case LogSeverity.Verbose:
 				case LogSeverity.Debug:
@@ -238,7 +236,10 @@ namespace Discord {
 			return false;
 		}
 
-		public bool InitModuleShutdown() => StopServer().Result;
+		public bool InitModuleShutdown() {
+			DiscordBotConfig.SaveConfig(BotConfig);
+			return StopServer().Result;
+		}
 
 		private string LogOutputFormat(string message) {
 			string shortDate = DateTime.Now.ToShortDateString();
@@ -251,7 +252,7 @@ namespace Discord {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted || !Tess.Config.DiscordLog || !Tess.IsNetworkAvailable || Tess.ModuleLoader.LoadedModules.DiscordBots == null || Tess.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
+			if (!Tess.CoreInitiationCompleted || !BotConfig.DiscordLog || !Tess.IsNetworkAvailable || Tess.ModuleLoader.LoadedModules.DiscordBots == null || Tess.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
 				return;
 			}
 
@@ -262,8 +263,8 @@ namespace Discord {
 			string LogOutput = LogOutputFormat(message);
 
 			try {
-				SocketGuild Guild = Client?.Guilds?.FirstOrDefault(x => x.Id == Tess.Config.DiscordServerID);
-				SocketTextChannel Channel = Guild?.Channels?.FirstOrDefault(x => x.Id == Tess.Config.DiscordLogChannelID) as SocketTextChannel;
+				SocketGuild Guild = Client?.Guilds?.FirstOrDefault(x => x.Id == BotConfig.DiscordServerID);
+				SocketTextChannel Channel = Guild?.Channels?.FirstOrDefault(x => x.Id == BotConfig.DiscordLogChannelID) as SocketTextChannel;
 				if (Guild != null || Channel != null) {
 					await Channel.SendMessageAsync(LogOutput).ConfigureAwait(false);
 				}
@@ -284,342 +285,6 @@ namespace Discord {
 				Logger.Log("A task has been cancelled by waiting.", LogLevels.Trace);
 				return;
 			}
-		}
-	}
-
-	public sealed class DiscordCommandBase : ModuleBase<SocketCommandContext> {
-		private int ArgPos = 0;
-		private readonly Logger Logger = new Logger("DISCORD-BASE");
-
-		private bool IsAllowed(ulong id) {
-			if (id.Equals(Tess.Config.DiscordOwnerID)) {
-				return true;
-			}
-
-			if (!Context.Message.HasCharPrefix('!', ref ArgPos) || Context.User.IsBot) {
-				return false;
-			}
-
-			return true;
-		}
-
-		private async Task<bool> Response(string response) {
-			if (string.IsNullOrEmpty(response) || string.IsNullOrWhiteSpace(response)) {
-				Logger.Log("Response text is null!");
-				return false;
-			}
-
-			try {
-				await ReplyAsync($"`{response}`").ConfigureAwait(false);
-			}
-			catch (Exception ex) {
-				if (ex is ArgumentException || ex is ArgumentOutOfRangeException) {
-					Logger.Log("The Content is above 2000 words which is not allowed.", LogLevels.Warn);
-					return false;
-				}
-				else {
-					Logger.Log($"Exception Thrown: {ex.InnerException} / {ex.Message} / {ex.TargetSite}", LogLevels.Warn);
-					return false;
-				}
-			}
-			return true;
-		}
-
-		[Command("!commands"), Summary("Commands List")]
-		public async Task Help() {
-			EmbedBuilder builder = new EmbedBuilder();
-			builder.WithTitle(" **=> TESS HOME ASSISTANT COMMANDS <=** ");
-			builder.AddField("**!light1**", "turn on light 1, send again to turn off");
-			builder.AddField("**!light2**", "turn on light 2, send again to turn off");
-			builder.AddField("**!light3**", "turn on light 3, send again to turn off");
-			builder.AddField("**!light4**", "turn on light 4, send again to turn off");
-			builder.AddField("**!light5**", "turn on light 5, send again to turn off");
-			builder.AddField("**!light6**", "turn on light 6, send again to turn off");
-			builder.AddField("**!light7**", "turn on light 7, send again to turn off");
-			builder.AddField("**!light8**", "turn on light 8, send again to turn off");
-			builder.AddField("**!relaycycle**", "cycle throught each relay channels, for testing purposes.");
-			await ReplyAsync("", false, builder.Build()).ConfigureAwait(false);
-		}
-
-		[Command("!relay1")]
-		public async Task Light1() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[0]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[0]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[0]} pin to ON.");
-			}
-		}
-
-		[Command("!relay2")]
-		public async Task Light2() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[1]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[1]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[1]} pin to ON.");
-			}
-		}
-
-		[Command("!relay3")]
-		public async Task Light3() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[2]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[2]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[2]} pin to ON.");
-			}
-		}
-
-		[Command("!relay4")]
-		public async Task Light4() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[3]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to ON.");
-			}
-		}
-
-		[Command("!relay5")]
-		public async Task Light5() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[4]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[4]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to ON.");
-			}
-		}
-
-		[Command("!relay6")]
-		public async Task Light6() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[5]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[5]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[6]} pin to ON.");
-			}
-		}
-
-		[Command("!relay7")]
-		public async Task Light7() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[6]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[6]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[5]} pin to ON.");
-			}
-		}
-
-		[Command("!relay8")]
-		public async Task Light8() {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[7]);
-
-			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[7]} pin to OFF.");
-			}
-			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[7]} pin to ON.");
-			}
-		}
-
-		[Command("!relaycycle")]
-		public async Task RelayCycle([Remainder] int cycleMode = 0) {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			async void action() {
-				switch (cycleMode) {
-					case 0:
-						if (await Tess.Controller.RelayTestService(GPIOCycles.OneMany).ConfigureAwait(false)) {
-							await Response("OneMany relay test completed!").ConfigureAwait(false);
-						}
-						break;
-
-					case 1:
-						if (await Tess.Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false)) {
-							await Response("OneOne relay test completed!").ConfigureAwait(false);
-						}
-						break;
-
-					case 2:
-						if (await Tess.Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false)) {
-							await Response("OneTwo relay test completed!").ConfigureAwait(false);
-						}
-						break;
-
-					case 3:
-						if (await Tess.Controller.RelayTestService(GPIOCycles.Cycle).ConfigureAwait(false)) {
-							await Response("Cycle relay test completed!").ConfigureAwait(false);
-						}
-						break;
-
-					case 4:
-						if (await Tess.Controller.RelayTestService(GPIOCycles.Base).ConfigureAwait(false)) {
-							await Response("Base relay test completed!").ConfigureAwait(false);
-						}
-						break;
-				}
-			}
-
-			Helpers.InBackgroundThread(action, "Relay Cycle");
-		}
-
-		[Command("!timedtask")]
-		public async Task DelayedTask(int relaypinNumber, int delayInMinutes = 1, int pinStatus = 1) {
-			if (!IsAllowed(Context.User.Id)) {
-				await Response("Sorry, you are not allowed to execute this command.").ConfigureAwait(false);
-				return;
-			}
-
-			//0 = off
-			//1 = on
-
-			if (relaypinNumber <= 0) {
-				await Response("Please enter a valid relay pin number...").ConfigureAwait(false);
-				return;
-			}
-
-			if (delayInMinutes <= 0) {
-				await Response("Please enter a valid delay... (in minutes)").ConfigureAwait(false);
-				return;
-			}
-
-			if (pinStatus != 0 && pinStatus != 1) {
-				await Response("Please enter a valid pin state. (0 for off and 1 for on)").ConfigureAwait(false);
-				return;
-			}
-
-			if (Tess.Config.IRSensorPins.Contains(relaypinNumber)) {
-				await Response("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!").ConfigureAwait(false);
-				return;
-			}
-
-			if (!Tess.Config.RelayPins.Contains(relaypinNumber)) {
-				await Response("Sorry, the specified pin doesn't exist in the relay pin catagory.").ConfigureAwait(false);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(relaypinNumber);
-
-			if (PinStatus.IsOn && pinStatus.Equals(1)) {
-				await Response("Pin is already configured to be in ON State. Command doesn't make any sense.").ConfigureAwait(false);
-				return;
-			}
-
-			if (!PinStatus.IsOn && pinStatus.Equals(0)) {
-				await Response("Pin is already configured to be in OFF State. Command doesn't make any sense.").ConfigureAwait(false);
-				return;
-			}
-
-			Helpers.ScheduleTask(async () => {
-				if (PinStatus.IsOn && pinStatus.Equals(0)) {
-					Tess.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
-					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to OFF.");
-				}
-
-				if (!PinStatus.IsOn && pinStatus.Equals(1)) {
-					Tess.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
-					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to ON.");
-				}
-			}, TimeSpan.FromMinutes(delayInMinutes));
-
-			if (pinStatus.Equals(0)) {
-				await Response($"Successfully scheduled a task: set {relaypinNumber} pin to OFF").ConfigureAwait(false);
-			}
-			else {
-				await Response($"Successfully scheduled a task: set {relaypinNumber} pin to ON").ConfigureAwait(false);
-			}
-		}
-
-		[Command("!exit"), RequireOwner]
-		public async Task TessExit(int delay = 5) {
-			await Response($"Exiting in {delay} seconds").ConfigureAwait(false);
-			Helpers.ScheduleTask(async () => await Tess.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
-		}
-
-		[Command("!shutdown"), RequireOwner]
-		public async Task PiShutdown(int delay = 10) {
-			await Response($"Exiting in {delay} seconds").ConfigureAwait(false);
-			Helpers.ScheduleTask(() => Helpers.ExecuteCommand("sudo shutdown -h now"), TimeSpan.FromSeconds(delay));
-		}
-
-		[Command("!restart"), RequireOwner]
-		public async Task TessRestart(int delay = 8) {
-			await Response($"Restarting in {delay} seconds").ConfigureAwait(false);
-			await Tess.Restart(8);
 		}
 	}
 }

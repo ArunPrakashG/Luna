@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
 using Discord.WebSocket;
-using HomeAssistant.Core;
+using System.Threading.Tasks;
 
 namespace HomeAssistant.Modules.Interfaces {
 	public interface IDiscordBot : IModuleBase, IDiscordLogger {
@@ -17,7 +12,7 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// The discord bot config
 		/// </summary>
 		/// <value></value>
-		CoreConfig Config { get; set; }
+		IDiscordBotConfig BotConfig { get; set; }
 		/// <summary>
 		/// Status if the bot is online or offline
 		/// </summary>
@@ -27,17 +22,17 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// Stop discord client
 		/// </summary>
 		/// <returns></returns>
-		Task<bool> StopServer ();
+		Task<bool> StopServer();
 		/// <summary>
 		/// Start discord bot
 		/// </summary>
 		/// <returns></returns>
-		Task<(bool, IDiscordBot)> RegisterDiscordClient ();
+		Task<(bool, IDiscordBot)> RegisterDiscordClient();
 		/// <summary>
 		/// Restart discord bot service
 		/// </summary>
 		/// <returns></returns>
-		Task RestartDiscordServer ();
+		Task RestartDiscordServer();
 
 	}
 }

@@ -72,16 +72,6 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty(Required = Required.Default)] public DateTime ProgramLastShutdown { get; set; }
 
-		[JsonProperty] public ulong DiscordOwnerID { get; set; } = 161859532920848384;
-
-		[JsonProperty] public ulong DiscordServerID { get; set; } = 580995322369802240;
-
-		[JsonProperty] public ulong DiscordLogChannelID { get; set; } = 580995512526831616;
-
-		[JsonProperty] public bool DiscordLog { get; set; } = true;
-
-		[JsonProperty] public bool DiscordBot { get; set; } = true;
-
 		[JsonProperty] public bool CloseRelayOnShutdown { get; set; } = false;
 
 		[JsonIgnore] private readonly Logger Logger = new Logger("CORE-CONFIG");
@@ -211,8 +201,6 @@ namespace HomeAssistant.Core {
 				hashCode = (hashCode * 397) ^ EnableFirstChanceLog.GetHashCode();
 				hashCode = (hashCode * 397) ^ EnableTextToSpeech.GetHashCode();
 				hashCode = (hashCode * 397) ^ MuteAssistant.GetHashCode();
-				hashCode = (hashCode * 397) ^ DiscordLog.GetHashCode();
-				hashCode = (hashCode * 397) ^ DiscordBot.GetHashCode();
 				hashCode = (hashCode * 397) ^ CloseRelayOnShutdown.GetHashCode();
 				hashCode = (hashCode * 397) ^ ServerAuthCode;
 				hashCode = (hashCode * 397) ^ TCPServerPort;
@@ -222,9 +210,6 @@ namespace HomeAssistant.Core {
 				hashCode = (hashCode * 397) ^ (TessEmailPASS != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(TessEmailPASS) : 0);
 				hashCode = (hashCode * 397) ^ ProgramLastStartup.GetHashCode();
 				hashCode = (hashCode * 397) ^ ProgramLastShutdown.GetHashCode();
-				hashCode = (hashCode * 397) ^ DiscordOwnerID.GetHashCode();
-				hashCode = (hashCode * 397) ^ DiscordServerID.GetHashCode();
-				hashCode = (hashCode * 397) ^ DiscordLogChannelID.GetHashCode();
 				return hashCode;
 			}
 		}
@@ -241,22 +226,20 @@ namespace HomeAssistant.Core {
 			}
 
 			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
-				   EnableConfigWatcher == other.EnableConfigWatcher &&
-				   UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
-				   KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
-				   Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
-				   DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
-				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
-				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
-				   DiscordLog == other.DiscordLog && DiscordBot == other.DiscordBot &&
-				   CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
-				   TCPServerPort == other.TCPServerPort && KestrelServerPort == other.KestrelServerPort &&
-				   string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
-				   string.Equals(TessEmailID, other.TessEmailID, StringComparison.OrdinalIgnoreCase) &&
-				   string.Equals(TessEmailPASS, other.TessEmailPASS, StringComparison.OrdinalIgnoreCase) &&
-				   ProgramLastStartup.Equals(other.ProgramLastStartup) &&
-				   ProgramLastShutdown.Equals(other.ProgramLastShutdown) && DiscordOwnerID == other.DiscordOwnerID &&
-				   DiscordServerID == other.DiscordServerID && DiscordLogChannelID == other.DiscordLogChannelID;
+			       EnableConfigWatcher == other.EnableConfigWatcher &&
+			       UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
+			       KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
+			       Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
+			       DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
+			       Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
+			       EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
+			       CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
+			       TCPServerPort == other.TCPServerPort && KestrelServerPort == other.KestrelServerPort &&
+			       string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
+			       string.Equals(TessEmailID, other.TessEmailID, StringComparison.OrdinalIgnoreCase) &&
+			       string.Equals(TessEmailPASS, other.TessEmailPASS, StringComparison.OrdinalIgnoreCase) &&
+			       ProgramLastStartup.Equals(other.ProgramLastStartup) &&
+			       ProgramLastShutdown.Equals(other.ProgramLastShutdown);
 		}
 
 		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
