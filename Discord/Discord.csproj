@@ -4,12 +4,12 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\HomeAssistant\HomeAssistant.csproj" />
-  </ItemGroup>
-
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy &quot;$(SolutionDir)Discord\bin\Debug\netcoreapp2.1\Discord.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules\DiscordModules&quot; /Y /I" />
   </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HomeAssistant\Assistant.csproj" />
+  </ItemGroup>
 
 </Project>

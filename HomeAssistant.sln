@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28917.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HomeAssistant", "HomeAssistant\HomeAssistant.csproj", "{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant", "HomeAssistant\Assistant.csproj", "{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}"
 	ProjectSection(ProjectDependencies) = postProject
 		{AF331F5B-62CB-4593-9CBB-F5C6583A714C} = {AF331F5B-62CB-4593-9CBB-F5C6583A714C}
 		{271C066A-F852-4AD5-921A-48C0AB4DF1CB} = {271C066A-F852-4AD5-921A-48C0AB4DF1CB}
