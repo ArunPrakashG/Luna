@@ -121,7 +121,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<SshDeployHost>192.168.1.42</SshDeployHost>
+		<SshDeployHost>raspberrypi</SshDeployHost>
 		<SshDeployClean />
 		<SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
 		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>

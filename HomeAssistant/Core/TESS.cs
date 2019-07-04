@@ -165,7 +165,7 @@ namespace HomeAssistant.Core {
 
 				if (IsNetworkAvailable) {
 					if (Config.EnableModules) {
-						(bool, Modules.LoadedModules) loadStatus = ModuleLoader.LoadModules();
+						(bool, LoadedModules) loadStatus = ModuleLoader.LoadModules();
 						if (!loadStatus.Item1) {
 							Logger.Log("Failed to load modules.", LogLevels.Warn);
 						}
