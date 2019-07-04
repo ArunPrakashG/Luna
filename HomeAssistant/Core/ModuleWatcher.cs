@@ -29,13 +29,14 @@ namespace HomeAssistant.Core {
 			}
 
 			FileSystemWatcher = new FileSystemWatcher(Constants.ModuleDirectory) {
-				NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
+				NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime | NotifyFilters.Size,
 				Filter = "*.dll"
 			};
 
 			FileSystemWatcher.Created += OnFileEventRaised;
 			FileSystemWatcher.Changed += OnFileEventRaised;
 			FileSystemWatcher.Renamed += OnFileEventRaised;
+			FileSystemWatcher.Deleted += OnFileEventRaised;
 			FileSystemWatcher.Error += FileSystemWatcherOnError;
 			FileSystemWatcher.IncludeSubdirectories = true;
 			FileSystemWatcher.EnableRaisingEvents = true;
@@ -58,6 +59,14 @@ namespace HomeAssistant.Core {
 			}
 		}
 
+		private void OnModuleDeleted (string fileName, string filePath, Enums.ModuleLoaderContext context) {
+			if (Helpers.IsNullOrEmpty(fileName) || Helpers.IsNullOrEmpty(filePath)) {
+				return;
+			}
+
+			Tess.ModuleLoader.UnloadModules(context);
+		}
+
 		private void OnFileEventRaised(object sender, FileSystemEventArgs e) {
 			if ((sender == null) || (e == null)) {
 				Logger.Log(nameof(sender) + " || " + nameof(e), Enums.LogLevels.Error);
@@ -68,7 +77,7 @@ namespace HomeAssistant.Core {
 
 			double secondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
 			LastRead = DateTime.Now;
-
+			
 			if (secondsSinceLastRead <= 1) {
 				return;
 			}
@@ -107,6 +116,11 @@ namespace HomeAssistant.Core {
 			string absoluteFileName = Path.GetFileName(fileName);
 			Logger.Log($"An event has been raised on module folder for file > {absoluteFileName}", Enums.LogLevels.Trace);
 			if (string.IsNullOrEmpty(absoluteFileName) || string.IsNullOrWhiteSpace(absoluteFileName)) {
+				return;
+			}
+
+			if (e.ChangeType.Equals(WatcherChangeTypes.Deleted)) {
+				OnModuleDeleted(e.Name, e.FullPath, loaderContext);
 				return;
 			}
 

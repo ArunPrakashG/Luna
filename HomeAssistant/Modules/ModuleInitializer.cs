@@ -34,6 +34,82 @@ namespace HomeAssistant.Modules {
 		public LoadedModules LoadedModules { get; private set; } = new LoadedModules();
 		private readonly Random Random = new Random();
 
+		public bool UnloadModules(ModuleLoaderContext unloadContext) {
+			switch (unloadContext) {
+				case ModuleLoaderContext.All: {
+						return OnCoreShutdown().Result;
+					}
+
+				case ModuleLoaderContext.DiscordClients: {
+						if (LoadedModules.DiscordBots.Count > 0) {
+							foreach ((long, IDiscordBot) bot in LoadedModules.DiscordBots) {
+								if (bot.Item2.StopServer().Result) {
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+								}
+							}
+						}
+						return true;
+					}
+
+				case ModuleLoaderContext.EmailClients: {
+						if (LoadedModules.EmailClients.Count > 0) {
+							foreach ((long, IEmailClient) bot in LoadedModules.EmailClients) {
+								if (bot.Item2.DisposeAllEmailBots()) {
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+								}
+							}
+						}
+						return true;
+					}
+
+				case ModuleLoaderContext.GoogleMaps: {
+						if (LoadedModules.GoogleMapModules.Count > 0) {
+							foreach ((long, IGoogleMap) bot in LoadedModules.GoogleMapModules) {
+								if (bot.Item2.InitModuleShutdown()) {
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+								}
+							}
+						}
+						return true;
+					}
+
+				case ModuleLoaderContext.MiscModules: {
+						if (LoadedModules.MiscModules.Count > 0) {
+							foreach ((long, IMiscModule) bot in LoadedModules.MiscModules) {
+								if (bot.Item2.InitModuleShutdown()) {
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+								}
+							}
+						}
+						return true;
+					}
+
+				case ModuleLoaderContext.SteamClients: {
+						if (LoadedModules.SteamClients.Count > 0) {
+							foreach ((long, ISteamClient) bot in LoadedModules.SteamClients) {
+								if (bot.Item2.DisposeAllBots()) {
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+								}
+							}
+						}
+						return true;
+					}
+
+				case ModuleLoaderContext.YoutubeClients: {
+						if (LoadedModules.YoutubeClients.Count > 0) {
+							foreach ((long, IYoutubeClient) bot in LoadedModules.YoutubeClients) {
+								if (bot.Item2.InitModuleShutdown()) {
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+								}
+							}
+						}
+						return true;
+					}
+				default:
+					return false;
+			}
+		}
+
 		private bool IsExisitingModule<T>(ModuleLoaderContext context, T module) where T : IModuleBase {
 			if (module == null) {
 				return false;
@@ -259,133 +335,142 @@ namespace HomeAssistant.Modules {
 
 			switch (context) {
 				case ModulesContext.Discord: {
-					HashSet<(long, IDiscordBot)> DiscordModules = new HashSet<(long, IDiscordBot)>();
-					try {
-						using (CompositionHost container = configuration.CreateContainer()) {
-							HashSet<IDiscordBot> hashSet = container.GetExports<IDiscordBot>().ToHashSet();
-
-							if (hashSet.Count > 0) {
-								foreach (IDiscordBot bot in hashSet) {
-									bot.ModuleIdentifier = GenerateModuleIdentifier();
-									DiscordModules.Add((bot.ModuleIdentifier, bot));
-									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
-								}
-							}
-						}
-					}
-					catch (Exception e) {
-						Logger.Log(e);
-						return false;
-					}
-
-					if (DiscordModules.Count <= 0) {
-						return false;
-					}
-
-					foreach ((long uniqueId, IDiscordBot plugin) in DiscordModules) {
+						HashSet<(long, IDiscordBot)> DiscordModules = new HashSet<(long, IDiscordBot)>();
 						try {
-							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+							using (CompositionHost container = configuration.CreateContainer()) {
+								HashSet<IDiscordBot> hashSet = container.GetExports<IDiscordBot>().ToHashSet();
 
-							if (!IsExisitingModule(ModuleLoaderContext.DiscordClients, plugin)) {
-								if (plugin.InitModuleService()) {
-									LoadedModules.DiscordBots.Add((uniqueId, plugin));
-									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								if (hashSet.Count > 0) {
+									foreach (IDiscordBot bot in hashSet) {
+										bot.ModuleIdentifier = GenerateModuleIdentifier();
+										DiscordModules.Add((bot.ModuleIdentifier, bot));
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+									}
 								}
 							}
 						}
 						catch (Exception e) {
 							Logger.Log(e);
+							return false;
 						}
-					}
 
-					return true;
-				}
+						if (DiscordModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long uniqueId, IDiscordBot plugin) in DiscordModules) {
+							try {
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+
+								if (!IsExisitingModule(ModuleLoaderContext.DiscordClients, plugin)) {
+									if (plugin.InitModuleService()) {
+										LoadedModules.DiscordBots.Add((uniqueId, plugin));
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+									}
+								}
+								else {
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+								}
+							}
+							catch (Exception e) {
+								Logger.Log(e);
+							}
+						}
+
+						return true;
+					}
 
 				case ModulesContext.Email: {
-					HashSet<(long, IEmailClient)> EmailModules = new HashSet<(long, IEmailClient)>();
-					try {
-						using (CompositionHost container = configuration.CreateContainer()) {
-							HashSet<IEmailClient> hashSet = container.GetExports<IEmailClient>().ToHashSet();
-
-							if (hashSet.Count > 0) {
-								foreach (IEmailClient bot in hashSet) {
-									bot.ModuleIdentifier = GenerateModuleIdentifier();
-									EmailModules.Add((bot.ModuleIdentifier, bot));
-									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
-								}
-							}
-						}
-					}
-					catch (Exception e) {
-						Logger.Log(e);
-						return false;
-					}
-
-					if (EmailModules.Count <= 0) {
-						return false;
-					}
-
-					foreach ((long uniqueId, IEmailClient plugin) in EmailModules) {
+						HashSet<(long, IEmailClient)> EmailModules = new HashSet<(long, IEmailClient)>();
 						try {
-							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+							using (CompositionHost container = configuration.CreateContainer()) {
+								HashSet<IEmailClient> hashSet = container.GetExports<IEmailClient>().ToHashSet();
 
-							if (!IsExisitingModule(ModuleLoaderContext.EmailClients, plugin)) {
-								if (plugin.InitModuleService()) {
-									LoadedModules.EmailClients.Add((uniqueId, plugin));
-									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								if (hashSet.Count > 0) {
+									foreach (IEmailClient bot in hashSet) {
+										bot.ModuleIdentifier = GenerateModuleIdentifier();
+										EmailModules.Add((bot.ModuleIdentifier, bot));
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+									}
 								}
 							}
 						}
 						catch (Exception e) {
 							Logger.Log(e);
+							return false;
 						}
-					}
 
-					return true;
-				}
+						if (EmailModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long uniqueId, IEmailClient plugin) in EmailModules) {
+							try {
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+
+								if (!IsExisitingModule(ModuleLoaderContext.EmailClients, plugin)) {
+									if (plugin.InitModuleService()) {
+										LoadedModules.EmailClients.Add((uniqueId, plugin));
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+									}
+								}
+								else {
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+								}
+							}
+							catch (Exception e) {
+								Logger.Log(e);
+							}
+						}
+
+						return true;
+					}
 
 				case ModulesContext.GoogleMap: {
-					HashSet<(long, IGoogleMap)> MapModules = new HashSet<(long, IGoogleMap)>();
-					try {
-						using (CompositionHost container = configuration.CreateContainer()) {
-							HashSet<IGoogleMap> hashSet = container.GetExports<IGoogleMap>().ToHashSet();
-
-							if (hashSet.Count > 0) {
-								foreach (IGoogleMap bot in hashSet) {
-									bot.ModuleIdentifier = GenerateModuleIdentifier();
-									MapModules.Add((bot.ModuleIdentifier, bot));
-									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
-								}
-							}
-						}
-					}
-					catch (Exception e) {
-						Logger.Log(e);
-						return false;
-					}
-
-					if (MapModules.Count <= 0) {
-						return false;
-					}
-
-					foreach ((long uniqueId, IGoogleMap plugin) in MapModules) {
+						HashSet<(long, IGoogleMap)> MapModules = new HashSet<(long, IGoogleMap)>();
 						try {
-							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+							using (CompositionHost container = configuration.CreateContainer()) {
+								HashSet<IGoogleMap> hashSet = container.GetExports<IGoogleMap>().ToHashSet();
 
-							if (!IsExisitingModule(ModuleLoaderContext.GoogleMaps, plugin)) {
-								if (plugin.InitModuleService()) {
-									LoadedModules.GoogleMapModules.Add((uniqueId, plugin));
-									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								if (hashSet.Count > 0) {
+									foreach (IGoogleMap bot in hashSet) {
+										bot.ModuleIdentifier = GenerateModuleIdentifier();
+										MapModules.Add((bot.ModuleIdentifier, bot));
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+									}
 								}
 							}
 						}
 						catch (Exception e) {
 							Logger.Log(e);
+							return false;
 						}
-					}
 
-					return true;
-				}
+						if (MapModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long uniqueId, IGoogleMap plugin) in MapModules) {
+							try {
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+
+								if (!IsExisitingModule(ModuleLoaderContext.GoogleMaps, plugin)) {
+									if (plugin.InitModuleService()) {
+										LoadedModules.GoogleMapModules.Add((uniqueId, plugin));
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+									}
+								}
+								else {
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+								}
+							}
+							catch (Exception e) {
+								Logger.Log(e);
+							}
+						}
+
+						return true;
+					}
 
 				case ModulesContext.Youtube: {
 						HashSet<(long, IYoutubeClient)> YoutubeModules = new HashSet<(long, IYoutubeClient)>();
@@ -420,6 +505,9 @@ namespace HomeAssistant.Modules {
 										LoadedModules.YoutubeClients.Add((uniqueId, plugin));
 										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 									}
+								}
+								else {
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
 								}
 							}
 							catch (Exception e) {
@@ -464,6 +552,9 @@ namespace HomeAssistant.Modules {
 										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
 									}
 								}
+								else {
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+								}
 							}
 							catch (Exception e) {
 								Logger.Log(e);
@@ -474,47 +565,50 @@ namespace HomeAssistant.Modules {
 					}
 
 				case ModulesContext.Misc: {
-					HashSet<(long, IMiscModule)> MiscModules = new HashSet<(long, IMiscModule)>();
-					try {
-						using (CompositionHost container = configuration.CreateContainer()) {
-							HashSet<IMiscModule> hashSet = container.GetExports<IMiscModule>().ToHashSet();
-
-							if (hashSet.Count > 0) {
-								foreach (IMiscModule bot in hashSet) {
-									bot.ModuleIdentifier = GenerateModuleIdentifier();
-									MiscModules.Add((bot.ModuleIdentifier, bot));
-									Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
-								}
-							}
-						}
-					}
-					catch (Exception e) {
-						Logger.Log(e);
-						return false;
-					}
-
-					if (MiscModules.Count <= 0) {
-						return false;
-					}
-
-					foreach ((long uniqueId, IMiscModule plugin) in MiscModules) {
+						HashSet<(long, IMiscModule)> MiscModules = new HashSet<(long, IMiscModule)>();
 						try {
-							Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+							using (CompositionHost container = configuration.CreateContainer()) {
+								HashSet<IMiscModule> hashSet = container.GetExports<IMiscModule>().ToHashSet();
 
-							if (!IsExisitingModule(ModuleLoaderContext.MiscModules, plugin)) {
-								if (plugin.InitModuleService()) {
-									LoadedModules.MiscModules.Add((uniqueId, plugin));
-									Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+								if (hashSet.Count > 0) {
+									foreach (IMiscModule bot in hashSet) {
+										bot.ModuleIdentifier = GenerateModuleIdentifier();
+										MiscModules.Add((bot.ModuleIdentifier, bot));
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+									}
 								}
 							}
 						}
 						catch (Exception e) {
 							Logger.Log(e);
+							return false;
 						}
-					}
 
-					return true;
-				}
+						if (MiscModules.Count <= 0) {
+							return false;
+						}
+
+						foreach ((long uniqueId, IMiscModule plugin) in MiscModules) {
+							try {
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+
+								if (!IsExisitingModule(ModuleLoaderContext.MiscModules, plugin)) {
+									if (plugin.InitModuleService()) {
+										LoadedModules.MiscModules.Add((uniqueId, plugin));
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+									}
+								}
+								else {
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+								}
+							}
+							catch (Exception e) {
+								Logger.Log(e);
+							}
+						}
+
+						return true;
+					}
 
 				default:
 					Logger.Log("Unknown type of plugin loaded. cannot integret with tess.", LogLevels.Warn);
