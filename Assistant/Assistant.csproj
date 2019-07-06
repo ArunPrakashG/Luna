@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -44,7 +44,7 @@
 		<PackageReference Include="RestSharp" Version="106.6.9" />
 		<PackageReference Include="SteamKit2" Version="2.2.0" />
 		<PackageReference Include="System.Composition" Version="1.3.0-preview6.19303.8" />
-		<PackageReference Include="System.Device.Gpio" Version="0.1.0-prerelease.19078.2" />
+		<PackageReference Include="System.Devices.Gpio" Version="0.1.0-preview2-181222-2" />
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.5.0" />
 		<PackageReference Include="System.Interactive.Async" Version="4.0.0-preview.6.build.801" />
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />

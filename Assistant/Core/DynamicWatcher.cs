@@ -1,12 +1,13 @@
 using HomeAssistant.Log;
 using System;
 using System.IO;
+using Assistant.Modules.Interfaces;
 using HomeAssistant.Extensions;
 using HomeAssistant.Modules.Interfaces;
 using static HomeAssistant.Core.Enums;
 
 namespace Assistant.Core {
-	public class DynamicWatcher {
+	public class DynamicWatcher : IDynamicWatcher {
 		public ILoggerBase Logger { get; set; }
 		public string DirectoryToWatch { get; set; }
 		public int DelayBetweenReadsInSeconds { get; set; } = 2;
@@ -47,11 +48,9 @@ namespace Assistant.Core {
 		}
 
 		public void OnFileDeleted(object sender, FileSystemEventArgs e) {
-
 		}
 
 		public void OnFileRenamed(object sender, RenamedEventArgs e) {
-
 		}
 
 		public void OnFileChanged(object sender, FileSystemEventArgs e) {
