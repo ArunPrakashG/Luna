@@ -1,5 +1,5 @@
 using Discord.Commands;
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
@@ -14,9 +14,9 @@ namespace Discord {
 		private ulong OwnerID = 0;
 
 		private bool IsAllowed(ulong id) {
-			if (OwnerID == 0 && Tess.ModuleLoader != null && Tess.ModuleLoader.LoadedModules != null &&
-				Tess.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
-				foreach ((long, HomeAssistant.Modules.Interfaces.IDiscordBot) bot in Tess.ModuleLoader.LoadedModules.DiscordBots) {
+			if (OwnerID == 0 && Core.ModuleLoader != null && Core.ModuleLoader.LoadedModules != null &&
+				Core.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
+				foreach ((long, HomeAssistant.Modules.Interfaces.IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
 					if (bot.Item1.Equals(Discord.ModuleIdentifierInternal)) {
 						OwnerID = bot.Item2.BotConfig.DiscordOwnerID;
 					}
@@ -59,7 +59,7 @@ namespace Discord {
 		[Command("!commands"), Summary("Commands List")]
 		public async Task Help() {
 			EmbedBuilder builder = new EmbedBuilder();
-			builder.WithTitle(" **=> TESS HOME ASSISTANT COMMANDS <=** ");
+			builder.WithTitle($" **=> {Core.AssistantName.ToUpper()} HOME ASSISTANT COMMANDS <=** ");
 			builder.AddField("**!relay1**", "turn on light 1, send again to turn off");
 			builder.AddField("**!relay2**", "turn on light 2, send again to turn off");
 			builder.AddField("**!relay3**", "turn on light 3, send again to turn off");
@@ -83,20 +83,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[0]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[0]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[0]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[0]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[0]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[0]} pin to ON.");
 			}
 		}
 
@@ -107,20 +107,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[1]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[1]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[1]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[1]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[1]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[1]} pin to ON.");
 			}
 		}
 
@@ -131,20 +131,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[2]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[2]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[2]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[2]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[2]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[2]} pin to ON.");
 			}
 		}
 
@@ -155,20 +155,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[3]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[3]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[3]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[3]} pin to ON.");
 			}
 		}
 
@@ -179,20 +179,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[4]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[4]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[4]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[4]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[3]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[3]} pin to ON.");
 			}
 		}
 
@@ -203,20 +203,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[5]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[5]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[5]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[5]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[6]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[6]} pin to ON.");
 			}
 		}
 
@@ -227,20 +227,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[6]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[6]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[6]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[6]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[5]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[5]} pin to ON.");
 			}
 		}
 
@@ -251,20 +251,20 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(Tess.Config.RelayPins[7]);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[7]);
 
 			if (PinStatus.IsOn) {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[7]} pin to OFF.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
+				await Response($"Sucessfully set {Core.Config.RelayPins[7]} pin to OFF.");
 			}
 			else {
-				Tess.Controller.SetGPIO(Tess.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
-				await Response($"Sucessfully set {Tess.Config.RelayPins[7]} pin to ON.");
+				Core.Controller.SetGPIO(Core.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
+				await Response($"Sucessfully set {Core.Config.RelayPins[7]} pin to ON.");
 			}
 		}
 
@@ -275,7 +275,7 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
@@ -283,31 +283,31 @@ namespace Discord {
 			async void action() {
 				switch (cycleMode) {
 					case 0:
-						if (await Tess.Controller.RelayTestService(Enums.GPIOCycles.OneMany).ConfigureAwait(false)) {
+						if (await Core.Controller.RelayTestService(Enums.GPIOCycles.OneMany).ConfigureAwait(false)) {
 							await Response("OneMany relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 1:
-						if (await Tess.Controller.RelayTestService(Enums.GPIOCycles.OneOne).ConfigureAwait(false)) {
+						if (await Core.Controller.RelayTestService(Enums.GPIOCycles.OneOne).ConfigureAwait(false)) {
 							await Response("OneOne relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 2:
-						if (await Tess.Controller.RelayTestService(Enums.GPIOCycles.OneTwo).ConfigureAwait(false)) {
+						if (await Core.Controller.RelayTestService(Enums.GPIOCycles.OneTwo).ConfigureAwait(false)) {
 							await Response("OneTwo relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 3:
-						if (await Tess.Controller.RelayTestService(Enums.GPIOCycles.Cycle).ConfigureAwait(false)) {
+						if (await Core.Controller.RelayTestService(Enums.GPIOCycles.Cycle).ConfigureAwait(false)) {
 							await Response("Cycle relay test completed!").ConfigureAwait(false);
 						}
 						break;
 
 					case 4:
-						if (await Tess.Controller.RelayTestService(Enums.GPIOCycles.Base).ConfigureAwait(false)) {
+						if (await Core.Controller.RelayTestService(Enums.GPIOCycles.Base).ConfigureAwait(false)) {
 							await Response("Base relay test completed!").ConfigureAwait(false);
 						}
 						break;
@@ -324,7 +324,7 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.DisablePiMethods) {
+			if (Core.DisablePiMethods) {
 				await Response("Sorry, assistant is running on unknown OS therefor all GPIO pin related methods are disabled.").ConfigureAwait(false);
 				return;
 			}
@@ -347,17 +347,17 @@ namespace Discord {
 				return;
 			}
 
-			if (Tess.Config.IRSensorPins.Contains(relaypinNumber)) {
+			if (Core.Config.IRSensorPins.Contains(relaypinNumber)) {
 				await Response("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!").ConfigureAwait(false);
 				return;
 			}
 
-			if (!Tess.Config.RelayPins.Contains(relaypinNumber)) {
+			if (!Core.Config.RelayPins.Contains(relaypinNumber)) {
 				await Response("Sorry, the specified pin doesn't exist in the relay pin catagory.").ConfigureAwait(false);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(relaypinNumber);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(relaypinNumber);
 
 			if (PinStatus.IsOn && pinStatus.Equals(1)) {
 				await Response("Pin is already configured to be in ON State. Command doesn't make any sense.").ConfigureAwait(false);
@@ -371,12 +371,12 @@ namespace Discord {
 
 			Helpers.ScheduleTask(async () => {
 				if (PinStatus.IsOn && pinStatus.Equals(0)) {
-					Tess.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
+					Core.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
 					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to OFF.");
 				}
 
 				if (!PinStatus.IsOn && pinStatus.Equals(1)) {
-					Tess.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
+					Core.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
 					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to ON.");
 				}
 			}, TimeSpan.FromMinutes(delayInMinutes));
@@ -390,9 +390,9 @@ namespace Discord {
 		}
 
 		[Command("!exit"), RequireOwner]
-		public async Task TessExit(int delay = 5) {
+		public async Task AssistantExit(int delay = 5) {
 			await Response($"Exiting in {delay} seconds").ConfigureAwait(false);
-			Helpers.ScheduleTask(async () => await Tess.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
+			Helpers.ScheduleTask(async () => await Core.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
 		}
 
 		[Command("!shutdown"), RequireOwner]
@@ -402,9 +402,9 @@ namespace Discord {
 		}
 
 		[Command("!restart"), RequireOwner]
-		public async Task TessRestart(int delay = 8) {
+		public async Task AssistantRestart(int delay = 8) {
 			await Response($"Restarting in {delay} seconds").ConfigureAwait(false);
-			await Tess.Restart(8);
+			await Core.Restart(8);
 		}
 	}
 }

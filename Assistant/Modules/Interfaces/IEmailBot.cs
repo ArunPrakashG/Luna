@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using HomeAssistant.Core;
+using AssistantCore;
 using MailKit.Net.Imap;
 
 namespace HomeAssistant.Modules.Interfaces {

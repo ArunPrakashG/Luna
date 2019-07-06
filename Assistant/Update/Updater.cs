@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using RestSharp;
@@ -9,7 +9,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Update {
 
@@ -46,8 +46,8 @@ namespace HomeAssistant.Update {
 
 		public void StartUpdateTimer() {
 			StopUpdateTimer();
-			if (Tess.Config.AutoUpdates && AutoUpdateTimer == null) {
-				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(Tess.Config.UpdateIntervalInHours);
+			if (Core.Config.AutoUpdates && AutoUpdateTimer == null) {
+				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(Core.Config.UpdateIntervalInHours);
 
 				AutoUpdateTimer = new Timer(
 					e => CheckAndUpdate(true),
@@ -58,7 +58,7 @@ namespace HomeAssistant.Update {
 
 				UpdateTimerStartTime = DateTime.Now;
 				ElapasedTimeCalculator.Start();
-				Logger.Log($"TESS will automatically check for updates every 5 hours.", LogLevels.Info);
+				Logger.Log($"{Core.AssistantName} will automatically check for updates every 5 hours.", LogLevels.Info);
 			}
 		}
 
@@ -70,7 +70,7 @@ namespace HomeAssistant.Update {
 			UpdateTimerStartTime = DateTime.Now;
 			ElapasedTimeCalculator.Restart();
 
-			if (!Tess.Config.AutoUpdates) {
+			if (!Core.Config.AutoUpdates) {
 				Logger.Log("Updates are disabled.");
 				return (false, Constants.Version);
 			}

@@ -5,11 +5,11 @@
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)MiscModule\bin\Debug\netcoreapp2.1\MiscModule.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules\MiscModules&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)MiscModule\bin\Debug\netcoreapp2.1\MiscModule.dll&quot; &quot;$(SolutionDir)Assistant\Modules\MiscModules&quot; /Y /I" />
   </Target>
 
   <ItemGroup>
-    <ProjectReference Include="..\HomeAssistant\Assistant.csproj" />
+    <ProjectReference Include="..\Assistant\Assistant.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,5 @@
 using System.IO;
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
@@ -21,6 +21,9 @@ namespace Discord {
 
 		private static Logger Logger = new Logger("DISCORD-CONFIG");
 
+		[JsonIgnore]
+		public const string DiscordBotConfigPath = Constants.ConfigDirectory + "/DiscordBot.json";
+
 		public static DiscordBotConfig LoadConfig () {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...", Enums.LogLevels.Trace);
@@ -28,7 +31,6 @@ namespace Discord {
 			}
 
 			string JSON;
-			string DiscordBotConfigPath = Constants.DiscordBotConfigPath;
 			using (FileStream Stream = new FileStream(DiscordBotConfigPath, FileMode.Open, FileAccess.Read)) {
 				using (StreamReader ReadSettings = new StreamReader(Stream)) {
 					JSON = ReadSettings.ReadToEnd();
@@ -46,8 +48,6 @@ namespace Discord {
 				Logger.Log("Config folder doesn't exist, creating one...", Enums.LogLevels.Trace);
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
-
-			string DiscordBotConfigPath = Constants.DiscordBotConfigPath;
 
 			if (!File.Exists(DiscordBotConfigPath)) {
 				Logger.Log("Discord config file doesn't exist.", Enums.LogLevels.Warn);

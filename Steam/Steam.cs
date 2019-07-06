@@ -11,7 +11,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace Steam {
 	public class SteamBot : IDisposable, ISteamBot {
@@ -162,7 +162,7 @@ namespace Steam {
 					DateTime now = DateTime.UtcNow;
 					Logger.Log($"Logon Session has been forcefully Replaced. Disconnecting from Steam. ({callback.Result})", LogLevels.Warn);
 					if (now.Subtract(LastLogonSessionReplaced).TotalHours < 1) {
-						Logger.Log("Another TESS instance is already running the same account, therefore, this account cannot run on this instance.", LogLevels.Error);
+						Logger.Log($"Another {AssistantCore.Core.AssistantName} instance is already running the same account, therefore, this account cannot run on this instance.", LogLevels.Error);
 						Stop();
 						break;
 					}

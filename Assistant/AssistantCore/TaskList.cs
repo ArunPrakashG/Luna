@@ -4,9 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 	public class TaskStructure<T> where T : Task {
 		public float TaskIdentifier { get; set; }
 		public string TaskMessage { get; set; }
@@ -24,13 +24,13 @@ namespace HomeAssistant.Core {
 
 		public void TryAddTask(TaskStructure<Task> task) {
 			if (task == null) {
-				Logger.Log("Task is null.", LogLevels.Warn);
+				Logger.Log("Task is null.", Enums.LogLevels.Warn);
 				return;
 			}
 
 			TaskFactoryCollection.Add(task);
 			OnTaskAdded(TaskFactoryCollection.IndexOf(task));
-			Logger.Log("Task added sucessfully.", LogLevels.Trace);
+			Logger.Log("Task added sucessfully.", Enums.LogLevels.Trace);
 		}
 
 		public TaskStructure<Task> TryRemoveTask(float taskId) {
@@ -44,7 +44,7 @@ namespace HomeAssistant.Core {
 				if (task.TaskIdentifier.Equals(taskId)) {
 					cachedTaskStruct = task;
 					TaskFactoryCollection.Remove(task);
-					Logger.Log($"A task with identifier {taskId} and message {task.TaskMessage} has been removed from the queue.", LogLevels.Trace);
+					Logger.Log($"A task with identifier {taskId} and message {task.TaskMessage} has been removed from the queue.", Enums.LogLevels.Trace);
 					OnTaskRemoved(cachedTaskStruct);
 					return cachedTaskStruct;
 				}
@@ -71,7 +71,7 @@ namespace HomeAssistant.Core {
 			}
 			else {
 				TryRemoveTask(item.TaskIdentifier);
-				Logger.Log($"Cannot execute TASK > {item.TaskMessage} as the delay time is over or not set correctly. Removed the task.", LogLevels.Warn);
+				Logger.Log($"Cannot execute TASK > {item.TaskMessage} as the delay time is over or not set correctly. Removed the task.", Enums.LogLevels.Warn);
 			}
 		}
 
@@ -87,7 +87,7 @@ namespace HomeAssistant.Core {
 				while (true) {
 					if (taskCount < TaskFactoryCollection.Count) {
 						taskCount = TaskFactoryCollection.Count;
-						Logger.Log("A task has been added.", LogLevels.Trace);
+						Logger.Log("A task has been added.", Enums.LogLevels.Trace);
 						//TODO: On task added
 					}
 

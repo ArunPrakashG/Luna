@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
@@ -10,12 +10,12 @@ using System.Text;
 using System.Threading.Tasks;
 using HomeAssistant.Extensions.Attributes;
 using Unosquare.RaspberryIO.Abstractions;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Server {
 
 	[Obsolete("Use Kestrel server instead of TCP server.")]
-	public class TCPServer : Tess {
+	public class TCPServer : Core {
 		private readonly Logger Logger;
 		private readonly byte[] Buffer = new byte[1024];
 		private string ReceivedData;
@@ -276,7 +276,7 @@ namespace HomeAssistant.Server {
 								Task.Delay(2000).Wait();
 								await Exit().ConfigureAwait(false);
 							});
-							return "Exiting TESS in 2 seconds...";
+							return $"Exiting {Core.AssistantName} in 2 seconds...";
 
 						case "PI":
 							Helpers.InBackground(() => {
@@ -295,7 +295,7 @@ namespace HomeAssistant.Server {
 								Task.Delay(2000).Wait();
 								await Restart().ConfigureAwait(false);
 							});
-							return "Restarting TESS in 2 seconds...";
+							return $"Restarting {Core.AssistantName} in 2 seconds...";
 					}
 					break;
 

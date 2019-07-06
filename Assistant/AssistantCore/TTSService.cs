@@ -5,10 +5,10 @@ using RestSharp;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
-using SpeechContext = HomeAssistant.Core.Enums.SpeechContext;
+using static AssistantCore.Enums;
+using SpeechContext = AssistantCore.Enums.SpeechContext;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 	public class TTSService {
 		private static readonly Logger Logger = new Logger("GOOGLE-SPEECH");
 
@@ -26,28 +26,28 @@ namespace HomeAssistant.Core {
 
 			foreach (SpeechRecognitionResult result in response.Results) {
 				foreach (SpeechRecognitionAlternative alternative in result.Alternatives) {
-					Logger.Log(alternative.Transcript, LogLevels.Info);
+					Logger.Log(alternative.Transcript, Enums.LogLevels.Info);
 				}
 			}
 		}
 
-		public static void SpeakText(string text, SpeechContext context, bool disableTTSalert = true) {
-			if (Tess.Config.MuteAssistant) {
+		public static void SpeakText(string text, Enums.SpeechContext context, bool disableTTSalert = true) {
+			if (Core.Config.MuteAssistant) {
 				return;
 			}
 
-			if (Tess.IsUnknownOs) {
-				Logger.Log("TTS service disabled as we are running on unknown OS.", LogLevels.Warn);
+			if (Core.IsUnknownOs) {
+				Logger.Log("TTS service disabled as we are running on unknown OS.", Enums.LogLevels.Warn);
 				return;
 			}
 
-			if (!Tess.IsNetworkAvailable) {
-				Logger.Log("Network is unavailable. TTS won't run.", LogLevels.Warn);
+			if (!Core.IsNetworkAvailable) {
+				Logger.Log("Network is unavailable. TTS won't run.", Enums.LogLevels.Warn);
 				return;
 			}
 
 			if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(text)) {
-				Logger.Log("Text is null! line 33, TTSService.cs", LogLevels.Error);
+				Logger.Log("Text is null! line 33, TTSService.cs", Enums.LogLevels.Error);
 				return;
 			}
 
@@ -61,19 +61,19 @@ namespace HomeAssistant.Core {
 
 			byte[] result;
 			switch (context) {
-				case SpeechContext.TessStartup:
+				case Enums.SpeechContext.AssistantStartup:
 					if (!File.Exists(Constants.StartupSpeechFilePath)) {
-						Logger.Log("tess startup tts sound doesn't exist, downloading the sound...", LogLevels.Trace);
+						Logger.Log($"{Core.AssistantName} startup tts sound doesn't exist, downloading the sound...", Enums.LogLevels.Trace);
 
 						result = Helpers.GetUrlToBytes($"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={text}&tl=En-us", Method.GET, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
-						Logger.Log("Fetched voice file bytes.", LogLevels.Trace);
+						Logger.Log("Fetched voice file bytes.", Enums.LogLevels.Trace);
 
 						if (result.Length <= 0 || result == null) {
-							Logger.Log("result returned as null!", LogLevels.Error);
+							Logger.Log("result returned as null!", Enums.LogLevels.Error);
 							return;
 						}
 
-						Logger.Log($"Writting to file => {Constants.StartupSpeechFilePath}", LogLevels.Trace);
+						Logger.Log($"Writting to file => {Constants.StartupSpeechFilePath}", Enums.LogLevels.Trace);
 						Helpers.WriteBytesToFile(result, Constants.StartupSpeechFilePath);
 					}
 
@@ -82,23 +82,23 @@ namespace HomeAssistant.Core {
 						Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q", false);
 					}
 					else {
-						Logger.Log("An error occured, either download failed, or the file doesn't exist!", LogLevels.Error);
+						Logger.Log("An error occured, either download failed, or the file doesn't exist!", Enums.LogLevels.Error);
 						return;
 					}
 					break;
-				case SpeechContext.NewEmaiNotification:
+				case Enums.SpeechContext.NewEmaiNotification:
 					if (!File.Exists(Constants.NewMailSpeechFilePath)) {
-						Logger.Log("tess startup tts sound doesn't exist, downloading the sound...", LogLevels.Trace);
+						Logger.Log($"{Core.AssistantName} startup tts sound doesn't exist, downloading the sound...", Enums.LogLevels.Trace);
 
 						result = Helpers.GetUrlToBytes($"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={text}&tl=En-us", Method.GET, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
-						Logger.Log("Fetched voice file bytes.", LogLevels.Trace);
+						Logger.Log("Fetched voice file bytes.", Enums.LogLevels.Trace);
 
 						if (result.Length <= 0 || result == null) {
-							Logger.Log("result returned as null!", LogLevels.Error);
+							Logger.Log("result returned as null!", Enums.LogLevels.Error);
 							return;
 						}
 
-						Logger.Log($"Writting to file => {Constants.NewMailSpeechFilePath}", LogLevels.Trace);
+						Logger.Log($"Writting to file => {Constants.NewMailSpeechFilePath}", Enums.LogLevels.Trace);
 						Helpers.WriteBytesToFile(result, Constants.NewMailSpeechFilePath);
 					}
 
@@ -106,30 +106,30 @@ namespace HomeAssistant.Core {
 						Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.NewMailFileName} -q", false);
 					}
 					else {
-						Logger.Log("An error occured, either download failed, or the file doesn't exist!", LogLevels.Error);
+						Logger.Log("An error occured, either download failed, or the file doesn't exist!", Enums.LogLevels.Error);
 						return;
 					}
 					break;
-				case SpeechContext.Custom:
+				case Enums.SpeechContext.Custom:
 					result = Helpers.GetUrlToBytes($"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={text}&tl=En-us", Method.GET, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
-					Logger.Log("Fetched voice file bytes.", LogLevels.Trace);
+					Logger.Log("Fetched voice file bytes.", Enums.LogLevels.Trace);
 
 					if (result.Length <= 0 || result == null) {
-						Logger.Log("result returned as null!", LogLevels.Error);
+						Logger.Log("result returned as null!", Enums.LogLevels.Error);
 						return;
 					}
 
 					string fileName = $"{DateTime.Now.Ticks}.mp3";
 
-					Logger.Log($"Writting to file => {fileName}", LogLevels.Trace);
+					Logger.Log($"Writting to file => {fileName}", Enums.LogLevels.Trace);
 					Helpers.WriteBytesToFile(result, Constants.TextToSpeechDirectory + "/" + fileName);
 					Task.Delay(200).Wait();
 					if (File.Exists(Constants.TextToSpeechDirectory + "/" + fileName)) {
 						Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {fileName} -q", false);
-						Logger.Log($"Played the file {fileName} sucessfully", LogLevels.Trace);
+						Logger.Log($"Played the file {fileName} sucessfully", Enums.LogLevels.Trace);
 					}
 					else {
-						Logger.Log("An error occured, either download failed, or the file doesn't exist!", LogLevels.Error);
+						Logger.Log("An error occured, either download failed, or the file doesn't exist!", Enums.LogLevels.Error);
 						return;
 					}
 					break;

@@ -10,7 +10,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using AssistantCore;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Modules {
 	public class LoadedModules {
@@ -611,7 +612,7 @@ namespace HomeAssistant.Modules {
 					}
 
 				default:
-					Logger.Log("Unknown type of plugin loaded. cannot integret with tess.", LogLevels.Warn);
+					Logger.Log($"Unknown type of plugin loaded. cannot integret with {Core.AssistantName}.", LogLevels.Warn);
 					return false;
 			}
 		}

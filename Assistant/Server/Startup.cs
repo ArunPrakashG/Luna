@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using HomeAssistant.Core;
+using AssistantCore;
 using Swashbuckle.AspNetCore.Swagger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -33,7 +33,7 @@ namespace HomeAssistant.Server {
 				c.SwaggerDoc("v1", new OpenApiInfo {
 					Version = "v1",
 					Title = "Home assistant API",
-					Description = "Documentation for tess api endpoints.",
+					Description = $"Documentation for {Core.AssistantName} api endpoints.",
 					Contact = new OpenApiContact() {
 						Name = "Arun Prakash",
 						Email = "arun.prakash.456789@gmail.com",
@@ -53,7 +53,7 @@ namespace HomeAssistant.Server {
 			app.UseWebSockets();
 			app.UseSwaggerUI(c =>
 			{
-				c.SwaggerEndpoint("/swagger/v1/swagger.json", "TESS api documentation");
+				c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{Core.AssistantName} api documentation");
 				c.RoutePrefix = string.Empty;
 			});
 			app.UseMvc();

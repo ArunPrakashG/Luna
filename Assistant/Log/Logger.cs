@@ -1,9 +1,9 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Modules.Interfaces;
 using System;
 using System.Runtime.CompilerServices;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Log {
 	public class Logger : ILoggerBase {
@@ -69,7 +69,7 @@ namespace HomeAssistant.Log {
 				return;
 			}
 
-			if (Tess.Config.Debug) {
+			if (Core.Config.Debug) {
 				LogGenericInfo($"{previousMethodName}() " + message, previousMethodName);
 			}
 			else {
@@ -97,7 +97,7 @@ namespace HomeAssistant.Log {
 		public void Log(Exception e, LogLevels level = LogLevels.Error, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
 			switch (level) {
 				case LogLevels.Error:
-					if (Tess.Config.Debug) {
+					if (Core.Config.Debug) {
 						LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}", previousMethodName);
 					}
 					else {
@@ -178,12 +178,12 @@ namespace HomeAssistant.Log {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted || !Tess.IsNetworkAvailable) {
+			if (!Core.CoreInitiationCompleted || !Core.IsNetworkAvailable) {
 				return;
 			}
 
-			if (Tess.ModuleLoader != null && Tess.ModuleLoader.LoadedModules != null && Tess.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
-				foreach ((long, IDiscordBot) bot in Tess.ModuleLoader.LoadedModules.DiscordBots) {
+			if (Core.ModuleLoader != null && Core.ModuleLoader.LoadedModules != null && Core.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
+				foreach ((long, IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
 					if (bot.Item2.IsServerOnline && bot.Item2.BotConfig.EnableDiscordBot &&
 					    bot.Item2.BotConfig.DiscordLogChannelID != 0 && bot.Item2.BotConfig.DiscordLog) {
 						Helpers.InBackground(async () => {

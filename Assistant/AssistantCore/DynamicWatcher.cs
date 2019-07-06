@@ -4,7 +4,7 @@ using System.IO;
 using Assistant.Modules.Interfaces;
 using HomeAssistant.Extensions;
 using HomeAssistant.Modules.Interfaces;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace Assistant.Core {
 	public class DynamicWatcher : IDynamicWatcher {

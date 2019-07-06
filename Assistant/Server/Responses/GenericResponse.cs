@@ -2,7 +2,7 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using System;
 using System.ComponentModel.DataAnnotations;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Server.Responses {
 	public class GenericResponse<T> {

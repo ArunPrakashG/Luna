@@ -1,4 +1,4 @@
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 
 	public static class Enums {
 
@@ -90,8 +90,8 @@ namespace HomeAssistant.Core {
 		}
 		
 		public enum SpeechContext : byte {
-			TessStartup,
-			TessShutdown,
+			AssistantStartup,
+			AssistantShutdown,
 			NewEmaiNotification,
 			Custom
 		}

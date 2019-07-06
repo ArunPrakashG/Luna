@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
@@ -13,7 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace Email {
 
@@ -70,7 +70,7 @@ namespace Email {
 							Logger.Log($"Loaded {entry.Value.EmailID} mail account to processing state.",
 								LogLevels.Trace);
 
-							ImapClient BotClient = Tess.Config.Debug
+							ImapClient BotClient = Core.Config.Debug
 								? new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
 									ServerCertificateValidationCallback =
 										(sender, certificate, chain, sslPolicyErrors) => true
@@ -178,7 +178,7 @@ namespace Email {
 
 			foreach (KeyValuePair<string, IEmailBot> pair in EmailClientCollection) {
 				if (pair.Value.IsAccountLoaded) {
-					pair.Value.Dispose(Tess.GracefullModuleShutdown);
+					pair.Value.Dispose(Core.GracefullModuleShutdown);
 					Logger.Log($"Disposed {pair.Value.GmailId} email account.");
 				}
 			}

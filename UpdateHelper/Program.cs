@@ -14,7 +14,7 @@ namespace UpdateHelper {
 		private static void Main(string[] args) {
 			Console.WriteLine("Starting Update Process...");
 			Console.WriteLine("1.0.0.0");
-			Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
+			Console.WriteLine("Assistant Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
 			ZipArchive Archive = null;
 
 			try {
@@ -91,7 +91,7 @@ namespace UpdateHelper {
 				foreach (ZipArchiveEntry zipFile in archive.Entries) {
 					string file = Path.Combine(pathtoUpdate, zipFile.FullName);
 
-					if (file.Equals(@"TESS.json") || file.Equals("Variables.txt") || file.Equals("NLog.config") || file.Equals("GPIOConfig.json")
+					if (file.Equals(@"Assistant.json") || file.Equals("Variables.txt") || file.Equals("NLog.config") || file.Equals("GpioConfig.json")
 						|| file.Equals("TraceLog.txt")) {
 						Console.WriteLine("Ignored " + file + " file.");
 						continue;

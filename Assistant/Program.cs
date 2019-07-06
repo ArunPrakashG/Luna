@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Log;
 using System;
 using System.IO;
@@ -6,12 +6,12 @@ using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant {
 
 	public class Program {
-		private static readonly Logger Logger = new Logger("CORE");
+		private static readonly Logger Logger = new Logger("MAIN");
 
 		// Handle Pre-init Tasks in here
 		private static async Task Main(string[] args) {
@@ -20,11 +20,11 @@ namespace HomeAssistant {
 			AppDomain.CurrentDomain.FirstChanceException += HandleFirstChanceExceptions;
 			NetworkChange.NetworkAvailabilityChanged += AvailabilityChanged;
 			AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
-			Console.CancelKeyPress += OnForceQuitTess;
-			bool Init = await Tess.InitCore(args).ConfigureAwait(false);
+			Console.CancelKeyPress += OnForceQuitAssistant;
+			bool Init = await Core.InitCore(args).ConfigureAwait(false);
 		}
 
-		private static async void OnForceQuitTess(object sender, ConsoleCancelEventArgs e) => await Tess.Exit(-1).ConfigureAwait(false);
+		private static async void OnForceQuitAssistant(object sender, ConsoleCancelEventArgs e) => await Core.Exit(-1).ConfigureAwait(false);
 
 		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
 			Logger.Log($"{e.Exception.Message}", LogLevels.Error);
@@ -32,12 +32,12 @@ namespace HomeAssistant {
 		}
 
 		public static void HandleFirstChanceExceptions(object sender, FirstChanceExceptionEventArgs e) {
-			if (Tess.Config.Debug) {
-				if (Tess.DisableFirstChanceLogWithDebug) {
+			if (Core.Config.Debug) {
+				if (Core.DisableFirstChanceLogWithDebug) {
 					return;
 				}
 
-				if (Tess.Config.EnableFirstChanceLog) {
+				if (Core.Config.EnableFirstChanceLog) {
 					if (e.Exception is PlatformNotSupportedException) {
 						Logger.Log(e.Exception.Message, LogLevels.Error);
 					}
@@ -78,19 +78,19 @@ namespace HomeAssistant {
 			Logger.Log((Exception) e.ExceptionObject, LogLevels.Fatal);
 
 			if (e.IsTerminating) {
-				Task.Run(async () => await Tess.Exit(-1).ConfigureAwait(false));
+				Task.Run(async () => await Core.Exit(-1).ConfigureAwait(false));
 			}
 		}
 
 		private static async Task NetworkReconnect() {
 			Logger.Log("Network is back online, reconnecting!");
-			await Tess.OnNetworkReconnected().ConfigureAwait(false);
+			await Core.OnNetworkReconnected().ConfigureAwait(false);
 		}
 
 		private static async Task NetworkDisconnect() {
 			Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
 			Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", LogLevels.Error);
-			await Tess.OnNetworkDisconnected().ConfigureAwait(false);
+			await Core.OnNetworkDisconnected().ConfigureAwait(false);
 		}
 
 		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {

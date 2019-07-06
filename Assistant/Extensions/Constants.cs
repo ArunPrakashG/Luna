@@ -13,9 +13,8 @@ namespace HomeAssistant.Extensions {
 		public const string ModuleDirectory = @"Modules";
 		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 
-		public const string GPIOConfigPath = ConfigDirectory + "/GPIOConfig.json";
-		public const string CoreConfigPath = ConfigDirectory + "/TESS.json";
-		public const string DiscordBotConfigPath = ConfigDirectory + "/DiscordBot.json";
+		public const string GPIOConfigPath = ConfigDirectory + "/GpioConfig.json";
+		public const string CoreConfigPath = ConfigDirectory + "/Assistant.json";
 		public const string IPBlacklistPath = ConfigDirectory + "/IPBlacklist.txt";
 		public const string TaskQueueFilePath = ConfigDirectory + "/TaskQueue.json";
 		public const string KestrelConfigurationFile = nameof(KestrelServer) + ".config";

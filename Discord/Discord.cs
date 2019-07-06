@@ -1,6 +1,6 @@
 using Discord.Commands;
 using Discord.WebSocket;
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
 using System;
@@ -10,7 +10,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace Discord {
 	public class Discord : IModuleBase, IDiscordBot, IDiscordLogger {
@@ -184,8 +184,8 @@ namespace Discord {
 		}
 
 		private async Task OnClientReady() {
-			await Client.SetGameAsync("Tess home assistant!", null, ActivityType.Playing).ConfigureAwait(false);
-			await LogToChannel("TESS discord command bot is ready!").ConfigureAwait(false);
+			await Client.SetGameAsync("Core home assistant!", null, ActivityType.Playing).ConfigureAwait(false);
+			await LogToChannel($"{Core.AssistantName} discord command bot is ready!").ConfigureAwait(false);
 		}
 
 		//Discord Core Logger
@@ -252,7 +252,7 @@ namespace Discord {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted || !BotConfig.DiscordLog || !Tess.IsNetworkAvailable || Tess.ModuleLoader.LoadedModules.DiscordBots == null || Tess.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
+			if (!Core.CoreInitiationCompleted || !BotConfig.DiscordLog || !Core.IsNetworkAvailable || Core.ModuleLoader.LoadedModules.DiscordBots == null || Core.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
 				return;
 			}
 

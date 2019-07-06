@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Modules.Interfaces {
 	public interface ISteamBotConfig {

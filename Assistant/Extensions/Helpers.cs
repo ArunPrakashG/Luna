@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Log;
 using RestSharp;
 using System;
@@ -14,7 +14,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 using ProcessThread = System.Diagnostics.ProcessThread;
 
 namespace HomeAssistant.Extensions {
@@ -128,12 +128,12 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static void PlayNotification(NotificationContext context = NotificationContext.Normal, bool redirectOutput = false) {
-			if (Tess.IsUnknownOs) {
+			if (Core.IsUnknownOs) {
 				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Error);
 				return;
 			}
 
-			if (Tess.Config.MuteAssistant) {
+			if (Core.Config.MuteAssistant) {
 				Logger.Log("Notifications are muted in config.", LogLevels.Trace);
 				return;
 			}
@@ -150,7 +150,7 @@ namespace HomeAssistant.Extensions {
 						return;
 					}
 
-					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPPushFileName} -q", Tess.Config.Debug || redirectOutput);
+					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPPushFileName} -q", Core.Config.Debug || redirectOutput);
 					Logger.Log("Notification command processed sucessfully!", LogLevels.Trace);
 					break;
 
@@ -164,7 +164,7 @@ namespace HomeAssistant.Extensions {
 					break;
 
 				case NotificationContext.Normal:
-					if (!Tess.IsNetworkAvailable) {
+					if (!Core.IsNetworkAvailable) {
 						Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
 					}
 					break;
@@ -187,7 +187,7 @@ namespace HomeAssistant.Extensions {
 			return result;
 		}
 
-		public static void SetConsoleTitle(string text) => Console.Title = $"TESS Home Assistant V{Constants.Version} | {text}";
+		public static void SetConsoleTitle(string text) => Console.Title = $"{Core.AssistantName} Home Assistant V{Constants.Version} | {text}";
 
 		public static DateTime UnixTimeStampToDateTime(double unixTimeStamp) {
 			DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
@@ -196,7 +196,7 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static string GetExternalIp() {
-			if (Tess.IsNetworkAvailable) {
+			if (Core.IsNetworkAvailable) {
 				string result = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
 				return result;
 			}
@@ -206,7 +206,7 @@ namespace HomeAssistant.Extensions {
 		}
 
 		internal static string TimeRan() {
-			DateTime StartTime = Tess.StartupTime;
+			DateTime StartTime = Core.StartupTime;
 			TimeSpan dt = DateTime.Now - StartTime;
 			string Duration = "Online for: ";
 			Duration += Math.Round(dt.TotalDays, 0) + " days, ";
@@ -215,7 +215,7 @@ namespace HomeAssistant.Extensions {
 			return Duration;
 		}
 
-		public static async Task DisplayTessASCII() {
+		public static async Task DisplayAssistantASCII() {
 			Logger.Log(@"  _______ ______  _____ _____ ", LogLevels.Ascii);
 			await Task.Delay(200).ConfigureAwait(false);
 			Logger.Log(@" |__   __|  ____|/ ____/ ____|", LogLevels.Ascii);
@@ -286,7 +286,7 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static string GetUrlToString(string url, string Method = "GET", bool withuserAgent = true) {
-			if (!Tess.IsNetworkAvailable) {
+			if (!Core.IsNetworkAvailable) {
 				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
 				return null;
 			}
@@ -317,7 +317,7 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static string GetUrlToString(string url, Method method, bool withuseragent = true) {
-			if (!Tess.IsNetworkAvailable) {
+			if (!Core.IsNetworkAvailable) {
 				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
 				return null;
 			}
@@ -351,7 +351,7 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static byte[] GetUrlToBytes(string url, Method method, string userAgent, string headerName = null, string headerValue = null) {
-			if (!Tess.IsNetworkAvailable) {
+			if (!Core.IsNetworkAvailable) {
 				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
 				return new byte[0];
 			}
@@ -385,13 +385,13 @@ namespace HomeAssistant.Extensions {
 			if (Restart) {
 				Logger.Log("Restarting...");
 				await Task.Delay(5000).ConfigureAwait(false);
-				await Tess.Restart().ConfigureAwait(false);
+				await Core.Restart().ConfigureAwait(false);
 				return true;
 			}
 
 			Logger.Log("Exiting...");
 			await Task.Delay(5000).ConfigureAwait(false);
-			await Tess.Exit().ConfigureAwait(false);
+			await Core.Exit().ConfigureAwait(false);
 			return true;
 		}
 
@@ -474,8 +474,8 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
-			if (Tess.IsUnknownOs && fileName == "/bin/bash") {
-				Logger.Log("TESS is running on unknown OS. command cannot be executed.", LogLevels.Error);
+			if (Core.IsUnknownOs && fileName == "/bin/bash") {
+				Logger.Log($"{Core.AssistantName} is running on unknown OS. command cannot be executed.", LogLevels.Error);
 				return;
 			}
 

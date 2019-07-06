@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 	public sealed class GpioPinEventData {
 		public int GpioPin { get; set; } = 2;
 		public GpioPinDriveMode PinMode { get; set; } = GpioPinDriveMode.Output;
@@ -61,7 +61,7 @@ namespace HomeAssistant.Core {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Core.CoreInitiationCompleted) {
 				return;
 			}
 
@@ -87,7 +87,7 @@ namespace HomeAssistant.Core {
 				PinPreviousState = Enums.GpioPinEventStates.OFF
 			});
 
-			Logger.Log($"Started pin polling for {pinData.GpioPin}.", Tess.Config.Debug ? Enums.LogLevels.Info : Enums.LogLevels.Trace);
+			Logger.Log($"Started pin polling for {pinData.GpioPin}.", Core.Config.Debug ? Enums.LogLevels.Info : Enums.LogLevels.Trace);
 			Enums.GpioPinEventStates previousValue = val ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
 
 			PollingThreadInfo = Helpers.InBackgroundThread(async () => {
@@ -184,7 +184,7 @@ namespace HomeAssistant.Core {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted || Tess.DisablePiMethods) {
+			if (!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
 				return;
 			}
 
@@ -205,7 +205,7 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			if (!Tess.CoreInitiationCompleted || Tess.DisablePiMethods) {
+			if (!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
 				return;
 			}
 

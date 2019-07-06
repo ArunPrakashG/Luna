@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using Microsoft.AspNetCore.Hosting;
@@ -24,7 +24,7 @@ namespace HomeAssistant.Server {
 			Logger.Log("Starting Kestrel IPC server...");
 			IWebHostBuilder builder = new WebHostBuilder();
 			string absoluteConfigDirectory = Path.Combine(Directory.GetCurrentDirectory(), Constants.ConfigDirectory);
-			builder.ConfigureLogging(logging => logging.SetMinimumLevel(Tess.Config.Debug ? LogLevel.Trace : LogLevel.Warning));
+			builder.ConfigureLogging(logging => logging.SetMinimumLevel(Core.Config.Debug ? LogLevel.Trace : LogLevel.Warning));
 			if (File.Exists(Path.Combine(absoluteConfigDirectory, Constants.KestrelConfigurationFile))) {
 				builder.UseConfiguration(new ConfigurationBuilder().SetBasePath(absoluteConfigDirectory).AddJsonFile(Constants.KestrelConfigurationFile, false, true).Build());
 				builder.UseKestrel((builderContext, options) => options.Configure(builderContext.Configuration.GetSection("Kestrel")));
@@ -32,11 +32,11 @@ namespace HomeAssistant.Server {
 			}
 			else {
 				builder.UseKestrel(options => {
-					if (Tess.Config.ListernLocalHostOnly) {
-						options.ListenLocalhost(Tess.Config.KestrelServerPort);
+					if (Core.Config.ListernLocalHostOnly) {
+						options.ListenLocalhost(Core.Config.KestrelServerPort);
 					}
 					else {
-						options.ListenAnyIP(Tess.Config.KestrelServerPort);
+						options.ListenAnyIP(Core.Config.KestrelServerPort);
 					}
 				});
 			}
@@ -57,7 +57,7 @@ namespace HomeAssistant.Server {
 
 			KestrelWebHost = kestrelWebHost;
 			IsServerOnline = true;
-			Logger.Log($"Kestrel server is running at http://localhost:{Tess.Config.KestrelServerPort}/");
+			Logger.Log($"Kestrel server is running at http://localhost:{Core.Config.KestrelServerPort}/");
 		}
 
 		public static async Task Stop() {

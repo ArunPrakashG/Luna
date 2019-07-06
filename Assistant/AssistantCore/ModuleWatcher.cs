@@ -2,8 +2,9 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.IO;
+using HomeAssistant.Modules;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 	public class ModuleWatcher {
 		private readonly Logger Logger = new Logger("MODULE-WATCHER");
 		private FileSystemWatcher FileSystemWatcher;
@@ -23,7 +24,7 @@ namespace HomeAssistant.Core {
 
 		public void InitConfigWatcher() {
 			Logger.Log("Starting module watcher...", Enums.LogLevels.Trace);
-			if (!Tess.Config.EnableModuleWatcher && !Tess.Config.EnableModules) {
+			if (!Core.Config.EnableModuleWatcher && !Core.Config.EnableModules) {
 				Logger.Log("Module watcher is disabled.", Enums.LogLevels.Trace);
 				return;
 			}
@@ -64,7 +65,7 @@ namespace HomeAssistant.Core {
 				return;
 			}
 
-			Tess.ModuleLoader.UnloadModules(context);
+			Core.ModuleLoader.UnloadModules(context);
 		}
 
 		private void OnFileEventRaised(object sender, FileSystemEventArgs e) {
@@ -73,7 +74,7 @@ namespace HomeAssistant.Core {
 				return;
 			}
 
-			if (!Tess.CoreInitiationCompleted) { return; }
+			if (!Core.CoreInitiationCompleted) { return; }
 
 			double secondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
 			LastRead = DateTime.Now;
@@ -131,7 +132,7 @@ namespace HomeAssistant.Core {
 				default:
 					Helpers.InBackground(() => {
 						Logger.Log("Loading dll...", Enums.LogLevels.Trace);
-						(bool, Modules.LoadedModules) status = Tess.ModuleLoader.LoadModules(loaderContext);
+						(bool, LoadedModules) status = Core.ModuleLoader.LoadModules(loaderContext);
 					});
 					break;
 			}

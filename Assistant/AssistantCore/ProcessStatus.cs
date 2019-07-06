@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using HomeAssistant.Extensions;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 	public class AssistantResourceUsage {
 
 		[JsonProperty]
@@ -16,7 +16,7 @@ namespace HomeAssistant.Core {
 		public string TotalRamUsage { get; set; }
 
 		[JsonProperty]
-		public string TessRamUsage { get; set; }
+		public string AssistantRamUsage { get; set; }
 	}
 
 	public class ProcessStatus : IDisposable {
@@ -37,11 +37,11 @@ namespace HomeAssistant.Core {
 
 			Usage.TotalCpuUsage = $"{CpuCounter.NextValue():##0} %";
 			Usage.TotalRamUsage = $"{RamCounter.NextValue()} Mb";
-			Usage.TessRamUsage = TessRamUsage();
+			Usage.AssistantRamUsage = AssistantRamUsage();
 			return Usage;
 		}
 
-		private string TessRamUsage() {
+		private string AssistantRamUsage() {
 			double memorySize = ByteSize.FromBytes(Convert.ToDouble(Process.GetCurrentProcess().PrivateMemorySize64)).MegaBytes;
 			return $"{memorySize} Mb";
 		}

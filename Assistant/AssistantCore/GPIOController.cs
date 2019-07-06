@@ -7,12 +7,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
-using System.Device.Gpio;
-using System.Device.Gpio.Drivers;
-using static HomeAssistant.Core.Enums;
-using PinMode = HomeAssistant.Core.Enums.PinMode;
+using System.Devices.Gpio;
+using static AssistantCore.Enums;
+using PinMode = AssistantCore.Enums.PinMode;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 
 	public class GPIOTaskQueue {
 
@@ -48,7 +47,7 @@ namespace HomeAssistant.Core {
 			GPIOConfigHandler = configHandler;
 			GPIOConfigRoot = rootObject;
 			GpioPollingManager = new GpioEventManager(this);
-
+			
 			Helpers.ScheduleTask(() => {
 				if (GpioPollingManager == null) {
 					return;
@@ -56,11 +55,11 @@ namespace HomeAssistant.Core {
 
 				List<GpioPinEventData> pinData = new List<GpioPinEventData>();
 
-				foreach (int pin in Tess.Config.RelayPins) {
+				foreach (int pin in Core.Config.RelayPins) {
 					pinData.Add(new GpioPinEventData() {
 						PinMode = GpioPinDriveMode.Output,
 						GpioPin = pin,
-						PinEventState = GpioPinEventStates.ALL
+						PinEventState = Enums.GpioPinEventStates.ALL
 					});
 				}
 
@@ -72,21 +71,21 @@ namespace HomeAssistant.Core {
 
 			}, TimeSpan.FromSeconds(5));
 
-			Logger.Log("Initiated GPIO Controller class!", LogLevels.Trace);
+			Logger.Log("Initiated GPIO Controller class!", Enums.LogLevels.Trace);
 		}
 
 		private void OnGpioPinValueChanged (object sender, GpioPinValueChangedEventArgs e) {
 			switch (e.PinState) {
-				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.OFF:
+				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
 					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)");
 					break;
-				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.ON:
+				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.ON:
 					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)");
 					break;
-				case GpioPinEventStates.ON when e.PinPreviousState == GpioPinEventStates.OFF:
+				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
 					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)");
 					break;
-				case GpioPinEventStates.OFF when e.PinPreviousState == GpioPinEventStates.ON:
+				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.ON:
 					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)");
 					break;
 				default:
@@ -104,49 +103,66 @@ namespace HomeAssistant.Core {
 
 		private void TryEnqueue(GPIOTaskQueue task) {
 			if (task == null) {
-				Logger.Log("Task is null.", LogLevels.Warn);
+				Logger.Log("Task is null.", Enums.LogLevels.Warn);
 				return;
 			}
 
 			TaskQueue.Enqueue(task);
 			Helpers.InBackground(() => OnEnqueued(task));
-			Logger.Log("Task added sucessfully.", LogLevels.Trace);
+			Logger.Log("Task added sucessfully.", Enums.LogLevels.Trace);
 		}
 
 		private GPIOTaskQueue TryDequeue() {
 			bool result = TaskQueue.TryDequeue(out GPIOTaskQueue task);
 
 			if (!result) {
-				Logger.Log("Failed to fetch from the queue.", LogLevels.Error);
+				Logger.Log("Failed to fetch from the queue.", Enums.LogLevels.Error);
 				return null;
 			}
 
-			Logger.Log("Fetching task sucessfully!", LogLevels.Trace);
+			Logger.Log("Fetching task sucessfully!", Enums.LogLevels.Trace);
 			Helpers.InBackground(() => OnDequeued(task));
 			return task;
 		}
 
-		private bool CheckSafeMode() => Tess.Config.GPIOSafeMode;
+		[Obsolete("Temporary use for testing only")]
+		public void GpioTest () {
+			GpioController controllerTest = new GpioController(PinNumberingScheme.Gpio);
+			if (!controllerTest.IsPinOpen(Core.Config.RelayPins.FirstOrDefault())) {
+				controllerTest.OpenPin(Core.Config.RelayPins.FirstOrDefault());
+			}
+
+			controllerTest[Core.Config.RelayPins.FirstOrDefault()].Mode = System.Devices.Gpio.PinMode.Output;
+			controllerTest[Core.Config.RelayPins.FirstOrDefault()].NotifyEvents = PinEvent.Any;
+			controllerTest[Core.Config.RelayPins.FirstOrDefault()].EnableRaisingEvents = true;
+			controllerTest[Core.Config.RelayPins.FirstOrDefault()].ValueChanged += OnPinValueChangedTest;
+		}
+
+		private void OnPinValueChangedTest (object sender, PinValueChangedEventArgs e) {
+			Logger.Log($"pin value changed test method fired for pin {e.GpioPinNumber}");
+		}
+
+		private bool CheckSafeMode() => Core.Config.GPIOSafeMode;
 
 		public void StopWaitForValue() => IsWaitForValueCancellationRequested = true;
 
 		public void ChargerController(int pin, TimeSpan delay, GpioPinValue initialValue, GpioPinValue finalValue) {
 			if (pin <= 0) {
-				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
+				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
 				return;
 			}
 
-			if (Tess.Config.IRSensorPins.Contains(pin)) {
-				Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!", LogLevels.Error);
+			if (Core.Config.IRSensorPins.Contains(pin)) {
+				Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!", Enums.LogLevels.Error);
 				return;
 			}
 
-			if (!Tess.Config.RelayPins.Contains(pin)) {
-				Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.", LogLevels.Error);
+			if (!Core.Config.RelayPins.Contains(pin)) {
+				Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.", Enums.LogLevels.Error);
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Tess.Controller.FetchPinStatus(pin);
+			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(pin);
 
 			//TODO: Task based system for scheduling various tasks like remainders and charger controller
 			if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.Low) {
@@ -161,16 +177,16 @@ namespace HomeAssistant.Core {
 						PinNumber = pin
 					};
 					TryEnqueue(task);
-					Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
+					Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
 					Logger.Log($"TASK >> {pin} configured to OFF state. Waiting {delay.Minutes} minutes...");
-					Tess.Controller.FetchPinStatus(pin);
+					Core.Controller.FetchPinStatus(pin);
 					Helpers.ScheduleTask(() => {
-						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
+						Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
 						Logger.Log($"TASK >> {pin} configured to ON state. Task completed sucessfully!");
 					}, delay);
 				}
 				else {
-					Logger.Log("Pin is already in OFF state. disposing the task.", LogLevels.Error);
+					Logger.Log("Pin is already in OFF state. disposing the task.", Enums.LogLevels.Error);
 				}
 			}
 			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
@@ -185,42 +201,42 @@ namespace HomeAssistant.Core {
 						PinNumber = pin
 					};
 					TryEnqueue(task);
-					Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
+					Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
 					Logger.Log($"TASK >> {pin} configured to ON state. Waiting {delay.Minutes} minutes...");
-					Tess.Controller.FetchPinStatus(pin);
+					Core.Controller.FetchPinStatus(pin);
 					Helpers.ScheduleTask(() => {
-						Tess.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
+						Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
 						Logger.Log($"TASK >> {pin} configured to OFF state. Task completed sucessfully!");
 					}, delay);
 				}
 				else {
-					Logger.Log("Pin is already in ON state. disposing the task.", LogLevels.Error);
+					Logger.Log("Pin is already in ON state. disposing the task.", Enums.LogLevels.Error);
 				}
 			}
 			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.Low) {
-				Logger.Log("Both initial and final values cant be equal. (ON-ON)", LogLevels.Error);
+				Logger.Log("Both initial and final values cant be equal. (ON-ON)", Enums.LogLevels.Error);
 			}
 			else if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.High) {
-				Logger.Log("Both initial and final values cant be equal (OFF-OFF)", LogLevels.Error);
+				Logger.Log("Both initial and final values cant be equal (OFF-OFF)", Enums.LogLevels.Error);
 			}
 			else {
-				Logger.Log("Unknown value, an error has occured.", LogLevels.Error);
+				Logger.Log("Unknown value, an error has occured.", Enums.LogLevels.Error);
 			}
 		}
 
 		public void ContinuousWaitForValue(int pin, bool pinValue, Action action) {
 			if (action == null) {
-				Logger.Log("Action is null!", LogLevels.Error);
+				Logger.Log("Action is null!", Enums.LogLevels.Error);
 				return;
 			}
 
 			if (pin == 0) {
-				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
+				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
 				return;
 			}
 
-			if (!Tess.Config.IRSensorPins.Contains(pin)) {
-				Logger.Log("The specified pin doesn't exist in IR Sensor pin list.", LogLevels.Error);
+			if (!Core.Config.IRSensorPins.Contains(pin)) {
+				Logger.Log("The specified pin doesn't exist in IR Sensor pin list.", Enums.LogLevels.Error);
 				return;
 			}
 
@@ -232,14 +248,14 @@ namespace HomeAssistant.Core {
 				}
 
 				if (failedAttempts.Equals(7)) {
-					Logger.Log("Failed to run the specified action.", LogLevels.Error);
+					Logger.Log("Failed to run the specified action.", Enums.LogLevels.Error);
 					return;
 				}
 
 				bool? pinState = GpioDigitalRead(pin);
 
 				if (!pinState.HasValue) {
-					Logger.Log("Could not fetch pin state value, trying again...", LogLevels.Trace);
+					Logger.Log("Could not fetch pin state value, trying again...", Enums.LogLevels.Trace);
 					failedAttempts++;
 					continue;
 				}
@@ -253,12 +269,12 @@ namespace HomeAssistant.Core {
 
 		public bool WaitUntilPinValue(int pin, GpioPinValue value, int timeOutValueMillisecond) {
 			if (pin <= 0) {
-				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
+				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
 				return false;
 			}
 
 			if (timeOutValueMillisecond <= 0) {
-				Logger.Log("Time out value is set to unknown digit.", LogLevels.Error);
+				Logger.Log("Time out value is set to unknown digit.", Enums.LogLevels.Error);
 			}
 
 			IGpioPin GPIOPin = Pi.Gpio[pin];
@@ -267,12 +283,12 @@ namespace HomeAssistant.Core {
 
 		public bool RunOnPinValue(int pin, bool pinValueConditon, Action action) {
 			if (action == null) {
-				Logger.Log("Action is null!", LogLevels.Error);
+				Logger.Log("Action is null!", Enums.LogLevels.Error);
 				return false;
 			}
 
 			if (pin == 0) {
-				Logger.Log("Pin number is set to unknown value.", LogLevels.Error);
+				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
 				return false;
 			}
 
@@ -280,21 +296,21 @@ namespace HomeAssistant.Core {
 
 			while (true) {
 				if (failedAttempts.Equals(7)) {
-					Logger.Log("Failed to run the specified action.", LogLevels.Error);
+					Logger.Log("Failed to run the specified action.", Enums.LogLevels.Error);
 					return false;
 				}
 
 				bool? pinState = GpioDigitalRead(pin);
 
 				if (!pinState.HasValue) {
-					Logger.Log("Could not fetch pin state value, trying again...", LogLevels.Trace);
+					Logger.Log("Could not fetch pin state value, trying again...", Enums.LogLevels.Trace);
 					failedAttempts++;
 					continue;
 				}
 
 				if (pinState.Value.Equals(pinValueConditon)) {
 					Helpers.InBackground(action);
-					Logger.Log("Started the specified action process.", LogLevels.Trace);
+					Logger.Log("Started the specified action process.", Enums.LogLevels.Trace);
 					return true;
 				}
 				Task.Delay(100).Wait();
@@ -335,7 +351,7 @@ namespace HomeAssistant.Core {
 			IGpioPin GPIOPin = Pi.Gpio[pin];
 
 			if (onlyInputPins && GPIOPin.PinMode != GpioPinDriveMode.Input) {
-				Logger.Log("The specified gpio pin mode isn't set to Input.", LogLevels.Error);
+				Logger.Log("The specified gpio pin mode isn't set to Input.", Enums.LogLevels.Error);
 				return false;
 			}
 
@@ -343,12 +359,12 @@ namespace HomeAssistant.Core {
 		}
 
 		public bool SetGPIO(int pin, GpioPinDriveMode mode, GpioPinValue state) {
-			if (!Tess.Config.EnableGpioControl) {
+			if (!Core.Config.EnableGpioControl) {
 				return false;
 			}
 
 			if (CheckSafeMode()) {
-				if (!Tess.Config.RelayPins.Contains(pin)) {
+				if (!Core.Config.RelayPins.Contains(pin)) {
 					Logger.Log($"Could not configure {pin} as it's marked as SAFE. (SAFE-MODE)");
 					return false;
 				}
@@ -381,13 +397,13 @@ namespace HomeAssistant.Core {
 				case GpioPinDriveMode.Input:
 					switch (state) {
 						case GpioPinValue.High:
-							Logger.Log($"Configured {pin} pin to OFF. (INPUT)", LogLevels.Trace);
-							UpdatePinStatus(pin, false, PinMode.Input);
+							Logger.Log($"Configured {pin} pin to OFF. (INPUT)", Enums.LogLevels.Trace);
+							UpdatePinStatus(pin, false, Enums.PinMode.Input);
 							break;
 
 						case GpioPinValue.Low:
-							Logger.Log($"Configured {pin} pin to ON. (INPUT)", LogLevels.Trace);
-							UpdatePinStatus(pin, true, PinMode.Input);
+							Logger.Log($"Configured {pin} pin to ON. (INPUT)", Enums.LogLevels.Trace);
+							UpdatePinStatus(pin, true, Enums.PinMode.Input);
 							break;
 					}
 					break;
@@ -395,12 +411,12 @@ namespace HomeAssistant.Core {
 				case GpioPinDriveMode.Output:
 					switch (state) {
 						case GpioPinValue.High:
-							Logger.Log($"Configured {pin} pin to OFF. (OUTPUT)", LogLevels.Trace);
+							Logger.Log($"Configured {pin} pin to OFF. (OUTPUT)", Enums.LogLevels.Trace);
 							UpdatePinStatus(pin, false);
 							break;
 
 						case GpioPinValue.Low:
-							Logger.Log($"Configured {pin} pin to ON. (OUTPUT)", LogLevels.Trace);
+							Logger.Log($"Configured {pin} pin to ON. (OUTPUT)", Enums.LogLevels.Trace);
 							UpdatePinStatus(pin, true);
 							break;
 					}
@@ -414,12 +430,12 @@ namespace HomeAssistant.Core {
 		}
 
 		public bool SetGPIO(BcmPin pin, GpioPinDriveMode mode, GpioPinValue state) {
-			if (!Tess.Config.EnableGpioControl) {
+			if (!Core.Config.EnableGpioControl) {
 				return false;
 			}
 
 			if (CheckSafeMode()) {
-				if (!Tess.Config.RelayPins.Contains((int) pin)) {
+				if (!Core.Config.RelayPins.Contains((int) pin)) {
 					Logger.Log("Could not configure {pin} as safe mode is enabled.");
 					return false;
 				}
@@ -453,13 +469,13 @@ namespace HomeAssistant.Core {
 					case GpioPinDriveMode.Input:
 						switch (state) {
 							case GpioPinValue.High:
-								Logger.Log($"Configured {pin.ToString()} pin to OFF. (INPUT)", LogLevels.Trace);
-								UpdatePinStatus(pin, false, PinMode.Input);
+								Logger.Log($"Configured {pin.ToString()} pin to OFF. (INPUT)", Enums.LogLevels.Trace);
+								UpdatePinStatus(pin, false, Enums.PinMode.Input);
 								break;
 
 							case GpioPinValue.Low:
-								Logger.Log($"Configured {pin.ToString()} pin to ON. (INPUT)", LogLevels.Trace);
-								UpdatePinStatus(pin, true, PinMode.Input);
+								Logger.Log($"Configured {pin.ToString()} pin to ON. (INPUT)", Enums.LogLevels.Trace);
+								UpdatePinStatus(pin, true, Enums.PinMode.Input);
 								break;
 						}
 						break;
@@ -467,12 +483,12 @@ namespace HomeAssistant.Core {
 					case GpioPinDriveMode.Output:
 						switch (state) {
 							case GpioPinValue.High:
-								Logger.Log($"Configured {pin.ToString()} pin to OFF. (OUTPUT)", LogLevels.Trace);
+								Logger.Log($"Configured {pin.ToString()} pin to OFF. (OUTPUT)", Enums.LogLevels.Trace);
 								UpdatePinStatus(pin, false);
 								break;
 
 							case GpioPinValue.Low:
-								Logger.Log($"Configured {pin.ToString()} pin to ON. (OUTPUT)", LogLevels.Trace);
+								Logger.Log($"Configured {pin.ToString()} pin to ON. (OUTPUT)", Enums.LogLevels.Trace);
 								UpdatePinStatus(pin, true);
 								break;
 						}
@@ -485,12 +501,12 @@ namespace HomeAssistant.Core {
 				return true;
 			}
 			catch (Exception e) {
-				Logger.Log(e.ToString(), LogLevels.Error);
+				Logger.Log(e.ToString(), Enums.LogLevels.Error);
 				return false;
 			}
 		}
 
-		private void UpdatePinStatus(int pin, bool IsOn, PinMode mode = PinMode.Output) {
+		private void UpdatePinStatus(int pin, bool IsOn, Enums.PinMode mode = Enums.PinMode.Output) {
 			foreach (GPIOPinConfig value in GPIOConfig) {
 				if (value.Pin.Equals(pin)) {
 					value.Pin = pin;
@@ -500,7 +516,7 @@ namespace HomeAssistant.Core {
 			}
 		}
 
-		private void UpdatePinStatus(BcmPin pin, bool isOn, PinMode mode = PinMode.Output) {
+		private void UpdatePinStatus(BcmPin pin, bool isOn, Enums.PinMode mode = Enums.PinMode.Output) {
 			foreach (GPIOPinConfig value in GPIOConfig) {
 				if (value.Pin.Equals(pin)) {
 					value.Pin = (int) pin;
@@ -525,7 +541,7 @@ namespace HomeAssistant.Core {
 
 			GpioPollingManager.ExitEventGenerator();
 
-			if (Tess.Config.CloseRelayOnShutdown) {
+			if (Core.Config.CloseRelayOnShutdown) {
 				foreach (GPIOPinConfig value in GPIOConfig) {
 					if (value.IsOn) {
 						SetGPIO(value.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -538,24 +554,24 @@ namespace HomeAssistant.Core {
 		}
 
 		public void DisplayPiInfo() {
-			Logger.Log($"OS: {Pi.Info.OperatingSystem.SysName}", LogLevels.Trace);
-			Logger.Log($"Processor count: {Pi.Info.ProcessorCount}", LogLevels.Trace);
-			Logger.Log($"Model name: {Pi.Info.ModelName}", LogLevels.Trace);
-			Logger.Log($"Release name: {Pi.Info.OperatingSystem.Release}", LogLevels.Trace);
-			Logger.Log($"Board revision: {Pi.Info.BoardRevision}", LogLevels.Trace);
-			Logger.Log($"Pi Version: {Pi.Info.RaspberryPiVersion.ToString()}", LogLevels.Trace);
-			Logger.Log($"Memory size: {Pi.Info.MemorySize.ToString()}", LogLevels.Trace);
-			Logger.Log($"Serial: {Pi.Info.Serial}", LogLevels.Trace);
-			Logger.Log($"Pi Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 4)} minutes", LogLevels.Trace);
+			Logger.Log($"OS: {Pi.Info.OperatingSystem.SysName}", Enums.LogLevels.Trace);
+			Logger.Log($"Processor count: {Pi.Info.ProcessorCount}", Enums.LogLevels.Trace);
+			Logger.Log($"Model name: {Pi.Info.ModelName}", Enums.LogLevels.Trace);
+			Logger.Log($"Release name: {Pi.Info.OperatingSystem.Release}", Enums.LogLevels.Trace);
+			Logger.Log($"Board revision: {Pi.Info.BoardRevision}", Enums.LogLevels.Trace);
+			Logger.Log($"Pi Version: {Pi.Info.RaspberryPiVersion.ToString()}", Enums.LogLevels.Trace);
+			Logger.Log($"Memory size: {Pi.Info.MemorySize.ToString()}", Enums.LogLevels.Trace);
+			Logger.Log($"Serial: {Pi.Info.Serial}", Enums.LogLevels.Trace);
+			Logger.Log($"Pi Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 4)} minutes", Enums.LogLevels.Trace);
 		}
 
-		public void SetPiAudioState(PiAudioState state) {
+		public void SetPiAudioState(Enums.PiAudioState state) {
 			switch (state) {
-				case PiAudioState.Mute:
+				case Enums.PiAudioState.Mute:
 					Pi.Audio.ToggleMute(true);
 					break;
 
-				case PiAudioState.Unmute:
+				case Enums.PiAudioState.Unmute:
 					Pi.Audio.ToggleMute(false);
 					break;
 			}
@@ -569,36 +585,36 @@ namespace HomeAssistant.Core {
 			await Pi.Audio.SetVolumeByDecibels(decibels).ConfigureAwait(false);
 		}
 
-		public async Task<bool> RelayTestService(GPIOCycles selectedCycle, int singleChannelValue = 0) {
+		public async Task<bool> RelayTestService(Enums.GPIOCycles selectedCycle, int singleChannelValue = 0) {
 			Logger.Log("Relay test service started!");
 
 			switch (selectedCycle) {
-				case GPIOCycles.OneTwo:
+				case Enums.GPIOCycles.OneTwo:
 					_ = await RelayOneTwo().ConfigureAwait(false);
 					break;
 
-				case GPIOCycles.OneOne:
+				case Enums.GPIOCycles.OneOne:
 					_ = await RelayOneOne().ConfigureAwait(false);
 					break;
 
-				case GPIOCycles.OneMany:
+				case Enums.GPIOCycles.OneMany:
 					_ = await RelayOneMany().ConfigureAwait(false);
 					break;
 
-				case GPIOCycles.Cycle:
+				case Enums.GPIOCycles.Cycle:
 					_ = await RelayOneTwo().ConfigureAwait(false);
 					_ = await RelayOneOne().ConfigureAwait(false);
 					_ = await RelayOneMany().ConfigureAwait(false);
 					break;
 
-				case GPIOCycles.Single:
+				case Enums.GPIOCycles.Single:
 					_ = await RelaySingle(singleChannelValue, 8000).ConfigureAwait(false);
 					break;
 
-				case GPIOCycles.Base:
+				case Enums.GPIOCycles.Base:
 					Logger.Log("Base argument specified, running default cycle test!");
-					goto case GPIOCycles.Cycle;
-				case GPIOCycles.Default:
+					goto case Enums.GPIOCycles.Cycle;
+				case Enums.GPIOCycles.Default:
 					Logger.Log("Unknown value, Aborting...");
 					break;
 			}
@@ -617,7 +633,7 @@ namespace HomeAssistant.Core {
 		public async Task<bool> RelayOneTwo() {
 
 			//make sure all relay is off
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -625,28 +641,28 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(400).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
 			await Task.Delay(500).ConfigureAwait(false);
 
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(200).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
 			Task.Delay(800).Wait();
 
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(200).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
 			await Task.Delay(500).ConfigureAwait(false);
 
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(400).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
@@ -656,7 +672,7 @@ namespace HomeAssistant.Core {
 		public async Task<bool> RelayOneOne() {
 
 			//make sure all relay is off
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -664,7 +680,7 @@ namespace HomeAssistant.Core {
 				}
 			}
 
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 				Task.Delay(500).Wait();
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -677,7 +693,7 @@ namespace HomeAssistant.Core {
 		public async Task<bool> RelayOneMany() {
 
 			//make sure all relay is off
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
@@ -687,7 +703,7 @@ namespace HomeAssistant.Core {
 
 			int counter = 0;
 
-			foreach (int pin in Tess.Config.RelayPins) {
+			foreach (int pin in Core.Config.RelayPins) {
 				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 
 				while (counter < 4) {

@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using Newtonsoft.Json;
 
@@ -9,37 +9,37 @@ namespace HomeAssistant.Server.Responses {
 		[JsonProperty]
 		private string OSRamUsage { get; set; }
 		[JsonProperty]
-		private string TessRamUsage { get; set; }
+		private string AssistantRamUsage { get; set; }
 		[JsonProperty]
 		private string OSPlatform { get; set; }
 
 		public StatusResponse GetResponse() {
 			if (Helpers.GetOsPlatform().Equals(System.Runtime.InteropServices.OSPlatform.Windows)) {
-				AssistantResourceUsage status = Tess.AssistantStatus.GetProcessStatus();
+				AssistantResourceUsage status = Core.AssistantStatus.GetProcessStatus();
 				OSCpuUsage = status.TotalCpuUsage;
 				OSRamUsage = status.TotalRamUsage;
-				TessRamUsage = status.TessRamUsage;
+				AssistantRamUsage = status.AssistantRamUsage;
 				OSPlatform = "Windows";
 				return this;
 			}
 			else if (Helpers.GetOsPlatform().Equals(System.Runtime.InteropServices.OSPlatform.Linux)) {
-				OSCpuUsage = "Tess is running on a Linux based platform, the required libraries are not supported.";
-				OSRamUsage = "Tess is running on a Linux based platform, the required libraries are not supported.";
-				TessRamUsage = "Tess is running on a Linux based platform, the required libraries are not supported.";
+				OSCpuUsage = "Core is running on a Linux based platform, the required libraries are not supported.";
+				OSRamUsage = "Core is running on a Linux based platform, the required libraries are not supported.";
+				AssistantRamUsage = "Core is running on a Linux based platform, the required libraries are not supported.";
 				OSPlatform = "Linux";
 				return this;
 			}
 			else if (Helpers.GetOsPlatform().Equals(System.Runtime.InteropServices.OSPlatform.OSX)) {
-				OSCpuUsage = "Tess is running on a OSX based platform, the required libraries are not supported.";
-				OSRamUsage = "Tess is running on a OSX based platform, the required libraries are not supported.";
-				TessRamUsage = "Tess is running on a OSX based platform, the required libraries are not supported.";
+				OSCpuUsage = "Core is running on a OSX based platform, the required libraries are not supported.";
+				OSRamUsage = "Core is running on a OSX based platform, the required libraries are not supported.";
+				AssistantRamUsage = "Core is running on a OSX based platform, the required libraries are not supported.";
 				OSPlatform = "OSX";
 				return this;
 			}
 			else {
-				OSCpuUsage = "Tess is running on an Unknown platform, the required libraries won't run to prevent damage.";
-				OSRamUsage = "Tess is running on an Unknown platform, the required libraries won't run to prevent damage.";
-				TessRamUsage = "Tess is running on an Unknown platform, the required libraries won't run to prevent damage.";
+				OSCpuUsage = "Core is running on an Unknown platform, the required libraries won't run to prevent damage.";
+				OSRamUsage = "Core is running on an Unknown platform, the required libraries won't run to prevent damage.";
+				AssistantRamUsage = "Core is running on an Unknown platform, the required libraries won't run to prevent damage.";
 				OSPlatform = "Unknown platform";
 				return this;
 			}

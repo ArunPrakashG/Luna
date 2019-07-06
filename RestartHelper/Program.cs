@@ -12,7 +12,7 @@ namespace RestartHelper {
 
 		private static async Task Main(string[] args) {
 			Console.WriteLine("Started restart helper...");
-			Console.WriteLine("TESS Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
+			Console.WriteLine("Assistant Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
 
 			int Delay = 0;
 

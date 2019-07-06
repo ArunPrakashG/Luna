@@ -5,11 +5,11 @@
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)GoogleMap\bin\Debug\netcoreapp2.1\GoogleMap.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules\GoogleMapModules&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)GoogleMap\bin\Debug\netcoreapp2.1\GoogleMap.dll&quot; &quot;$(SolutionDir)Assistant\Modules\GoogleMapModules&quot; /Y /I" />
   </Target>
 
   <ItemGroup>
-    <ProjectReference Include="..\HomeAssistant\Assistant.csproj" />
+    <ProjectReference Include="..\Assistant\Assistant.csproj" />
   </ItemGroup>
 
 </Project>

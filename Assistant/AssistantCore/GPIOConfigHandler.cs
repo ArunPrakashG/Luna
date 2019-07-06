@@ -4,9 +4,9 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 
 	public class GPIOConfigRoot : IEquatable<GPIOConfigRoot> {
 
@@ -57,7 +57,7 @@ namespace HomeAssistant.Core {
 		public bool IsOn { get; set; } = false;
 
 		[JsonProperty]
-		public PinMode Mode { get; set; } = PinMode.Output;
+		public Enums.PinMode Mode { get; set; } = Enums.PinMode.Output;
 	}
 
 	public class GPIOConfigHandler {
@@ -124,7 +124,7 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						System.Threading.Tasks.Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
+						System.Threading.Tasks.Task.Run(async () => await Core.Exit().ConfigureAwait(false));
 						return false;
 
 					default:
@@ -151,7 +151,7 @@ namespace HomeAssistant.Core {
 			for (int i = 0; i <= 31; i++) {
 				GPIOPinConfig PinConfig = new GPIOPinConfig() {
 					IsOn = false,
-					Mode = PinMode.Output,
+					Mode = Enums.PinMode.Output,
 					Pin = i
 				};
 

@@ -1,11 +1,11 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Server.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using Unosquare.RaspberryIO.Abstractions;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Server.Controllers {
 
@@ -15,23 +15,23 @@ namespace HomeAssistant.Server.Controllers {
 
 		[HttpGet]
 		public ActionResult<GenericResponse<string>> GetAllPinStatus() {
-			if (Tess.IsUnknownOs) {
-				return BadRequest(new GenericResponse<string>("Failed to fetch gpio status, Tess running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
+			if (Core.IsUnknownOs) {
+				return BadRequest(new GenericResponse<string>("Failed to fetch gpio status, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
-					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			try {
-				List<GPIOPinConfig> config = Tess.Controller.GPIOConfig;
+				List<GPIOPinConfig> config = Core.Controller.GPIOConfig;
 				return Ok(new GenericResponse<List<GPIOPinConfig>>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
-				return NotFound(new GenericResponse<string>("Failed to fetch pin status, possibly tess isn't fully started yet.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
+				return NotFound(new GenericResponse<string>($"Failed to fetch pin status, possibly {Core.AssistantName} isn't fully started yet.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
 			}
 		}
 
@@ -41,19 +41,19 @@ namespace HomeAssistant.Server.Controllers {
 				return NotFound(Json(new GenericResponse<string>("The specified pin is either less than 0 or greater than 31.", Enums.HttpStatusCodes.NoContent, DateTime.Now)));
 			}
 
-			if (Tess.IsUnknownOs) {
-				return BadRequest(new GenericResponse<string>("Failed to fetch pin status, Tess running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
+			if (Core.IsUnknownOs) {
+				return BadRequest(new GenericResponse<string>("Failed to fetch pin status, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
-					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			try {
-				GPIOPinConfig config = Tess.Controller.FetchPinStatus(pinNumber);
+				GPIOPinConfig config = Core.Controller.FetchPinStatus(pinNumber);
 				return Ok(new GenericResponse<GPIOPinConfig>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
@@ -63,21 +63,21 @@ namespace HomeAssistant.Server.Controllers {
 
 		[HttpGet("relay")]
 		public ActionResult<GenericResponse<string>> GetRelayPinStatus() {
-			if (Tess.IsUnknownOs) {
-				return BadRequest(new GenericResponse<string>("Failed to fetch pin mode, Tess running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
+			if (Core.IsUnknownOs) {
+				return BadRequest(new GenericResponse<string>("Failed to fetch pin mode, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
-					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			List<GPIOPinConfig> resultConfig = new List<GPIOPinConfig>();
 
-			foreach (int pin in Tess.Config.RelayPins) {
-				resultConfig.Add(Tess.Controller.FetchPinStatus(pin));
+			foreach (int pin in Core.Config.RelayPins) {
+				resultConfig.Add(Core.Controller.FetchPinStatus(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -92,21 +92,21 @@ namespace HomeAssistant.Server.Controllers {
 
 		[HttpGet("irsensor")]
 		public ActionResult<GenericResponse<string>> GetIrSensorStatus() {
-			if (Tess.IsUnknownOs) {
-				return BadRequest(new GenericResponse<string>("Failed to fetch pin mode, Tess running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
+			if (Core.IsUnknownOs) {
+				return BadRequest(new GenericResponse<string>("Failed to fetch pin mode, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
-					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			List<GPIOPinConfig> resultConfig = new List<GPIOPinConfig>();
 
-			foreach (int pin in Tess.Config.IRSensorPins) {
-				resultConfig.Add(Tess.Controller.FetchPinStatus(pin));
+			foreach (int pin in Core.Config.IRSensorPins) {
+				resultConfig.Add(Core.Controller.FetchPinStatus(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -131,18 +131,18 @@ namespace HomeAssistant.Server.Controllers {
 				return NotFound(new GenericResponse<string>("The specified pin is either less than 0 or greater than 31.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
 			}
 
-			if (Tess.IsUnknownOs) {
-				return BadRequest(new GenericResponse<string>("Failed to set pin mode, Tess running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
+			if (Core.IsUnknownOs) {
+				return BadRequest(new GenericResponse<string>("Failed to set pin mode, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
-					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			bool result = Tess.Controller.SetGPIO(pinNumber, pinMode == PinMode.Output ? GpioPinDriveMode.Output : GpioPinDriveMode.Input,
+			bool result = Core.Controller.SetGPIO(pinNumber, pinMode == PinMode.Output ? GpioPinDriveMode.Output : GpioPinDriveMode.Input,
 				isOn ? GpioPinValue.Low : GpioPinValue.High);
 
 			if (result) {
@@ -156,18 +156,18 @@ namespace HomeAssistant.Server.Controllers {
 
 		[HttpPost("relay")]
 		public ActionResult<GenericResponse<string>> RelayCycle(GPIOCycles cycleMode) {
-			if (Tess.IsUnknownOs) {
-				return BadRequest(new GenericResponse<string>("Failed to set pin mode, Tess running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
+			if (Core.IsUnknownOs) {
+				return BadRequest(new GenericResponse<string>("Failed to set pin mode, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
 			}
 
-			if (!Tess.CoreInitiationCompleted) {
+			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
-					"TESS core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
+					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			Helpers.InBackgroundThread(async () => await Tess.Controller.RelayTestService(cycleMode).ConfigureAwait(false), "Relay Cycle");
+			Helpers.InBackgroundThread(async () => await Core.Controller.RelayTestService(cycleMode).ConfigureAwait(false), "Relay Cycle");
 			return Ok(new GenericResponse<string>(
 				$"Successfully started gpio relay test cycle. configured to {cycleMode.ToString()} cycle mode.", HttpStatusCodes.OK,
 				DateTime.Now));

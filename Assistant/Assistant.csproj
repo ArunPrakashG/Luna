@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -8,7 +8,7 @@
 		<Version>5.0.0.0</Version>
 		<Authors>Arun</Authors>
 		<Company>Arun Prakash</Company>
-		<Copyright>Copyright © Tess Home Assistant 2019-2019</Copyright>
+		<Copyright>Copyright © Home Assistant 2019-2019</Copyright>
 		<PackageProjectUrl>https://github.com/SynergYFTW/HomeAssistant</PackageProjectUrl>
 		<RepositoryType>Git</RepositoryType>
 		<RepositoryUrl>https://github.com/SynergYFTW/HomeAssistant.git</RepositoryUrl>
@@ -62,13 +62,13 @@
 		<None Update="Config\DiscordBot.json">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Config\GPIOConfig.json">
+		<None Update="Config\GpioConfig.json">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="Config\MailConfig.json">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Config\TESS.json">
+		<None Update="Config\Assistant.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="HomeAssistant_GCloud.json">

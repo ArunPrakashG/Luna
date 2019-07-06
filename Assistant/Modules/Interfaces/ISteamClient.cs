@@ -2,7 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
-using HomeAssistant.Core;
+using AssistantCore;
 
 namespace HomeAssistant.Modules.Interfaces {
 	public interface ISteamClient : IModuleBase {

@@ -1,7 +1,7 @@
 using HomeAssistant.Log;
 using System;
 using System.Runtime.CompilerServices;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Modules.Interfaces {
 	public interface ILoggerBase {

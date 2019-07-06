@@ -1,8 +1,8 @@
-using HomeAssistant.Core;
+using AssistantCore;
 using System;
 using System.Net;
 using System.Net.Mail;
-using static HomeAssistant.Core.Enums;
+using static AssistantCore.Enums;
 
 namespace HomeAssistant.Log {
 
@@ -20,12 +20,12 @@ namespace HomeAssistant.Log {
 
 				MailMessage mail = new MailMessage();
 				SmtpClient SmtpServer = new SmtpClient("smtp.gmail.com");
-				mail.From = new MailAddress(Tess.Config.TessEmailID);
-				mail.To.Add(Tess.Config.OwnerEmailAddress);
-				mail.Subject = "-TESS Home Assistant Notification-";
+				mail.From = new MailAddress(Core.Config.AssistantEmailId);
+				mail.To.Add(Core.Config.OwnerEmailAddress);
+				mail.Subject = $"-{Core.AssistantName} Home Assistant Notification-";
 				mail.Body = message;
 				SmtpServer.Port = 587;
-				SmtpServer.Credentials = new NetworkCredential(Tess.Config.TessEmailID, Tess.Config.TessEmailPASS);
+				SmtpServer.Credentials = new NetworkCredential(Core.Config.AssistantEmailId, Core.Config.AssistantEmailPassword);
 				SmtpServer.EnableSsl = true;
 				SmtpServer.Send(mail);
 			}

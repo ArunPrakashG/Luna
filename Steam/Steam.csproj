@@ -5,11 +5,11 @@
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Steam\bin\Debug\netcoreapp2.1\Steam.dll&quot; &quot;$(SolutionDir)HomeAssistant\Modules\SteamModules&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)Steam\bin\Debug\netcoreapp2.1\Steam.dll&quot; &quot;$(SolutionDir)Assistant\Modules\SteamModules&quot; /Y /I" />
   </Target>
 
   <ItemGroup>
-    <ProjectReference Include="..\HomeAssistant\Assistant.csproj" />
+    <ProjectReference Include="..\Assistant\Assistant.csproj" />
   </ItemGroup>
 
 </Project>

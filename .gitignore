@@ -7,10 +7,7 @@
 *.userosscache
 *.sln.docstates
 *.json
-Variables.txt
-TESS.json
-MailConfig.json
-HomeAssistant/HomeAssistant_GCloud.json
+*.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

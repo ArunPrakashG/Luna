@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace HomeAssistant.Core {
+namespace AssistantCore {
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 
@@ -64,9 +64,9 @@ namespace HomeAssistant.Core {
 
 		[JsonProperty] public bool EnableYoutubeModules { get; set; } = true;
 
-		[JsonProperty] public string TessEmailID { get; set; }
+		[JsonProperty] public string AssistantEmailId { get; set; }
 
-		[JsonProperty] public string TessEmailPASS { get; set; }
+		[JsonProperty] public string AssistantEmailPassword { get; set; }
 
 		[JsonProperty(Required = Required.Default)] public DateTime ProgramLastStartup { get; set; }
 
@@ -136,11 +136,11 @@ namespace HomeAssistant.Core {
 						break;
 
 					case 'q':
-						Task.Run(async () => await Tess.Exit().ConfigureAwait(false));
+						Task.Run(async () => await Core.Exit().ConfigureAwait(false));
 						return false;
 
 					default:
-						Logger.Log("Unknown value entered! continuing to run the Tess...");
+						Logger.Log("Unknown value entered! continuing to run the Core...");
 						break;
 				}
 			}
@@ -206,8 +206,8 @@ namespace HomeAssistant.Core {
 				hashCode = (hashCode * 397) ^ TCPServerPort;
 				hashCode = (hashCode * 397) ^ KestrelServerPort;
 				hashCode = (hashCode * 397) ^ (OwnerEmailAddress != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(OwnerEmailAddress) : 0);
-				hashCode = (hashCode * 397) ^ (TessEmailID != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(TessEmailID) : 0);
-				hashCode = (hashCode * 397) ^ (TessEmailPASS != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(TessEmailPASS) : 0);
+				hashCode = (hashCode * 397) ^ (AssistantEmailId != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailId) : 0);
+				hashCode = (hashCode * 397) ^ (AssistantEmailPassword != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailPassword) : 0);
 				hashCode = (hashCode * 397) ^ ProgramLastStartup.GetHashCode();
 				hashCode = (hashCode * 397) ^ ProgramLastShutdown.GetHashCode();
 				return hashCode;
@@ -236,8 +236,8 @@ namespace HomeAssistant.Core {
 			       CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
 			       TCPServerPort == other.TCPServerPort && KestrelServerPort == other.KestrelServerPort &&
 			       string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
-			       string.Equals(TessEmailID, other.TessEmailID, StringComparison.OrdinalIgnoreCase) &&
-			       string.Equals(TessEmailPASS, other.TessEmailPASS, StringComparison.OrdinalIgnoreCase) &&
+			       string.Equals(AssistantEmailId, other.AssistantEmailId, StringComparison.OrdinalIgnoreCase) &&
+			       string.Equals(AssistantEmailPassword, other.AssistantEmailPassword, StringComparison.OrdinalIgnoreCase) &&
 			       ProgramLastStartup.Equals(other.ProgramLastStartup) &&
 			       ProgramLastShutdown.Equals(other.ProgramLastShutdown);
 		}
