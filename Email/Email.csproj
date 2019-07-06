@@ -8,7 +8,7 @@
     <Exec Command="xcopy &quot;$(SolutionDir)Email\bin\Debug\netcoreapp2.1\Email.dll&quot; &quot;$(SolutionDir)Assistant\Modules\EmailModules&quot; /Y /I" />
   </Target>
 
-  <ItemGroup>    
+  <ItemGroup>
     <ProjectReference Include="..\Assistant\Assistant.csproj" />
   </ItemGroup>
 

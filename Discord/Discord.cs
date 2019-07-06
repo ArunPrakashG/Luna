@@ -289,6 +289,5 @@ namespace Discord {
 				return;
 			}
 		}
-
 	}
 }

@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <SshDeployHost>192.168.1.42</SshDeployHost>
+    <SshDeployHost>raspberrypi</SshDeployHost>
     <SshDeployClean />
     <SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
     <SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Helpers/Restarter</SshDeployTargetPath>
@@ -20,8 +20,8 @@
   </PropertyGroup>
 
   <Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="cd $(ProjectDir)" />
-    <Exec Command="dotnet-sshdeploy push" />
+	  <Exec Command="cd $(ProjectDir)" Condition="'$(Configuration)' == 'Release' " />
+	  <Exec Command="dotnet-sshdeploy push" Condition="'$(Configuration)' == 'Release' " />
   </Target>
 
 </Project>

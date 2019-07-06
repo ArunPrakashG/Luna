@@ -62,6 +62,5 @@ namespace HomeAssistant.Extensions {
 		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 		public static Guid ModuleVersion => Assembly.GetEntryAssembly().ManifestModule.ModuleVersionId;
 		public static Version Version => Assembly.GetEntryAssembly().GetName().Version;
-
 	}
 }
