@@ -5,9 +5,10 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using HomeAssistant.Extensions;
 
-namespace HomeAssistant.Extensions {
-	public class TessUsage {
+namespace HomeAssistant.Core {
+	public class AssistantResourceUsage {
 
 		[JsonProperty]
 		public string TotalCpuUsage { get; set; }
@@ -21,7 +22,7 @@ namespace HomeAssistant.Extensions {
 	public class ProcessStatus : IDisposable {
 		private PerformanceCounter CpuCounter;
 		private PerformanceCounter RamCounter;
-		private readonly TessUsage Usage = new TessUsage();
+		private readonly AssistantResourceUsage Usage = new AssistantResourceUsage();
 		private readonly Logger Logger = new Logger("PROCESS-STATUS");
 
 		public ProcessStatus() {
@@ -29,7 +30,7 @@ namespace HomeAssistant.Extensions {
 			InitializeRAMCounter();
 		}
 
-		public TessUsage GetProcessStatus() {
+		public AssistantResourceUsage GetProcessStatus() {
 			if (Helpers.GetOsPlatform().Equals(OSPlatform.Linux) || Helpers.GetOsPlatform().Equals(OSPlatform.OSX)) {
 				throw new PlatformNotSupportedException("Current OS platform isn't supported to run this method. Try on Windows. (Linux/OSX)");
 			}

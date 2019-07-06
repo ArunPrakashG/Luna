@@ -6,14 +6,13 @@ using System.Runtime.CompilerServices;
 using static HomeAssistant.Core.Enums;
 
 namespace HomeAssistant.Log {
-
 	public class Logger : ILoggerBase {
 		private NLog.Logger LogModule;
 		public string LogIdentifier { get; set; }
 
 		public string ModuleIdentifier => nameof(Logger);
 
-		public string ModuleAuthor => "Arun";
+		public string ModuleAuthor => "Arun Prakash";
 
 		public Version ModuleVersion => new Version("6.0.0.0");
 

@@ -24,7 +24,7 @@ namespace HomeAssistant {
 			bool Init = await Tess.InitCore(args).ConfigureAwait(false);
 		}
 
-		private static async void OnForceQuitTess(object sender, ConsoleCancelEventArgs e) => await Tess.Exit(0).ConfigureAwait(false);
+		private static async void OnForceQuitTess(object sender, ConsoleCancelEventArgs e) => await Tess.Exit(-1).ConfigureAwait(false);
 
 		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
 			Logger.Log($"{e.Exception.Message}", LogLevels.Error);
@@ -78,7 +78,7 @@ namespace HomeAssistant {
 			Logger.Log((Exception) e.ExceptionObject, LogLevels.Fatal);
 
 			if (e.IsTerminating) {
-				Task.Run(async () => await Tess.Exit(1).ConfigureAwait(false));
+				Task.Run(async () => await Tess.Exit(-1).ConfigureAwait(false));
 			}
 		}
 

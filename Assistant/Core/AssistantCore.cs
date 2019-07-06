@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Assistant.Core;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
@@ -41,7 +42,7 @@ namespace HomeAssistant.Core {
 		private static readonly Logger Logger = new Logger("TESS");
 		public static GPIOController Controller { get; private set; }
 		public static Updater Update { get; private set; } = new Updater();
-		public static ProcessStatus TessStatus { get; private set; }
+		public static ProcessStatus AssistantStatus { get; private set; }
 		public static CoreConfig Config { get; set; } = new CoreConfig();
 		private static ConfigWatcher ConfigWatcher { get; set; } = new ConfigWatcher();
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
@@ -53,6 +54,7 @@ namespace HomeAssistant.Core {
 		public static ModuleInitializer ModuleLoader { get; private set; }
 		public static DateTime StartupTime { get; private set; }
 		private static Timer RefreshConsoleTitleTimer { get; set; }
+		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
 		public static bool IsUnknownOs { get; set; }
@@ -120,7 +122,7 @@ namespace HomeAssistant.Core {
 				}
 
 				if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
-					TessStatus = new ProcessStatus();
+					AssistantStatus = new ProcessStatus();
 				}
 				else {
 					Logger.Log("Could not start performence counters as it is not supported on this platform.", LogLevels.Trace);
@@ -757,8 +759,8 @@ namespace HomeAssistant.Core {
 				ModuleWatcher.StopModuleWatcher();
 			}
 
-			if (TessStatus != null) {
-				TessStatus.Dispose();
+			if (AssistantStatus != null) {
+				AssistantStatus.Dispose();
 			}
 
 			if (KestrelServer.IsServerOnline) {

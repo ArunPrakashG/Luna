@@ -15,7 +15,7 @@ namespace HomeAssistant.Server.Responses {
 
 		public StatusResponse GetResponse() {
 			if (Helpers.GetOsPlatform().Equals(System.Runtime.InteropServices.OSPlatform.Windows)) {
-				TessUsage status = Tess.TessStatus.GetProcessStatus();
+				AssistantResourceUsage status = Tess.AssistantStatus.GetProcessStatus();
 				OSCpuUsage = status.TotalCpuUsage;
 				OSRamUsage = status.TotalRamUsage;
 				TessRamUsage = status.TessRamUsage;
