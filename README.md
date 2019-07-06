@@ -50,5 +50,9 @@ This way, without modifying the Core project, you can customize your Assistant! 
 - Youtube - download video only or sound only or both from a youtube link.
 - Misc methods - some extra methods such as converting date/time to days etc.
 
+### Assistant Folder Heirarchy
+Each foldername has its own value, use this diagram to know which folders can be renamed.
+![alt text](https://raw.githubusercontent.com/SynergyFTW/HomeAssistant/master/Assistant/AssistantFolderHierarchy.jpeg)
+
 **To be edited later on**
 
