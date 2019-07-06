@@ -9,12 +9,12 @@ able to handle errors smartly and do the needful on certain circumstances.
 ## Installation
 - Install .NET Core on your raspberry pi first. see here for installation [.net core installation](https://www.hanselman.com/blog/InstallingTheNETCore2xSDKOnARaspberryPiAndBlinkingAnLEDWithSystemDeviceGpio.aspx)
 - Download the latest release from here [Release](https://github.com/SynergYFTW/HomeAssistant/releases)
-- Create a new directory called Tess and extract downloaded .zip file to that folder.
+- Create a new directory called Assistant (or whichever name you prefer) and extract downloaded .zip file to that folder.
 
 ## Startup (assuming you followed the above installation steps...)
-- Open a terminal on tess folder.
-- Run HomeAssistant.dll using command `dotnet HomeAssistant.dll` on terminal.
-- Wait for tess to initialise.
+- Open a terminal on assistant folder.
+- Run Assistant.dll using command `dotnet Assistant.dll` on terminal.
+- Wait for assistant to initialise.
 
 ## Features
 - Cross-platform - not just because its made on dotnet core, but because it is smart enough to know its platform and adapt accordingly.it can switch off various platform specific methods if it decteted that the current running os isn't what it is made to run on.
@@ -39,7 +39,7 @@ able to handle errors smartly and do the needful on certain circumstances.
 ### Modules
 Modules are extensions, by which you can modify most of the core parts (excluding crucial core files which are required to run assistant ofcourse) of your assistant with your own definitions. The definitions can be anything, starting from, displaying an ASCII doggo on console window to changing the general logging systems.
 These modules are created by starting a Class library project on the HomeAssistant solution, then by adding reference to the HomeAssistant project to use the interfaces. once it is done, you have to define the interface you want to use, such as IMailClient interface for implementing methods for custom mail client (IMAP notifications etc) to ILoggerBase interface to modify the general logging system.
-The module will be compiled and placed inside the `HomeAssistant/Modules/` directory and will automatically load at runtime of the assistant.
+The module will be compiled and placed inside the `Assistant/Modules/` directory and will automatically load at runtime of the assistant.
 This way, without modifying the Core project, you can customize your Assistant! more Interface's will be added soon!
 
 ### Currently available modules
