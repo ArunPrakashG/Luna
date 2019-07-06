@@ -1,0 +1,144 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>netcoreapp2.1</TargetFramework>
+		<AssemblyVersion>5.0.0.0</AssemblyVersion>
+		<FileVersion>5.0.0.0</FileVersion>
+		<Version>5.0.0.0</Version>
+		<Authors>Arun</Authors>
+		<Company>Arun Prakash</Company>
+		<Copyright>Copyright © Home Assistant 2019-2019</Copyright>
+		<PackageProjectUrl>https://github.com/SynergYFTW/HomeAssistant</PackageProjectUrl>
+		<RepositoryType>Git</RepositoryType>
+		<RepositoryUrl>https://github.com/SynergYFTW/HomeAssistant.git</RepositoryUrl>
+		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<RuntimeIdentifiers>linux-arm;win-x64</RuntimeIdentifiers>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ByteSize" Version="2.0.0-beta1" />
+		<PackageReference Include="CommandLineParser" Version="2.5.0" />
+		<PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Discord.Net" Version="2.1.1" />
+		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.2.0-beta01" />
+		<PackageReference Include="MailKit" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Diagnostics" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.ViewFeatures" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.0.0-preview6.19304.6" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.0.0-preview6.19304.6" />
+		<PackageReference Include="NLog.Web.AspNetCore" Version="4.8.4" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+		<PackageReference Include="NLog" Version="4.6.5" />
+		<PackageReference Include="JetBrains.Annotations" Version="2019.1.3" />
+		<PackageReference Include="RestSharp" Version="106.6.10" />
+		<PackageReference Include="SteamKit2" Version="2.2.0" />
+		<PackageReference Include="System.Composition" Version="1.3.0-preview6.19303.8" />
+		<PackageReference Include="System.Devices.Gpio" Version="0.1.0-preview2-181222-2" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.5.0" />
+		<PackageReference Include="System.Interactive.Async" Version="4.0.0-preview.6.build.801" />
+		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
+		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
+		<PackageReference Include="Unosquare.Raspberry.Abstractions" Version="0.3.1" />
+		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.21.0" />
+		<PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.3.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc2" />
+		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.0.0-rc2" />
+		<PackageReference Include="Unosquare.WiringPi" Version="0.3.1" />
+		<PackageReference Include="VideoLibrary" Version="2.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Config\DiscordBot.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Config\GpioConfig.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Config\MailConfig.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Config\Assistant.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="HomeAssistant_GCloud.json">
+		  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\DiscordModules\Discord.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\EmailModules\Email.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\GoogleMapModules\GoogleMap.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\MiscModules\MiscModule.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\SteamModules\Steam.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Modules\YoutubeModules\Youtube.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="NLog.config">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\mail_push_notification.mp3">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\TTS\startup.mp3">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\tts_alert.mp3">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="System.Interactive.Async.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Variables.txt">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Config\SteamBots\" />
+	  <Folder Include="Modules\Loggers\" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<SshDeployHost>raspberrypi</SshDeployHost>
+		<SshDeployClean />
+		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
+		<SshDeployUsername>pi</SshDeployUsername>
+		<SshDeployPassword>miniprakash</SshDeployPassword>
+		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+		<LangVersion>7.3</LangVersion>
+		<Authors>Arun Prakash (SynergyFTW)</Authors>
+		<Product>Home Assistant</Product>
+		<Description>Home automation and personal assistant running on raspberry pi using C# .NET Core Framework.</Description>
+		<SignAssembly>false</SignAssembly>
+	</PropertyGroup>
+
+	<Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="cd $(ProjectDir)" Condition="'$(Configuration)' == 'Release' " />
+		<Exec Command="dotnet-sshdeploy push" Condition="'$(Configuration)' == 'Release' " />
+	</Target>
+
+	<ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
+
+</Project>

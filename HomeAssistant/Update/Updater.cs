@@ -1,3 +1,7 @@
+<<<<<<< Updated upstream:HomeAssistant/Update/Updater.cs
+=======
+using HomeAssistant.AssistantCore;
+>>>>>>> Stashed changes:Assistant/Update/Updater.cs
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using RestSharp;
@@ -7,7 +11,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using static HomeAssistant.Core.Enums;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Update {
 	public class Updater {
@@ -29,8 +33,13 @@ namespace HomeAssistant.Update {
 
 		public void StartUpdateTimer() {
 			StopUpdateTimer();
+<<<<<<< Updated upstream:HomeAssistant/Update/Updater.cs
 			if (Program.Config.AutoUpdates && AutoUpdateTimer == null) {
 				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(5);
+=======
+			if (AssistantCore.Core.Config.AutoUpdates && AutoUpdateTimer == null) {
+				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(AssistantCore.Core.Config.UpdateIntervalInHours);
+>>>>>>> Stashed changes:Assistant/Update/Updater.cs
 
 				AutoUpdateTimer = new Timer(
 					async e => await CheckAndUpdate(true).ConfigureAwait(false),
@@ -48,7 +57,14 @@ namespace HomeAssistant.Update {
 				StartUpdateTimer();
 			}
 
+<<<<<<< Updated upstream:HomeAssistant/Update/Updater.cs
 			if (!Program.Config.AutoUpdates) {
+=======
+			UpdateTimerStartTime = DateTime.Now;
+			ElapasedTimeCalculator.Restart();
+
+			if (!AssistantCore.Core.Config.AutoUpdates) {
+>>>>>>> Stashed changes:Assistant/Update/Updater.cs
 				Logger.Log("Updates are disabled.");
 				return;
 			}

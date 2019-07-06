@@ -3,7 +3,7 @@ using HomeAssistant.Log;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
-using static HomeAssistant.Core.Enums;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Update {
 	public class Rootobject {

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(SolutionDir)Discord\bin\Debug\netcoreapp2.1\Discord.dll&quot; &quot;$(SolutionDir)Assistant\Modules\DiscordModules&quot; /Y /I" />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Assistant\Assistant.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -7,8 +7,7 @@
 *.userosscache
 *.sln.docstates
 *.json
-Variables.txt
-TESS.json
+*.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

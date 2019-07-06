@@ -1,4 +1,4 @@
-using HomeAssistant.Core;
+using HomeAssistant.AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
@@ -9,10 +9,16 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
-using static HomeAssistant.Core.Enums;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Server {
+<<<<<<< Updated upstream:HomeAssistant/Server/TCPServer.cs
 	public class TCPServer : Program {
+=======
+
+	[Obsolete("Use Kestrel server instead of TCP server.")]
+	public class TCPServer : AssistantCore.Core {
+>>>>>>> Stashed changes:Assistant/Server/TCPServer.cs
 		private readonly Logger Logger;
 		private byte[] Buffer = new byte[1024];
 		private string ReceivedData;

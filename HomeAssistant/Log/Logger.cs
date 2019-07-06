@@ -1,9 +1,13 @@
+<<<<<<< Updated upstream:HomeAssistant/Log/Logger.cs
 using Discord.WebSocket;
+=======
+using HomeAssistant.AssistantCore;
+>>>>>>> Stashed changes:Assistant/Log/Logger.cs
 using HomeAssistant.Extensions;
 using HomeAssistant.Modules;
 using System;
 using System.Runtime.CompilerServices;
-using static HomeAssistant.Core.Enums;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Log {
 	public class Logger {
@@ -68,7 +72,16 @@ namespace HomeAssistant.Log {
 				return;
 			}
 
+<<<<<<< Updated upstream:HomeAssistant/Log/Logger.cs
 			LogModule.Trace($"{previousMethodName}() {message}");
+=======
+			if (AssistantCore.Core.Config.Debug) {
+				LogGenericInfo($"{previousMethodName}() " + message, previousMethodName);
+			}
+			else {
+				LogModule.Trace($"{previousMethodName}() {message}");
+			}
+>>>>>>> Stashed changes:Assistant/Log/Logger.cs
 		}
 
 		private void LogGenericWarning(string message, [CallerMemberName] string previousMethodName = null) {
@@ -88,10 +101,22 @@ namespace HomeAssistant.Log {
 			LogGenericError($"{nullObjectName} | Object is null!", previousMethodName);
 		}
 
+<<<<<<< Updated upstream:HomeAssistant/Log/Logger.cs
 		public void Log(Exception e, ExceptionLogLevels level = ExceptionLogLevels.Error, [CallerFilePath] string filePath = null, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int previosmethodLineNumber = 0) {
 			if(string.IsNullOrEmpty(e.ToString()) || string.IsNullOrWhiteSpace(e.ToString())) {
 				return;
 			}
+=======
+		public void Log(Exception e, LogLevels level = LogLevels.Error, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+			switch (level) {
+				case LogLevels.Error:
+					if (AssistantCore.Core.Config.Debug) {
+						LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}", previousMethodName);
+					}
+					else {
+						LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.TargetSite}", previousMethodName);
+					}
+>>>>>>> Stashed changes:Assistant/Log/Logger.cs
 
 			switch (level) {
 				case ExceptionLogLevels.Fatal:
@@ -173,6 +198,7 @@ namespace HomeAssistant.Log {
 				return;
 			}
 
+<<<<<<< Updated upstream:HomeAssistant/Log/Logger.cs
 			if (DiscordClient == null && Program.Modules.Discord.Client != null) {
 				DiscordClient = Program.Modules.Discord.Client;
 			}
@@ -183,6 +209,23 @@ namespace HomeAssistant.Log {
 
 			DiscordLogger Logger = new DiscordLogger(DiscordClient, LogIdentifier);
 			Helpers.InBackground(async () => await Logger.LogToChannel(message).ConfigureAwait(false));
+=======
+			if (!AssistantCore.Core.CoreInitiationCompleted || !AssistantCore.Core.IsNetworkAvailable) {
+				return;
+			}
+
+			if (AssistantCore.Core.ModuleLoader != null && AssistantCore.Core.ModuleLoader.LoadedModules != null && AssistantCore.Core.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
+				foreach ((long, IDiscordBot) bot in AssistantCore.Core.ModuleLoader.LoadedModules.DiscordBots) {
+					if (bot.Item2.IsServerOnline && bot.Item2.BotConfig.EnableDiscordBot &&
+					    bot.Item2.BotConfig.DiscordLogChannelID != 0 && bot.Item2.BotConfig.DiscordLog) {
+						Helpers.InBackground(async () => {
+							await bot.Item2.LogToChannel(message).ConfigureAwait(false);
+						});
+					}
+				}
+				
+			}
+>>>>>>> Stashed changes:Assistant/Log/Logger.cs
 		}
 	}
 }
