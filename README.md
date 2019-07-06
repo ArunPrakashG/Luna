@@ -52,7 +52,7 @@ This way, without modifying the Core project, you can customize your Assistant! 
 
 ### Assistant Folder Heirarchy
 Each foldername has its own value, use this diagram to know which folders can be renamed.
-![Diagram](https://raw.githubusercontent.com/SynergyFTW/HomeAssistant/684acdbc17767aca060bbc1a73ceba6cd736a842/AssistantFolderHierarchy.jpeg)
+![Diagram](Assistant/AssistantFolderHierarchy.jpeg)
 
 **To be edited later on**
 
