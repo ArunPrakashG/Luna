@@ -1,7 +1,7 @@
+using HomeAssistant.Server;
 using System;
 using System.IO;
 using System.Reflection;
-using HomeAssistant.Server;
 
 namespace HomeAssistant.Extensions {
 
@@ -55,12 +55,15 @@ namespace HomeAssistant.Extensions {
 		public const char ConsoleRelayCycleMenuKey = 'r';
 
 		public static string ExternelIP { get; set; }
-		public static string LocalIP {get; set;}
+
+		public static string LocalIP { get; set; }
 		public const string GitHubReleaseURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";
 		public const string GitHubAssetDownloadURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/assets/";
 
 		public static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+
 		public static Guid ModuleVersion => Assembly.GetEntryAssembly().ManifestModule.ModuleVersionId;
+
 		public static Version Version => Assembly.GetEntryAssembly().GetName().Version;
 	}
 }

@@ -11,26 +11,42 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace Steam {
-	public class SteamBot : IDisposable, ISteamBot {
-		public class SteamBotConfig : ISteamBotConfig {
-			[JsonProperty] public string SteamID { get; set; }
-			[JsonProperty] public string SteamPass { get; set; }
-			[JsonProperty(Required = Required.DisallowNull)] public bool Enabled { get; set; } = true;
-			[JsonProperty(Required = Required.DisallowNull)] public bool SteamChatLogger { get; set; } = true;
-			[JsonProperty(Required = Required.DisallowNull)] public bool RemoveSpammers { get; set; } = false;
-			[JsonProperty(Required = Required.DisallowNull)] public bool AcceptFriends { get; set; } = true;
-			[JsonProperty(Required = Required.DisallowNull)] public bool DeclineGroupInvites { get; set; } = false;
-			[JsonProperty] public List<string> ReplyOnAdd { get; set; }
-			[JsonProperty] public List<string> ChatResponses { get; set; }
-			[JsonProperty] public List<string> CustomText { get; set; }
-			[JsonProperty] public HashSet<uint> GamesToPlay { get; set; } = new HashSet<uint>();
-			[JsonProperty] public string SteamParentalPin { get; set; } = "0";
-			[JsonProperty] public bool OfflineConnection { get; set; } = false;
-			[JsonProperty(Required = Required.DisallowNull)] public Dictionary<ulong, SteamPermissionLevels> PermissionLevel { get; set; }
 
+	public class SteamBot : IDisposable, ISteamBot {
+
+		public class SteamBotConfig : ISteamBotConfig {
+
+			[JsonProperty] public string SteamID { get; set; }
+
+			[JsonProperty] public string SteamPass { get; set; }
+
+			[JsonProperty(Required = Required.DisallowNull)] public bool Enabled { get; set; } = true;
+
+			[JsonProperty(Required = Required.DisallowNull)] public bool SteamChatLogger { get; set; } = true;
+
+			[JsonProperty(Required = Required.DisallowNull)] public bool RemoveSpammers { get; set; } = false;
+
+			[JsonProperty(Required = Required.DisallowNull)] public bool AcceptFriends { get; set; } = true;
+
+			[JsonProperty(Required = Required.DisallowNull)] public bool DeclineGroupInvites { get; set; } = false;
+
+			[JsonProperty] public List<string> ReplyOnAdd { get; set; }
+
+			[JsonProperty] public List<string> ChatResponses { get; set; }
+
+			[JsonProperty] public List<string> CustomText { get; set; }
+
+			[JsonProperty] public HashSet<uint> GamesToPlay { get; set; } = new HashSet<uint>();
+
+			[JsonProperty] public string SteamParentalPin { get; set; } = "0";
+
+			[JsonProperty] public bool OfflineConnection { get; set; } = false;
+
+			[JsonProperty(Required = Required.DisallowNull)] public Dictionary<ulong, SteamPermissionLevels> PermissionLevel { get; set; }
 		}
 
 		private Logger Logger;
@@ -45,10 +61,15 @@ namespace Steam {
 		private DateTime LastLogonSessionReplaced;
 
 		private string AuthCode { get; set; }
+
 		private string TwoFactorCode { get; set; }
+
 		private string LoginKey { get; set; }
+
 		public bool IsBotRunning { get; set; }
+
 		public string BotName { get; set; }
+
 		public ulong Steam64ID { get; set; }
 
 		private string ConfigFilePath => Constants.ConfigDirectory + "/" + BotName + ".json";
@@ -87,23 +108,18 @@ namespace Steam {
 		}
 
 		private void OnPersonaState(SteamFriends.PersonaStateCallback callback) {
-
 		}
 
 		private void OnFriendMessage(SteamFriends.FriendMsgCallback callback) {
-
 		}
 
 		private void OnFriendAdded(SteamFriends.FriendAddedCallback callback) {
-
 		}
 
 		private void OnLicenseList(SteamApps.LicenseListCallback callback) {
-
 		}
 
 		private void OnFreeGameAdded(SteamApps.FreeLicenseCallback callback) {
-
 		}
 
 		private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback) {
@@ -158,11 +174,12 @@ namespace Steam {
 				case EResult.LoggedInElsewhere:
 					Logger.Log($"A game has been started without stopping the Boost. ({callback.Result})", LogLevels.Warn);
 					break;
+
 				case EResult.LogonSessionReplaced:
 					DateTime now = DateTime.UtcNow;
 					Logger.Log($"Logon Session has been forcefully Replaced. Disconnecting from Steam. ({callback.Result})", LogLevels.Warn);
 					if (now.Subtract(LastLogonSessionReplaced).TotalHours < 1) {
-						Logger.Log($"Another {AssistantCore.Core.AssistantName} instance is already running the same account, therefore, this account cannot run on this instance.", LogLevels.Error);
+						Logger.Log($"Another {Core.AssistantName} instance is already running the same account, therefore, this account cannot run on this instance.", LogLevels.Error);
 						Stop();
 						break;
 					}
@@ -179,15 +196,19 @@ namespace Steam {
 				case EResult.AccountLoginDeniedNeedTwoFactor:
 					Logger.Log("Account is 2FA protected, Input the 2FA code: ");
 					TwoFactorCode = SteamHandler.GetUserInput(SteamUserInputType.TwoFactorAuthentication);
+
 					//TODO handle reconnect
 					break;
+
 				case EResult.AccountDisabled:
 					Logger.Log("Account has been disabled for some reason, we cannot connect to steam using this account.", LogLevels.Warn);
 					break;
+
 				case EResult.AccountLogonDenied:
 					Logger.Log("Account has Mail Guard protection, enter the code send to your email: ");
 					AuthCode = SteamHandler.GetUserInput(SteamUserInputType.SteamGuard);
 					break;
+
 				case EResult.OK:
 					Logger.Log("Successfully logged on!");
 					Steam64ID = callback.ClientSteamID.ConvertToUInt64();
@@ -197,16 +218,18 @@ namespace Steam {
 					}
 
 					break;
+
 				case EResult.InvalidPassword:
 					Logger.Log($"Unable to Login. Invalid Password. ({callback.Result})", LogLevels.Warn);
 					break;
+
 				case EResult.NoConnection:
 				case EResult.PasswordRequiredToKickSession:
 				case EResult.ServiceUnavailable:
 				case EResult.Timeout:
 				case EResult.TryAnotherCM:
 				case EResult.RateLimitExceeded:
-					Logger.Log("Unable to login, steam server might be down.", LogLevels.Warn);
+					Logger.Log("Unable to login, steam servers might be down.", LogLevels.Warn);
 					break;
 			}
 		}
@@ -276,12 +299,19 @@ namespace Steam {
 
 	public class Steam : IModuleBase, ISteamClient {
 		private readonly Logger Logger = new Logger("STEAM");
+
 		public Steam SteamInstance { get; set; }
+
 		public bool RequiresInternetConnection { get; set; } = true;
+
 		public ConcurrentDictionary<string, ISteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, ISteamBot>();
+
 		private string BotConfigDirectory => Constants.ConfigDirectory + "/SteamBots/";
+
 		public long ModuleIdentifier { get; set; }
+
 		public Version ModuleVersion { get; } = new Version("2.0.0.0");
+
 		public string ModuleAuthor { get; } = "Arun Prakash";
 
 		public (bool, ConcurrentDictionary<string, ISteamBot>) InitSteamBots() {
@@ -321,8 +351,7 @@ namespace Steam {
 						}
 
 						try {
-							SteamConfiguration steamConfig =
-								SteamConfiguration.Create(builder => builder.WithProtocolTypes(ProtocolTypes.All));
+							SteamConfiguration steamConfig = SteamConfiguration.Create(builder => builder.WithProtocolTypes(ProtocolTypes.All));
 							SteamClient botClient = new SteamClient(steamConfig);
 							CallbackManager manager = new CallbackManager(botClient);
 							Logger BotLogger = new Logger(botName);
@@ -411,6 +440,7 @@ namespace Steam {
 			string pathName = BotConfigDirectory + botName + ".json";
 
 			if (!File.Exists(pathName)) {
+
 				//TODO save config only handle updates to the config for now therfore return false
 				return false;
 			}
@@ -526,6 +556,5 @@ namespace Steam {
 		}
 
 		public bool InitModuleShutdown() => DisposeAllBots();
-
 	}
 }

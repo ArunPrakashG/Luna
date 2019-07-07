@@ -1,4 +1,4 @@
-using AssistantCore;
+using HomeAssistant.AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
@@ -15,7 +15,9 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Email {
+
 	public class EmailBot : IEmailBot {
+
 		public class ReceviedMessageData : IReceviedMessageDuringIdle {
 
 			public IMessageSummary Message { get; set; }
@@ -30,18 +32,23 @@ namespace Email {
 		}
 
 		public string GmailId { get; set; }
+
 		private string GmailPass { get; set; }
 		private string UniqueAccountId;
 		private ImapClient IdleClient;
 		private ImapClient HelperClient;
+
 		private int InboxMessagesCount { get; set; }
+
 		public bool IsAccountLoaded { get; set; }
+
 		public List<IReceviedMessageDuringIdle> MessagesArrivedDuringIdle { get; set; } = new List<IReceviedMessageDuringIdle>();
 		private IEmailConfig MailConfig;
 		private Logger BotLogger;
 		private IEmailClient EmailHandler;
 
 		private CancellationTokenSource ImapTokenSource { get; set; }
+
 		private CancellationTokenSource ImapCancelTokenSource { get; set; }
 
 		private bool IsIdleCancelRequested { get; set; }
@@ -156,6 +163,7 @@ namespace Email {
 					}
 					catch (OperationCanceledException) {
 						BotLogger.Log("Idle cancelled.", Enums.LogLevels.Trace);
+
 						//idle cancelled
 					}
 					catch (IOException) {
@@ -166,6 +174,7 @@ namespace Email {
 								await ReconnectImapClient(true).ConfigureAwait(false);
 							}
 						}
+
 						//mobile hotspot error
 					}
 				}

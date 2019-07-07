@@ -1,13 +1,12 @@
-using AssistantCore;
 using System;
 using System.Net;
 using System.Net.Mail;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Log {
 
 	public class EmailLogger {
-
 		private static readonly Logger Logger = new Logger("EMAIL-LOGGER");
 
 		public static void SendEmail(string message) {
@@ -17,7 +16,6 @@ namespace HomeAssistant.Log {
 			}
 
 			try {
-
 				MailMessage mail = new MailMessage();
 				SmtpClient SmtpServer = new SmtpClient("smtp.gmail.com");
 				mail.From = new MailAddress(Core.Config.AssistantEmailId);

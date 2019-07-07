@@ -29,7 +29,7 @@ namespace UpdateHelper {
 
 			if (Updated) {
 				Console.WriteLine("Sucessfully Updated! Restarting application...");
-				ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet HomeAssistant.dll", false);
+				ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet Assistant.dll", false);
 				Console.WriteLine("Exiting Updater as the process is finished...");
 				Environment.Exit(0);
 			}
@@ -92,7 +92,7 @@ namespace UpdateHelper {
 					string file = Path.Combine(pathtoUpdate, zipFile.FullName);
 
 					if (file.Equals(@"Assistant.json") || file.Equals("Variables.txt") || file.Equals("NLog.config") || file.Equals("GpioConfig.json")
-						|| file.Equals("TraceLog.txt")) {
+						|| file.Equals("TraceLog.txt") || file.Equals("DiscordBot.json") || file.Equals("MailConfig.json")) {
 						Console.WriteLine("Ignored " + file + " file.");
 						continue;
 					}

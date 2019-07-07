@@ -1,13 +1,15 @@
-using AssistantCore;
+using HomeAssistant.AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Modules.Interfaces;
 using System;
 using System.Runtime.CompilerServices;
-using static AssistantCore.Enums;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Log {
+
 	public class Logger : ILoggerBase {
 		private NLog.Logger LogModule;
+
 		public string LogIdentifier { get; set; }
 
 		public string ModuleIdentifier => nameof(Logger);
@@ -106,30 +108,35 @@ namespace HomeAssistant.Log {
 
 					DiscordLogToChannel($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}");
 					break;
+
 				case LogLevels.Fatal:
 					LogGenericException(e, previousMethodName);
 					break;
+
 				case LogLevels.DebugException:
 					LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}", previousMethodName);
 					DiscordLogToChannel($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}");
 					break;
+
 				default:
 					goto case LogLevels.Error;
 			}
 		}
 
 		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
-
 			switch (level) {
 				case LogLevels.Trace:
 					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] {message}", previousMethodName);
 					break;
+
 				case LogLevels.Debug:
 					LogGenericDebug(message, previousMethodName);
 					break;
+
 				case LogLevels.Info:
 					LogGenericInfo(message, previousMethodName);
 					break;
+
 				case LogLevels.Warn:
 					LogGenericWarning($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + message, previousMethodName);
 
@@ -138,6 +145,7 @@ namespace HomeAssistant.Log {
 					}
 
 					break;
+
 				case LogLevels.Ascii:
 					Console.ForegroundColor = ConsoleColor.Green;
 					Console.WriteLine(message);
@@ -185,19 +193,17 @@ namespace HomeAssistant.Log {
 			if (Core.ModuleLoader != null && Core.ModuleLoader.LoadedModules != null && Core.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
 				foreach ((long, IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
 					if (bot.Item2.IsServerOnline && bot.Item2.BotConfig.EnableDiscordBot &&
-					    bot.Item2.BotConfig.DiscordLogChannelID != 0 && bot.Item2.BotConfig.DiscordLog) {
+						bot.Item2.BotConfig.DiscordLogChannelID != 0 && bot.Item2.BotConfig.DiscordLog) {
 						Helpers.InBackground(async () => {
 							await bot.Item2.LogToChannel(message).ConfigureAwait(false);
 						});
 					}
 				}
-				
 			}
 		}
 
 		public void InitLogger(string logId) => RegisterLogger(logId);
 
 		public void ShutdownLogger() => Logging.LoggerOnShutdown();
-
 	}
 }

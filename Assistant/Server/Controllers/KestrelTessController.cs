@@ -1,12 +1,10 @@
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Server.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant.Server.Controllers {
 
@@ -18,11 +16,11 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			StatusResponse response = new StatusResponse();
-			return Ok(new GenericResponse<StatusResponse>(response.GetResponse(), Helpers.GetOsPlatform() != OSPlatform.Windows ? "Libraries used for checking status are Windows platform dependent." : "Fetched status successfully!", HttpStatusCodes.OK, DateTime.Now));
+			return Ok(new GenericResponse<StatusResponse>(response.GetResponse(), Helpers.GetOsPlatform() != OSPlatform.Windows ? "Libraries used for checking status are Windows platform dependent." : "Fetched status successfully!", Enums.HttpStatusCodes.OK, DateTime.Now));
 		}
 
 		[HttpPost("exit")]
@@ -30,7 +28,7 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			Helpers.ScheduleTask(async () => { await Core.Exit(exitCode).ConfigureAwait(false); }, TimeSpan.FromSeconds(10));
@@ -43,7 +41,7 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			Helpers.InBackground(async () => await Core.Restart(delay).ConfigureAwait(false));
@@ -56,7 +54,7 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			(bool updateCheckStatus, Version updateVersion) updateResult = Core.Update.CheckAndUpdate(false);

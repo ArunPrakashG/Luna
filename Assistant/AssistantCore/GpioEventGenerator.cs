@@ -7,36 +7,58 @@ using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
+
 	public sealed class GpioPinEventData {
+
 		public int GpioPin { get; set; } = 2;
+
 		public GpioPinDriveMode PinMode { get; set; } = GpioPinDriveMode.Output;
+
 		public Enums.GpioPinEventStates PinEventState { get; set; } = Enums.GpioPinEventStates.ALL;
 	}
 
 	public class GpioPinValueChangedEventArgs {
+
 		public IGpioPin Pin { get; set; }
+
 		public int PinNumber { get; set; }
+
 		public Enums.GpioPinEventStates PinState { get; set; }
+
 		public Enums.GpioPinEventStates PinPreviousState { get; set; }
+
 		public bool PinCurrentDigitalValue { get; set; }
+
 		public bool PinPreviousDigitalValue { get; set; }
+
 		public bool IGpioPinValue { get; set; }
+
 		public BcmPin BcmPin { get; set; }
+
 		public GpioPinDriveMode PinDriveMode { get; set; }
+
 		public int GpioPhysicalPinNumber { get; set; }
 	}
 
 	public sealed class GpioEventGenerator {
+
 		private GPIOController Controller { get; set; }
+
 		private Logger Logger { get; set; }
+
 		private GpioEventManager Manager { get; set; }
+
 		private bool OverrideEventWatcher { get; set; }
+
 		public GpioPinEventData EventData { get; private set; }
+
 		public (int, Thread) PollingThreadInfo { get; private set; }
 
 		public (object sender, GpioPinValueChangedEventArgs e) GPIOEventPinValueStorage { get; private set; }
+
 		public delegate void GPIOPinValueChangedEventHandler(object sender, GpioPinValueChangedEventArgs e);
+
 		public event GPIOPinValueChangedEventHandler GPIOPinValueChanged;
 
 		private (object sender, GpioPinValueChangedEventArgs e) GPIOPinValue {
@@ -119,6 +141,7 @@ namespace AssistantCore {
 								});
 							}
 							break;
+
 						case Enums.GpioPinEventStates.ON when currentValue == Enums.GpioPinEventStates.ON:
 							if (previousValue != currentValue) {
 								GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
@@ -135,6 +158,7 @@ namespace AssistantCore {
 								});
 							}
 							break;
+
 						case Enums.GpioPinEventStates.ALL:
 							if (previousValue != currentValue) {
 								GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
@@ -151,8 +175,10 @@ namespace AssistantCore {
 								});
 							}
 							break;
+
 						case Enums.GpioPinEventStates.NONE:
 							break;
+
 						default:
 							break;
 					}
@@ -160,7 +186,6 @@ namespace AssistantCore {
 					previousValue = currentValue;
 					await Task.Delay(1).ConfigureAwait(false);
 				}
-
 			}, $"Polling thread {pinData.GpioPin}", true);
 		}
 	}
@@ -216,7 +241,7 @@ namespace AssistantCore {
 			}
 		}
 
-		public void ExitEventGenerator () {
+		public void ExitEventGenerator() {
 			if (GpioPinEventGenerators == null || GpioPinEventGenerators.Count <= 0) {
 				return;
 			}
@@ -227,7 +252,7 @@ namespace AssistantCore {
 			}
 		}
 
-		public void ExitEventGenerator (int pin) {
+		public void ExitEventGenerator(int pin) {
 			if (GpioPinEventGenerators == null || GpioPinEventGenerators.Count <= 0) {
 				return;
 			}

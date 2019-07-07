@@ -6,12 +6,18 @@ using System.Threading.Tasks;
 using VideoLibrary;
 
 namespace Youtube {
+
 	public class Youtube : IModuleBase, IYoutubeClient {
 		private readonly Logger Logger = new Logger("YOUTUBE");
+
 		public Youtube YoutubeInstance { get; set; }
+
 		public bool RequiresInternetConnection { get; set; }
-		public long ModuleIdentifier { get; set;}
+
+		public long ModuleIdentifier { get; set; }
+
 		public Version ModuleVersion { get; } = new Version("4.9.0.0");
+
 		public string ModuleAuthor { get; } = "Arun";
 
 		//TODO youtube module
@@ -21,7 +27,6 @@ namespace Youtube {
 		//extract songs
 
 		public Youtube() {
-
 		}
 
 		public bool InitModuleService() {

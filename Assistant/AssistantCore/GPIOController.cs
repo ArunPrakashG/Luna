@@ -3,15 +3,13 @@ using HomeAssistant.Log;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Devices.Gpio;
 using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
-using System.Devices.Gpio;
-using static AssistantCore.Enums;
-using PinMode = AssistantCore.Enums.PinMode;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
 
 	public class GPIOTaskQueue {
 
@@ -35,9 +33,13 @@ namespace AssistantCore {
 	public class GPIOController {
 		private readonly Logger Logger = new Logger("GPIO-CONTROLLER");
 		private readonly GPIOConfigHandler GPIOConfigHandler;
+
 		public List<GPIOPinConfig> GPIOConfig { get; set; }
+
 		public GPIOConfigRoot GPIOConfigRoot { get; private set; }
+
 		private bool IsWaitForValueCancellationRequested { get; set; } = false;
+
 		public GpioEventManager GpioPollingManager { get; private set; }
 
 		private readonly ConcurrentQueue<GPIOTaskQueue> TaskQueue = new ConcurrentQueue<GPIOTaskQueue>();
@@ -47,7 +49,7 @@ namespace AssistantCore {
 			GPIOConfigHandler = configHandler;
 			GPIOConfigRoot = rootObject;
 			GpioPollingManager = new GpioEventManager(this);
-			
+
 			Helpers.ScheduleTask(() => {
 				if (GpioPollingManager == null) {
 					return;
@@ -68,26 +70,29 @@ namespace AssistantCore {
 				foreach (GpioEventGenerator c in GpioPollingManager.GpioPinEventGenerators) {
 					c.GPIOPinValueChanged += OnGpioPinValueChanged;
 				}
-
 			}, TimeSpan.FromSeconds(5));
 
 			Logger.Log("Initiated GPIO Controller class!", Enums.LogLevels.Trace);
 		}
 
-		private void OnGpioPinValueChanged (object sender, GpioPinValueChangedEventArgs e) {
+		private void OnGpioPinValueChanged(object sender, GpioPinValueChangedEventArgs e) {
 			switch (e.PinState) {
 				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
 					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)");
 					break;
+
 				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.ON:
 					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)");
 					break;
+
 				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
 					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)");
 					break;
+
 				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.ON:
 					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)");
 					break;
+
 				default:
 					Logger.Log($"Value for {e.PinNumber} pin changed to {e.PinCurrentDigitalValue} from {e.PinPreviousDigitalValue.ToString()}");
 					break;
@@ -98,7 +103,6 @@ namespace AssistantCore {
 		}
 
 		private void OnDequeued(GPIOTaskQueue item) {
-
 		}
 
 		private void TryEnqueue(GPIOTaskQueue task) {
@@ -126,7 +130,7 @@ namespace AssistantCore {
 		}
 
 		[Obsolete("Temporary use for testing only")]
-		public void GpioTest () {
+		public void GpioTest() {
 			GpioController controllerTest = new GpioController(PinNumberingScheme.Gpio);
 			if (!controllerTest.IsPinOpen(Core.Config.RelayPins.FirstOrDefault())) {
 				controllerTest.OpenPin(Core.Config.RelayPins.FirstOrDefault());
@@ -138,7 +142,7 @@ namespace AssistantCore {
 			controllerTest[Core.Config.RelayPins.FirstOrDefault()].ValueChanged += OnPinValueChangedTest;
 		}
 
-		private void OnPinValueChangedTest (object sender, PinValueChangedEventArgs e) {
+		private void OnPinValueChangedTest(object sender, PinValueChangedEventArgs e) {
 			Logger.Log($"pin value changed test method fired for pin {e.GpioPinNumber}");
 		}
 

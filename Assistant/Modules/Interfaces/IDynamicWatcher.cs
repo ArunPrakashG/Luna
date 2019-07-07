@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using Assistant.Core;
+using HomeAssistant.AssistantCore;
 using HomeAssistant.Modules.Interfaces;
+using System.IO;
 
 namespace Assistant.Modules.Interfaces {
 
@@ -19,7 +16,7 @@ namespace Assistant.Modules.Interfaces {
 
 		bool IncludeSubdirectories { get; set; }
 
-		(bool, DynamicWatcher) InitWatcherService();
+		(bool, DynamicWatcher, FileSystemWatcher) InitWatcherService();
 
 		void StopWatcherServier();
 
@@ -30,6 +27,5 @@ namespace Assistant.Modules.Interfaces {
 		void OnFileChanged(object sender, FileSystemEventArgs e);
 
 		void OnFileCreated(object sender, FileSystemEventArgs e);
-
 	}
 }

@@ -11,14 +11,14 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.Core;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
 using Unosquare.WiringPi;
 using Logging = HomeAssistant.Log.Logging;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
+
 	public class Options {
 
 		[Option('d', "debug", Required = false, HelpText = "Displays all Trace level messages to console. (for debugging)")]
@@ -39,27 +39,49 @@ namespace AssistantCore {
 
 	public class Core {
 		private static Logger Logger;
+
 		public static GPIOController Controller { get; private set; }
+
 		public static Updater Update { get; private set; } = new Updater();
+
 		public static ProcessStatus AssistantStatus { get; private set; }
+
 		public static CoreConfig Config { get; set; } = new CoreConfig();
+
 		private static ConfigWatcher ConfigWatcher { get; set; } = new ConfigWatcher();
+
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
+
 		public static GPIOConfigHandler GPIOConfigHandler { get; private set; } = new GPIOConfigHandler();
+
 		private static GPIOConfigRoot GPIORootObject { get; set; } = new GPIOConfigRoot();
+
 		private static List<GPIOPinConfig> GPIOConfig { get; set; } = new List<GPIOPinConfig>();
+
 		public static GpioEventManager EventManager { get; set; }
+
 		public static TaskList TaskManager { get; private set; } = new TaskList();
+
 		public static ModuleInitializer ModuleLoader { get; private set; }
+
 		public static DateTime StartupTime { get; private set; }
+
 		private static Timer RefreshConsoleTitleTimer { get; set; }
+
 		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
+
 		public static bool CoreInitiationCompleted { get; private set; }
+
 		public static bool DisablePiMethods { get; private set; }
+
 		public static bool IsUnknownOs { get; set; }
+
 		public static bool IsNetworkAvailable { get; set; }
+
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
+
 		public static bool GracefullModuleShutdown { get; set; } = false;
+
 		public static string AssistantName { get; set; } = "TESS";
 
 		public static async Task<bool> InitCore(string[] args) {
@@ -174,7 +196,6 @@ namespace AssistantCore {
 							Logger.Log("Failed to load modules.", Enums.LogLevels.Warn);
 						}
 						else {
-
 						}
 					}
 					else {
@@ -213,7 +234,6 @@ namespace AssistantCore {
 				else {
 					Logger.Log("Not starting GPIO controller as its disabled in config file.");
 				}
-
 			}
 			else {
 				Logger.Log("Disabled Raspberry Pi related methods and initiation tasks.");
@@ -247,13 +267,13 @@ namespace AssistantCore {
 				Logger.Log($"{Constants.ConsoleRelayCommandMenuKey} - Display relay pin control menu.", Enums.LogLevels.UserInput);
 				Logger.Log($"{Constants.ConsoleRelayCycleMenuKey} - Display relay cycle control menu.", Enums.LogLevels.UserInput);
 			}
-			
+
 			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run pre-configured test methods or tasks.", Enums.LogLevels.UserInput);
 
 			if (Config.EnableModules) {
 				Logger.Log($"{Constants.ConsoleModuleShutdownKey} - Invoke shutdown method on all currently running modules.", Enums.LogLevels.UserInput);
 			}
-			
+
 			Logger.Log($"-------------------------------------------------------------------", Enums.LogLevels.UserInput);
 			Logger.Log("Awaiting user input: \n", Enums.LogLevels.UserInput);
 
@@ -297,13 +317,11 @@ namespace AssistantCore {
 
 					case Constants.ConsoleRelayCommandMenuKey when DisablePiMethods: {
 							Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
-
 						}
 						return;
 
 					case Constants.ConsoleRelayCycleMenuKey when DisablePiMethods: {
 							Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
-
 						}
 						return;
 
@@ -318,6 +336,7 @@ namespace AssistantCore {
 							await ModuleLoader.OnCoreShutdown().ConfigureAwait(false);
 						}
 						return;
+
 					case Constants.ConsoleModuleShutdownKey when ModuleLoader.LoadedModules.IsModulesEmpty: {
 							Logger.Log("There are no modules to shutdown...");
 						}

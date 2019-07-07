@@ -1,4 +1,3 @@
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using Microsoft.AspNetCore.Hosting;
@@ -8,6 +7,7 @@ using NLog.Web;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant.Server {
 

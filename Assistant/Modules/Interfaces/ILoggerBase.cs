@@ -1,9 +1,9 @@
-using HomeAssistant.Log;
 using System;
 using System.Runtime.CompilerServices;
-using static AssistantCore.Enums;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Modules.Interfaces {
+
 	public interface ILoggerBase {
 
 		///<summary>
@@ -71,6 +71,7 @@ namespace HomeAssistant.Modules.Interfaces {
 		///</summary>
 		/// <param name="logId">Logger name</param>
 		void InitLogger(string logId);
+
 		/// <summary>
 		/// Disposes the logger
 		/// </summary>

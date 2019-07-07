@@ -1,11 +1,10 @@
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Server.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using HomeAssistant.AssistantCore;
 using Unosquare.RaspberryIO.Abstractions;
-using static AssistantCore.Enums;
 
 namespace HomeAssistant.Server.Controllers {
 
@@ -23,7 +22,7 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			try {
@@ -49,7 +48,7 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			try {
@@ -71,7 +70,7 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			List<GPIOPinConfig> resultConfig = new List<GPIOPinConfig>();
@@ -100,7 +99,7 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			List<GPIOPinConfig> resultConfig = new List<GPIOPinConfig>();
@@ -118,7 +117,6 @@ namespace HomeAssistant.Server.Controllers {
 				"Failed to fetch the pin status, either pin isn't valid or an unknown error occured.",
 				Enums.HttpStatusCodes.NotFound, DateTime.Now));
 		}
-
 	}
 
 	[Route("api/gpio/config")]
@@ -126,7 +124,7 @@ namespace HomeAssistant.Server.Controllers {
 	public class KestrelGpioConfigController : Controller {
 
 		[HttpPost("pin")]
-		public ActionResult<GenericResponse<string>> SetPinStatus(int pinNumber, PinMode pinMode, bool isOn) {
+		public ActionResult<GenericResponse<string>> SetPinStatus(int pinNumber, Enums.PinMode pinMode, bool isOn) {
 			if (pinNumber < 0 || pinNumber > 31) {
 				return NotFound(new GenericResponse<string>("The specified pin is either less than 0 or greater than 31.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
 			}
@@ -139,10 +137,10 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			bool result = Core.Controller.SetGPIO(pinNumber, pinMode == PinMode.Output ? GpioPinDriveMode.Output : GpioPinDriveMode.Input,
+			bool result = Core.Controller.SetGPIO(pinNumber, pinMode == Enums.PinMode.Output ? GpioPinDriveMode.Output : GpioPinDriveMode.Input,
 				isOn ? GpioPinValue.Low : GpioPinValue.High);
 
 			if (result) {
@@ -155,7 +153,7 @@ namespace HomeAssistant.Server.Controllers {
 		}
 
 		[HttpPost("relay")]
-		public ActionResult<GenericResponse<string>> RelayCycle(GPIOCycles cycleMode) {
+		public ActionResult<GenericResponse<string>> RelayCycle(Enums.GPIOCycles cycleMode) {
 			if (Core.IsUnknownOs) {
 				return BadRequest(new GenericResponse<string>("Failed to set pin mode, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
@@ -164,14 +162,13 @@ namespace HomeAssistant.Server.Controllers {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
-					HttpStatusCodes.BadRequest, DateTime.Now));
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			Helpers.InBackgroundThread(async () => await Core.Controller.RelayTestService(cycleMode).ConfigureAwait(false), "Relay Cycle");
 			return Ok(new GenericResponse<string>(
-				$"Successfully started gpio relay test cycle. configured to {cycleMode.ToString()} cycle mode.", HttpStatusCodes.OK,
+				$"Successfully started gpio relay test cycle. configured to {cycleMode.ToString()} cycle mode.", Enums.HttpStatusCodes.OK,
 				DateTime.Now));
 		}
-
 	}
 }

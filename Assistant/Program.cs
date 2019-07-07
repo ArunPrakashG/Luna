@@ -1,12 +1,10 @@
-using AssistantCore;
 using HomeAssistant.Log;
 using System;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
-using System.Threading;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant {
 
@@ -27,8 +25,8 @@ namespace HomeAssistant {
 		private static async void OnForceQuitAssistant(object sender, ConsoleCancelEventArgs e) => await Core.Exit(-1).ConfigureAwait(false);
 
 		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
-			Logger.Log($"{e.Exception.Message}", LogLevels.Error);
-			Logger.Log($"{e.Exception.ToString()}", LogLevels.Trace);
+			Logger.Log($"{e.Exception.Message}", Enums.LogLevels.Error);
+			Logger.Log($"{e.Exception.ToString()}", Enums.LogLevels.Trace);
 		}
 
 		public static void HandleFirstChanceExceptions(object sender, FirstChanceExceptionEventArgs e) {
@@ -39,43 +37,43 @@ namespace HomeAssistant {
 
 				if (Core.Config.EnableFirstChanceLog) {
 					if (e.Exception is PlatformNotSupportedException) {
-						Logger.Log(e.Exception.Message, LogLevels.Error);
+						Logger.Log(e.Exception.Message, Enums.LogLevels.Error);
 					}
 					else if (e.Exception is ArgumentNullException) {
-						Logger.Log(e.Exception.Message, LogLevels.Error);
+						Logger.Log(e.Exception.Message, Enums.LogLevels.Error);
 					}
 					else if (e.Exception is OperationCanceledException) {
-						Logger.Log(e.Exception.Message, LogLevels.Error);
+						Logger.Log(e.Exception.Message, Enums.LogLevels.Error);
 					}
 					else if (e.Exception is IOException) {
-						Logger.Log(e.Exception.Message, LogLevels.Error);
+						Logger.Log(e.Exception.Message, Enums.LogLevels.Error);
 					}
 					else {
-						Logger.Log(e.Exception.Message, LogLevels.Error);
+						Logger.Log(e.Exception.Message, Enums.LogLevels.Error);
 					}
 				}
 				else {
 					if (e.Exception is PlatformNotSupportedException) {
-						Logger.Log("Platform not supported exception thrown.", LogLevels.Trace);
+						Logger.Log("Platform not supported exception thrown.", Enums.LogLevels.Trace);
 					}
 					else if (e.Exception is ArgumentNullException) {
-						Logger.Log("Argument null exception thrown.", LogLevels.Trace);
+						Logger.Log("Argument null exception thrown.", Enums.LogLevels.Trace);
 					}
 					else if (e.Exception is OperationCanceledException) {
-						Logger.Log("Operation cancelled exception thrown.", LogLevels.Trace);
+						Logger.Log("Operation cancelled exception thrown.", Enums.LogLevels.Trace);
 					}
 					else if (e.Exception is IOException) {
-						Logger.Log("IO Exception thrown.", LogLevels.Trace);
+						Logger.Log("IO Exception thrown.", Enums.LogLevels.Trace);
 					}
 					else {
-						Logger.Log(e.Exception.Message, LogLevels.Trace);
+						Logger.Log(e.Exception.Message, Enums.LogLevels.Trace);
 					}
 				}
 			}
 		}
 
 		private static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {
-			Logger.Log((Exception) e.ExceptionObject, LogLevels.Fatal);
+			Logger.Log((Exception) e.ExceptionObject, Enums.LogLevels.Fatal);
 
 			if (e.IsTerminating) {
 				Task.Run(async () => await Core.Exit(-1).ConfigureAwait(false));
@@ -88,8 +86,8 @@ namespace HomeAssistant {
 		}
 
 		private static async Task NetworkDisconnect() {
-			Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
-			Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", LogLevels.Error);
+			Logger.Log("Internet connection has been disconnected or disabled.", Enums.LogLevels.Error);
+			Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", Enums.LogLevels.Error);
 			await Core.OnNetworkDisconnected().ConfigureAwait(false);
 		}
 
@@ -104,7 +102,7 @@ namespace HomeAssistant {
 			}
 		}
 
-		private static void OnEnvironmentExit(object sender, EventArgs e){
+		private static void OnEnvironmentExit(object sender, EventArgs e) {
 		}
 	}
 }

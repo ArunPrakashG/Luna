@@ -1,6 +1,5 @@
 using Discord.Commands;
 using Discord.WebSocket;
-using AssistantCore;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
 using System;
@@ -10,20 +9,31 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
+using static HomeAssistant.AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
 
 namespace Discord {
+
 	public class Discord : IModuleBase, IDiscordBot, IDiscordLogger {
+
 		public DiscordSocketClient Client { get; set; }
+
 		public bool RequiresInternetConnection { get; set; }
 		private readonly CommandService Commands;
+
 		private ModuleInfo DiscordModuleInfo { get; set; }
+
 		public bool IsServerOnline { get; set; }
 		public Logger Logger = new Logger("DISCORD-CLIENT");
+
 		public IDiscordBotConfig BotConfig { get; set; }
+
 		public long ModuleIdentifier { get; set; }
+
 		public Version ModuleVersion { get; } = new Version("5.0.0.0");
+
 		public string ModuleAuthor { get; } = "Arun Prakash";
+
 		public static long ModuleIdentifierInternal { get; private set; }
 
 		public Discord() {
@@ -201,6 +211,7 @@ namespace Discord {
 				case LogSeverity.Error:
 					Logger.Log(message.Message, LogLevels.Warn);
 					break;
+
 				case LogSeverity.Warning:
 				case LogSeverity.Verbose:
 				case LogSeverity.Debug:

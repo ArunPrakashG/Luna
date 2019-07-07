@@ -4,13 +4,12 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using static AssistantCore.Enums;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
 
 	public class GPIOConfigRoot : IEquatable<GPIOConfigRoot> {
 
-		public bool Equals (GPIOConfigRoot other) {
+		public bool Equals(GPIOConfigRoot other) {
 			if (ReferenceEquals(null, other)) {
 				return false;
 			}
@@ -22,7 +21,7 @@ namespace AssistantCore {
 			return Equals(GPIOData, other.GPIOData);
 		}
 
-		public override bool Equals (object obj) {
+		public override bool Equals(object obj) {
 			if (ReferenceEquals(null, obj)) {
 				return false;
 			}
@@ -38,11 +37,11 @@ namespace AssistantCore {
 			return Equals((GPIOConfigRoot) obj);
 		}
 
-		public override int GetHashCode () => GPIOData != null ? GPIOData.GetHashCode() : 0;
+		public override int GetHashCode() => GPIOData != null ? GPIOData.GetHashCode() : 0;
 
-		public static bool operator == (GPIOConfigRoot left, GPIOConfigRoot right) => Equals(left, right);
+		public static bool operator ==(GPIOConfigRoot left, GPIOConfigRoot right) => Equals(left, right);
 
-		public static bool operator != (GPIOConfigRoot left, GPIOConfigRoot right) => !Equals(left, right);
+		public static bool operator !=(GPIOConfigRoot left, GPIOConfigRoot right) => !Equals(left, right);
 
 		[JsonProperty]
 		public List<GPIOPinConfig> GPIOData { get; set; }

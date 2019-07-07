@@ -1,18 +1,19 @@
+using HomeAssistant.Log;
 using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using HomeAssistant.Log;
 
 namespace HomeAssistant.Security {
+
 	public static class CryptoManager {
 		private static readonly Logger Logger = new Logger("SECURITY");
 
-		public static string Encrypt (string data) {
+		public static string Encrypt(string data) {
 			if (string.IsNullOrEmpty(data) || string.IsNullOrWhiteSpace(data)) {
 				return null;
 			}
-			 
+
 			try {
 				using (RijndaelManaged myRijndael = new RijndaelManaged()) {
 					myRijndael.GenerateKey();
@@ -26,7 +27,7 @@ namespace HomeAssistant.Security {
 			}
 		}
 
-		public static string Decrypt (byte[] encryptedBytes) {
+		public static string Decrypt(byte[] encryptedBytes) {
 			if (encryptedBytes.Length <= 0) {
 				return null;
 			}

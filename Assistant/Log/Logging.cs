@@ -4,7 +4,6 @@ using NLog.Config;
 using NLog.Targets;
 using System;
 using System.IO;
-using System.Linq;
 
 namespace HomeAssistant.Log {
 
@@ -13,6 +12,7 @@ namespace HomeAssistant.Log {
 		private const string GeneralDebugLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";
 
 		public static bool IsLoggerOnline { get; set; } = true;
+
 		public static NLog.Logger RegisterLogger(string loggerName) {
 			if (string.IsNullOrEmpty(loggerName)) {
 				throw new ArgumentException("message", nameof(loggerName));

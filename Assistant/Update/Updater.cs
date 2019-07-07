@@ -1,4 +1,3 @@
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using RestSharp;
@@ -9,7 +8,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant.Update {
 
@@ -37,7 +36,7 @@ namespace HomeAssistant.Update {
 				return ElapasedTimeCalculator.Elapsed;
 			}
 			else {
-				Logger.Log("Elapsed time calculator isn't running, cant get the time left.", LogLevels.Warn);
+				Logger.Log("Elapsed time calculator isn't running, cant get the time left.", Enums.LogLevels.Warn);
 				return new TimeSpan();
 			}
 		}
@@ -58,7 +57,7 @@ namespace HomeAssistant.Update {
 
 				UpdateTimerStartTime = DateTime.Now;
 				ElapasedTimeCalculator.Start();
-				Logger.Log($"{Core.AssistantName} will automatically check for updates every 5 hours.", LogLevels.Info);
+				Logger.Log($"{Core.AssistantName} will automatically check for updates every 5 hours.", Enums.LogLevels.Info);
 			}
 		}
 
@@ -85,7 +84,7 @@ namespace HomeAssistant.Update {
 				}
 			}
 			catch (NullReferenceException) {
-				Logger.Log("Could not fetch the required details from github api.", LogLevels.Warn);
+				Logger.Log("Could not fetch the required details from github api.", Enums.LogLevels.Warn);
 				return (false, Constants.Version);
 			}
 
@@ -94,7 +93,7 @@ namespace HomeAssistant.Update {
 				GitVersion = GitRoot.tag_name;
 			}
 			else {
-				Logger.Log("Failed to fetch the required details from github api.", LogLevels.Error);
+				Logger.Log("Failed to fetch the required details from github api.", Enums.LogLevels.Error);
 				return (false, Constants.Version);
 			}
 
@@ -104,7 +103,7 @@ namespace HomeAssistant.Update {
 				LatestVersion = Version.Parse(GitVersion);
 			}
 			catch (Exception) {
-				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", LogLevels.Warn);
+				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", Enums.LogLevels.Warn);
 				return (false, Constants.Version);
 			}
 
@@ -120,7 +119,7 @@ namespace HomeAssistant.Update {
 				return (true, LatestVersion);
 			}
 			else if (LatestVersion < Constants.Version) {
-				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", LogLevels.Warn);
+				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", Enums.LogLevels.Warn);
 				return (true, LatestVersion);
 			}
 			else {
@@ -140,19 +139,18 @@ namespace HomeAssistant.Update {
 				}
 			}
 			catch (NullReferenceException) {
-				Logger.Log("Failed to fetch GITHUB_TOKEN variable value from file. file exists ?", LogLevels.Warn);
+				Logger.Log("Failed to fetch GITHUB_TOKEN variable value from file. file exists ?", Enums.LogLevels.Warn);
 				return;
 			}
 
-			if (GitRoot != null)
-			{
+			if (GitRoot != null) {
 				int releaseID = GitRoot.assets[0].id;
 
 				Logger.Log($"Release name: {GitRoot.name}");
-				Logger.Log($"URL: {GitRoot.url}", LogLevels.Trace);
-				Logger.Log($"Version: {GitRoot.tag_name}", LogLevels.Trace);
+				Logger.Log($"URL: {GitRoot.url}", Enums.LogLevels.Trace);
+				Logger.Log($"Version: {GitRoot.tag_name}", Enums.LogLevels.Trace);
 				Logger.Log($"Publish time: {GitRoot.published_at.ToLongTimeString()}");
-				Logger.Log($"ZIP URL: {GitRoot.assets[0].browser_download_url}", LogLevels.Trace);
+				Logger.Log($"ZIP URL: {GitRoot.assets[0].browser_download_url}", Enums.LogLevels.Trace);
 				Logger.Log($"Downloading {GitRoot.name}.zip...");
 
 				if (File.Exists(Constants.UpdateZipFileName)) {
@@ -178,7 +176,7 @@ namespace HomeAssistant.Update {
 			await Task.Delay(1000).ConfigureAwait(false);
 
 			if (!File.Exists(Constants.UpdateZipFileName)) {
-				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", LogLevels.Error);
+				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", Enums.LogLevels.Error);
 				return;
 			}
 
@@ -202,7 +200,7 @@ namespace HomeAssistant.Update {
 				_ = await Helpers.RestartOrExit().ConfigureAwait(false);
 			}
 			catch (Exception e) {
-				Logger.Log(e, LogLevels.Error);
+				Logger.Log(e, Enums.LogLevels.Error);
 				return;
 			}
 		}

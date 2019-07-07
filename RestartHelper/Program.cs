@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace RestartHelper {
 
 	internal class Program {
+
 		private static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
 
 		private static async Task Main(string[] args) {
@@ -21,7 +22,7 @@ namespace RestartHelper {
 			}
 			Console.WriteLine("Restarting in " + Delay + " ms...");
 			await Task.Delay(Delay).ConfigureAwait(false);
-			ExecuteCommand("cd /home/pi/Desktop/HomeAssistant && dotnet HomeAssistant.dll");
+			ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet Assistant.dll");
 			Console.WriteLine("Started Assistant...");
 			Console.WriteLine("Exiting restarter.");
 			Environment.Exit(0);

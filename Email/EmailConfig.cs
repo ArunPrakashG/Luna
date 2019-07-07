@@ -3,7 +3,9 @@ using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
 namespace Email {
+
 	public class EmailConfigRoot {
+
 		[JsonProperty] public bool EnableImapIdleWorkaround { get; set; } = true;
 
 		[JsonProperty] public bool EnableEmailModule { get; set; } = true;

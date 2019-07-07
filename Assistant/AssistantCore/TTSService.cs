@@ -5,10 +5,9 @@ using RestSharp;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
-using SpeechContext = AssistantCore.Enums.SpeechContext;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
+
 	public class TTSService {
 		private static readonly Logger Logger = new Logger("GOOGLE-SPEECH");
 
@@ -56,7 +55,7 @@ namespace AssistantCore {
 			}
 
 			if (File.Exists(Constants.TTSAlertFilePath) && !disableTTSalert) {
-				Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q", false);				
+				Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q", false);
 			}
 
 			byte[] result;
@@ -86,6 +85,7 @@ namespace AssistantCore {
 						return;
 					}
 					break;
+
 				case Enums.SpeechContext.NewEmaiNotification:
 					if (!File.Exists(Constants.NewMailSpeechFilePath)) {
 						Logger.Log($"{Core.AssistantName} startup tts sound doesn't exist, downloading the sound...", Enums.LogLevels.Trace);
@@ -110,6 +110,7 @@ namespace AssistantCore {
 						return;
 					}
 					break;
+
 				case Enums.SpeechContext.Custom:
 					result = Helpers.GetUrlToBytes($"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={text}&tl=En-us", Method.GET, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
 					Logger.Log("Fetched voice file bytes.", Enums.LogLevels.Trace);

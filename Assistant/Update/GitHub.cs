@@ -3,7 +3,7 @@ using HomeAssistant.Log;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant.Update {
 
@@ -165,7 +165,7 @@ namespace HomeAssistant.Update {
 			string json = Helpers.GetUrlToString(Constants.GitHubReleaseURL + "?access_token=" + gitToken, Method.GET, true);
 
 			if (string.IsNullOrEmpty(json) || string.IsNullOrWhiteSpace(json)) {
-				Logger.Log("Could not fetch the latest patch release. Try again later!", LogLevels.Warn);
+				Logger.Log("Could not fetch the latest patch release. Try again later!", Enums.LogLevels.Warn);
 				return null;
 			}
 
@@ -174,7 +174,7 @@ namespace HomeAssistant.Update {
 				return Root;
 			}
 			catch (Exception e) {
-				Logger.Log(e, LogLevels.Fatal);
+				Logger.Log(e, Enums.LogLevels.Fatal);
 				return null;
 			}
 		}

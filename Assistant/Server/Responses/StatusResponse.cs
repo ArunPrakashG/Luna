@@ -1,15 +1,20 @@
-using AssistantCore;
+using HomeAssistant.AssistantCore;
 using HomeAssistant.Extensions;
 using Newtonsoft.Json;
 
 namespace HomeAssistant.Server.Responses {
+
 	public class StatusResponse {
+
 		[JsonProperty]
 		private string OSCpuUsage { get; set; }
+
 		[JsonProperty]
 		private string OSRamUsage { get; set; }
+
 		[JsonProperty]
 		private string AssistantRamUsage { get; set; }
+
 		[JsonProperty]
 		private string OSPlatform { get; set; }
 

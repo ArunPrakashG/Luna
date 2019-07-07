@@ -2,17 +2,22 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
+
 	public class TaskStructure<T> where T : Task {
+
 		public float TaskIdentifier { get; set; }
+
 		public string TaskMessage { get; set; }
+
 		public bool LongRunning { get; set; }
+
 		public TimeSpan Delay { get; set; }
+
 		public DateTime TimeAdded { get; set; }
+
 		public T Task { get; set; }
 	}
 
@@ -76,7 +81,6 @@ namespace AssistantCore {
 		}
 
 		private void OnTaskRemoved(TaskStructure<Task> item) {
-
 		}
 
 		public void StopTaskListener() => CancelTaskListener = true;
@@ -88,6 +92,7 @@ namespace AssistantCore {
 					if (taskCount < TaskFactoryCollection.Count) {
 						taskCount = TaskFactoryCollection.Count;
 						Logger.Log("A task has been added.", Enums.LogLevels.Trace);
+
 						//TODO: On task added
 					}
 

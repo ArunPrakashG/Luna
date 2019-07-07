@@ -1,13 +1,14 @@
 using Discord.Commands;
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
+using HomeAssistant.AssistantCore;
 
 namespace Discord {
+
 	public class DiscordCommandBase : ModuleBase<SocketCommandContext> {
 		private int ArgPos = 0;
 		private readonly Logger Logger = new Logger("DISCORD-BASE");

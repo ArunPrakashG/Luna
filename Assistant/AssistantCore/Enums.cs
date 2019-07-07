@@ -1,4 +1,4 @@
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
 
 	public static class Enums {
 
@@ -88,7 +88,7 @@ namespace AssistantCore {
 			ServiceUnavailable = 503,
 			Unauthorized = 401
 		}
-		
+
 		public enum SpeechContext : byte {
 			AssistantStartup,
 			AssistantShutdown,

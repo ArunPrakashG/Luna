@@ -1,12 +1,14 @@
-using System.IO;
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
 using Newtonsoft.Json;
+using System.IO;
+using HomeAssistant.AssistantCore;
 
 namespace Discord {
+
 	public class DiscordBotConfig : IDiscordBotConfig {
+
 		[JsonProperty] public bool EnableDiscordBot { get; set; }
 
 		[JsonProperty] public ulong DiscordOwnerID { get; set; } = 161859532920848384;
@@ -24,7 +26,7 @@ namespace Discord {
 		[JsonIgnore]
 		public const string DiscordBotConfigPath = Constants.ConfigDirectory + "/DiscordBot.json";
 
-		public static DiscordBotConfig LoadConfig () {
+		public static DiscordBotConfig LoadConfig() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...", Enums.LogLevels.Trace);
 				Directory.CreateDirectory(Constants.ConfigDirectory);

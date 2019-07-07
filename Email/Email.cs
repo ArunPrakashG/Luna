@@ -1,4 +1,3 @@
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
@@ -13,15 +12,20 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace Email {
 
 	public class Email : IModuleBase, IEmailClient {
 		private readonly Logger Logger = new Logger("EMAIL-HANDLER");
+
 		public bool RequiresInternetConnection { get; set; }
+
 		public long ModuleIdentifier { get; set; }
+
 		public Version ModuleVersion { get; set; } = new Version("5.0.0.0");
+
 		public string ModuleAuthor { get; set; } = "Arun Prakash";
 
 		public static EmailConfigRoot ConfigRoot { get; set; }

@@ -1,4 +1,3 @@
-using AssistantCore;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
@@ -8,9 +7,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using HomeAssistant.Extensions.Attributes;
+using HomeAssistant.AssistantCore;
 using Unosquare.RaspberryIO.Abstractions;
-using static AssistantCore.Enums;
+using static HomeAssistant.AssistantCore.Enums;
 
 namespace HomeAssistant.Server {
 
@@ -43,9 +42,9 @@ namespace HomeAssistant.Server {
 			try {
 				IPEndPoint localEndpoint = new IPEndPoint(IPAddress.Any, Config.TCPServerPort);
 				string externalip = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
-				Logger.Log("Public ip fetched sucessfully => " + externalip, LogLevels.Trace);
-				Logger.Log("Local ip => " + Helpers.GetLocalIpAddress(), LogLevels.Trace);
-				Logger.Log("Starting assistant command server...", LogLevels.Trace);
+				Logger.Log("Public ip fetched sucessfully => " + externalip, Enums.LogLevels.Trace);
+				Logger.Log("Local ip => " + Helpers.GetLocalIpAddress(), Enums.LogLevels.Trace);
+				Logger.Log("Starting assistant command server...", Enums.LogLevels.Trace);
 				Sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 				Logger.Log("Server started sucessfully on address: " + externalip + ":" + Config.TCPServerPort);
 
@@ -58,22 +57,21 @@ namespace HomeAssistant.Server {
 				Helpers.InBackgroundThread(() => {
 					while (true) {
 						try {
-							if (Sock != null)
-							{
+							if (Sock != null) {
 								Socket Socket = Sock?.Accept();
 								int b = Socket.Receive(Buffer);
 								EndPoint ep = Socket.RemoteEndPoint;
 								string[] IpData = ep.ToString().Split(':');
 								string clientIP = IpData[0].Trim();
-								Logger.Log("Client IP: " + clientIP, LogLevels.Trace);
+								Logger.Log("Client IP: " + clientIP, Enums.LogLevels.Trace);
 
 								if (File.Exists(Constants.IPBlacklistPath) && File.ReadAllLines(Constants.IPBlacklistPath).Any(x => x.Equals(clientIP))) {
-									Logger.Log("Unauthorized IP Connected: " + clientIP, LogLevels.Error);
+									Logger.Log("Unauthorized IP Connected: " + clientIP, Enums.LogLevels.Error);
 									Socket.Close();
 								}
 
 								ReceivedData = Encoding.ASCII.GetString(Buffer, 0, b);
-								Logger.Log($"Client Connected > {clientIP} > {ReceivedData}", LogLevels.Trace);
+								Logger.Log($"Client Connected > {clientIP} > {ReceivedData}", Enums.LogLevels.Trace);
 								string resultText = OnRecevied(ReceivedData).Result;
 
 								if (resultText != null) {
@@ -88,7 +86,7 @@ namespace HomeAssistant.Server {
 								Socket.Close();
 							}
 
-							Logger.Log("Client Disconnected.", LogLevels.Trace);
+							Logger.Log("Client Disconnected.", Enums.LogLevels.Trace);
 
 							if (!ServerOn) {
 								Helpers.ScheduleTask(() => {
@@ -100,11 +98,11 @@ namespace HomeAssistant.Server {
 							}
 						}
 						catch (SocketException se) {
-							Logger.Log(se.Message, LogLevels.Trace);
+							Logger.Log(se.Message, Enums.LogLevels.Trace);
 							errorCounter++;
 
 							if (errorCounter > 5) {
-								Logger.Log("too many errors occured on TCP Server. stopping...", LogLevels.Error);
+								Logger.Log("too many errors occured on TCP Server. stopping...", Enums.LogLevels.Error);
 								StopServer();
 							}
 
@@ -121,10 +119,10 @@ namespace HomeAssistant.Server {
 							}
 						}
 						catch (InvalidOperationException ioe) {
-							Logger.Log(ioe.Message, LogLevels.Error);
+							Logger.Log(ioe.Message, Enums.LogLevels.Error);
 							errorCounter++;
-							if(errorCounter > 5) {
-								Logger.Log("too many errors occured on TCP Server. stopping...", LogLevels.Error);
+							if (errorCounter > 5) {
+								Logger.Log("too many errors occured on TCP Server. stopping...", Enums.LogLevels.Error);
 								StopServer();
 							}
 						}
@@ -132,16 +130,16 @@ namespace HomeAssistant.Server {
 				}, "TCP Server", true);
 			}
 			catch (IOException io) {
-				Logger.Log(io.Message, LogLevels.Error);
+				Logger.Log(io.Message, Enums.LogLevels.Error);
 			}
 			catch (FormatException fe) {
-				Logger.Log(fe.Message, LogLevels.Error);
+				Logger.Log(fe.Message, Enums.LogLevels.Error);
 			}
 			catch (IndexOutOfRangeException ioore) {
-				Logger.Log(ioore.Message, LogLevels.Error);
+				Logger.Log(ioore.Message, Enums.LogLevels.Error);
 			}
 			catch (SocketException se) {
-				Logger.Log(se.Message, LogLevels.Error);
+				Logger.Log(se.Message, Enums.LogLevels.Error);
 				Helpers.ScheduleTask(() => {
 					StartServer();
 				}, TimeSpan.FromMinutes(1));
@@ -156,19 +154,19 @@ namespace HomeAssistant.Server {
 		// 3033|FETCH|2 (pin number) => OK|IsOn status|Pin Number|Mode status
 		private async Task<string> OnRecevied(string datarecevied) {
 			if (string.IsNullOrEmpty(datarecevied) || string.IsNullOrWhiteSpace(datarecevied)) {
-				Logger.Log("Data is null!", LogLevels.Error);
+				Logger.Log("Data is null!", Enums.LogLevels.Error);
 				return "Failed!";
 			}
 
 			if (!VerifyAuthentication(datarecevied)) {
-				Logger.Log("Incorrect Authentication code. cannot proceed...", LogLevels.Error);
+				Logger.Log("Incorrect Authentication code. cannot proceed...", Enums.LogLevels.Error);
 				return "Failed!";
 			}
 
-			PiContext PiContext = PiContext.GPIO;
-			PiState PiState = PiState.OUTPUT;
-			PiPinNumber PinNumber = PiPinNumber.PIN_2;
-			PiVoltage PinVoltage = PiVoltage.LOW;
+			Enums.PiContext PiContext = PiContext.GPIO;
+			Enums.PiState PiState = PiState.OUTPUT;
+			Enums.PiPinNumber PinNumber = Enums.PiPinNumber.PIN_2;
+			Enums.PiVoltage PinVoltage = Enums.PiVoltage.LOW;
 
 			string[] rawData = datarecevied.Split('|');
 
@@ -181,33 +179,33 @@ namespace HomeAssistant.Server {
 
 							switch (rawData[4].Trim()) {
 								case "HIGH":
-									PinVoltage = PiVoltage.HIGH;
+									PinVoltage = Enums.PiVoltage.HIGH;
 
 									try {
-										PinNumber = (PiPinNumber) Convert.ToInt32(rawData[3].Trim());
+										PinNumber = (Enums.PiPinNumber) Convert.ToInt32(rawData[3].Trim());
 									}
 									catch (Exception) {
-										Logger.Log("Pin number doesnt satisfy.", LogLevels.Warn);
+										Logger.Log("Pin number doesnt satisfy.", Enums.LogLevels.Warn);
 										return "Pin number doesnt satisfy.";
 									}
 
 									break;
 
 								case "LOW":
-									PinVoltage = PiVoltage.LOW;
+									PinVoltage = Enums.PiVoltage.LOW;
 
 									try {
-										PinNumber = (PiPinNumber) Convert.ToInt32(rawData[3].Trim());
+										PinNumber = (Enums.PiPinNumber) Convert.ToInt32(rawData[3].Trim());
 									}
 									catch (Exception) {
-										Logger.Log("Pin number doesnt satisfy.", LogLevels.Warn);
+										Logger.Log("Pin number doesnt satisfy.", Enums.LogLevels.Warn);
 										return "Pin number doesnt satisfy.";
 									}
 
 									break;
 
 								default:
-									Logger.Log("Voltage doesnt satisfy.", LogLevels.Warn);
+									Logger.Log("Voltage doesnt satisfy.", Enums.LogLevels.Warn);
 									return "Voltage doesnt satisfy.";
 							}
 
@@ -218,40 +216,40 @@ namespace HomeAssistant.Server {
 
 							switch (rawData[4].Trim()) {
 								case "HIGH":
-									PinVoltage = PiVoltage.HIGH;
+									PinVoltage = Enums.PiVoltage.HIGH;
 
 									try {
-										PinNumber = (PiPinNumber) Convert.ToInt32(rawData[3].Trim());
+										PinNumber = (Enums.PiPinNumber) Convert.ToInt32(rawData[3].Trim());
 									}
 									catch (Exception) {
-										Logger.Log("Pin number doesnt satisfy.", LogLevels.Warn);
+										Logger.Log("Pin number doesnt satisfy.", Enums.LogLevels.Warn);
 										return "Pin number doesnt satisfy.";
 									}
 
 									break;
 
 								case "LOW":
-									PinVoltage = PiVoltage.LOW;
+									PinVoltage = Enums.PiVoltage.LOW;
 
 									try {
-										PinNumber = (PiPinNumber) Convert.ToInt32(rawData[3].Trim());
+										PinNumber = (Enums.PiPinNumber) Convert.ToInt32(rawData[3].Trim());
 									}
 									catch (Exception) {
-										Logger.Log("Pin number doesnt satisfy.", LogLevels.Warn);
+										Logger.Log("Pin number doesnt satisfy.", Enums.LogLevels.Warn);
 										return "Pin number doesnt satisfy.";
 									}
 
 									break;
 
 								default:
-									Logger.Log("Voltage doesnt satisfy.", LogLevels.Warn);
+									Logger.Log("Voltage doesnt satisfy.", Enums.LogLevels.Warn);
 									return "Voltage doesnt satisfy.";
 							}
 
 							break;
 
 						default:
-							Logger.Log("States doesnt satisfy.", LogLevels.Warn);
+							Logger.Log("States doesnt satisfy.", Enums.LogLevels.Warn);
 							return "States doesnt satisfy.";
 					}
 					break;
@@ -302,38 +300,38 @@ namespace HomeAssistant.Server {
 				case "RELAY":
 					PiContext = PiContext.RELAY;
 					switch (Convert.ToInt32(rawData[2].Trim())) {
-						case (int) GPIOCycles.Cycle:
-							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Cycle).ConfigureAwait(false), "Relay Cycle");
+						case (int) Enums.GPIOCycles.Cycle:
+							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.Cycle).ConfigureAwait(false), "Relay Cycle");
 							return "Cycle completed!";
 
-						case (int) GPIOCycles.OneMany:
-							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.OneMany).ConfigureAwait(false), "Relay Cycle");
+						case (int) Enums.GPIOCycles.OneMany:
+							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.OneMany).ConfigureAwait(false), "Relay Cycle");
 							return "OneMany cycle completed!";
 
-						case (int) GPIOCycles.OneOne:
-							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.OneOne).ConfigureAwait(false), "Relay Cycle");
+						case (int) Enums.GPIOCycles.OneOne:
+							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.OneOne).ConfigureAwait(false), "Relay Cycle");
 							return "OneOne cycle comepleted!";
 
-						case (int) GPIOCycles.OneTwo:
-							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.OneTwo).ConfigureAwait(false), "Relay Cycle");
+						case (int) Enums.GPIOCycles.OneTwo:
+							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.OneTwo).ConfigureAwait(false), "Relay Cycle");
 							return "OneTwo cycle completed!";
 
-						case (int) GPIOCycles.Base:
-							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Base).ConfigureAwait(false), "Relay Cycle");
+						case (int) Enums.GPIOCycles.Base:
+							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.Base).ConfigureAwait(false), "Relay Cycle");
 							return "Base cycle completed!";
 
-						case (int) GPIOCycles.Single:
-							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Single, Convert.ToInt32(rawData[3].Trim())).ConfigureAwait(false), "Relay Cycle");
+						case (int) Enums.GPIOCycles.Single:
+							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.Single, Convert.ToInt32(rawData[3].Trim())).ConfigureAwait(false), "Relay Cycle");
 							return $"Sucessfully configured {rawData[3].Trim()} pin";
 
-						case (int) GPIOCycles.Default:
-							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(GPIOCycles.Default).ConfigureAwait(false), "Relay Cycle");
+						case (int) Enums.GPIOCycles.Default:
+							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.Default).ConfigureAwait(false), "Relay Cycle");
 							return "Sucessfully completed default cycle!";
 					}
 					break;
 
 				default:
-					Logger.Log("Context doesnt satisfy.", LogLevels.Warn);
+					Logger.Log("Context doesnt satisfy.", Enums.LogLevels.Warn);
 					return "Failed context!";
 			}
 
@@ -347,16 +345,16 @@ namespace HomeAssistant.Server {
 			}
 		}
 
-		private async Task<bool> ProcessCommand(PiContext context, PiState state, PiPinNumber pinNumber, PiVoltage voltage) {
+		private async Task<bool> ProcessCommand(Enums.PiContext context, Enums.PiState state, Enums.PiPinNumber pinNumber, Enums.PiVoltage voltage) {
 			bool Result = false;
 			switch (context) {
-				case PiContext.GPIO:
-					Result = Controller.SetGPIO((int) pinNumber, (GpioPinDriveMode) state, voltage == PiVoltage.HIGH ? GpioPinValue.High : GpioPinValue.Low);
+				case Enums.PiContext.GPIO:
+					Result = Controller.SetGPIO((int) pinNumber, (GpioPinDriveMode) state, voltage == Enums.PiVoltage.HIGH ? GpioPinValue.High : GpioPinValue.Low);
 					await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 					return Result;
 
 				default:
-					Logger.Log("Context doesnt satisfy. (ProcessCommand())", LogLevels.Warn);
+					Logger.Log("Context doesnt satisfy. (ProcessCommand())", Enums.LogLevels.Warn);
 					await System.Threading.Tasks.Task.Delay(300).ConfigureAwait(false);
 					return Result;
 			}
@@ -364,7 +362,7 @@ namespace HomeAssistant.Server {
 
 		private bool VerifyAuthentication(string dataRecevied) {
 			if (string.IsNullOrEmpty(dataRecevied) || string.IsNullOrWhiteSpace(dataRecevied)) {
-				Logger.Log("Data is null!", LogLevels.Error);
+				Logger.Log("Data is null!", Enums.LogLevels.Error);
 				return false;
 			}
 
@@ -374,7 +372,7 @@ namespace HomeAssistant.Server {
 				return true;
 			}
 			else {
-				Logger.Log("Incorrect or unknown Auth Code.", LogLevels.Error);
+				Logger.Log("Incorrect or unknown Auth Code.", Enums.LogLevels.Error);
 				return false;
 			}
 		}

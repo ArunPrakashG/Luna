@@ -1,17 +1,19 @@
 using ByteSizeLib;
+using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using HomeAssistant.Extensions;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
+
 	public class AssistantResourceUsage {
 
 		[JsonProperty]
 		public string TotalCpuUsage { get; set; }
+
 		[JsonProperty]
 		public string TotalRamUsage { get; set; }
 

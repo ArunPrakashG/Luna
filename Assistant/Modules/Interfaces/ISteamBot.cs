@@ -1,27 +1,29 @@
 using HomeAssistant.Log;
 using SteamKit2;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace HomeAssistant.Modules.Interfaces {
+
 	public interface ISteamBot {
+
 		/// <summary>
 		/// Indicates status if the bot is running or not
 		/// </summary>
 		/// <value></value>
 		bool IsBotRunning { get; set; }
+
 		/// <summary>
 		/// The bot name
 		/// </summary>
 		/// <value></value>
 		string BotName { get; set; }
+
 		/// <summary>
 		/// The bot steam 64 id
 		/// </summary>
 		/// <value></value>
 		ulong Steam64ID { get; set; }
+
 		/// <summary>
 		/// Loads the bot config file and required data and initiates connection with steam servers
 		/// </summary>
@@ -41,14 +43,15 @@ namespace HomeAssistant.Modules.Interfaces {
 			CallbackManager callbackManager,
 			ISteamBotConfig botConfig
 		);
+
 		/// <summary>
 		/// Stops current bot instance
 		/// </summary>
-		void Stop ();
+		void Stop();
+
 		/// <summary>
 		/// Disposes the current bot instance
 		/// </summary>
-		void Dispose ();
-
+		void Dispose();
 	}
 }

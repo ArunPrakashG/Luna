@@ -2,10 +2,9 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.IO;
-using System.Linq;
-using static AssistantCore.Enums;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
+
 	public class ConfigWatcher {
 		private readonly Logger Logger = new Logger("CONFIG-WATCHER");
 		private FileSystemWatcher FileSystemWatcher;
@@ -66,11 +65,6 @@ namespace AssistantCore {
 				return;
 			}
 
-			//TODO make file system watcher monitor entire config directory, disable until steam bot system is fixed
-			if (File.GetAttributes(e.FullPath).HasFlag(FileAttributes.Directory)) {
-				return;
-			}
-
 			if (!Core.CoreInitiationCompleted) { return; }
 
 			double secondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
@@ -93,21 +87,26 @@ namespace AssistantCore {
 					Logger.Log("Updating core config as the local config file as been updated...");
 					Helpers.InBackground(() => Core.Config = Core.Config.LoadConfig(true));
 					break;
+
 				case "GpioConfig.json":
 					Logger.Log("Config watcher event raised for GPIO Config file.", Enums.LogLevels.Trace);
 					Logger.Log("Updating gpio config as the local config as been updated...");
 					Helpers.InBackground(() => Core.Controller.GPIOConfig = Core.GPIOConfigHandler.LoadConfig().GPIOData);
 					break;
+
 				case "MailConfig.json":
 					Logger.Log("Mail config has been modified.", Enums.LogLevels.Trace);
 					break;
+
 				case "DiscordBot.json":
 					Logger.Log("Discord bot config has been modified.", Enums.LogLevels.Trace);
 					break;
+
 				case "AssistantExample.json":
 				case "GpioConfigExample.json":
 					Logger.Log("File watcher event raised for example configs, ignored.", Enums.LogLevels.Trace);
 					break;
+
 				default:
 					Logger.Log($"File watcher event raised for unknown file. ({absoluteFileName}) ignored.", Enums.LogLevels.Trace);
 					break;

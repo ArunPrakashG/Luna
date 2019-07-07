@@ -1,4 +1,4 @@
-using AssistantCore;
+using HomeAssistant.AssistantCore;
 using HomeAssistant.Log;
 using RestSharp;
 using System;
@@ -14,7 +14,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
-using static AssistantCore.Enums;
 using ProcessThread = System.Diagnostics.ProcessThread;
 
 namespace HomeAssistant.Extensions {
@@ -22,24 +21,25 @@ namespace HomeAssistant.Extensions {
 	public static class Helpers {
 		private static readonly Logger Logger = new Logger("HELPERS");
 		private static Timer TaskSchedulerTimer;
+
 		private static string FileSeperator { get; set; } = @"\";
 
-		public static void InBackgroundThread (Action action) => Pi.Threading.StartThread(action);
+		public static void InBackgroundThread(Action action) => Pi.Threading.StartThread(action);
 
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				FileSeperator = "//";
-				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
+				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 				FileSeperator = "\\";
-				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
+				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 				FileSeperator = "//";
-				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
+				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
 			}
 		}
 
@@ -73,7 +73,7 @@ namespace HomeAssistant.Extensions {
 
 		public static void ScheduleTask<T>(Func<T> action, TimeSpan delay, bool longrunning) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return;
 			}
 
@@ -96,7 +96,7 @@ namespace HomeAssistant.Extensions {
 
 		public static void ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return;
 			}
 
@@ -127,45 +127,45 @@ namespace HomeAssistant.Extensions {
 			return true;
 		}
 
-		public static void PlayNotification(NotificationContext context = NotificationContext.Normal, bool redirectOutput = false) {
+		public static void PlayNotification(Enums.NotificationContext context = Enums.NotificationContext.Normal, bool redirectOutput = false) {
 			if (Core.IsUnknownOs) {
-				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Error);
+				Logger.Log("Cannot proceed as the running operating system is unknown.", Enums.LogLevels.Error);
 				return;
 			}
 
 			if (Core.Config.MuteAssistant) {
-				Logger.Log("Notifications are muted in config.", LogLevels.Trace);
+				Logger.Log("Notifications are muted in config.", Enums.LogLevels.Trace);
 				return;
 			}
 
 			if (!Directory.Exists(Constants.ResourcesDirectory)) {
-				Logger.Log("Resources directory doesn't exist!", LogLevels.Warn);
+				Logger.Log("Resources directory doesn't exist!", Enums.LogLevels.Warn);
 				return;
 			}
 
 			switch (context) {
-				case NotificationContext.Imap:
+				case Enums.NotificationContext.Imap:
 					if (!File.Exists(Constants.IMAPPushNotificationFilePath)) {
-						Logger.Log("IMAP notification music file doesn't exist!", LogLevels.Warn);
+						Logger.Log("IMAP notification music file doesn't exist!", Enums.LogLevels.Warn);
 						return;
 					}
 
 					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPPushFileName} -q", Core.Config.Debug || redirectOutput);
-					Logger.Log("Notification command processed sucessfully!", LogLevels.Trace);
+					Logger.Log("Notification command processed sucessfully!", Enums.LogLevels.Trace);
 					break;
 
-				case NotificationContext.EmailSend:
+				case Enums.NotificationContext.EmailSend:
 					break;
 
-				case NotificationContext.EmailSendFailed:
+				case Enums.NotificationContext.EmailSendFailed:
 					break;
 
-				case NotificationContext.FatalError:
+				case Enums.NotificationContext.FatalError:
 					break;
 
-				case NotificationContext.Normal:
+				case Enums.NotificationContext.Normal:
 					if (!Core.IsNetworkAvailable) {
-						Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+						Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
 					}
 					break;
 			}
@@ -201,7 +201,7 @@ namespace HomeAssistant.Extensions {
 				return result;
 			}
 
-			Logger.Log("No internet connection.", LogLevels.Error);
+			Logger.Log("No internet connection.", Enums.LogLevels.Error);
 			return null;
 		}
 
@@ -216,24 +216,24 @@ namespace HomeAssistant.Extensions {
 		}
 
 		public static async Task DisplayAssistantASCII() {
-			Logger.Log(@"  _______ ______  _____ _____ ", LogLevels.Ascii);
+			Logger.Log(@"  _______ ______  _____ _____ ", Enums.LogLevels.Ascii);
 			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@" |__   __|  ____|/ ____/ ____|", LogLevels.Ascii);
+			Logger.Log(@" |__   __|  ____|/ ____/ ____|", Enums.LogLevels.Ascii);
 			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    | |  | |__  | (___| (___  ", LogLevels.Ascii);
+			Logger.Log(@"    | |  | |__  | (___| (___  ", Enums.LogLevels.Ascii);
 			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    | |  |  __|  \___ \\___ \ ", LogLevels.Ascii);
+			Logger.Log(@"    | |  |  __|  \___ \\___ \ ", Enums.LogLevels.Ascii);
 			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    | |  | |____ ____) |___) |", LogLevels.Ascii);
+			Logger.Log(@"    | |  | |____ ____) |___) |", Enums.LogLevels.Ascii);
 			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    |_|  |______|_____/_____/ ", LogLevels.Ascii);
+			Logger.Log(@"    |_|  |______|_____/_____/ ", Enums.LogLevels.Ascii);
 			await Task.Delay(100).ConfigureAwait(false);
-			Logger.Log("\n", LogLevels.Ascii);
+			Logger.Log("\n", Enums.LogLevels.Ascii);
 		}
 
 		public static string FetchVariable(int arrayLine, bool returnParsed = false, string varName = null) {
 			if (!File.Exists(Constants.VariablesPath)) {
-				Logger.Log("Variables file doesnt exist! aborting...", LogLevels.Error);
+				Logger.Log("Variables file doesnt exist! aborting...", Enums.LogLevels.Error);
 				return null;
 			}
 
@@ -247,18 +247,18 @@ namespace HomeAssistant.Extensions {
 				return variables[arrayLine];
 			}
 
-			Logger.Log("Line is empty.", LogLevels.Error);
+			Logger.Log("Line is empty.", Enums.LogLevels.Error);
 			return null;
 		}
 
 		private static string ParseVariable(string variableRaw, string variableName, char seperator = '=') {
 			if (string.IsNullOrEmpty(variableRaw) || string.IsNullOrWhiteSpace(variableRaw)) {
-				Logger.Log("Variable is empty.", LogLevels.Error);
+				Logger.Log("Variable is empty.", Enums.LogLevels.Error);
 				return null;
 			}
 
 			if (string.IsNullOrEmpty(variableName) || string.IsNullOrWhiteSpace(variableName)) {
-				Logger.Log("Variable name is empty.", LogLevels.Error);
+				Logger.Log("Variable name is empty.", Enums.LogLevels.Error);
 				return null;
 			}
 
@@ -268,7 +268,7 @@ namespace HomeAssistant.Extensions {
 				return raw[1];
 			}
 
-			Logger.Log("Failed to parse variable.", LogLevels.Error);
+			Logger.Log("Failed to parse variable.", Enums.LogLevels.Error);
 			return null;
 		}
 
@@ -287,7 +287,7 @@ namespace HomeAssistant.Extensions {
 
 		public static string GetUrlToString(string url, string Method = "GET", bool withuserAgent = true) {
 			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+				Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
 				return null;
 			}
 
@@ -318,7 +318,7 @@ namespace HomeAssistant.Extensions {
 
 		public static string GetUrlToString(string url, Method method, bool withuseragent = true) {
 			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+				Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
 				return null;
 			}
 
@@ -345,14 +345,14 @@ namespace HomeAssistant.Extensions {
 				return response.Content;
 			}
 			catch (PlatformNotSupportedException) {
-				Logger.Log("Platform not supported exception during rest request.", LogLevels.Trace);
+				Logger.Log("Platform not supported exception during rest request.", Enums.LogLevels.Trace);
 				return null;
 			}
 		}
 
 		public static byte[] GetUrlToBytes(string url, Method method, string userAgent, string headerName = null, string headerValue = null) {
 			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+				Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
 				return new byte[0];
 			}
 
@@ -369,7 +369,7 @@ namespace HomeAssistant.Extensions {
 				request.AddHeader(headerName, headerValue);
 			}
 
-			Logger.Log("Downloading bytes...", LogLevels.Trace);
+			Logger.Log("Downloading bytes...", Enums.LogLevels.Trace);
 			IRestResponse response = client.Execute(request);
 
 			if (response.StatusCode != HttpStatusCode.OK) {
@@ -377,7 +377,7 @@ namespace HomeAssistant.Extensions {
 				return null;
 			}
 
-			Logger.Log("Successfully downloaded", LogLevels.Trace);
+			Logger.Log("Successfully downloaded", Enums.LogLevels.Trace);
 			return response.RawBytes;
 		}
 
@@ -441,7 +441,7 @@ namespace HomeAssistant.Extensions {
 
 		public static (int, Thread) InBackgroundThread(Action action, string threadName, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return (0, null);
 			}
 
@@ -460,7 +460,7 @@ namespace HomeAssistant.Extensions {
 
 		public static void InBackground(Action action, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return;
 			}
 
@@ -475,7 +475,7 @@ namespace HomeAssistant.Extensions {
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
 			if (Core.IsUnknownOs && fileName == "/bin/bash") {
-				Logger.Log($"{Core.AssistantName} is running on unknown OS. command cannot be executed.", LogLevels.Error);
+				Logger.Log($"{Core.AssistantName} is running on unknown OS. command cannot be executed.", Enums.LogLevels.Error);
 				return;
 			}
 
@@ -498,27 +498,27 @@ namespace HomeAssistant.Extensions {
 
 				if (redirectOutput) {
 					while (!proc.StandardOutput.EndOfStream) {
-						Logger.Log(proc.StandardOutput.ReadLine(), LogLevels.Trace);
+						Logger.Log(proc.StandardOutput.ReadLine(), Enums.LogLevels.Trace);
 					}
 				}
 			}
 			catch (PlatformNotSupportedException) {
-				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", LogLevels.Warn);
+				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", Enums.LogLevels.Warn);
 			}
 			catch (Win32Exception) {
-				Logger.Log("System cannot find the specified file.", LogLevels.Error);
+				Logger.Log("System cannot find the specified file.", Enums.LogLevels.Error);
 			}
 			catch (ObjectDisposedException) {
-				Logger.Log("Object has been disposed already.", LogLevels.Error);
+				Logger.Log("Object has been disposed already.", Enums.LogLevels.Error);
 			}
 			catch (InvalidOperationException) {
-				Logger.Log("Invalid operation exception, internal error.", LogLevels.Error);
+				Logger.Log("Invalid operation exception, internal error.", Enums.LogLevels.Error);
 			}
 		}
 
 		public static void InBackground<T>(Func<T> function, bool longRunning = false) {
 			if (function == null) {
-				Logger.Log("Function is null! " + nameof(function), LogLevels.Error);
+				Logger.Log("Function is null! " + nameof(function), Enums.LogLevels.Error);
 				return;
 			}
 
@@ -533,7 +533,7 @@ namespace HomeAssistant.Extensions {
 
 		public static async Task<IList<T>> InParallel<T>(IEnumerable<Task<T>> tasks) {
 			if (tasks == null) {
-				Logger.Log(nameof(tasks), LogLevels.Warn);
+				Logger.Log(nameof(tasks), Enums.LogLevels.Warn);
 				return null;
 			}
 
@@ -551,7 +551,7 @@ namespace HomeAssistant.Extensions {
 
 		public static async Task InParallel(IEnumerable<Task> tasks) {
 			if (tasks == null) {
-				Logger.Log(nameof(tasks), LogLevels.Warn);
+				Logger.Log(nameof(tasks), Enums.LogLevels.Warn);
 				return;
 			}
 

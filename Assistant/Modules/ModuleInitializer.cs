@@ -10,17 +10,24 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using AssistantCore;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant.Modules {
+
 	public class LoadedModules {
+
 		public HashSet<(long, IEmailClient)> EmailClients { get; set; } = new HashSet<(long, IEmailClient)>();
+
 		public HashSet<(long, IDiscordBot)> DiscordBots { get; set; } = new HashSet<(long, IDiscordBot)>();
+
 		public HashSet<(long, IGoogleMap)> GoogleMapModules { get; set; } = new HashSet<(long, IGoogleMap)>();
+
 		public HashSet<(long, ISteamClient)> SteamClients { get; set; } = new HashSet<(long, ISteamClient)>();
+
 		public HashSet<(long, IYoutubeClient)> YoutubeClients { get; set; } = new HashSet<(long, IYoutubeClient)>();
+
 		public HashSet<(long, ILoggerBase)> LoggerBase { get; set; } = new HashSet<(long, ILoggerBase)>();
+
 		public HashSet<(long, IMiscModule)> MiscModules { get; set; } = new HashSet<(long, IMiscModule)>();
 
 		public HashSet<Assembly> LoadedAssemblies { get; set; } = new HashSet<Assembly>();
@@ -32,75 +39,76 @@ namespace HomeAssistant.Modules {
 
 	public class ModuleInitializer {
 		private readonly Logger Logger = new Logger("MODULES");
+
 		public LoadedModules LoadedModules { get; private set; } = new LoadedModules();
 		private readonly Random Random = new Random();
 
-		public bool UnloadModules(ModuleLoaderContext unloadContext) {
+		public bool UnloadModules(Enums.ModuleLoaderContext unloadContext) {
 			switch (unloadContext) {
-				case ModuleLoaderContext.All: {
+				case Enums.ModuleLoaderContext.All: {
 						return OnCoreShutdown().Result;
 					}
 
-				case ModuleLoaderContext.DiscordClients: {
+				case Enums.ModuleLoaderContext.DiscordClients: {
 						if (LoadedModules.DiscordBots.Count > 0) {
 							foreach ((long, IDiscordBot) bot in LoadedModules.DiscordBots) {
 								if (bot.Item2.StopServer().Result) {
-									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", Enums.LogLevels.Trace);
 								}
 							}
 						}
 						return true;
 					}
 
-				case ModuleLoaderContext.EmailClients: {
+				case Enums.ModuleLoaderContext.EmailClients: {
 						if (LoadedModules.EmailClients.Count > 0) {
 							foreach ((long, IEmailClient) bot in LoadedModules.EmailClients) {
 								if (bot.Item2.DisposeAllEmailBots()) {
-									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", Enums.LogLevels.Trace);
 								}
 							}
 						}
 						return true;
 					}
 
-				case ModuleLoaderContext.GoogleMaps: {
+				case Enums.ModuleLoaderContext.GoogleMaps: {
 						if (LoadedModules.GoogleMapModules.Count > 0) {
 							foreach ((long, IGoogleMap) bot in LoadedModules.GoogleMapModules) {
 								if (bot.Item2.InitModuleShutdown()) {
-									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", Enums.LogLevels.Trace);
 								}
 							}
 						}
 						return true;
 					}
 
-				case ModuleLoaderContext.MiscModules: {
+				case Enums.ModuleLoaderContext.MiscModules: {
 						if (LoadedModules.MiscModules.Count > 0) {
 							foreach ((long, IMiscModule) bot in LoadedModules.MiscModules) {
 								if (bot.Item2.InitModuleShutdown()) {
-									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", Enums.LogLevels.Trace);
 								}
 							}
 						}
 						return true;
 					}
 
-				case ModuleLoaderContext.SteamClients: {
+				case Enums.ModuleLoaderContext.SteamClients: {
 						if (LoadedModules.SteamClients.Count > 0) {
 							foreach ((long, ISteamClient) bot in LoadedModules.SteamClients) {
 								if (bot.Item2.DisposeAllBots()) {
-									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", Enums.LogLevels.Trace);
 								}
 							}
 						}
 						return true;
 					}
 
-				case ModuleLoaderContext.YoutubeClients: {
+				case Enums.ModuleLoaderContext.YoutubeClients: {
 						if (LoadedModules.YoutubeClients.Count > 0) {
 							foreach ((long, IYoutubeClient) bot in LoadedModules.YoutubeClients) {
 								if (bot.Item2.InitModuleShutdown()) {
-									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", LogLevels.Trace);
+									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", Enums.LogLevels.Trace);
 								}
 							}
 						}
@@ -111,13 +119,13 @@ namespace HomeAssistant.Modules {
 			}
 		}
 
-		private bool IsExisitingModule<T>(ModuleLoaderContext context, T module) where T : IModuleBase {
+		private bool IsExisitingModule<T>(Enums.ModuleLoaderContext context, T module) where T : IModuleBase {
 			if (module == null) {
 				return false;
 			}
 
 			switch (context) {
-				case ModuleLoaderContext.DiscordClients: {
+				case Enums.ModuleLoaderContext.DiscordClients: {
 						IDiscordBot bot = (IDiscordBot) module;
 
 						if (LoadedModules.DiscordBots.Count <= 0) {
@@ -126,7 +134,7 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long, IDiscordBot) mod in LoadedModules.DiscordBots) {
 							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
-								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", Enums.LogLevels.Trace);
 								return true;
 							}
 						}
@@ -134,7 +142,7 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-				case ModuleLoaderContext.EmailClients: {
+				case Enums.ModuleLoaderContext.EmailClients: {
 						IEmailClient bot = (IEmailClient) module;
 
 						if (LoadedModules.EmailClients.Count <= 0) {
@@ -143,7 +151,7 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long, IEmailClient) mod in LoadedModules.EmailClients) {
 							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
-								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", Enums.LogLevels.Trace);
 								return true;
 							}
 						}
@@ -151,7 +159,7 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-				case ModuleLoaderContext.GoogleMaps: {
+				case Enums.ModuleLoaderContext.GoogleMaps: {
 						IGoogleMap bot = (IGoogleMap) module;
 
 						if (LoadedModules.GoogleMapModules.Count <= 0) {
@@ -160,7 +168,7 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long, IGoogleMap) mod in LoadedModules.GoogleMapModules) {
 							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
-								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", Enums.LogLevels.Trace);
 								return true;
 							}
 						}
@@ -168,7 +176,7 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-				case ModuleLoaderContext.MiscModules: {
+				case Enums.ModuleLoaderContext.MiscModules: {
 						IMiscModule bot = (IMiscModule) module;
 
 						if (LoadedModules.MiscModules.Count <= 0) {
@@ -177,7 +185,7 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long, IMiscModule) mod in LoadedModules.MiscModules) {
 							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
-								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", Enums.LogLevels.Trace);
 								return true;
 							}
 						}
@@ -185,7 +193,7 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-				case ModuleLoaderContext.SteamClients: {
+				case Enums.ModuleLoaderContext.SteamClients: {
 						ISteamClient bot = (ISteamClient) module;
 
 						if (LoadedModules.SteamClients.Count <= 0) {
@@ -194,7 +202,7 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long, ISteamClient) mod in LoadedModules.SteamClients) {
 							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
-								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", Enums.LogLevels.Trace);
 								return true;
 							}
 						}
@@ -202,7 +210,7 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-				case ModuleLoaderContext.YoutubeClients: {
+				case Enums.ModuleLoaderContext.YoutubeClients: {
 						IYoutubeClient bot = (IYoutubeClient) module;
 
 						if (LoadedModules.YoutubeClients.Count <= 0) {
@@ -211,7 +219,7 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long, IYoutubeClient) mod in LoadedModules.YoutubeClients) {
 							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
-								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", Enums.LogLevels.Trace);
 								return true;
 							}
 						}
@@ -219,7 +227,7 @@ namespace HomeAssistant.Modules {
 						return false;
 					}
 
-				case ModuleLoaderContext.Logger: {
+				case Enums.ModuleLoaderContext.Logger: {
 						ILoggerBase bot = (ILoggerBase) module;
 
 						if (LoadedModules.LoggerBase.Count <= 0) {
@@ -228,7 +236,7 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long, ILoggerBase) mod in LoadedModules.LoggerBase) {
 							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
-								Logger.Log("This bot already exists in assistant bot collection. cannot load.", LogLevels.Trace);
+								Logger.Log("This bot already exists in assistant bot collection. cannot load.", Enums.LogLevels.Trace);
 								return true;
 							}
 						}
@@ -243,7 +251,7 @@ namespace HomeAssistant.Modules {
 		}
 
 		[NotNull]
-		public (bool, LoadedModules) LoadModules(ModuleLoaderContext loadContext = ModuleLoaderContext.All) {
+		public (bool, LoadedModules) LoadModules(Enums.ModuleLoaderContext loadContext = Enums.ModuleLoaderContext.All) {
 			if (!LoadedModules.IsModulesEmpty) {
 				return (false, LoadedModules);
 			}
@@ -251,76 +259,83 @@ namespace HomeAssistant.Modules {
 			LoadedModules.LoadedAssemblies = LoadAssemblies();
 
 			if ((LoadedModules.LoadedAssemblies == null) || (LoadedModules.LoadedAssemblies.Count == 0)) {
-				Logger.Log("No modules found.", LogLevels.Error);
+				Logger.Log("No modules found.", Enums.LogLevels.Error);
 				return (false, LoadedModules);
 			}
 
-			Logger.Log("Loading modules...", LogLevels.Trace);
+			Logger.Log("Loading modules...", Enums.LogLevels.Trace);
 
 			switch (loadContext) {
-				case ModuleLoaderContext.All:
-					if (Load<IEmailClient>(ModulesContext.Email)) {
-						Logger.Log("All Email modules have been loaded.", LogLevels.Trace);
+				case Enums.ModuleLoaderContext.All:
+					if (Load<IEmailClient>(Enums.ModulesContext.Email)) {
+						Logger.Log("All Email modules have been loaded.", Enums.LogLevels.Trace);
 					}
 
-					if (Load<IDiscordBot>(ModulesContext.Discord)) {
-						Logger.Log("Discord bot has been loaded.", LogLevels.Trace);
+					if (Load<IDiscordBot>(Enums.ModulesContext.Discord)) {
+						Logger.Log("Discord bot has been loaded.", Enums.LogLevels.Trace);
 					}
 
-					if (Load<ISteamClient>(ModulesContext.Steam)) {
-						Logger.Log("Steam client has been loaded.", LogLevels.Trace);
+					if (Load<ISteamClient>(Enums.ModulesContext.Steam)) {
+						Logger.Log("Steam client has been loaded.", Enums.LogLevels.Trace);
 					}
 
-					if (Load<IGoogleMap>(ModulesContext.GoogleMap)) {
-						Logger.Log("Google map serivces has been loaded.", LogLevels.Trace);
+					if (Load<IGoogleMap>(Enums.ModulesContext.GoogleMap)) {
+						Logger.Log("Google map serivces has been loaded.", Enums.LogLevels.Trace);
 					}
 
-					if (Load<IYoutubeClient>(ModulesContext.Youtube)) {
-						Logger.Log("Youtube client has been loaded.", LogLevels.Trace);
+					if (Load<IYoutubeClient>(Enums.ModulesContext.Youtube)) {
+						Logger.Log("Youtube client has been loaded.", Enums.LogLevels.Trace);
 					}
 
-					if (Load<IMiscModule>(ModulesContext.Misc)) {
-						Logger.Log("Misc modules have been loaded.", LogLevels.Trace);
-					}
-
-					break;
-				case ModuleLoaderContext.DiscordClients:
-					if (Load<IDiscordBot>(ModulesContext.Discord)) {
-						Logger.Log("Discord bot has been loaded.", LogLevels.Trace);
+					if (Load<IMiscModule>(Enums.ModulesContext.Misc)) {
+						Logger.Log("Misc modules have been loaded.", Enums.LogLevels.Trace);
 					}
 
 					break;
-				case ModuleLoaderContext.EmailClients:
-					if (Load<IEmailClient>(ModulesContext.Email)) {
-						Logger.Log("All Email modules have been loaded.", LogLevels.Trace);
+
+				case Enums.ModuleLoaderContext.DiscordClients:
+					if (Load<IDiscordBot>(Enums.ModulesContext.Discord)) {
+						Logger.Log("Discord bot has been loaded.", Enums.LogLevels.Trace);
 					}
 
 					break;
-				case ModuleLoaderContext.GoogleMaps:
-					if (Load<IGoogleMap>(ModulesContext.GoogleMap)) {
-						Logger.Log("Google map serivces has been loaded.", LogLevels.Trace);
+
+				case Enums.ModuleLoaderContext.EmailClients:
+					if (Load<IEmailClient>(Enums.ModulesContext.Email)) {
+						Logger.Log("All Email modules have been loaded.", Enums.LogLevels.Trace);
 					}
 
 					break;
-				case ModuleLoaderContext.MiscModules:
-					if (Load<IMiscModule>(ModulesContext.Misc)) {
-						Logger.Log("Misc modules have been loaded.", LogLevels.Trace);
+
+				case Enums.ModuleLoaderContext.GoogleMaps:
+					if (Load<IGoogleMap>(Enums.ModulesContext.GoogleMap)) {
+						Logger.Log("Google map serivces has been loaded.", Enums.LogLevels.Trace);
 					}
 
 					break;
-				case ModuleLoaderContext.SteamClients:
-					if (Load<ISteamClient>(ModulesContext.Steam)) {
-						Logger.Log("Steam client has been loaded.", LogLevels.Trace);
+
+				case Enums.ModuleLoaderContext.MiscModules:
+					if (Load<IMiscModule>(Enums.ModulesContext.Misc)) {
+						Logger.Log("Misc modules have been loaded.", Enums.LogLevels.Trace);
 					}
 
 					break;
-				case ModuleLoaderContext.YoutubeClients:
-					if (Load<IYoutubeClient>(ModulesContext.Youtube)) {
-						Logger.Log("Youtube client has been loaded.", LogLevels.Trace);
+
+				case Enums.ModuleLoaderContext.SteamClients:
+					if (Load<ISteamClient>(Enums.ModulesContext.Steam)) {
+						Logger.Log("Steam client has been loaded.", Enums.LogLevels.Trace);
 					}
 
 					break;
-				case ModuleLoaderContext.None:
+
+				case Enums.ModuleLoaderContext.YoutubeClients:
+					if (Load<IYoutubeClient>(Enums.ModulesContext.Youtube)) {
+						Logger.Log("Youtube client has been loaded.", Enums.LogLevels.Trace);
+					}
+
+					break;
+
+				case Enums.ModuleLoaderContext.None:
 					Logger.Log("Loader context is set to load none of modules. therefore, aborting the loading process.");
 					break;
 			}
@@ -329,13 +344,13 @@ namespace HomeAssistant.Modules {
 		}
 
 		[NotNull]
-		private bool Load<T>(ModulesContext context) where T : IModuleBase {
+		private bool Load<T>(Enums.ModulesContext context) where T : IModuleBase {
 			ConventionBuilder conventions = new ConventionBuilder();
 			conventions.ForTypesDerivedFrom<T>().Export<T>();
 			ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(LoadedModules.LoadedAssemblies, conventions);
 
 			switch (context) {
-				case ModulesContext.Discord: {
+				case Enums.ModulesContext.Discord: {
 						HashSet<(long, IDiscordBot)> DiscordModules = new HashSet<(long, IDiscordBot)>();
 						try {
 							using (CompositionHost container = configuration.CreateContainer()) {
@@ -345,7 +360,7 @@ namespace HomeAssistant.Modules {
 									foreach (IDiscordBot bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier();
 										DiscordModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -361,16 +376,16 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long uniqueId, IDiscordBot plugin) in DiscordModules) {
 							try {
-								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", Enums.LogLevels.Trace);
 
-								if (!IsExisitingModule(ModuleLoaderContext.DiscordClients, plugin)) {
+								if (!IsExisitingModule(Enums.ModuleLoaderContext.DiscordClients, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.DiscordBots.Add((uniqueId, plugin));
-										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", Enums.LogLevels.Trace);
 									}
 								}
 								else {
-									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", Enums.LogLevels.Trace);
 								}
 							}
 							catch (Exception e) {
@@ -381,7 +396,7 @@ namespace HomeAssistant.Modules {
 						return true;
 					}
 
-				case ModulesContext.Email: {
+				case Enums.ModulesContext.Email: {
 						HashSet<(long, IEmailClient)> EmailModules = new HashSet<(long, IEmailClient)>();
 						try {
 							using (CompositionHost container = configuration.CreateContainer()) {
@@ -391,7 +406,7 @@ namespace HomeAssistant.Modules {
 									foreach (IEmailClient bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier();
 										EmailModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -407,16 +422,16 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long uniqueId, IEmailClient plugin) in EmailModules) {
 							try {
-								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", Enums.LogLevels.Trace);
 
-								if (!IsExisitingModule(ModuleLoaderContext.EmailClients, plugin)) {
+								if (!IsExisitingModule(Enums.ModuleLoaderContext.EmailClients, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.EmailClients.Add((uniqueId, plugin));
-										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", Enums.LogLevels.Trace);
 									}
 								}
 								else {
-									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", Enums.LogLevels.Trace);
 								}
 							}
 							catch (Exception e) {
@@ -427,7 +442,7 @@ namespace HomeAssistant.Modules {
 						return true;
 					}
 
-				case ModulesContext.GoogleMap: {
+				case Enums.ModulesContext.GoogleMap: {
 						HashSet<(long, IGoogleMap)> MapModules = new HashSet<(long, IGoogleMap)>();
 						try {
 							using (CompositionHost container = configuration.CreateContainer()) {
@@ -437,7 +452,7 @@ namespace HomeAssistant.Modules {
 									foreach (IGoogleMap bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier();
 										MapModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -453,16 +468,16 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long uniqueId, IGoogleMap plugin) in MapModules) {
 							try {
-								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", Enums.LogLevels.Trace);
 
-								if (!IsExisitingModule(ModuleLoaderContext.GoogleMaps, plugin)) {
+								if (!IsExisitingModule(Enums.ModuleLoaderContext.GoogleMaps, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.GoogleMapModules.Add((uniqueId, plugin));
-										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", Enums.LogLevels.Trace);
 									}
 								}
 								else {
-									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", Enums.LogLevels.Trace);
 								}
 							}
 							catch (Exception e) {
@@ -473,7 +488,7 @@ namespace HomeAssistant.Modules {
 						return true;
 					}
 
-				case ModulesContext.Youtube: {
+				case Enums.ModulesContext.Youtube: {
 						HashSet<(long, IYoutubeClient)> YoutubeModules = new HashSet<(long, IYoutubeClient)>();
 						try {
 							using (CompositionHost container = configuration.CreateContainer()) {
@@ -483,7 +498,7 @@ namespace HomeAssistant.Modules {
 									foreach (IYoutubeClient bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier();
 										YoutubeModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -499,16 +514,16 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long uniqueId, IYoutubeClient plugin) in YoutubeModules) {
 							try {
-								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", Enums.LogLevels.Trace);
 
-								if (!IsExisitingModule(ModuleLoaderContext.YoutubeClients, plugin)) {
+								if (!IsExisitingModule(Enums.ModuleLoaderContext.YoutubeClients, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.YoutubeClients.Add((uniqueId, plugin));
-										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", Enums.LogLevels.Trace);
 									}
 								}
 								else {
-									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", Enums.LogLevels.Trace);
 								}
 							}
 							catch (Exception e) {
@@ -519,7 +534,7 @@ namespace HomeAssistant.Modules {
 						return true;
 					}
 
-				case ModulesContext.Steam: {
+				case Enums.ModulesContext.Steam: {
 						HashSet<(long, ISteamClient)> SteamModules = new HashSet<(long, ISteamClient)>();
 						try {
 							using (CompositionHost container = configuration.CreateContainer()) {
@@ -529,7 +544,7 @@ namespace HomeAssistant.Modules {
 									foreach (ISteamClient bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier();
 										SteamModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -545,16 +560,16 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long uniqueId, ISteamClient plugin) in SteamModules) {
 							try {
-								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", Enums.LogLevels.Trace);
 
-								if (!IsExisitingModule(ModuleLoaderContext.SteamClients, plugin)) {
+								if (!IsExisitingModule(Enums.ModuleLoaderContext.SteamClients, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.SteamClients.Add((uniqueId, plugin));
-										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", Enums.LogLevels.Trace);
 									}
 								}
 								else {
-									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", Enums.LogLevels.Trace);
 								}
 							}
 							catch (Exception e) {
@@ -565,7 +580,7 @@ namespace HomeAssistant.Modules {
 						return true;
 					}
 
-				case ModulesContext.Misc: {
+				case Enums.ModulesContext.Misc: {
 						HashSet<(long, IMiscModule)> MiscModules = new HashSet<(long, IMiscModule)>();
 						try {
 							using (CompositionHost container = configuration.CreateContainer()) {
@@ -575,7 +590,7 @@ namespace HomeAssistant.Modules {
 									foreach (IMiscModule bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier();
 										MiscModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", LogLevels.Trace);
+										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -591,16 +606,16 @@ namespace HomeAssistant.Modules {
 
 						foreach ((long uniqueId, IMiscModule plugin) in MiscModules) {
 							try {
-								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", LogLevels.Trace);
+								Logger.Log($"Loading {plugin.ModuleIdentifier} module.", Enums.LogLevels.Trace);
 
-								if (!IsExisitingModule(ModuleLoaderContext.MiscModules, plugin)) {
+								if (!IsExisitingModule(Enums.ModuleLoaderContext.MiscModules, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.MiscModules.Add((uniqueId, plugin));
-										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", LogLevels.Trace);
+										Logger.Log($"Loaded {plugin.ModuleIdentifier} module by {plugin.ModuleAuthor} | v{plugin.ModuleVersion}!", Enums.LogLevels.Trace);
 									}
 								}
 								else {
-									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", LogLevels.Trace);
+									Logger.Log($"Not loading {uniqueId}/{plugin.ModuleAuthor}/{plugin.ModuleVersion} module as it already exists!", Enums.LogLevels.Trace);
 								}
 							}
 							catch (Exception e) {
@@ -612,7 +627,7 @@ namespace HomeAssistant.Modules {
 					}
 
 				default:
-					Logger.Log($"Unknown type of plugin loaded. cannot integret with {Core.AssistantName}.", LogLevels.Warn);
+					Logger.Log($"Unknown type of plugin loaded. cannot integret with {Core.AssistantName}.", Enums.LogLevels.Warn);
 					return false;
 			}
 		}
@@ -655,7 +670,7 @@ namespace HomeAssistant.Modules {
 						assembly = Assembly.LoadFrom(assemblyPath);
 					}
 					catch (Exception e) {
-						Logger.Log($"Assembly path is invalid. {assemblyPath}", LogLevels.Warn);
+						Logger.Log($"Assembly path is invalid. {assemblyPath}", Enums.LogLevels.Warn);
 						Logger.Log(e);
 						continue;
 					}
@@ -714,7 +729,7 @@ namespace HomeAssistant.Modules {
 				}
 			}
 
-			Logger.Log("Module shutdown successfull.", LogLevels.Trace);
+			Logger.Log("Module shutdown successfull.", Enums.LogLevels.Trace);
 			return true;
 		}
 

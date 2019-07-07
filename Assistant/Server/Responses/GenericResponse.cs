@@ -2,10 +2,12 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using System;
 using System.ComponentModel.DataAnnotations;
-using static AssistantCore.Enums;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant.Server.Responses {
+
 	public class GenericResponse<T> {
+
 		[JsonProperty(Required = Required.Always)]
 		[Required]
 		public T Result { get; set; }
@@ -16,13 +18,13 @@ namespace HomeAssistant.Server.Responses {
 
 		[JsonProperty(Required = Required.Always)]
 		[Required]
-		public HttpStatusCodes ResponseCode { get; set; }
+		public Enums.HttpStatusCodes ResponseCode { get; set; }
 
 		[JsonProperty(Required = Required.Always)]
 		[Required]
 		public DateTime DateTime { get; set; }
 
-		public GenericResponse([NotNull] T result, HttpStatusCodes responseCode, DateTime commandTime) {
+		public GenericResponse([NotNull] T result, Enums.HttpStatusCodes responseCode, DateTime commandTime) {
 			if (commandTime == null) {
 				throw new ArgumentNullException("commandTime is null.");
 			}
@@ -33,7 +35,7 @@ namespace HomeAssistant.Server.Responses {
 			DateTime = commandTime;
 		}
 
-		public GenericResponse([NotNull] T result, [NotNull] string response, HttpStatusCodes responseCode, DateTime commandTime) {
+		public GenericResponse([NotNull] T result, [NotNull] string response, Enums.HttpStatusCodes responseCode, DateTime commandTime) {
 			if (commandTime == null) {
 				throw new ArgumentNullException("commandTime is null.");
 			}

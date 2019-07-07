@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 
@@ -226,25 +226,24 @@ namespace AssistantCore {
 			}
 
 			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
-			       EnableConfigWatcher == other.EnableConfigWatcher &&
-			       UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
-			       KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
-			       Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
-			       DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
-			       Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
-			       EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
-			       CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
-			       TCPServerPort == other.TCPServerPort && KestrelServerPort == other.KestrelServerPort &&
-			       string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
-			       string.Equals(AssistantEmailId, other.AssistantEmailId, StringComparison.OrdinalIgnoreCase) &&
-			       string.Equals(AssistantEmailPassword, other.AssistantEmailPassword, StringComparison.OrdinalIgnoreCase) &&
-			       ProgramLastStartup.Equals(other.ProgramLastStartup) &&
-			       ProgramLastShutdown.Equals(other.ProgramLastShutdown);
+				   EnableConfigWatcher == other.EnableConfigWatcher &&
+				   UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
+				   KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
+				   Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
+				   DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
+				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
+				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
+				   CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
+				   TCPServerPort == other.TCPServerPort && KestrelServerPort == other.KestrelServerPort &&
+				   string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
+				   string.Equals(AssistantEmailId, other.AssistantEmailId, StringComparison.OrdinalIgnoreCase) &&
+				   string.Equals(AssistantEmailPassword, other.AssistantEmailPassword, StringComparison.OrdinalIgnoreCase) &&
+				   ProgramLastStartup.Equals(other.ProgramLastStartup) &&
+				   ProgramLastShutdown.Equals(other.ProgramLastShutdown);
 		}
 
 		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
 
 		public static bool operator !=(CoreConfig left, CoreConfig right) => !Equals(left, right);
-
 	}
 }

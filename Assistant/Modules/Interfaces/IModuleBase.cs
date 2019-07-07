@@ -1,7 +1,7 @@
 using System;
-using System.Collections.Concurrent;
 
 namespace HomeAssistant.Modules.Interfaces {
+
 	public interface IModuleBase {
 
 		///<summary>

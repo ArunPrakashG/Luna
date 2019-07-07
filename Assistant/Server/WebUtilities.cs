@@ -1,14 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using AssistantCore;
 using HomeAssistant.Log;
 using Microsoft.AspNetCore.Http;
+using System;
+using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
+using HomeAssistant.AssistantCore;
 
 namespace HomeAssistant.Server {
+
 	public static class WebUtilities {
 		private static readonly Logger Logger = new Logger("WEB-UTILITIES");
 

@@ -1,10 +1,11 @@
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
+using HomeAssistant.Modules;
 using System;
 using System.IO;
-using HomeAssistant.Modules;
 
-namespace AssistantCore {
+namespace HomeAssistant.AssistantCore {
+
 	public class ModuleWatcher {
 		private readonly Logger Logger = new Logger("MODULE-WATCHER");
 		private FileSystemWatcher FileSystemWatcher;
@@ -12,7 +13,7 @@ namespace AssistantCore {
 		public bool ModuleWatcherOnline = false;
 
 		public ModuleWatcher() {
-			if (FileSystemWatcher != null){
+			if (FileSystemWatcher != null) {
 				FileSystemWatcher.Dispose();
 				FileSystemWatcher = null;
 			}
@@ -60,7 +61,7 @@ namespace AssistantCore {
 			}
 		}
 
-		private void OnModuleDeleted (string fileName, string filePath, Enums.ModuleLoaderContext context) {
+		private void OnModuleDeleted(string fileName, string filePath, Enums.ModuleLoaderContext context) {
 			if (Helpers.IsNullOrEmpty(fileName) || Helpers.IsNullOrEmpty(filePath)) {
 				return;
 			}
@@ -78,7 +79,7 @@ namespace AssistantCore {
 
 			double secondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
 			LastRead = DateTime.Now;
-			
+
 			if (secondsSinceLastRead <= 1) {
 				return;
 			}
@@ -129,6 +130,7 @@ namespace AssistantCore {
 				case "example.dll":
 					Logger.Log("Ignoring example.dll file.", Enums.LogLevels.Trace);
 					break;
+
 				default:
 					Helpers.InBackground(() => {
 						Logger.Log("Loading dll...", Enums.LogLevels.Trace);
