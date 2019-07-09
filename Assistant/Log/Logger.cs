@@ -194,7 +194,7 @@ namespace HomeAssistant.Log {
 				foreach ((long, IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
 					if (bot.Item2.IsServerOnline && bot.Item2.BotConfig.EnableDiscordBot &&
 						bot.Item2.BotConfig.DiscordLogChannelID != 0 && bot.Item2.BotConfig.DiscordLog) {
-						Helpers.InBackground(async () => {
+						Helpers.InBackgroundThread(async () => {
 							await bot.Item2.LogToChannel(message).ConfigureAwait(false);
 						});
 					}

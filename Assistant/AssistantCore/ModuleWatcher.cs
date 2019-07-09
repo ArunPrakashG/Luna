@@ -132,10 +132,14 @@ namespace HomeAssistant.AssistantCore {
 					break;
 
 				default:
-					Helpers.InBackground(() => {
-						Logger.Log("Loading dll...", Enums.LogLevels.Trace);
-						(bool, LoadedModules) status = Core.ModuleLoader.LoadModules(loaderContext);
-					});
+					Logger.Log("Loading dll...", Enums.LogLevels.Trace);
+					(bool, LoadedModules) result = Core.ModuleLoader.LoadModules(loaderContext, true);
+					if (result.Item1) {
+						Logger.Log("Loaded module.", Enums.LogLevels.Trace);
+					}
+					else {
+						Logger.Log("Failed to load module.", Enums.LogLevels.Trace);
+					}
 					break;
 			}
 		}

@@ -251,8 +251,8 @@ namespace HomeAssistant.Modules {
 		}
 
 		[NotNull]
-		public (bool, LoadedModules) LoadModules(Enums.ModuleLoaderContext loadContext = Enums.ModuleLoaderContext.All) {
-			if (!LoadedModules.IsModulesEmpty) {
+		public (bool, LoadedModules) LoadModules(Enums.ModuleLoaderContext loadContext = Enums.ModuleLoaderContext.All, bool moduleWatcherInvoke = false) {
+			if (!moduleWatcherInvoke && !LoadedModules.IsModulesEmpty) {
 				return (false, LoadedModules);
 			}
 

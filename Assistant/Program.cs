@@ -5,6 +5,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using HomeAssistant.AssistantCore;
+using HomeAssistant.Extensions;
 
 namespace HomeAssistant {
 
@@ -81,24 +82,74 @@ namespace HomeAssistant {
 		}
 
 		private static async Task NetworkReconnect() {
+			if(!Core.IsNetworkAvailable){
+				return;
+			}
+
 			Logger.Log("Network is back online, reconnecting!");
 			await Core.OnNetworkReconnected().ConfigureAwait(false);
 		}
 
 		private static async Task NetworkDisconnect() {
+			if(Core.IsNetworkAvailable){
+				return;
+			}
+
 			Logger.Log("Internet connection has been disconnected or disabled.", Enums.LogLevels.Error);
 			Logger.Log("Disconnecting all methods which uses a stable internet connection in order to prevent errors.", Enums.LogLevels.Error);
 			await Core.OnNetworkDisconnected().ConfigureAwait(false);
 		}
 
-		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
+		private static void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
+			float TaskId = Helpers.GenerateTaskIdentifier(new Random());
 			if (e.IsAvailable) {
-				await NetworkReconnect().ConfigureAwait(false);
+				if(Core.CoreInitiationCompleted){
+					if(Core.TaskManager.TaskFactoryCollection.Count > 0){
+						foreach(var T in Core.TaskManager.TaskFactoryCollection){
+							if(T.TaskIdentifier.Equals(TaskId)){
+								T.MarkAsFinsihed = true;
+								Core.TaskManager.TryRemoveTask(T.TaskIdentifier);
+								Logger.Log($"{T.TaskMessage} task has been removed from the task factory as connection appears to be online.");
+								return;
+							}
+						}
+					}
+					Core.TaskManager.TryAddTask(new TaskStructure<Task>(){
+						Task = new Task(async () => await NetworkReconnect().ConfigureAwait(false)),
+						TaskIdentifier = TaskId,
+						TaskMessage = "Network reconnect.",
+						TimeAdded = DateTime.Now,
+						MarkAsFinsihed = false,
+						Delay = TimeSpan.FromSeconds(3),
+						LongRunning = false
+					});
+				}
 				return;
 			}
 
 			if (!e.IsAvailable) {
-				await NetworkDisconnect().ConfigureAwait(false);
+				if(Core.CoreInitiationCompleted){
+					if(Core.TaskManager.TaskFactoryCollection.Count > 0){
+						foreach(var T in Core.TaskManager.TaskFactoryCollection){
+							if(T.TaskIdentifier.Equals(TaskId)){
+								T.MarkAsFinsihed = true;
+								Core.TaskManager.TryRemoveTask(T.TaskIdentifier);
+								Logger.Log($"{T.TaskMessage} task has been removed from the task factory as connection appears to be offline.");
+								return;
+							}
+						}
+					}
+
+					Core.TaskManager.TryAddTask(new TaskStructure<Task>(){
+						Task = new Task(async () => await NetworkDisconnect().ConfigureAwait(false)),
+						TaskIdentifier = TaskId,
+						TaskMessage = "Network disconnect.",
+						TimeAdded = DateTime.Now,
+						MarkAsFinsihed = false,
+						Delay = TimeSpan.FromSeconds(3),
+						LongRunning = false
+					});
+				}
 			}
 		}
 

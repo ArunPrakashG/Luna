@@ -16,7 +16,6 @@ using HomeAssistant.AssistantCore;
 using static HomeAssistant.AssistantCore.Enums;
 
 namespace Email {
-
 	public class Email : IModuleBase, IEmailClient {
 		private readonly Logger Logger = new Logger("EMAIL-HANDLER");
 
@@ -40,7 +39,7 @@ namespace Email {
 			}
 
 			if (!ConfigRoot.EnableEmailModule) {
-				Logger.Log("Email module is disabled in config file.");
+				Logger.Log("Email module is disabled in config file.", LogLevels.Trace);
 				return (false, new ConcurrentDictionary<string, IEmailBot>());
 			}
 			if (ConfigRoot.EmailDetails.Count <= 0 || !ConfigRoot.EmailDetails.Any()) {
@@ -71,8 +70,7 @@ namespace Email {
 
 						try {
 							Logger BotLogger = new Logger(entry.Value.EmailID?.Split('@')?.FirstOrDefault()?.Trim());
-							Logger.Log($"Loaded {entry.Value.EmailID} mail account to processing state.",
-								LogLevels.Trace);
+							Logger.Log($"Loaded {entry.Value.EmailID} mail account to processing state.",LogLevels.Trace);
 
 							ImapClient BotClient = Core.Config.Debug
 								? new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
@@ -89,15 +87,13 @@ namespace Email {
 							BotClient.Inbox.Open(FolderAccess.ReadWrite);
 
 							if (BotClient.IsConnected && BotClient.IsAuthenticated) {
-								Logger.Log($"Connected and authenticated IDLE-CLIENT for {entry.Value.EmailID}",
-									LogLevels.Trace);
+								Logger.Log($"Connected and authenticated IDLE-CLIENT for {entry.Value.EmailID}", LogLevels.Trace);
 							}
 
 							Task.Delay(500).Wait();
 
 							ImapClient BotHelperClient = new ImapClient {
-								ServerCertificateValidationCallback =
-									(sender, certificate, chain, sslPolicyErrors) => true
+								ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true
 							};
 
 							BotHelperClient.Connect(Constants.GmailHost, Constants.GmailPort, true);
@@ -105,8 +101,7 @@ namespace Email {
 							BotHelperClient.Inbox.Open(FolderAccess.ReadWrite);
 
 							if (BotHelperClient.IsConnected && BotHelperClient.IsAuthenticated) {
-								Logger.Log($"Connected and authenticated HELPER-CLIENT for {entry.Value.EmailID}",
-									LogLevels.Trace);
+								Logger.Log($"Connected and authenticated HELPER-CLIENT for {entry.Value.EmailID}", LogLevels.Trace);
 							}
 
 							EmailBot Bot = new EmailBot();
@@ -215,7 +210,7 @@ namespace Email {
 			}
 
 			EmailConfigRoot returnConfig = JsonConvert.DeserializeObject<EmailConfigRoot>(JSON);
-			Logger.Log("Email Configuration Loaded Successfully!");
+			Logger.Log("Email Configuration Loaded Successfully!", LogLevels.Trace);
 			return returnConfig;
 		}
 
@@ -237,7 +232,7 @@ namespace Email {
 				using (JsonWriter writer = new JsonTextWriter(sw)) {
 					writer.Formatting = Formatting.Indented;
 					serializer.Serialize(writer, config);
-					Logger.Log("Updated Email Config!");
+					Logger.Log("Updated Email Config!", LogLevels.Trace);
 					sw.Dispose();
 					return config;
 				}

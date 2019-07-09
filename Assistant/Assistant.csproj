@@ -15,6 +15,7 @@
 		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<RuntimeIdentifiers>linux-arm;win-x64</RuntimeIdentifiers>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>

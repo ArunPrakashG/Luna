@@ -2,22 +2,29 @@ using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace HomeAssistant.AssistantCore {
 
 	public class TaskStructure<T> where T : Task {
 
+		[Required]
 		public float TaskIdentifier { get; set; }
 
-		public string TaskMessage { get; set; }
+		public string TaskMessage { get; set; } = string.Empty;
 
-		public bool LongRunning { get; set; }
+		public bool LongRunning { get; set; } = false;
 
+		public bool MarkAsFinsihed {get; set;} = false;
+
+		[Required]
 		public TimeSpan Delay { get; set; }
 
+		[Required]
 		public DateTime TimeAdded { get; set; }
 
+		[Required]
 		public T Task { get; set; }
 	}
 
@@ -27,15 +34,25 @@ namespace HomeAssistant.AssistantCore {
 		private readonly Logger Logger = new Logger("TASKS");
 		private bool CancelTaskListener = false;
 
-		public void TryAddTask(TaskStructure<Task> task) {
+		public (bool, Task) TryAddTask(TaskStructure<Task> task) {
 			if (task == null) {
 				Logger.Log("Task is null.", Enums.LogLevels.Warn);
-				return;
+				return (false, null);
+			}
+
+			if(TaskFactoryCollection.Count > 0){
+				foreach(TaskStructure<Task> t in TaskFactoryCollection){
+					if(t.TaskIdentifier.Equals(task.TaskIdentifier)){
+						Logger.Log("Such a task already exists. cannot add again!", Enums.LogLevels.Warn);
+						return(false, t.Task);
+					}
+				}
 			}
 
 			TaskFactoryCollection.Add(task);
 			OnTaskAdded(TaskFactoryCollection.IndexOf(task));
 			Logger.Log("Task added sucessfully.", Enums.LogLevels.Trace);
+			return (true, task.Task);
 		}
 
 		public TaskStructure<Task> TryRemoveTask(float taskId) {
@@ -72,7 +89,7 @@ namespace HomeAssistant.AssistantCore {
 			if (item.TimeAdded.AddMilliseconds(item.Delay.Milliseconds) <= DateTime.Now) {
 				TimeSpan delay = DateTime.Now.Subtract(item.TimeAdded.AddMilliseconds(item.Delay.Milliseconds));
 				Logger.Log($"TASK > {item.TaskMessage} will be executed {delay.Hours}/{delay.Minutes}/{delay.Seconds} (hr/min/sec) from now. ({item.TaskIdentifier})");
-				Helpers.ScheduleTask(() => item.Task, delay, item.LongRunning);
+				Helpers.ScheduleTask(item, delay, item.LongRunning);
 			}
 			else {
 				TryRemoveTask(item.TaskIdentifier);

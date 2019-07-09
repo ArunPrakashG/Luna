@@ -85,13 +85,13 @@ namespace HomeAssistant.AssistantCore {
 				case "Assistant.json":
 					Logger.Log("Config watcher event raised for core config file.", Enums.LogLevels.Trace);
 					Logger.Log("Updating core config as the local config file as been updated...");
-					Helpers.InBackground(() => Core.Config = Core.Config.LoadConfig(true));
+					Core.Config = Core.Config.LoadConfig(true);
 					break;
 
 				case "GpioConfig.json":
 					Logger.Log("Config watcher event raised for GPIO Config file.", Enums.LogLevels.Trace);
 					Logger.Log("Updating gpio config as the local config as been updated...");
-					Helpers.InBackground(() => Core.Controller.GPIOConfig = Core.GPIOConfigHandler.LoadConfig().GPIOData);
+					Core.Controller.GPIOConfig = Core.GPIOConfigHandler.LoadConfig().GPIOData;
 					break;
 
 				case "MailConfig.json":

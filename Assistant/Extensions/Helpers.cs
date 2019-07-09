@@ -59,6 +59,20 @@ namespace HomeAssistant.Extensions {
 			return OSPlatform.Linux;
 		}
 
+		public static float GenerateTaskIdentifier(Random prng){
+			var sign = prng.Next(2);
+			var exponent = prng.Next((1 << 8) - 1);
+			var mantissa = prng.Next(1 << 23);
+			var bits = (sign << 31) + (exponent << 23) + mantissa;
+			return IntBitsToFloat(bits);
+		}
+
+		private static float IntBitsToFloat(int bits){
+			unsafe{
+				return *(float*) &bits;
+			}
+		}
+
 		public static ProcessThread FetchThreadById(int id) {
 			ProcessThreadCollection currentThreads = Process.GetCurrentProcess().Threads;
 
@@ -71,9 +85,9 @@ namespace HomeAssistant.Extensions {
 			return null;
 		}
 
-		public static void ScheduleTask<T>(Func<T> action, TimeSpan delay, bool longrunning) {
-			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
+		public static void ScheduleTask(TaskStructure<Task> structure, TimeSpan delay, bool longrunning) {
+			if (structure == null) {
+				Logger.Log("Action is null! " + nameof(structure), Enums.LogLevels.Error);
 				return;
 			}
 
@@ -84,7 +98,9 @@ namespace HomeAssistant.Extensions {
 
 			if (TaskSchedulerTimer == null) {
 				TaskSchedulerTimer = new Timer(e => {
-					InBackground(action, longrunning);
+					if(!structure.MarkAsFinsihed){
+						InBackground(() => structure.Task, longrunning);
+					}
 
 					if (TaskSchedulerTimer != null) {
 						TaskSchedulerTimer.Dispose();

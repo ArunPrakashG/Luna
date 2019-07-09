@@ -637,7 +637,7 @@ namespace HomeAssistant.AssistantCore {
 
 			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
 				Logger.Log("Could not parse the input key. please try again!", Enums.LogLevels.Error);
-				Logger.Log("Press m for menu.", Enums.LogLevels.Info);
+				Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for command menu.", Enums.LogLevels.Info);
 				return;
 			}
 
@@ -711,11 +711,7 @@ namespace HomeAssistant.AssistantCore {
 			Logger.Log(Configured ? "Test sucessfull!" : "Test Failed!");
 
 			Logger.Log("Relay menu closed.");
-			Logger.Log($"Press q to quit in 5 seconds.");
-			Logger.Log($"Press e to exit application immediately.");
-			Logger.Log($"Press m to display GPIO menu.");
-			Logger.Log($"Press i to stop IMAP Idle notifications.");
-			Logger.Log($"Press c to display command menu.");
+			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} to display command menu.");
 		}
 
 		public static async Task OnNetworkDisconnected() {

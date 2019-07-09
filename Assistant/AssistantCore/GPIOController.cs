@@ -112,7 +112,7 @@ namespace HomeAssistant.AssistantCore {
 			}
 
 			TaskQueue.Enqueue(task);
-			Helpers.InBackground(() => OnEnqueued(task));
+			Helpers.InBackgroundThread(() => OnEnqueued(task), "OnEnqueued");
 			Logger.Log("Task added sucessfully.", Enums.LogLevels.Trace);
 		}
 
@@ -136,7 +136,7 @@ namespace HomeAssistant.AssistantCore {
 				controllerTest.OpenPin(Core.Config.RelayPins.FirstOrDefault());
 			}
 
-			controllerTest[Core.Config.RelayPins.FirstOrDefault()].Mode = System.Devices.Gpio.PinMode.Output;
+			controllerTest[Core.Config.RelayPins.FirstOrDefault()].Mode = PinMode.Output;
 			controllerTest[Core.Config.RelayPins.FirstOrDefault()].NotifyEvents = PinEvent.Any;
 			controllerTest[Core.Config.RelayPins.FirstOrDefault()].EnableRaisingEvents = true;
 			controllerTest[Core.Config.RelayPins.FirstOrDefault()].ValueChanged += OnPinValueChangedTest;
