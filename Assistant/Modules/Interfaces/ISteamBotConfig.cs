@@ -84,6 +84,12 @@ namespace HomeAssistant.Modules.Interfaces {
 		bool OfflineConnection { get; set; }
 
 		/// <summary>
+		/// Login key of the bot
+		/// </summary>
+		/// <value></value>
+		string LoginKey { get; set; }
+
+		/// <summary>
 		/// Permission level for steam accounts
 		/// </summary>
 		/// <value>ulong value indicating the steam 64 id of the controller, SteamPermissionLevels enum indicating the permission level of the specified steam 64 id</value>

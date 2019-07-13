@@ -1,3 +1,4 @@
+using Assistant.Modules.Interfaces;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using static HomeAssistant.AssistantCore.Enums;
@@ -22,7 +23,19 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// Loads the steam bot configuration
 		/// </summary>
 		/// <returns></returns>
-		List<ISteamBotConfig> LoadConfig();
+		List<ISteamBotConfig> LoadSteamBotConfig();
+
+		/// <summary>
+		/// The steam cell ID
+		/// </summary>
+		/// <returns></returns>
+		uint SteamCellID { get; set; }
+
+		/// <summary>
+		/// The steam base config
+		/// </summary>
+		/// <returns></returns>
+		ISteamConfig SteamConfig { get; set; }
 
 		/// <summary>
 		/// Saves the specified bot config by overwritting to the config file in steam bot directory
@@ -30,26 +43,26 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// <param name="botName">The bot name</param>
 		/// <param name="updatedConfig">The config to save</param>
 		/// <returns></returns>
-		bool SaveConfig(string botName, ISteamBotConfig updatedConfig);
+		bool SaveSteamBotConfig(string botName, ISteamBotConfig updatedConfig);
 
 		/// <summary>
 		/// Adds the given ISteamBot instance to bot collection
 		/// </summary>
 		/// <param name="botName">The name of the bot to add</param>
 		/// <param name="bot">The bot instance</param>
-		void AddBotToCollection(string botName, ISteamBot bot);
+		void AddSteamBotToCollection(string botName, ISteamBot bot);
 
 		/// <summary>
 		/// Removes the bot with the specified botname from collection
 		/// </summary>
 		/// <param name="botName">The name of the bot to remove</param>
-		void RemoveBotFromCollection(string botName);
+		void RemoveSteamBotFromCollection(string botName);
 
 		/// <summary>
 		/// Shuts down all the bots in the collection
 		/// </summary>
 		/// <returns></returns>
-		bool DisposeAllBots();
+		bool DisposeAllSteamBots();
 
 		/// <summary>
 		/// Gets the user console input for the specified input context

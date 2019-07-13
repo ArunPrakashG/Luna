@@ -1,3 +1,4 @@
+using Assistant.Modules.Interfaces;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using HomeAssistant.Modules.Interfaces;
@@ -8,305 +9,22 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using HomeAssistant.AssistantCore;
 using static HomeAssistant.AssistantCore.Enums;
 
 namespace Steam {
 
-	public class SteamBot : IDisposable, ISteamBot {
-
-		public class SteamBotConfig : ISteamBotConfig {
-
-			[JsonProperty] public string SteamID { get; set; }
-
-			[JsonProperty] public string SteamPass { get; set; }
-
-			[JsonProperty(Required = Required.DisallowNull)] public bool Enabled { get; set; } = true;
-
-			[JsonProperty(Required = Required.DisallowNull)] public bool SteamChatLogger { get; set; } = true;
-
-			[JsonProperty(Required = Required.DisallowNull)] public bool RemoveSpammers { get; set; } = false;
-
-			[JsonProperty(Required = Required.DisallowNull)] public bool AcceptFriends { get; set; } = true;
-
-			[JsonProperty(Required = Required.DisallowNull)] public bool DeclineGroupInvites { get; set; } = false;
-
-			[JsonProperty] public List<string> ReplyOnAdd { get; set; }
-
-			[JsonProperty] public List<string> ChatResponses { get; set; }
-
-			[JsonProperty] public List<string> CustomText { get; set; }
-
-			[JsonProperty] public HashSet<uint> GamesToPlay { get; set; } = new HashSet<uint>();
-
-			[JsonProperty] public string SteamParentalPin { get; set; } = "0";
-
-			[JsonProperty] public bool OfflineConnection { get; set; } = false;
-
-			[JsonProperty(Required = Required.DisallowNull)] public Dictionary<ulong, SteamPermissionLevels> PermissionLevel { get; set; }
-		}
-
-		private Logger Logger;
-		private ISteamClient SteamHandler;
-		private ISteamBotConfig BotConfig;
-		private SteamClient SteamClient;
-		private SteamUser SteamUser;
-		private SteamApps SteamApps;
-		private SteamFriends SteamFriends;
-		private CallbackManager CallbackManager;
-		private const int LoginID = 3033;
-		private DateTime LastLogonSessionReplaced;
-
-		private string AuthCode { get; set; }
-
-		private string TwoFactorCode { get; set; }
-
-		private string LoginKey { get; set; }
-
-		public bool IsBotRunning { get; set; }
-
-		public string BotName { get; set; }
-
-		public ulong Steam64ID { get; set; }
-
-		private string ConfigFilePath => Constants.ConfigDirectory + "/" + BotName + ".json";
-
-		private string SentryFilePath => Constants.ConfigDirectory + "/" + BotName + ".bin";
-
-		public async Task<(bool, ISteamBot)> RegisterSteamBot(string botName, Logger logger, SteamClient steamClient, ISteamClient steamHandler, CallbackManager callbackManager, ISteamBotConfig botConfig) {
-			BotName = botName ?? throw new ArgumentNullException();
-			Logger = logger ?? throw new ArgumentNullException();
-			SteamClient = steamClient ?? throw new ArgumentNullException();
-			SteamHandler = steamHandler ?? throw new ArgumentNullException();
-			CallbackManager = callbackManager ?? throw new ArgumentNullException();
-			BotConfig = botConfig ?? throw new ArgumentNullException();
-
-			SteamUser = SteamClient.GetHandler<SteamUser>();
-			SteamApps = SteamClient.GetHandler<SteamApps>();
-			SteamFriends = SteamClient.GetHandler<SteamFriends>();
-
-			CallbackManager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
-			CallbackManager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
-			CallbackManager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
-			CallbackManager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
-			CallbackManager.Subscribe<SteamUser.LoginKeyCallback>(OnLoginKey);
-			CallbackManager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
-			CallbackManager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeGameAdded);
-			CallbackManager.Subscribe<SteamApps.LicenseListCallback>(OnLicenseList);
-			CallbackManager.Subscribe<SteamFriends.FriendAddedCallback>(OnFriendAdded);
-			CallbackManager.Subscribe<SteamFriends.FriendMsgCallback>(OnFriendMessage);
-			CallbackManager.Subscribe<SteamFriends.PersonaStateCallback>(OnPersonaState);
-
-			Logger.Log("Connecting to steam...");
-			await Task.Delay(500).ConfigureAwait(false);
-			SteamClient.Connect();
-			IsBotRunning = true;
-			return (true, this);
-		}
-
-		private void OnPersonaState(SteamFriends.PersonaStateCallback callback) {
-		}
-
-		private void OnFriendMessage(SteamFriends.FriendMsgCallback callback) {
-		}
-
-		private void OnFriendAdded(SteamFriends.FriendAddedCallback callback) {
-		}
-
-		private void OnLicenseList(SteamApps.LicenseListCallback callback) {
-		}
-
-		private void OnFreeGameAdded(SteamApps.FreeLicenseCallback callback) {
-		}
-
-		private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback) {
-			int fileSize;
-			byte[] sentryHash;
-
-			try {
-				using (FileStream fileStream = File.Open(SentryFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite)) {
-					fileStream.Seek(callback.Offset, SeekOrigin.Begin);
-					fileStream.Write(callback.Data, 0, callback.BytesToWrite);
-					fileSize = (int) fileStream.Length;
-
-					fileStream.Seek(0, SeekOrigin.Begin);
-					using (SHA1CryptoServiceProvider sha = new SHA1CryptoServiceProvider()) {
-						sentryHash = sha.ComputeHash(fileStream);
-					}
-				}
-			}
-			catch (Exception e) {
-				Logger.Log(e);
-
-				try {
-					File.Delete(SentryFilePath);
-				}
-				catch {
-				}
-
-				return;
-			}
-
-			SteamUser.SendMachineAuthResponse(new SteamUser.MachineAuthDetails {
-				JobID = callback.JobID,
-				FileName = callback.FileName,
-				BytesWritten = callback.BytesToWrite,
-				FileSize = fileSize,
-				Offset = callback.Offset,
-				Result = EResult.OK,
-				LastError = 0,
-				OneTimePassword = callback.OneTimePassword,
-				SentryFileHash = sentryHash
-			});
-		}
-
-		private void OnLoginKey(SteamUser.LoginKeyCallback callback) {
-			LoginKey = callback.LoginKey;
-			SteamUser.AcceptNewLoginKey(callback);
-			Logger.Log("Login key recevied and account authenticated!");
-		}
-
-		private void OnLoggedOff(SteamUser.LoggedOffCallback callback) {
-			switch (callback.Result) {
-				case EResult.LoggedInElsewhere:
-					Logger.Log($"A game has been started without stopping the Boost. ({callback.Result})", LogLevels.Warn);
-					break;
-
-				case EResult.LogonSessionReplaced:
-					DateTime now = DateTime.UtcNow;
-					Logger.Log($"Logon Session has been forcefully Replaced. Disconnecting from Steam. ({callback.Result})", LogLevels.Warn);
-					if (now.Subtract(LastLogonSessionReplaced).TotalHours < 1) {
-						Logger.Log($"Another {Core.AssistantName} instance is already running the same account, therefore, this account cannot run on this instance.", LogLevels.Error);
-						Stop();
-						break;
-					}
-
-					LastLogonSessionReplaced = now;
-					break;
-			}
-			SteamClient.Disconnect();
-		}
-
-		private void OnLoggedOn(SteamUser.LoggedOnCallback callback) {
-			AuthCode = TwoFactorCode = null;
-			switch (callback.Result) {
-				case EResult.AccountLoginDeniedNeedTwoFactor:
-					Logger.Log("Account is 2FA protected, Input the 2FA code: ");
-					TwoFactorCode = SteamHandler.GetUserInput(SteamUserInputType.TwoFactorAuthentication);
-
-					//TODO handle reconnect
-					break;
-
-				case EResult.AccountDisabled:
-					Logger.Log("Account has been disabled for some reason, we cannot connect to steam using this account.", LogLevels.Warn);
-					break;
-
-				case EResult.AccountLogonDenied:
-					Logger.Log("Account has Mail Guard protection, enter the code send to your email: ");
-					AuthCode = SteamHandler.GetUserInput(SteamUserInputType.SteamGuard);
-					break;
-
-				case EResult.OK:
-					Logger.Log("Successfully logged on!");
-					Steam64ID = callback.ClientSteamID.ConvertToUInt64();
-
-					if (!BotConfig.OfflineConnection) {
-						SteamFriends.SetPersonaState(EPersonaState.Online);
-					}
-
-					break;
-
-				case EResult.InvalidPassword:
-					Logger.Log($"Unable to Login. Invalid Password. ({callback.Result})", LogLevels.Warn);
-					break;
-
-				case EResult.NoConnection:
-				case EResult.PasswordRequiredToKickSession:
-				case EResult.ServiceUnavailable:
-				case EResult.Timeout:
-				case EResult.TryAnotherCM:
-				case EResult.RateLimitExceeded:
-					Logger.Log("Unable to login, steam servers might be down.", LogLevels.Warn);
-					break;
-			}
-		}
-
-		private void OnDisconnected(SteamClient.DisconnectedCallback callback) {
-			IsBotRunning = false;
-			if (callback.UserInitiated) {
-				Logger.Log("Disconnected from steam. (User Initiated)");
-			}
-			else {
-				Logger.Log("Disconnected from steam.");
-			}
-		}
-
-		private async void OnConnected(SteamClient.ConnectedCallback callback) {
-			Logger.Log($"Connected to steam! Logging in {BotName}");
-			Regex regex = new Regex(@"[^\u0000-\u007F]+", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-			BotConfig.SteamID = regex.Replace(BotConfig.SteamID, "");
-			BotConfig.SteamPass = regex.Replace(BotConfig.SteamPass, "");
-
-			byte[] sentryFileHash = null;
-
-			if (File.Exists(SentryFilePath)) {
-				try {
-					byte[] sentryFileContent = await Compatibility.File.ReadAllBytesAsync(SentryFilePath).ConfigureAwait(false);
-					sentryFileHash = CryptoHelper.SHAHash(sentryFileContent);
-				}
-				catch (Exception e) {
-					Logger.Log(e);
-
-					try {
-						File.Delete(SentryFilePath);
-					}
-					catch {
-					}
-				}
-			}
-
-			SteamUser.LogOn(new SteamUser.LogOnDetails() {
-				Username = BotConfig.SteamID,
-				Password = BotConfig.SteamPass,
-				ShouldRememberPassword = true,
-				LoginID = LoginID,
-				LoginKey = LoginKey,
-				TwoFactorCode = TwoFactorCode,
-				AuthCode = AuthCode,
-				SentryFileHash = sentryFileHash
-			});
-		}
-
-		public void Stop() {
-			Logger.Log("Stopping account...");
-
-			if (SteamClient.IsConnected) {
-				SteamClient.Disconnect();
-				IsBotRunning = false;
-			}
-		}
-
-		public void Dispose() {
-			Stop();
-			SteamHandler.SaveConfig(BotName, BotConfig);
-			SteamHandler.RemoveBotFromCollection(BotName);
-			Logger.Log($"Disposed current bot instance of {BotConfig.SteamID}", LogLevels.Trace);
-		}
-	}
-
 	public class Steam : IModuleBase, ISteamClient {
 		private readonly Logger Logger = new Logger("STEAM");
 
-		public Steam SteamInstance { get; set; }
-
 		public bool RequiresInternetConnection { get; set; } = true;
+		public uint SteamCellID { get; set; }
+		public ISteamConfig SteamConfig { get; set; }
 
 		public ConcurrentDictionary<string, ISteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, ISteamBot>();
 
-		private string BotConfigDirectory => Constants.ConfigDirectory + "/SteamBots/";
+		private const string BotConfigDirectory = Constants.ConfigDirectory + "/SteamBots/";
+		private const string SteamConfigPath = Constants.ConfigDirectory + "/SteamConfig.json";
 
 		public long ModuleIdentifier { get; set; }
 
@@ -323,7 +41,7 @@ namespace Steam {
 			SteamBotCollection.Clear();
 
 			try {
-				List<ISteamBotConfig> botConfigs = LoadConfig();
+				List<ISteamBotConfig> botConfigs = LoadSteamBotConfig();
 
 				Logger.Log($"{botConfigs.Count} accounts found, starting creation of bot instances...",
 					LogLevels.Trace);
@@ -355,14 +73,14 @@ namespace Steam {
 							SteamClient botClient = new SteamClient(steamConfig);
 							CallbackManager manager = new CallbackManager(botClient);
 							Logger BotLogger = new Logger(botName);
-							SteamBot Bot = new SteamBot();
+							Bot Bot = new Bot();
 
 							(bool initStatus, ISteamBot botInstance) steamBotStatus = Task.Run(async () =>
 								await Bot.RegisterSteamBot(botName, BotLogger, botClient, this, manager, config).ConfigureAwait(false)).Result;
 
 							if (steamBotStatus.initStatus && steamBotStatus.botInstance != null) {
 								Logger.Log($"{botName} account connected and authenticated successfully!");
-								AddBotToCollection(botName, Bot);
+								AddSteamBotToCollection(botName, Bot);
 								continue;
 							}
 							else {
@@ -390,7 +108,7 @@ namespace Steam {
 			return (true, SteamBotCollection);
 		}
 
-		public List<ISteamBotConfig> LoadConfig() {
+		public List<ISteamBotConfig> LoadSteamBotConfig() {
 			if (!Directory.Exists(BotConfigDirectory)) {
 				Logger.Log("Steam bot config directory doesn't exist!", LogLevels.Warn);
 				return new List<ISteamBotConfig>();
@@ -419,7 +137,7 @@ namespace Steam {
 					}
 				}
 
-				resultConfigFiles.Add(JsonConvert.DeserializeObject<SteamBot.SteamBotConfig>(JSON));
+				resultConfigFiles.Add(JsonConvert.DeserializeObject<BotConfig>(JSON));
 				Logger.Log($"Loaded {resultConfigFiles[counter].SteamID} account.", LogLevels.Trace);
 				counter++;
 			}
@@ -427,7 +145,54 @@ namespace Steam {
 			return resultConfigFiles;
 		}
 
-		public bool SaveConfig(string botName, ISteamBotConfig updatedConfig) {
+		public SteamConfig LoadSteamConfig() {
+			if (!Directory.Exists(Constants.ConfigDirectory)) {
+				Logger.Log("Config directory doesn't exist!", LogLevels.Warn);
+				return new SteamConfig();
+			}
+
+			if (!File.Exists(SteamConfigPath)) {
+				Logger.Log("Steam config file doesn't exist!", LogLevels.Warn);
+				return new SteamConfig();
+			}
+
+			string JSON;
+			using (FileStream Stream = new FileStream(SteamConfigPath, FileMode.Open, FileAccess.Read)) {
+				using (StreamReader ReadSettings = new StreamReader(Stream)) {
+					JSON = ReadSettings.ReadToEnd();
+				}
+			}
+
+			SteamConfig steamConfig = JsonConvert.DeserializeObject<SteamConfig>(JSON);
+			Logger.Log($"Loaded steam configuration.", LogLevels.Trace);
+			return steamConfig;
+		}
+
+		public bool SaveSteamConfig(ISteamConfig updatedConfig) {
+			if (updatedConfig == null) {
+				return false;
+			}
+
+			if (!Directory.Exists(Constants.ConfigDirectory)) {
+				Logger.Log("Config directory doesn't exist!", LogLevels.Warn);
+				return false;
+			}
+
+			JsonSerializer serializer = new JsonSerializer();
+			JsonConvert.SerializeObject(updatedConfig, Formatting.Indented);
+
+			using (StreamWriter sw = new StreamWriter(SteamConfigPath, false)) {
+				using (JsonWriter writer = new JsonTextWriter(sw)) {
+					writer.Formatting = Formatting.Indented;
+					serializer.Serialize(writer, (SteamConfig) updatedConfig);
+					Logger.Log($"Updated steam configuration file.");
+					sw.Dispose();
+					return true;
+				}
+			}
+		}
+
+		public bool SaveSteamBotConfig(string botName, ISteamBotConfig updatedConfig) {
 			if (!Directory.Exists(BotConfigDirectory)) {
 				Logger.Log("Steam bot config directory doesn't exist!", LogLevels.Warn);
 				return false;
@@ -459,7 +224,7 @@ namespace Steam {
 			}
 		}
 
-		public void AddBotToCollection(string botName, ISteamBot bot) {
+		public void AddSteamBotToCollection(string botName, ISteamBot bot) {
 			if (SteamBotCollection.ContainsKey(botName)) {
 				Logger.Log("Deleting duplicate entry of current instance.", LogLevels.Trace);
 				SteamBotCollection.TryRemove(botName, out _);
@@ -469,14 +234,14 @@ namespace Steam {
 			Logger.Log("Added current instance to client collection.", LogLevels.Trace);
 		}
 
-		public void RemoveBotFromCollection(string botName) {
+		public void RemoveSteamBotFromCollection(string botName) {
 			if (SteamBotCollection.ContainsKey(botName)) {
 				Logger.Log("Remove current bot instance from collection.", LogLevels.Trace);
 				SteamBotCollection.TryRemove(botName, out _);
 			}
 		}
 
-		public bool DisposeAllBots() {
+		public bool DisposeAllSteamBots() {
 			if (SteamBotCollection.Count <= 0) {
 				return false;
 			}
@@ -509,7 +274,7 @@ namespace Steam {
 
 					case SteamUserInputType.Password:
 						Logger.Log("Please enter your Steam password: ");
-						result = Helpers.ReadLineMasked();
+						result = Helpers.ReadLineMasked('•');
 						break;
 
 					case SteamUserInputType.SteamGuard:
@@ -546,15 +311,18 @@ namespace Steam {
 
 		public bool InitModuleService() {
 			RequiresInternetConnection = true;
+			SteamConfig = LoadSteamConfig();
 			(bool, ConcurrentDictionary<string, ISteamBot>) result = InitSteamBots();
 			if (result.Item1) {
-				SteamInstance = this;
 				return true;
 			}
 
 			return false;
 		}
 
-		public bool InitModuleShutdown() => DisposeAllBots();
+		public bool InitModuleShutdown() {
+			SaveSteamConfig(SteamConfig);
+			return DisposeAllSteamBots();
+		}
 	}
 }

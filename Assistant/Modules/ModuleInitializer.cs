@@ -96,7 +96,7 @@ namespace HomeAssistant.Modules {
 				case Enums.ModuleLoaderContext.SteamClients: {
 						if (LoadedModules.SteamClients.Count > 0) {
 							foreach ((long, ISteamClient) bot in LoadedModules.SteamClients) {
-								if (bot.Item2.DisposeAllBots()) {
+								if (bot.Item2.DisposeAllSteamBots()) {
 									Logger.Log($"BOT > {bot.Item1}/{bot.Item2.ModuleAuthor} has been stopped.", Enums.LogLevels.Trace);
 								}
 							}
