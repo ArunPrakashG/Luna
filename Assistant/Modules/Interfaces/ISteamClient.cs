@@ -38,6 +38,29 @@ namespace HomeAssistant.Modules.Interfaces {
 		ISteamConfig SteamConfig { get; set; }
 
 		/// <summary>
+		/// Saves the steam configuration
+		/// </summary>
+		/// <returns>Boolean value indicating status of the save</returns>
+		bool SaveSteamConfig(ISteamConfig updatedConfig);
+
+		/// <summary>
+		/// Loads the steam configuration
+		/// </summary>
+		/// <returns>The steam configuration</returns>
+		ISteamConfig LoadSteamConfig();
+
+		/// <summary>
+		/// The steam bot configuration file path
+		/// </summary>
+		/// <returns></returns>
+		string BotConfigDirectory { get; set; }
+
+		/// <summary>
+		/// The steam configuration file path
+		/// </summary>
+		/// <returns></returns>
+		string SteamConfigPath { get; set; }
+		/// <summary>
 		/// Saves the specified bot config by overwritting to the config file in steam bot directory
 		/// </summary>
 		/// <param name="botName">The bot name</param>

@@ -23,12 +23,12 @@ namespace Steam {
 
 		public ConcurrentDictionary<string, ISteamBot> SteamBotCollection { get; set; } = new ConcurrentDictionary<string, ISteamBot>();
 
-		private const string BotConfigDirectory = Constants.ConfigDirectory + "/SteamBots/";
-		private const string SteamConfigPath = Constants.ConfigDirectory + "/SteamConfig.json";
+		public string BotConfigDirectory { get; set; } = Constants.ConfigDirectory + "/SteamBots/";
+		public string SteamConfigPath { get; set; } = Constants.ConfigDirectory + "/SteamConfig.json";
 
 		public long ModuleIdentifier { get; set; }
 
-		public Version ModuleVersion { get; } = new Version("2.0.0.0");
+		public Version ModuleVersion { get; } = new Version("3.0.0.0");
 
 		public string ModuleAuthor { get; } = "Arun Prakash";
 
@@ -145,7 +145,7 @@ namespace Steam {
 			return resultConfigFiles;
 		}
 
-		public SteamConfig LoadSteamConfig() {
+		public ISteamConfig LoadSteamConfig() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config directory doesn't exist!", LogLevels.Warn);
 				return new SteamConfig();
