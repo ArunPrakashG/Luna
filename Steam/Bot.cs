@@ -28,10 +28,10 @@ namespace Steam {
 
 		private string AuthCode { get; set; }
 		private string TwoFactorCode { get; set; }
-		private string LoginKey { get; set; }
+		private string LoginKey => BotConfig.LoginKey;
 		public bool IsBotRunning { get; set; }
 		public string BotName { get; set; }
-		public ulong Steam64ID { get; set; }
+		public ulong CachedSteamId { get; set; }
 		public bool KeepRunning { get; set; }
 		private bool IsAccountLimited(SteamUser.LoggedOnCallback callback) => callback.AccountFlags.HasFlag(EAccountFlags.LimitedUser) || callback.AccountFlags.HasFlag(EAccountFlags.LimitedUserForce);
 		private string ConfigFilePath => Constants.ConfigDirectory + "/" + BotName + ".json";
@@ -63,7 +63,7 @@ namespace Steam {
 
 			Logger.Log("Connecting to steam...");
 			await Task.Delay(500).ConfigureAwait(false);
-			SteamClient.Connect();
+			Start();
 			IsBotRunning = true;
 			return (true, this);
 		}
@@ -125,7 +125,7 @@ namespace Steam {
 		}
 
 		private void OnLoginKey(SteamUser.LoginKeyCallback callback) {
-			LoginKey = callback.LoginKey;
+			BotConfig.LoginKey = callback.LoginKey;
 			SteamUser.AcceptNewLoginKey(callback);
 			Logger.Log("Login key recevied and account authenticated!");
 		}
@@ -187,7 +187,7 @@ namespace Steam {
 
 				case EResult.OK:
 					Logger.Log("Successfully logged on!");
-					Steam64ID = callback.ClientSteamID.ConvertToUInt64();
+					CachedSteamId = callback.ClientSteamID.ConvertToUInt64();
 
 					if (!BotConfig.OfflineConnection) {
 						SteamFriends.SetPersonaState(EPersonaState.Online);
@@ -274,12 +274,6 @@ namespace Steam {
 					}
 					catch {
 					}
-				}
-			}
-
-			if (Helpers.IsNullOrEmpty(AuthCode) || Helpers.IsNullOrEmpty(TwoFactorCode)) {
-				if (!string.IsNullOrEmpty(BotConfig.LoginKey) || !string.IsNullOrWhiteSpace(BotConfig.LoginKey)) {
-					LoginKey = BotConfig.LoginKey;
 				}
 			}
 

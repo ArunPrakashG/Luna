@@ -22,7 +22,7 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// The bot steam 64 id
 		/// </summary>
 		/// <value></value>
-		ulong Steam64ID { get; set; }
+		ulong CachedSteamId { get; set; }
 
 		/// <summary>
 		/// Loads the bot config file and required data and initiates connection with steam servers
