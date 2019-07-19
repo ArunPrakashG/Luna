@@ -64,6 +64,8 @@ namespace HomeAssistant.AssistantCore {
 
 		[JsonProperty] public bool EnableYoutubeModules { get; set; } = true;
 
+		[JsonProperty] public string OpenWeatherApiKey { get; set; } = null;
+
 		[JsonProperty] public string AssistantEmailId { get; set; }
 
 		[JsonProperty] public string AssistantEmailPassword { get; set; }
