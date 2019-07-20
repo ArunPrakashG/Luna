@@ -1,5 +1,5 @@
 namespace Assistant.Weather {
-	public class ApiStructure {
+	public class ApiResponseStructure {
 
 		public class Rootobject {
 			public Coord coord { get; set; }

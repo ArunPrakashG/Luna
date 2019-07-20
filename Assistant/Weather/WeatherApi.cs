@@ -5,8 +5,8 @@ using static HomeAssistant.AssistantCore.Enums;
 
 namespace Assistant.Weather {
 	public class WeatherApi {
-		public ApiStructure.Rootobject ApiResponse { get; private set; }
-		public WeatherData WeatherResult { get; set; }
+		public ApiResponseStructure.Rootobject ApiResponse { get; private set; } = new ApiResponseStructure.Rootobject();
+		public WeatherData WeatherResult { get; set; } = new WeatherData();
 		private Logger Logger { get; set; } = new Logger("WEATHER");
 
 		public static string GenerateWeatherUrl(string apiKey, int pinCode = 689653, string countryCode = "in") => Helpers.IsNullOrEmpty(apiKey) ? null : Helpers.GetUrlToString($"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}", RestSharp.Method.GET);
@@ -20,7 +20,7 @@ namespace Assistant.Weather {
 				return (false, WeatherResult);
 			}
 
-			(bool status, ApiStructure.Rootobject response) = FetchWeatherInfo(apiKey, pinCode, countryCode);
+			(bool status, ApiResponseStructure.Rootobject response) = FetchWeatherInfo(apiKey, pinCode, countryCode);
 
 			if (status) {
 				WeatherResult.Latitude = response.coord.lat;
@@ -39,16 +39,16 @@ namespace Assistant.Weather {
 				WeatherResult.TimeZone = response.timezone;
 				WeatherResult.LocationName = response.name;
 				WeatherResult.Rain3h = response.rain._3h;
-				Logger.Log("successfully fetched weather info", LogLevels.Trace);
+				Logger.Log("Assigined weather info values", LogLevels.Trace);
 				return (true, WeatherResult);
 			}
 			else {
-				Logger.Log("Could not fetch weather data", LogLevels.Trace);
+				Logger.Log("failed to assign weather info values", LogLevels.Trace);
 				return (false, WeatherResult);
 			}
 		}
 
-		public (bool status, ApiStructure.Rootobject response) FetchWeatherInfo(string apiKey, int pinCode = 689653, string countryCode = "in") {
+		private (bool status, ApiResponseStructure.Rootobject response) FetchWeatherInfo(string apiKey, int pinCode = 689653, string countryCode = "in") {
 			if (Helpers.IsNullOrEmpty(apiKey)) {
 				return (false, ApiResponse);
 			}
@@ -64,7 +64,7 @@ namespace Assistant.Weather {
 				return (false, ApiResponse);
 			}
 
-			ApiResponse = JsonConvert.DeserializeObject<ApiStructure.Rootobject>(JSON);
+			ApiResponse = JsonConvert.DeserializeObject<ApiResponseStructure.Rootobject>(JSON);
 			
 			Logger.Log("Fetched weather information successfully", LogLevels.Trace);
 			return (true, ApiResponse);
