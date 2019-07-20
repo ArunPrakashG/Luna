@@ -26,6 +26,7 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Discord.Net" Version="2.1.1" />
+		<PackageReference Include="Figgle" Version="0.3.0" />
 		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.2.0" />
 		<PackageReference Include="MailKit" Version="2.2.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
@@ -51,8 +52,8 @@
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
 		<PackageReference Include="Unosquare.Raspberry.Abstractions" Version="0.3.1" />
-		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.21.0" />
-		<PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.3.0" />
+		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.23.0" />
+		<PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.4.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc2" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.0.0-rc2" />
 		<PackageReference Include="Unosquare.WiringPi" Version="0.3.1" />

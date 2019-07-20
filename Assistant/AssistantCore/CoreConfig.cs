@@ -1,6 +1,7 @@
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Bcpg;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -67,6 +68,8 @@ namespace HomeAssistant.AssistantCore {
 		[JsonProperty] public string OpenWeatherApiKey { get; set; } = null;
 
 		[JsonProperty] public string AssistantEmailId { get; set; }
+
+		[JsonProperty] public string AssistantDisplayName { get; set; } = "TESS";
 
 		[JsonProperty] public string AssistantEmailPassword { get; set; }
 

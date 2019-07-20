@@ -31,7 +31,7 @@ namespace Steam {
 		private string LoginKey => BotConfig.LoginKey;
 		public bool IsBotRunning { get; set; }
 		public string BotName { get; set; }
-		public ulong CachedSteamId { get; set; }
+		public ulong CachedSteamId { get; set; } = 0;
 		public bool KeepRunning { get; set; }
 		private bool IsAccountLimited(SteamUser.LoggedOnCallback callback) => callback.AccountFlags.HasFlag(EAccountFlags.LimitedUser) || callback.AccountFlags.HasFlag(EAccountFlags.LimitedUserForce);
 		private string ConfigFilePath => Constants.ConfigDirectory + "/" + BotName + ".json";

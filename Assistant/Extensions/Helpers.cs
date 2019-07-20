@@ -1,3 +1,4 @@
+using Figgle;
 using HomeAssistant.AssistantCore;
 using HomeAssistant.Log;
 using RestSharp;
@@ -14,6 +15,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
+using static HomeAssistant.AssistantCore.Enums;
 using ProcessThread = System.Diagnostics.ProcessThread;
 
 namespace HomeAssistant.Extensions {
@@ -24,7 +26,20 @@ namespace HomeAssistant.Extensions {
 
 		private static string FileSeperator { get; set; } = @"\";
 
-		public static void InBackgroundThread(Action action) => Pi.Threading.StartThread(action);
+		public static void InBackgroundThread(Action action) {
+			if(action == null) {
+				Logger.Log("Action is null.", LogLevels.Warn);
+				return;
+			}
+
+			if (Core.DisablePiMethods) {
+				float identifer = GenerateTaskIdentifier(new Random());
+				InBackgroundThread(action, identifer.ToString());
+			}
+			else {
+				Pi.Threading.StartThread(action);
+			}
+		}
 
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -231,20 +246,13 @@ namespace HomeAssistant.Extensions {
 			return Duration;
 		}
 
-		public static async Task DisplayAssistantASCII() {
-			Logger.Log(@"  _______ ______  _____ _____ ", Enums.LogLevels.Ascii);
-			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@" |__   __|  ____|/ ____/ ____|", Enums.LogLevels.Ascii);
-			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    | |  | |__  | (___| (___  ", Enums.LogLevels.Ascii);
-			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    | |  |  __|  \___ \\___ \ ", Enums.LogLevels.Ascii);
-			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    | |  | |____ ____) |___) |", Enums.LogLevels.Ascii);
-			await Task.Delay(200).ConfigureAwait(false);
-			Logger.Log(@"    |_|  |______|_____/_____/ ", Enums.LogLevels.Ascii);
-			await Task.Delay(100).ConfigureAwait(false);
-			Logger.Log("\n", Enums.LogLevels.Ascii);
+		public static void GenerateAsciiFromText(string text) {
+			if (IsNullOrEmpty(text)) {
+				Logger.Log("The specified text is empty or null", Enums.LogLevels.Warn);
+				return;
+			}
+
+			FiggleFonts.Ogre.Render(text);
 		}
 
 		public static string FetchVariable(int arrayLine, bool returnParsed = false, string varName = null) {

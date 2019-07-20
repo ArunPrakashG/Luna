@@ -85,7 +85,18 @@ namespace HomeAssistant.AssistantCore {
 		public static string AssistantName { get; set; } = "TESS";
 
 		public static async Task<bool> InitCore(string[] args) {
-			AssistantName = "TESS";
+			Logger = new Logger("ASSISTANT");
+			Logger.Log("Loading core config...", Enums.LogLevels.Trace);
+			try {
+				Config = Config.LoadConfig();
+			}
+			catch (NullReferenceException) {
+				Logger.Log("Fatal error has occured during loading Core Config. exiting...", Enums.LogLevels.Error);
+				await Exit(1).ConfigureAwait(false);
+				return false;
+			}
+
+			AssistantName = Config.AssistantDisplayName;
 			Logger = new Logger(AssistantName);
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
@@ -103,7 +114,7 @@ namespace HomeAssistant.AssistantCore {
 			}
 
 			try {
-				await Helpers.DisplayAssistantASCII().ConfigureAwait(false);
+				Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
 				Constants.ExternelIP = Helpers.GetExternalIp();
 				Constants.LocalIP = Helpers.GetLocalIpAddress();
 
@@ -113,15 +124,6 @@ namespace HomeAssistant.AssistantCore {
 
 				Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater");
 				Logger.Log($"X---------------- Starting {AssistantName} Assistant v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
-				Logger.Log("Loading core config...", Enums.LogLevels.Trace);
-				try {
-					Config = Config.LoadConfig();
-				}
-				catch (NullReferenceException) {
-					Logger.Log("Fatal error has occured during loading Core Config. exiting...", Enums.LogLevels.Error);
-					await Exit(1).ConfigureAwait(false);
-					return false;
-				}
 
 				ConfigWatcher.InitConfigWatcher();
 				ParseStartupArguments(args);
