@@ -232,7 +232,7 @@ namespace HomeAssistant.Extensions {
 				return result;
 			}
 
-			Logger.Log("No internet connection.", Enums.LogLevels.Error);
+			Logger.Log("No internet connection.", LogLevels.Error);
 			return null;
 		}
 
@@ -248,16 +248,16 @@ namespace HomeAssistant.Extensions {
 
 		public static void GenerateAsciiFromText(string text) {
 			if (IsNullOrEmpty(text)) {
-				Logger.Log("The specified text is empty or null", Enums.LogLevels.Warn);
+				Logger.Log("The specified text is empty or null", LogLevels.Warn);
 				return;
 			}
-
-			FiggleFonts.Ogre.Render(text);
+			
+			Logger.Log(FiggleFonts.Ogre.Render(text), LogLevels.Ascii);
 		}
 
 		public static string FetchVariable(int arrayLine, bool returnParsed = false, string varName = null) {
 			if (!File.Exists(Constants.VariablesPath)) {
-				Logger.Log("Variables file doesnt exist! aborting...", Enums.LogLevels.Error);
+				Logger.Log("Variables file doesnt exist! aborting...", LogLevels.Error);
 				return null;
 			}
 

@@ -1,3 +1,5 @@
+using Assistant.Geolocation;
+using Assistant.Weather;
 using CommandLine;
 using HomeAssistant.Extensions;
 using HomeAssistant.Log;
@@ -69,6 +71,10 @@ namespace HomeAssistant.AssistantCore {
 		private static Timer RefreshConsoleTitleTimer { get; set; }
 
 		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
+
+		public static WeatherApi WeatherApi { get; private set; } = new WeatherApi();
+
+		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
 
 		public static bool CoreInitiationCompleted { get; private set; }
 
@@ -329,6 +335,29 @@ namespace HomeAssistant.AssistantCore {
 
 					case Constants.ConsoleTestMethodExecutionKey: {
 							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
+							(bool weatherStatus, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, 689653, "in");
+							if (weatherStatus) {
+								Logger.Log($"Temperature: {response.Temperature}");
+								Logger.Log($"Humidity: {response.Humidity}");
+								Logger.Log($"Location name: {response.LocationName}");
+							}
+							else {
+								Logger.Log("Weather api test failed.", Enums.LogLevels.Warn);
+							}
+
+							(bool zipStatus, ZipLocationResult apiResult) = ZipCodeLocater.GetZipLocationInfo(689653);
+							if (zipStatus) {
+								Logger.Log($"Message: {apiResult.Message}");
+								foreach (ZipLocationResult.PostOffice t in apiResult.PostOfficeCollection) {
+									Logger.Log(t.BranchType);
+									Logger.Log(t.Circle);
+									Logger.Log(t.Division);
+								}
+							}
+							else {
+								Logger.Log("Zip code locater test failed.", Enums.LogLevels.Warn);
+							}
+
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
 						}
 						return;
