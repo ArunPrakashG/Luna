@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using HomeAssistant.AssistantCore;
+using System.Net;
 
 namespace HomeAssistant.Server {
 
@@ -22,22 +23,19 @@ namespace HomeAssistant.Server {
 			}
 
 			Logger.Log("Starting Kestrel IPC server...");
+			IPAddress address = IPAddress.Parse(Core.Config.KestrelServerUrl);
 			IWebHostBuilder builder = new WebHostBuilder();
 			string absoluteConfigDirectory = Path.Combine(Directory.GetCurrentDirectory(), Constants.ConfigDirectory);
 			builder.ConfigureLogging(logging => logging.SetMinimumLevel(Core.Config.Debug ? LogLevel.Trace : LogLevel.Warning));
 			if (File.Exists(Path.Combine(absoluteConfigDirectory, Constants.KestrelConfigurationFile))) {
 				builder.UseConfiguration(new ConfigurationBuilder().SetBasePath(absoluteConfigDirectory).AddJsonFile(Constants.KestrelConfigurationFile, false, true).Build());
 				builder.UseKestrel((builderContext, options) => options.Configure(builderContext.Configuration.GetSection("Kestrel")));
+				builder.UseUrls($"{Core.Config.KestrelServerUrl}:{Core.Config.KestrelServerPort}");
 				builder.ConfigureLogging((hostingContext, logging) => logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging")));
 			}
 			else {
 				builder.UseKestrel(options => {
-					if (Core.Config.ListernLocalHostOnly) {
-						options.ListenLocalhost(Core.Config.KestrelServerPort);
-					}
-					else {
-						options.ListenAnyIP(Core.Config.KestrelServerPort);
-					}
+					options.Listen(address, Core.Config.KestrelServerPort);
 				});
 			}
 

@@ -22,7 +22,7 @@ namespace HomeAssistant.AssistantCore {
 
 		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
 
-		[JsonProperty] public bool ListernLocalHostOnly { get; set; } = false;
+		[JsonProperty] public string KestrelServerUrl { get; set; } = "http://*";
 
 		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
 
@@ -66,6 +66,8 @@ namespace HomeAssistant.AssistantCore {
 		[JsonProperty] public bool EnableYoutubeModules { get; set; } = true;
 
 		[JsonProperty] public string OpenWeatherApiKey { get; set; } = null;
+
+		[JsonProperty] public string PushBulletApiKey { get; set; } = null;
 
 		[JsonProperty] public string AssistantEmailId { get; set; }
 
