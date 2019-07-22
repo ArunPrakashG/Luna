@@ -1,9 +1,9 @@
-using HomeAssistant.Log;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using Assistant.Log;
 
-namespace HomeAssistant.Extensions {
+namespace Assistant.Extensions {
 
 	internal static class OS {
 

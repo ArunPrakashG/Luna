@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 
 namespace Assistant.PushBulletNotifications.ApiResponse {
-	public class ListDevice {
+	public class UserDeviceList {
 
 		[JsonProperty("accounts")]
 		public object[] Accounts { get; set; }

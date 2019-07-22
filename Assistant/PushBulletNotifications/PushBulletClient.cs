@@ -1,15 +1,15 @@
 using Assistant.PushBulletNotifications.ApiResponse;
 using Assistant.PushBulletNotifications.Exceptions;
 using Assistant.PushBulletNotifications.Parameters;
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using static HomeAssistant.AssistantCore.Enums;
+using static Assistant.AssistantCore.Enums;
 using static Assistant.PushBulletNotifications.PushEnums;
 
 namespace Assistant.PushBulletNotifications {
@@ -34,7 +34,7 @@ namespace Assistant.PushBulletNotifications {
 			ClientAccessToken = Core.Config.PushBulletApiKey;
 		}
 
-		public ListDevice GetCurrentDevices() {
+		public UserDeviceList GetCurrentDevices() {
 			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
 				throw new IncorrectAccessTokenException(ClientAccessToken);
 			}
@@ -50,7 +50,7 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
-			return DeserializeJsonObject<ListDevice>(response);
+			return DeserializeJsonObject<UserDeviceList>(response);
 		}
 
 		public PushNote SendPush(SendPushParams sendPushParams) {
@@ -67,37 +67,37 @@ namespace Assistant.PushBulletNotifications {
 			Dictionary<string, string> bodyParams = new Dictionary<string, string>();
 
 			switch (sendPushParams.PushTarget) {
-				case PushEnums.PushTarget.Device:
+				case PushTarget.Device:
 					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
 						queryString.Add("device_iden", sendPushParams.PushTargetValue);
 					}
 
 					break;
-				case PushEnums.PushTarget.Client:
+				case PushTarget.Client:
 					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
 						queryString.Add("client_iden", sendPushParams.PushTargetValue);
 					}
 
 					break;
-				case PushEnums.PushTarget.Email:
+				case PushTarget.Email:
 					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
 						queryString.Add("email", sendPushParams.PushTargetValue);
 					}
 
 					break;
-				case PushEnums.PushTarget.Channel:
+				case PushTarget.Channel:
 					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
 						queryString.Add("channel_tag", sendPushParams.PushTargetValue);
 					}
 
 					break;
-				case PushEnums.PushTarget.All:
+				case PushTarget.All:
 					queryString = null;
 					break;
 			}
 
 			switch (sendPushParams.PushType) {
-				case PushEnums.PushType.Note:
+				case PushType.Note:
 					bodyParams.Add("type", "note");
 					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTitle)) {
 						bodyParams.Add("title", sendPushParams.PushTitle);
@@ -108,7 +108,7 @@ namespace Assistant.PushBulletNotifications {
 					}
 
 					break;
-				case PushEnums.PushType.Link:
+				case PushType.Link:
 					bodyParams.Add("type", "link");
 					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTitle)) {
 						bodyParams.Add("title", sendPushParams.PushTitle);
@@ -123,7 +123,7 @@ namespace Assistant.PushBulletNotifications {
 					}
 
 					break;
-				case PushEnums.PushType.File:
+				case PushType.File:
 					bodyParams.Add("type", "file");
 					if (!Helpers.IsNullOrEmpty(sendPushParams.FileName)) {
 						bodyParams.Add("file_name", sendPushParams.FileName);

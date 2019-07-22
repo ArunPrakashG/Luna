@@ -1,9 +1,9 @@
-using HomeAssistant.Server;
 using System;
 using System.IO;
 using System.Reflection;
+using Assistant.Server;
 
-namespace HomeAssistant.Extensions {
+namespace Assistant.Extensions {
 
 	public static class Constants {
 		public const string TraceLogPath = @"TraceLog.txt";
@@ -27,7 +27,7 @@ namespace HomeAssistant.Extensions {
 		public const string UpdateZipFileName = @"Latest.zip";
 		public const string GitHubUserID = "SynergyFTW";
 		public const string VariablesPath = "Variables.txt";
-		public const string GitHubProjectName = nameof(HomeAssistant);
+		public const string GitHubProjectName = nameof(Assistant);
 		public const string GmailHost = "imap.gmail.com";
 		public const string SMTPHost = "smtp.mailserver.com";
 		public const int SMPTPort = 465;

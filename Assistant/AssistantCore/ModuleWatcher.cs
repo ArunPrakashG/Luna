@@ -1,10 +1,10 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules;
 using System;
 using System.IO;
+using Assistant.Extensions;
+using Assistant.Log;
+using Assistant.Modules;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class ModuleWatcher {
 		private readonly Logger Logger = new Logger("MODULE-WATCHER");

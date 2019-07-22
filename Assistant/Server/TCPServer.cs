@@ -1,5 +1,3 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using System;
 using System.IO;
 using System.Linq;
@@ -7,11 +5,13 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 using Unosquare.RaspberryIO.Abstractions;
-using static HomeAssistant.AssistantCore.Enums;
+using static Assistant.AssistantCore.Enums;
 
-namespace HomeAssistant.Server {
+namespace Assistant.Server {
 
 	[Obsolete("Use Kestrel server instead of TCP server.")]
 	public class TCPServer : Core {
@@ -163,8 +163,8 @@ namespace HomeAssistant.Server {
 				return "Failed!";
 			}
 
-			Enums.PiContext PiContext = PiContext.GPIO;
-			Enums.PiState PiState = PiState.OUTPUT;
+			Enums.PiContext PiContext = Enums.PiContext.GPIO;
+			Enums.PiState PiState = Enums.PiState.OUTPUT;
 			Enums.PiPinNumber PinNumber = Enums.PiPinNumber.PIN_2;
 			Enums.PiVoltage PinVoltage = Enums.PiVoltage.LOW;
 
@@ -172,10 +172,10 @@ namespace HomeAssistant.Server {
 
 			switch (rawData[1].Trim()) {
 				case "GPIO":
-					PiContext = PiContext.GPIO;
+					PiContext = Enums.PiContext.GPIO;
 					switch (rawData[2].Trim()) {
 						case "OUTPUT":
-							PiState = PiState.OUTPUT;
+							PiState = Enums.PiState.OUTPUT;
 
 							switch (rawData[4].Trim()) {
 								case "HIGH":
@@ -212,7 +212,7 @@ namespace HomeAssistant.Server {
 							break;
 
 						case "INPUT":
-							PiState = PiState.INPUT;
+							PiState = Enums.PiState.INPUT;
 
 							switch (rawData[4].Trim()) {
 								case "HIGH":
@@ -255,7 +255,7 @@ namespace HomeAssistant.Server {
 					break;
 
 				case "FETCH":
-					PiContext = PiContext.FETCH;
+					PiContext = Enums.PiContext.FETCH;
 					int pinNumber = Convert.ToInt32(rawData[2].Trim());
 					GPIOPinConfig status = Controller.FetchPinStatus(pinNumber);
 					if (status == null) {
@@ -267,7 +267,7 @@ namespace HomeAssistant.Server {
 						return $"OK|{status.IsOn.ToString()}|{pinNumber.ToString()}|{status.Mode.ToString()}";
 					}
 				case "SHUTDOWN":
-					PiContext = PiContext.SHUTDOWN;
+					PiContext = Enums.PiContext.SHUTDOWN;
 					switch (rawData[2].Trim()) {
 						case "TESS":
 							Helpers.InBackground(async () => {
@@ -286,7 +286,7 @@ namespace HomeAssistant.Server {
 					break;
 
 				case "RESTART":
-					PiContext = PiContext.RESTART;
+					PiContext = Enums.PiContext.RESTART;
 					switch (rawData[2].Trim()) {
 						case "TESS":
 							Helpers.InBackground(async () => {
@@ -298,7 +298,7 @@ namespace HomeAssistant.Server {
 					break;
 
 				case "RELAY":
-					PiContext = PiContext.RELAY;
+					PiContext = Enums.PiContext.RELAY;
 					switch (Convert.ToInt32(rawData[2].Trim())) {
 						case (int) Enums.GPIOCycles.Cycle:
 							Helpers.InBackgroundThread(async () => await Controller.RelayTestService(Enums.GPIOCycles.Cycle).ConfigureAwait(false), "Relay Cycle");

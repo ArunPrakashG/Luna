@@ -1,11 +1,11 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.Update {
+namespace Assistant.Update {
 
 	public class Rootobject {
 

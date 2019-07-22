@@ -1,5 +1,5 @@
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using System;
 using System.IO;
 using System.Threading.Tasks;

@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace HomeAssistant.Extensions {
+namespace Assistant.Extensions {
 
 	public static class Compatibility {
 #pragma warning disable 1998

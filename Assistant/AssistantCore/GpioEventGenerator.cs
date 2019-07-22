@@ -1,13 +1,13 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Assistant.Extensions;
+using Assistant.Log;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public sealed class GpioPinEventData {
 

@@ -1,12 +1,12 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using Newtonsoft.Json;
 using Org.BouncyCastle.Bcpg;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 

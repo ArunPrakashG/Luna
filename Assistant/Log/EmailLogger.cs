@@ -1,17 +1,17 @@
 using System;
 using System.Net;
 using System.Net.Mail;
-using HomeAssistant.AssistantCore;
-using static HomeAssistant.AssistantCore.Enums;
+using Assistant.AssistantCore;
+using static Assistant.AssistantCore.Enums;
 
-namespace HomeAssistant.Log {
+namespace Assistant.Log {
 
 	public class EmailLogger {
 		private static readonly Logger Logger = new Logger("EMAIL-LOGGER");
 
 		public static void SendEmail(string message) {
 			if (string.IsNullOrEmpty(message)) {
-				Logger.Log("Message is null.", LogLevels.Warn);
+				Logger.Log("Message is null.", Enums.LogLevels.Warn);
 				return;
 			}
 
@@ -28,15 +28,15 @@ namespace HomeAssistant.Log {
 				SmtpServer.Send(mail);
 			}
 			catch (ArgumentNullException) {
-				Logger.Log("Send from email or send from password appears to be null.", LogLevels.Warn);
+				Logger.Log("Send from email or send from password appears to be null.", Enums.LogLevels.Warn);
 				return;
 			}
 			catch (InvalidOperationException) {
-				Logger.Log("Invalid operation exception. please check the code.", LogLevels.Error);
+				Logger.Log("Invalid operation exception. please check the code.", Enums.LogLevels.Error);
 				return;
 			}
 			catch (SmtpException) {
-				Logger.Log("Either the username or the password is wrong.", LogLevels.Warn);
+				Logger.Log("Either the username or the password is wrong.", Enums.LogLevels.Warn);
 				return;
 			}
 		}

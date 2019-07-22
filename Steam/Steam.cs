@@ -1,7 +1,6 @@
 using Assistant.Modules.Interfaces;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.Extensions;
+using Assistant.Log;
 using Newtonsoft.Json;
 using SteamKit2;
 using System;
@@ -10,7 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using static HomeAssistant.AssistantCore.Enums;
+using static Assistant.AssistantCore.Enums;
 
 namespace Steam {
 

@@ -1,7 +1,7 @@
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using MailKit;
 using MailKit.Net.Imap;
 using MimeKit;

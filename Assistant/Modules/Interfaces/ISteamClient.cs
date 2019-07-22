@@ -1,9 +1,10 @@
 using Assistant.Modules.Interfaces;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using static HomeAssistant.AssistantCore.Enums;
+using Assistant.AssistantCore;
+using static Assistant.AssistantCore.Enums;
 
-namespace HomeAssistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces {
 
 	public interface ISteamClient : IModuleBase {
 
@@ -92,6 +93,6 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// </summary>
 		/// <param name="userInputType">User input context</param>
 		/// <returns></returns>
-		string GetUserInput(SteamUserInputType userInputType);
+		string GetUserInput(Enums.SteamUserInputType userInputType);
 	}
 }

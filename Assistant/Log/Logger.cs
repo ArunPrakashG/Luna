@@ -1,11 +1,11 @@
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Extensions;
-using HomeAssistant.Modules.Interfaces;
 using System;
 using System.Runtime.CompilerServices;
-using static HomeAssistant.AssistantCore.Enums;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Modules.Interfaces;
+using static Assistant.AssistantCore.Enums;
 
-namespace HomeAssistant.Log {
+namespace Assistant.Log {
 
 	public class Logger : ILoggerBase {
 		private NLog.Logger LogModule;
@@ -96,9 +96,9 @@ namespace HomeAssistant.Log {
 			LogGenericError($"{nullObjectName} | Object is null!", previousMethodName);
 		}
 
-		public void Log(Exception e, LogLevels level = LogLevels.Error, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+		public void Log(Exception e, Enums.LogLevels level = Enums.LogLevels.Error, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
 			switch (level) {
-				case LogLevels.Error:
+				case Enums.LogLevels.Error:
 					if (Core.Config.Debug) {
 						LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}", previousMethodName);
 					}
@@ -109,35 +109,35 @@ namespace HomeAssistant.Log {
 					DiscordLogToChannel($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}");
 					break;
 
-				case LogLevels.Fatal:
+				case Enums.LogLevels.Fatal:
 					LogGenericException(e, previousMethodName);
 					break;
 
-				case LogLevels.DebugException:
+				case Enums.LogLevels.DebugException:
 					LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}", previousMethodName);
 					DiscordLogToChannel($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}");
 					break;
 
 				default:
-					goto case LogLevels.Error;
+					goto case Enums.LogLevels.Error;
 			}
 		}
 
-		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+		public void Log(string message, Enums.LogLevels level = Enums.LogLevels.Info, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
 			switch (level) {
-				case LogLevels.Trace:
+				case Enums.LogLevels.Trace:
 					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] {message}", previousMethodName);
 					break;
 
-				case LogLevels.Debug:
+				case Enums.LogLevels.Debug:
 					LogGenericDebug(message, previousMethodName);
 					break;
 
-				case LogLevels.Info:
+				case Enums.LogLevels.Info:
 					LogGenericInfo(message, previousMethodName);
 					break;
 
-				case LogLevels.Warn:
+				case Enums.LogLevels.Warn:
 					LogGenericWarning($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + message, previousMethodName);
 
 					if (!string.IsNullOrEmpty(message) || !string.IsNullOrWhiteSpace(message)) {
@@ -146,38 +146,38 @@ namespace HomeAssistant.Log {
 
 					break;
 
-				case LogLevels.Ascii:
+				case Enums.LogLevels.Ascii:
 					Console.ForegroundColor = ConsoleColor.Green;
 					Console.WriteLine(message);
 					Console.ResetColor();
 					LogGenericTrace(message);
 					break;
 
-				case LogLevels.UserInput:
+				case Enums.LogLevels.UserInput:
 					Console.WriteLine(@">>> " + message);
 					LogGenericTrace(message);
 					break;
 
-				case LogLevels.ServerResult:
+				case Enums.LogLevels.ServerResult:
 					Console.ForegroundColor = ConsoleColor.Cyan;
 					Console.WriteLine(@"> " + message);
 					Console.ResetColor();
 					LogGenericTrace(message);
 					break;
 
-				case LogLevels.Custom:
+				case Enums.LogLevels.Custom:
 					Console.WriteLine(message);
 					LogGenericTrace(message, previousMethodName);
 					break;
 
-				case LogLevels.Sucess:
+				case Enums.LogLevels.Sucess:
 					Console.ForegroundColor = ConsoleColor.DarkMagenta;
 					LogGenericInfo(message, previousMethodName);
 					Console.ResetColor();
 					break;
 
 				default:
-					goto case LogLevels.Info;
+					goto case Enums.LogLevels.Info;
 			}
 		}
 

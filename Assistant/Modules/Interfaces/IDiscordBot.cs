@@ -1,7 +1,7 @@
 using Discord.WebSocket;
 using System.Threading.Tasks;
 
-namespace HomeAssistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces {
 
 	public interface IDiscordBot : IModuleBase, IDiscordLogger {
 

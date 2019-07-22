@@ -1,9 +1,9 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using System;
 using System.IO;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class ConfigWatcher {
 		private readonly Logger Logger = new Logger("CONFIG-WATCHER");

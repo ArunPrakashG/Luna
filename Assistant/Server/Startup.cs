@@ -7,9 +7,9 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
 
-namespace HomeAssistant.Server {
+namespace Assistant.Server {
 
 	public class Startup {
 

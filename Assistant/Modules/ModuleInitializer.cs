@@ -1,6 +1,3 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
@@ -10,9 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 
-namespace HomeAssistant.Modules {
+namespace Assistant.Modules {
 
 	public class LoadedModules {
 

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
-using static HomeAssistant.AssistantCore.Enums;
+using Assistant.AssistantCore;
+using static Assistant.AssistantCore.Enums;
 
-namespace HomeAssistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces {
 
 	public interface ISteamBotConfig {
 
@@ -93,6 +94,6 @@ namespace HomeAssistant.Modules.Interfaces {
 		/// Permission level for steam accounts
 		/// </summary>
 		/// <value>ulong value indicating the steam 64 id of the controller, SteamPermissionLevels enum indicating the permission level of the specified steam 64 id</value>
-		Dictionary<ulong, SteamPermissionLevels> PermissionLevel { get; set; }
+		Dictionary<ulong, Enums.SteamPermissionLevels> PermissionLevel { get; set; }
 	}
 }

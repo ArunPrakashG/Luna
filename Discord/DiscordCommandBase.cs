@@ -1,11 +1,11 @@
 using Discord.Commands;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
+using Assistant.Extensions;
+using Assistant.Log;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
 
 namespace Discord {
 
@@ -17,7 +17,7 @@ namespace Discord {
 		private bool IsAllowed(ulong id) {
 			if (OwnerID == 0 && Core.ModuleLoader != null && Core.ModuleLoader.LoadedModules != null &&
 				Core.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
-				foreach ((long, HomeAssistant.Modules.Interfaces.IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
+				foreach ((long, Assistant.Modules.Interfaces.IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
 					if (bot.Item1.Equals(Discord.ModuleIdentifierInternal)) {
 						OwnerID = bot.Item2.BotConfig.DiscordOwnerID;
 					}

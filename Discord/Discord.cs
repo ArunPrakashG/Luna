@@ -1,7 +1,7 @@
 using Discord.Commands;
 using Discord.WebSocket;
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using System;
 using System.IO;
 using System.Linq;
@@ -9,8 +9,8 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
-using static HomeAssistant.AssistantCore.Enums;
-using HomeAssistant.AssistantCore;
+using static Assistant.AssistantCore.Enums;
+using Assistant.AssistantCore;
 
 namespace Discord {
 

@@ -1,11 +1,11 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class TaskStructure<T> where T : Task {
 

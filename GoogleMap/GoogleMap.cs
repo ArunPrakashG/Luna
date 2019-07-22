@@ -1,7 +1,7 @@
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using System;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
 
 namespace GoogleMap {
 

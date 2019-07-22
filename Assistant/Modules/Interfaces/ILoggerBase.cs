@@ -1,8 +1,9 @@
 using System;
 using System.Runtime.CompilerServices;
-using static HomeAssistant.AssistantCore.Enums;
+using Assistant.AssistantCore;
+using static Assistant.AssistantCore.Enums;
 
-namespace HomeAssistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces {
 
 	public interface ILoggerBase {
 
@@ -37,7 +38,7 @@ namespace HomeAssistant.Modules.Interfaces {
 		void Log
 		(
 			Exception e,
-			LogLevels level = LogLevels.Error,
+			Enums.LogLevels level = Enums.LogLevels.Error,
 			[CallerMemberName] string previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string calledFilePath = null
@@ -54,7 +55,7 @@ namespace HomeAssistant.Modules.Interfaces {
 		void Log
 		(
 			string message,
-			LogLevels level = LogLevels.Info,
+			Enums.LogLevels level = Enums.LogLevels.Info,
 			[CallerMemberName] string previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string calledFilePath = null

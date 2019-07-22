@@ -1,10 +1,10 @@
-using HomeAssistant.Log;
 using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using Assistant.Log;
 
-namespace HomeAssistant.Security {
+namespace Assistant.Security {
 
 	public static class CryptoManager {
 		private static readonly Logger Logger = new Logger("SECURITY");

@@ -1,11 +1,11 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class GPIOConfigRoot : IEquatable<GPIOConfigRoot> {
 

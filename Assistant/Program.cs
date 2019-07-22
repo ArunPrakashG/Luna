@@ -1,13 +1,13 @@
-using HomeAssistant.Log;
 using System;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Extensions;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant {
+namespace Assistant {
 
 	public class Program {
 		private static readonly Logger Logger = new Logger("MAIN");

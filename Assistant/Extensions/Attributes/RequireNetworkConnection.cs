@@ -1,6 +1,6 @@
 using System;
 
-namespace HomeAssistant.Extensions.Attributes {
+namespace Assistant.Extensions.Attributes {
 
 	[AttributeUsage(AttributeTargets.All)]
 	public class RequireNetworkConnection : Attribute {

@@ -2,9 +2,9 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using System;
 using System.ComponentModel.DataAnnotations;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
 
-namespace HomeAssistant.Server.Responses {
+namespace Assistant.Server.Responses {
 
 	public class GenericResponse<T> {
 

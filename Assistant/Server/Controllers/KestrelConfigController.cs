@@ -1,11 +1,11 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Server.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Server.Responses;
 
-namespace HomeAssistant.Server.Controllers {
+namespace Assistant.Server.Controllers {
 
 	[Route("api/config")]
 	public class KestrelConfigController : Controller {

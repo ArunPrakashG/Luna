@@ -1,5 +1,3 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using RestSharp;
 using RestSharp.Extensions;
 using System;
@@ -8,9 +6,11 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.Update {
+namespace Assistant.Update {
 
 	public class Updater {
 		private readonly Logger Logger = new Logger("UPDATER");

@@ -1,7 +1,7 @@
 using MailKit;
 using System;
 
-namespace HomeAssistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces {
 
 	public interface IReceviedMessageDuringIdle {
 

@@ -1,11 +1,10 @@
 using Assistant.Modules.Interfaces;
-using HomeAssistant.Extensions;
-using HomeAssistant.Modules.Interfaces;
 using System;
 using System.IO;
-using static HomeAssistant.AssistantCore.Enums;
+using Assistant.Extensions;
+using static Assistant.AssistantCore.Enums;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class DynamicWatcher : IDynamicWatcher {
 
@@ -23,7 +22,7 @@ namespace HomeAssistant.AssistantCore {
 		public bool IncludeSubdirectories { get; set; } = false;
 
 		public (bool, DynamicWatcher, FileSystemWatcher) InitWatcherService() {
-			Logger.Log("Starting dynamic watcher...", LogLevels.Trace);
+			Logger.Log("Starting dynamic watcher...", Enums.LogLevels.Trace);
 
 			if (Helpers.IsNullOrEmpty(DirectoryToWatch) || DelayBetweenReadsInSeconds <= 0 || Logger == null) {
 				return (false, this, FileSystemWatcher);

@@ -1,9 +1,9 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.Extensions;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using Newtonsoft.Json;
 using System.IO;
-using HomeAssistant.AssistantCore;
+using Assistant.AssistantCore;
 
 namespace Discord {
 

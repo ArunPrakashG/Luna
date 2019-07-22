@@ -1,7 +1,7 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
+using Assistant.Extensions;
+using Assistant.Log;
 using Newtonsoft.Json;
-using static HomeAssistant.AssistantCore.Enums;
+using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Geolocation {
 	public class ZipCodeLocater {

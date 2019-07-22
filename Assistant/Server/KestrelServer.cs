@@ -1,5 +1,3 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -7,10 +5,12 @@ using NLog.Web;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using HomeAssistant.AssistantCore;
 using System.Net;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.Server {
+namespace Assistant.Server {
 
 	public static class KestrelServer {
 		private static IWebHost KestrelWebHost;

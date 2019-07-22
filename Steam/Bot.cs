@@ -1,14 +1,14 @@
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using SteamKit2;
 using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using static HomeAssistant.AssistantCore.Enums;
+using static Assistant.AssistantCore.Enums;
 
 namespace Steam {
 	public sealed class Bot : IDisposable, ISteamBot {

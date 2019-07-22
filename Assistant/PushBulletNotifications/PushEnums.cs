@@ -14,7 +14,7 @@ namespace Assistant.PushBulletNotifications {
 			All
 		}
 
-		public enum DeletePushErrorCodes {
+		public enum PushDeleteStatusCode {
 			ObjectNotFound,
 			Success,
 			Unknown

@@ -1,13 +1,13 @@
 using ByteSizeLib;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class AssistantResourceUsage {
 

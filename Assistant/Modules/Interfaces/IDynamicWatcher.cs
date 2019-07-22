@@ -1,5 +1,5 @@
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.AssistantCore;
+using Assistant.Modules.Interfaces;
 using System.IO;
 
 namespace Assistant.Modules.Interfaces {

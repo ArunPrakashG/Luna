@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace HomeAssistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces {
 
 	public interface IEmailClient : IModuleBase {
 

@@ -1,9 +1,9 @@
-using HomeAssistant.Log;
 using MailKit.Net.Imap;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Assistant.Log;
 
-namespace HomeAssistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces {
 
 	public interface IEmailBot {
 

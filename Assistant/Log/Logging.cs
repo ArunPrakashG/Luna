@@ -1,11 +1,11 @@
-using HomeAssistant.Extensions;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
 using System;
 using System.IO;
+using Assistant.Extensions;
 
-namespace HomeAssistant.Log {
+namespace Assistant.Log {
 
 	public class Logging {
 		private const string GeneralTraceLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${level:uppercase=true} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";

@@ -1,4 +1,4 @@
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public static class Enums {
 

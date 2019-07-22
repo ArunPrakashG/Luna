@@ -1,8 +1,8 @@
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Extensions;
+using Assistant.AssistantCore;
+using Assistant.Extensions;
 using Newtonsoft.Json;
 
-namespace HomeAssistant.Server.Responses {
+namespace Assistant.Server.Responses {
 
 	public class StatusResponse {
 

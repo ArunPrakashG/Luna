@@ -1,6 +1,4 @@
 using Figgle;
-using HomeAssistant.AssistantCore;
-using HomeAssistant.Log;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -14,11 +12,13 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Assistant.AssistantCore;
+using Assistant.Log;
 using Unosquare.RaspberryIO;
-using static HomeAssistant.AssistantCore.Enums;
+using static Assistant.AssistantCore.Enums;
 using ProcessThread = System.Diagnostics.ProcessThread;
 
-namespace HomeAssistant.Extensions {
+namespace Assistant.Extensions {
 
 	public static class Helpers {
 		private static readonly Logger Logger = new Logger("HELPERS");
@@ -28,7 +28,7 @@ namespace HomeAssistant.Extensions {
 
 		public static void InBackgroundThread(Action action) {
 			if(action == null) {
-				Logger.Log("Action is null.", LogLevels.Warn);
+				Logger.Log("Action is null.", Enums.LogLevels.Warn);
 				return;
 			}
 
@@ -232,7 +232,7 @@ namespace HomeAssistant.Extensions {
 				return result;
 			}
 
-			Logger.Log("No internet connection.", LogLevels.Error);
+			Logger.Log("No internet connection.", Enums.LogLevels.Error);
 			return null;
 		}
 
@@ -248,16 +248,16 @@ namespace HomeAssistant.Extensions {
 
 		public static void GenerateAsciiFromText(string text) {
 			if (IsNullOrEmpty(text)) {
-				Logger.Log("The specified text is empty or null", LogLevels.Warn);
+				Logger.Log("The specified text is empty or null", Enums.LogLevels.Warn);
 				return;
 			}
 			
-			Logger.Log(FiggleFonts.Ogre.Render(text), LogLevels.Ascii);
+			Logger.Log(FiggleFonts.Ogre.Render(text), Enums.LogLevels.Ascii);
 		}
 
 		public static string FetchVariable(int arrayLine, bool returnParsed = false, string varName = null) {
 			if (!File.Exists(Constants.VariablesPath)) {
-				Logger.Log("Variables file doesnt exist! aborting...", LogLevels.Error);
+				Logger.Log("Variables file doesnt exist! aborting...", Enums.LogLevels.Error);
 				return null;
 			}
 

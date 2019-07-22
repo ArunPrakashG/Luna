@@ -1,4 +1,4 @@
-using HomeAssistant.Modules.Interfaces;
+using Assistant.Modules.Interfaces;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 

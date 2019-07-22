@@ -1,12 +1,12 @@
 using Google.Cloud.Speech.V1;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using RestSharp;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Assistant.Extensions;
+using Assistant.Log;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class TTSService {
 		private static readonly Logger Logger = new Logger("GOOGLE-SPEECH");

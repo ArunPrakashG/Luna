@@ -1,6 +1,6 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules.Interfaces;
+using Assistant.Extensions;
+using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Security;
@@ -12,8 +12,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using HomeAssistant.AssistantCore;
-using static HomeAssistant.AssistantCore.Enums;
+using Assistant.AssistantCore;
+using static Assistant.AssistantCore.Enums;
 
 namespace Email {
 	public class Email : IModuleBase, IEmailClient {

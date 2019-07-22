@@ -1,11 +1,6 @@
 using Assistant.Geolocation;
 using Assistant.Weather;
 using CommandLine;
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
-using HomeAssistant.Modules;
-using HomeAssistant.Server;
-using HomeAssistant.Update;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,13 +8,18 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Assistant.Extensions;
+using Assistant.Log;
+using Assistant.Modules;
+using Assistant.Server;
+using Assistant.Update;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
 using Unosquare.WiringPi;
-using Logging = HomeAssistant.Log.Logging;
+using Logging = Assistant.Log.Logging;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class Options {
 

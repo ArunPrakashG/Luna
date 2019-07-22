@@ -1,15 +1,15 @@
-using HomeAssistant.Extensions;
-using HomeAssistant.Log;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Devices.Gpio;
 using System.Linq;
 using System.Threading.Tasks;
+using Assistant.Extensions;
+using Assistant.Log;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 
-namespace HomeAssistant.AssistantCore {
+namespace Assistant.AssistantCore {
 
 	public class GPIOTaskQueue {
 
