@@ -13,5 +13,11 @@ namespace Assistant.PushBulletNotifications {
 			Client,
 			All
 		}
+
+		public enum DeletePushErrorCodes {
+			ObjectNotFound,
+			Success,
+			Unknown
+		}
 	}
 }

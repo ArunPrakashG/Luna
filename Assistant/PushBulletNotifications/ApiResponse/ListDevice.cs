@@ -2,32 +2,31 @@ using Newtonsoft.Json;
 
 namespace Assistant.PushBulletNotifications.ApiResponse {
 	public class ListDevice {
-		public class Rootobject {
-			[JsonProperty("accounts")]
-			public object[] Accounts { get; set; }
-			[JsonProperty("blocks")]
-			public object[] Blocks { get; set; }
-			[JsonProperty("channels")]
-			public object[] Channels { get; set; }
-			[JsonProperty("chats")]
-			public object[] Chats { get; set; }
-			[JsonProperty("clients")]
-			public object[] Clients { get; set; }
-			[JsonProperty("contacts")]
-			public object[] Contacts { get; set; }
-			[JsonProperty("devices")]
-			public Device[] Devices { get; set; }
-			[JsonProperty("grants")]
-			public object[] Grants { get; set; }
-			[JsonProperty("pushes")]
-			public object[] Pushes { get; set; }
-			[JsonProperty("profiles")]
-			public object[] Profiles { get; set; }
-			[JsonProperty("subscriptions")]
-			public object[] Subscriptions { get; set; }
-			[JsonProperty("texts")]
-			public object[] Texts { get; set; }
-		}
+
+		[JsonProperty("accounts")]
+		public object[] Accounts { get; set; }
+		[JsonProperty("blocks")]
+		public object[] Blocks { get; set; }
+		[JsonProperty("channels")]
+		public object[] Channels { get; set; }
+		[JsonProperty("chats")]
+		public object[] Chats { get; set; }
+		[JsonProperty("clients")]
+		public object[] Clients { get; set; }
+		[JsonProperty("contacts")]
+		public object[] Contacts { get; set; }
+		[JsonProperty("devices")]
+		public Device[] Devices { get; set; }
+		[JsonProperty("grants")]
+		public object[] Grants { get; set; }
+		[JsonProperty("pushes")]
+		public object[] Pushes { get; set; }
+		[JsonProperty("profiles")]
+		public object[] Profiles { get; set; }
+		[JsonProperty("subscriptions")]
+		public object[] Subscriptions { get; set; }
+		[JsonProperty("texts")]
+		public object[] Texts { get; set; }
 
 		public class Device {
 			[JsonProperty("active")]
