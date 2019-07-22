@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.Modules;
+using Assistant.PushBulletNotifications;
 using Assistant.Server;
 using Assistant.Update;
 using Unosquare.RaspberryIO;
@@ -76,6 +77,8 @@ namespace Assistant.AssistantCore {
 
 		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
 
+		public static PushBulletService PushBulletService { get; private set; }
+
 		public static bool CoreInitiationCompleted { get; private set; }
 
 		public static bool DisablePiMethods { get; private set; }
@@ -133,6 +136,7 @@ namespace Assistant.AssistantCore {
 
 				ConfigWatcher.InitConfigWatcher();
 				ParseStartupArguments(args);
+				PushBulletService = new PushBulletService(Config.PushBulletApiKey);
 
 				if (!Helpers.IsRaspberryEnvironment() || Helpers.GetOsPlatform() != OSPlatform.Linux) {
 					DisablePiMethods = true;

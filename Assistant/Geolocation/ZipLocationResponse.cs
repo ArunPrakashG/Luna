@@ -4,12 +4,9 @@ using System.Text;
 
 namespace Assistant.Geolocation {
 	public class ZipLocationResponse {
-
-		public class Rootobject {
-			public string Message { get; set; }
-			public string Status { get; set; }
-			public Postoffice[] PostOffice { get; set; }
-		}
+		public string Message { get; set; }
+		public string Status { get; set; }
+		public Postoffice[] PostOffice { get; set; }
 
 		public class Postoffice {
 			public string Name { get; set; }

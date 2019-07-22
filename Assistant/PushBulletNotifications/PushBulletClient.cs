@@ -16,6 +16,7 @@ namespace Assistant.PushBulletNotifications {
 	public class PushBulletClient {
 		private readonly Logger Logger = new Logger("PUSH-BULLET-CLIENT");
 		public string ClientAccessToken { get; private set; }
+		public bool IsServiceLoaded { get; private set; }
 
 		public PushBulletClient(string apiKey) {
 			if (Helpers.IsNullOrEmpty(apiKey)) {
@@ -23,6 +24,7 @@ namespace Assistant.PushBulletNotifications {
 			}
 
 			ClientAccessToken = apiKey;
+			IsServiceLoaded = true;
 		}
 
 		public PushBulletClient() {
@@ -32,6 +34,7 @@ namespace Assistant.PushBulletNotifications {
 
 			Logger.Log("Using default selection of api key as it is not specified.", LogLevels.Warn);
 			ClientAccessToken = Core.Config.PushBulletApiKey;
+			IsServiceLoaded = true;
 		}
 
 		public UserDeviceList GetCurrentDevices() {
@@ -178,7 +181,7 @@ namespace Assistant.PushBulletNotifications {
 			return DeserializeJsonObject<ListSubscriptions>(response);
 		}
 
-		public DeletePushErrorCodes DeletePush(string pushIdentifier) {
+		public PushDeleteStatusCode DeletePush(string pushIdentifier) {
 			if (Helpers.IsNullOrEmpty(pushIdentifier)) {
 				throw new ParameterValueIsNullException("pushIdentifier");
 			}
@@ -198,19 +201,19 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
-			PushEnums.DeletePushErrorCodes statusCode;
+			PushEnums.PushDeleteStatusCode statusCode;
 
 			try {
 				DeletePush pushResponse = JsonConvert.DeserializeObject<DeletePush>(response);
 				if (pushResponse.ErrorReason.Message.Equals("Object not found", StringComparison.OrdinalIgnoreCase)) {
-					statusCode = PushEnums.DeletePushErrorCodes.ObjectNotFound;
+					statusCode = PushEnums.PushDeleteStatusCode.ObjectNotFound;
 				}
 				else {
-					statusCode = PushEnums.DeletePushErrorCodes.Unknown;
+					statusCode = PushEnums.PushDeleteStatusCode.Unknown;
 				}
 			}
 			catch (Exception) {
-				statusCode = PushEnums.DeletePushErrorCodes.Success;
+				statusCode = PushEnums.PushDeleteStatusCode.Success;
 			}
 
 			return statusCode;

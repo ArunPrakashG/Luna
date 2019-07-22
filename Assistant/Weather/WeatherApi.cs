@@ -1,3 +1,4 @@
+using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
 using Newtonsoft.Json;
@@ -12,6 +13,11 @@ namespace Assistant.Weather {
 		public static string GenerateWeatherUrl(string apiKey, int pinCode = 689653, string countryCode = "in") => Helpers.IsNullOrEmpty(apiKey) ? null : Helpers.GetUrlToString($"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}", RestSharp.Method.GET);
 
 		public (bool status, WeatherData response) GetWeatherInfo(string apiKey, int pinCode = 689653, string countryCode = "in") {
+			if (!Core.IsNetworkAvailable) {
+				Logger.Log("Cannot continue as network isn't available.", LogLevels.Warn);
+				return (false, WeatherResult);
+			}
+
 			if (Helpers.IsNullOrEmpty(apiKey)) {
 				return (false, WeatherResult);
 			}

@@ -40,7 +40,13 @@ namespace Assistant.PushBulletNotifications {
 			BulletClient = new PushBulletClient(AccessToken);
 			CachedPushDevices = BulletClient.GetCurrentDevices();
 
-			return (false, null);
+			if (CachedPushDevices == null) {
+				Logger.Log("Failed to load PushBullet serivce.", LogLevels.Warn);
+				return (false, CachedPushDevices);
+			}
+
+			Logger.Log("Loaded PushBullet service.");
+			return (true, CachedPushDevices);
 		}
 	}
 }
