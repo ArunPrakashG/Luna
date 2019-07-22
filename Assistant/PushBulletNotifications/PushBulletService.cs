@@ -3,6 +3,7 @@ using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.PushBulletNotifications.ApiResponse;
 using Assistant.PushBulletNotifications.Exceptions;
+using Assistant.PushBulletNotifications.Parameters;
 using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.PushBulletNotifications {
@@ -11,6 +12,8 @@ namespace Assistant.PushBulletNotifications {
 		public PushBulletClient BulletClient { get; private set; }
 		public UserDeviceList CachedPushDevices { get; private set; }
 		private string AccessToken { get; set; }
+		public bool IsBroadcastServiceOnline { get; set; }
+		private PushMessageValues PreviousBroadcastMessage { get; set; } = new PushMessageValues();
 
 		public PushBulletService(string accessToken) {
 			if (!Helpers.IsNullOrEmpty(accessToken)) {
@@ -30,7 +33,6 @@ namespace Assistant.PushBulletNotifications {
 			}
 		}
 
-		//TODO: init service
 		public (bool status, UserDeviceList currentPushDevices) InitPushService() {
 			if (!Core.IsNetworkAvailable) {
 				Logger.Log("No internet connection available. cannot connect to PushBullet API.", LogLevels.Error);
@@ -38,7 +40,19 @@ namespace Assistant.PushBulletNotifications {
 			}
 
 			BulletClient = new PushBulletClient(AccessToken);
-			CachedPushDevices = BulletClient.GetCurrentDevices();
+
+			try {
+				CachedPushDevices = BulletClient.GetCurrentDevices();
+			}
+			catch (RequestFailedException) {
+				Logger.Log("Request to the api failed", LogLevels.Warn);
+				return (false, CachedPushDevices);
+			}
+			catch (IncorrectAccessTokenException) {
+				Logger.Log("The specified access token is invalid", LogLevels.Warn);
+				return (false, CachedPushDevices);
+			}
+			
 
 			if (CachedPushDevices == null) {
 				Logger.Log("Failed to load PushBullet serivce.", LogLevels.Warn);
@@ -46,7 +60,43 @@ namespace Assistant.PushBulletNotifications {
 			}
 
 			Logger.Log("Loaded PushBullet service.");
+			IsBroadcastServiceOnline = true;
 			return (true, CachedPushDevices);
+		}
+
+		public (bool broadcastStatus, PushNote response) BroadcastMessage(PushMessageValues broadcastValue) {
+			if (!IsBroadcastServiceOnline) {
+				return (false, null);
+			}
+
+			if (PreviousBroadcastMessage.Equals(broadcastValue)) {
+				return (false, null);
+			}
+
+			if (broadcastValue == null) {
+				Logger.Log("Cannot broadcast as the required values are empty.", LogLevels.Warn);
+				return (false, null);
+			}
+
+			PreviousBroadcastMessage = broadcastValue;
+			PushNote pushResponse;
+			try {
+				pushResponse = BulletClient.SendPush(broadcastValue);
+			}
+			catch (ParameterValueIsNullException) {
+				Logger.Log("Parameter value is null.", LogLevels.Warn);
+				return (false, null);
+			}
+			catch (ResponseIsNullException) {
+				Logger.Log("The api response is null", LogLevels.Warn);
+				return (false, null);
+			}
+			catch (RequestFailedException) {
+				Logger.Log("Request to the api failed", LogLevels.Warn);
+				return (false, null);
+			}
+
+			return (true, pushResponse);
 		}
 	}
 }

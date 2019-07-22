@@ -41,9 +41,6 @@ namespace Assistant.Weather {
 		public float WindDegree { get; set; }
 
 		[JsonProperty]
-		public float Rain3h { get; set; }
-
-		[JsonProperty]
 		public float Clouds { get; set; }
 
 		[JsonProperty]

@@ -1,9 +1,9 @@
-using Assistant.PushBulletNotifications.ApiResponse;
-using Assistant.PushBulletNotifications.Exceptions;
-using Assistant.PushBulletNotifications.Parameters;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
+using Assistant.PushBulletNotifications.ApiResponse;
+using Assistant.PushBulletNotifications.Exceptions;
+using Assistant.PushBulletNotifications.Parameters;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
@@ -53,12 +53,13 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
+			Logger.Log("Fetched all devices!");
 			return DeserializeJsonObject<UserDeviceList>(response);
 		}
 
-		public PushNote SendPush(SendPushParams sendPushParams) {
-			if (sendPushParams == null) {
-				throw new ParameterValueIsNullException("sendPushParams value is null.");
+		public PushNote SendPush(PushMessageValues pushMessageValues) {
+			if (pushMessageValues == null) {
+				throw new ParameterValueIsNullException("pushMessageValues value is null.");
 			}
 
 			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
@@ -69,28 +70,28 @@ namespace Assistant.PushBulletNotifications {
 			Dictionary<string, string> queryString = new Dictionary<string, string>();
 			Dictionary<string, string> bodyParams = new Dictionary<string, string>();
 
-			switch (sendPushParams.PushTarget) {
+			switch (pushMessageValues.PushTarget) {
 				case PushTarget.Device:
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
-						queryString.Add("device_iden", sendPushParams.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
+						queryString.Add("device_iden", pushMessageValues.PushTargetValue);
 					}
 
 					break;
 				case PushTarget.Client:
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
-						queryString.Add("client_iden", sendPushParams.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
+						queryString.Add("client_iden", pushMessageValues.PushTargetValue);
 					}
 
 					break;
 				case PushTarget.Email:
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
-						queryString.Add("email", sendPushParams.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
+						queryString.Add("email", pushMessageValues.PushTargetValue);
 					}
 
 					break;
 				case PushTarget.Channel:
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTargetValue)) {
-						queryString.Add("channel_tag", sendPushParams.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
+						queryString.Add("channel_tag", pushMessageValues.PushTargetValue);
 					}
 
 					break;
@@ -99,49 +100,49 @@ namespace Assistant.PushBulletNotifications {
 					break;
 			}
 
-			switch (sendPushParams.PushType) {
+			switch (pushMessageValues.PushType) {
 				case PushType.Note:
 					bodyParams.Add("type", "note");
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTitle)) {
-						bodyParams.Add("title", sendPushParams.PushTitle);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTitle)) {
+						bodyParams.Add("title", pushMessageValues.PushTitle);
 					}
 
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushBody)) {
-						bodyParams.Add("body", sendPushParams.PushBody);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushBody)) {
+						bodyParams.Add("body", pushMessageValues.PushBody);
 					}
 
 					break;
 				case PushType.Link:
 					bodyParams.Add("type", "link");
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushTitle)) {
-						bodyParams.Add("title", sendPushParams.PushTitle);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTitle)) {
+						bodyParams.Add("title", pushMessageValues.PushTitle);
 					}
 
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushBody)) {
-						bodyParams.Add("body", sendPushParams.PushBody);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushBody)) {
+						bodyParams.Add("body", pushMessageValues.PushBody);
 					}
 
-					if (!Helpers.IsNullOrEmpty(sendPushParams.LinkUrl)) {
-						bodyParams.Add("url", sendPushParams.LinkUrl);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.LinkUrl)) {
+						bodyParams.Add("url", pushMessageValues.LinkUrl);
 					}
 
 					break;
 				case PushType.File:
 					bodyParams.Add("type", "file");
-					if (!Helpers.IsNullOrEmpty(sendPushParams.FileName)) {
-						bodyParams.Add("file_name", sendPushParams.FileName);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.FileName)) {
+						bodyParams.Add("file_name", pushMessageValues.FileName);
 					}
 
-					if (!Helpers.IsNullOrEmpty(sendPushParams.FileType)) {
-						bodyParams.Add("file_type", sendPushParams.FileType);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.FileType)) {
+						bodyParams.Add("file_type", pushMessageValues.FileType);
 					}
 
-					if (!Helpers.IsNullOrEmpty(sendPushParams.FileUrl)) {
-						bodyParams.Add("file_url ", sendPushParams.FileUrl);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.FileUrl)) {
+						bodyParams.Add("file_url", pushMessageValues.FileUrl);
 					}
 
-					if (!Helpers.IsNullOrEmpty(sendPushParams.PushBody)) {
-						bodyParams.Add("body ", sendPushParams.PushBody);
+					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushBody)) {
+						bodyParams.Add("body", pushMessageValues.PushBody);
 					}
 
 					break;
@@ -149,7 +150,7 @@ namespace Assistant.PushBulletNotifications {
 					throw new InvalidRequestException();
 			}
 
-			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.POST, queryString, bodyParams);
+			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.POST, true, queryString, bodyParams);
 
 			if (!requestStatus) {
 				throw new RequestFailedException();
@@ -159,6 +160,7 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
+			Logger.Log("Push notification send!", LogLevels.Trace);
 			return DeserializeJsonObject<PushNote>(response);
 		}
 
@@ -178,6 +180,7 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
+			Logger.Log("Fetched all subscriptions!");
 			return DeserializeJsonObject<ListSubscriptions>(response);
 		}
 
@@ -201,19 +204,17 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
-			PushEnums.PushDeleteStatusCode statusCode;
+			PushDeleteStatusCode statusCode;
 
 			try {
 				DeletePush pushResponse = JsonConvert.DeserializeObject<DeletePush>(response);
-				if (pushResponse.ErrorReason.Message.Equals("Object not found", StringComparison.OrdinalIgnoreCase)) {
-					statusCode = PushEnums.PushDeleteStatusCode.ObjectNotFound;
-				}
-				else {
-					statusCode = PushEnums.PushDeleteStatusCode.Unknown;
-				}
+				statusCode = pushResponse.ErrorReason.Message.Equals("Object not found", StringComparison.OrdinalIgnoreCase)
+					? PushDeleteStatusCode.ObjectNotFound
+					: PushDeleteStatusCode.Unknown;
 			}
 			catch (Exception) {
-				statusCode = PushEnums.PushDeleteStatusCode.Success;
+				Logger.Log("Deleted a push notification!");
+				statusCode = PushDeleteStatusCode.Success;
 			}
 
 			return statusCode;
@@ -229,7 +230,7 @@ namespace Assistant.PushBulletNotifications {
 			}
 
 			string requestUrl = "https://api.pushbullet.com/v2/pushes";
-			var paramsValue = new Dictionary<string, string>();
+			Dictionary<string, string> paramsValue = new Dictionary<string, string>();
 
 			if (!Helpers.IsNullOrEmpty(listPushParams.Cursor)) {
 				paramsValue.Add("cursor", listPushParams.Cursor);
@@ -239,7 +240,7 @@ namespace Assistant.PushBulletNotifications {
 				paramsValue.Add("modified_after", listPushParams.ModifiedAfter);
 			}
 
-			if(listPushParams.MaxResults > 0) {
+			if (listPushParams.MaxResults > 0) {
 				paramsValue.Add("limit", listPushParams.MaxResults.ToString());
 			}
 
@@ -247,7 +248,7 @@ namespace Assistant.PushBulletNotifications {
 				paramsValue.Add("active", listPushParams.ActiveOnly.ToString().ToLower());
 			}
 
-			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET, paramsValue);
+			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET, false, paramsValue);
 
 			if (!requestStatus) {
 				throw new RequestFailedException();
@@ -257,22 +258,59 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
+			Logger.Log("Fetched all push notifications!");
 			return DeserializeJsonObject<ListPushes>(response);
+		}
+
+		public ChannelInfo GetChannelInfo(string channelTag) {
+			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
+				throw new IncorrectAccessTokenException(ClientAccessToken);
+			}
+
+			if (Helpers.IsNullOrEmpty(channelTag)) {
+				throw new ParameterValueIsNullException("channelTag is null");
+			}
+
+			string requestUrl = "https://api.pushbullet.com/v2/channel-info";
+			Dictionary<string, string> paramValues = new Dictionary<string, string> {
+				{ "tag", channelTag }
+			};
+
+			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET, false, paramValues);
+
+			if (!requestStatus) {
+				throw new RequestFailedException();
+			}
+
+			if (Helpers.IsNullOrEmpty(response)) {
+				throw new ResponseIsNullException();
+			}
+
+			Logger.Log("Fetched channel information!");
+			return DeserializeJsonObject<ChannelInfo>(response);
 		}
 
 		private T DeserializeJsonObject<T>(string jsonObject) => Helpers.IsNullOrEmpty(jsonObject) ? throw new ResponseIsNullException() : JsonConvert.DeserializeObject<T>(jsonObject);
 
-		private (bool, string) FetchApiResponse(string requestUrl, Method executionMethod = Method.GET, Dictionary<string, string> queryParams = null, Dictionary<string, string> bodyContents = null) {
+		private (bool, string) FetchApiResponse(string requestUrl, Method executionMethod = Method.GET, bool contentTypeUrlEncoded = false, Dictionary<string, string> queryParams = null, Dictionary<string, string> bodyContents = null) {
 			if (Helpers.IsNullOrEmpty(requestUrl)) {
 				Logger.Log("The specified request url is either null or empty.", LogLevels.Warn);
 				return (false, null);
 			}
 
+			if (!Core.IsNetworkAvailable) {
+				throw new RequestFailedException("No internet connectivity");
+			}
+
 			RestClient client = new RestClient(requestUrl);
 			RestRequest request = new RestRequest(executionMethod);
 			request.AddHeader("Access-Token", ClientAccessToken);
-			request.AddHeader("Content-Type", "application/json");
-			if (queryParams != null || queryParams.Count > 0) {
+
+			if (contentTypeUrlEncoded) {
+				request.AddHeader("content-type", "application/x-www-form-urlencoded");
+			}
+
+			if (queryParams != null && queryParams?.Count > 0) {
 				foreach (KeyValuePair<string, string> param in queryParams) {
 					if (!Helpers.IsNullOrEmpty(param.Key) && !Helpers.IsNullOrEmpty(param.Value)) {
 						request.AddQueryParameter(param.Key, param.Value);
@@ -280,10 +318,10 @@ namespace Assistant.PushBulletNotifications {
 				}
 			}
 
-			if (bodyContents != null && bodyContents.Count > 0) {
+			if (bodyContents != null && bodyContents?.Count > 0) {
 				foreach (KeyValuePair<string, string> body in bodyContents) {
 					if (!Helpers.IsNullOrEmpty(body.Key) && !Helpers.IsNullOrEmpty(body.Value)) {
-						request.AddParameter(body.Key, body.Value, ParameterType.RequestBody);
+						request.AddParameter(body.Key, body.Value, ParameterType.GetOrPost);
 					}
 				}
 			}

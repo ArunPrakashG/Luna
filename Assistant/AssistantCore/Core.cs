@@ -1,4 +1,10 @@
+using Assistant.Extensions;
 using Assistant.Geolocation;
+using Assistant.Log;
+using Assistant.Modules;
+using Assistant.PushBulletNotifications;
+using Assistant.Server;
+using Assistant.Update;
 using Assistant.Weather;
 using CommandLine;
 using System;
@@ -8,12 +14,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.Extensions;
-using Assistant.Log;
-using Assistant.Modules;
-using Assistant.PushBulletNotifications;
-using Assistant.Server;
-using Assistant.Update;
+using Assistant.PushBulletNotifications.ApiResponse;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
@@ -137,6 +138,11 @@ namespace Assistant.AssistantCore {
 				ConfigWatcher.InitConfigWatcher();
 				ParseStartupArguments(args);
 				PushBulletService = new PushBulletService(Config.PushBulletApiKey);
+				(bool status, UserDeviceList currentPushDevices) = PushBulletService.InitPushService();
+
+				if (status) {
+					Logger.Log("Push bullet service started.", Enums.LogLevels.Trace);
+				}
 
 				if (!Helpers.IsRaspberryEnvironment() || Helpers.GetOsPlatform() != OSPlatform.Linux) {
 					DisablePiMethods = true;
@@ -361,7 +367,6 @@ namespace Assistant.AssistantCore {
 							else {
 								Logger.Log("Zip code locater test failed.", Enums.LogLevels.Warn);
 							}
-
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
 						}
 						return;

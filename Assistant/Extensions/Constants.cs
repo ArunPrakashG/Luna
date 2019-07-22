@@ -27,7 +27,8 @@ namespace Assistant.Extensions {
 		public const string UpdateZipFileName = @"Latest.zip";
 		public const string GitHubUserID = "SynergyFTW";
 		public const string VariablesPath = "Variables.txt";
-		public const string GitHubProjectName = nameof(Assistant);
+		public const string GitHubProjectName = "HomeAssistant";
+		public const string AssistantPushBulletChannelName = "assistantcontroller";
 		public const string GmailHost = "imap.gmail.com";
 		public const string SMTPHost = "smtp.mailserver.com";
 		public const int SMPTPort = 465;

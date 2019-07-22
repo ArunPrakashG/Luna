@@ -23,7 +23,6 @@ namespace Assistant.Server {
 			}
 
 			Logger.Log("Starting Kestrel IPC server...");
-			IPAddress address = IPAddress.Parse(Core.Config.KestrelServerUrl);
 			IWebHostBuilder builder = new WebHostBuilder();
 			string absoluteConfigDirectory = Path.Combine(Directory.GetCurrentDirectory(), Constants.ConfigDirectory);
 			builder.ConfigureLogging(logging => logging.SetMinimumLevel(Core.Config.Debug ? LogLevel.Trace : LogLevel.Warning));
@@ -35,7 +34,7 @@ namespace Assistant.Server {
 			}
 			else {
 				builder.UseKestrel(options => {
-					options.Listen(address, Core.Config.KestrelServerPort);
+					options.ListenAnyIP(Core.Config.KestrelServerPort);
 				});
 			}
 

@@ -44,7 +44,6 @@ namespace Assistant.Weather {
 				WeatherResult.Clouds = response.clouds.all;
 				WeatherResult.TimeZone = response.timezone;
 				WeatherResult.LocationName = response.name;
-				WeatherResult.Rain3h = response.rain._3h;
 				Logger.Log("Assigined weather info values", LogLevels.Trace);
 				return (true, WeatherResult);
 			}

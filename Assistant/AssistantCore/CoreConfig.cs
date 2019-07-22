@@ -22,9 +22,11 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
 
-		[JsonProperty] public string KestrelServerUrl { get; set; } = "http://*";
+		[JsonProperty] public string KestrelServerUrl { get; set; } = "http://localhost";
 
 		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
+
+		[JsonProperty] public bool PushBulletLogging { get; set; } = true;
 
 		[JsonProperty] public int TCPServerPort { get; set; } = 6060;
 

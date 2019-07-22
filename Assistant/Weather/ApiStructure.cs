@@ -7,7 +7,6 @@ namespace Assistant.Weather {
 			public string _base { get; set; }
 			public Main main { get; set; }
 			public Wind wind { get; set; }
-			public Rain rain { get; set; }
 			public Clouds clouds { get; set; }
 			public int dt { get; set; }
 			public Sys sys { get; set; }
@@ -35,10 +34,6 @@ namespace Assistant.Weather {
 		public class Wind {
 			public float speed { get; set; }
 			public float deg { get; set; }
-		}
-
-		public class Rain {
-			public float _3h { get; set; }
 		}
 
 		public class Clouds {

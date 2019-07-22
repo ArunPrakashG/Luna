@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Modules.Interfaces;
+using Assistant.PushBulletNotifications;
+using Assistant.PushBulletNotifications.Parameters;
 using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Log {
@@ -63,6 +65,15 @@ namespace Assistant.Log {
 			}
 
 			LogModule.Info($"{message}");
+
+			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
+				Core.PushBulletService.BroadcastMessage(new PushMessageValues() {
+					PushTarget = PushEnums.PushTarget.All,
+					PushTitle = $"{Core.AssistantName} [INFO] LOG",
+					PushType = PushEnums.PushType.Note,
+					PushBody = $"{previousMethodName}() " + message
+				});
+			}
 		}
 
 		private void LogGenericTrace(string message, [CallerMemberName] string previousMethodName = null) {
@@ -73,6 +84,14 @@ namespace Assistant.Log {
 
 			if (Core.Config.Debug) {
 				LogGenericInfo($"{previousMethodName}() " + message, previousMethodName);
+				if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
+					Core.PushBulletService.BroadcastMessage(new PushMessageValues() {
+						PushTarget = PushEnums.PushTarget.All,
+						PushTitle = $"{Core.AssistantName} [DEBUG | TRACE] LOG",
+						PushType = PushEnums.PushType.Note,
+						PushBody = $"{previousMethodName}() " + message
+					});
+				}
 			}
 			else {
 				LogModule.Trace($"{previousMethodName}() {message}");
@@ -96,7 +115,7 @@ namespace Assistant.Log {
 			LogGenericError($"{nullObjectName} | Object is null!", previousMethodName);
 		}
 
-		public void Log(Exception e, Enums.LogLevels level = Enums.LogLevels.Error, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+		public void Log(Exception e, LogLevels level = LogLevels.Error, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
 			switch (level) {
 				case Enums.LogLevels.Error:
 					if (Core.Config.Debug) {
@@ -123,7 +142,7 @@ namespace Assistant.Log {
 			}
 		}
 
-		public void Log(string message, Enums.LogLevels level = Enums.LogLevels.Info, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
 			switch (level) {
 				case Enums.LogLevels.Trace:
 					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] {message}", previousMethodName);
