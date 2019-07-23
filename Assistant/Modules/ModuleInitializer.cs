@@ -216,16 +216,8 @@ namespace Assistant.Modules {
 						Logger.Log("Finished loading [STEAM] modules.", Enums.LogLevels.Trace);
 					}
 
-					if (Load<IGoogleMap>(Enums.ModulesContext.GoogleMap)) {
-						Logger.Log("Finished loading [GOOGLE MAP] modules.", Enums.LogLevels.Trace);
-					}
-
 					if (Load<IYoutubeClient>(Enums.ModulesContext.Youtube)) {
 						Logger.Log("Finished loading [YOUTUBE] modules.", Enums.LogLevels.Trace);
-					}
-
-					if (Load<IMiscModule>(Enums.ModulesContext.Misc)) {
-						Logger.Log("Finished loading [MISC] modules.", Enums.LogLevels.Trace);
 					}
 
 					break;

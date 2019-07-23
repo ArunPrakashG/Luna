@@ -22,7 +22,7 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
 
-		[JsonProperty] public string KestrelServerUrl { get; set; } = "http://localhost";
+		[JsonProperty] public string KestrelServerUrl { get; set; } = "http://localhost:9090";
 
 		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
 
@@ -33,8 +33,6 @@ namespace Assistant.AssistantCore {
 		[JsonProperty] public bool TCPServer { get; set; } = true;
 
 		[JsonProperty] public bool KestrelServer { get; set; } = true;
-
-		[JsonProperty] public int KestrelServerPort { get; set; } = 9090;
 
 		[JsonProperty] public bool GPIOSafeMode { get; set; } = false;
 
@@ -209,7 +207,6 @@ namespace Assistant.AssistantCore {
 				hashCode = (hashCode * 397) ^ CloseRelayOnShutdown.GetHashCode();
 				hashCode = (hashCode * 397) ^ ServerAuthCode;
 				hashCode = (hashCode * 397) ^ TCPServerPort;
-				hashCode = (hashCode * 397) ^ KestrelServerPort;
 				hashCode = (hashCode * 397) ^ (OwnerEmailAddress != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(OwnerEmailAddress) : 0);
 				hashCode = (hashCode * 397) ^ (AssistantEmailId != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailId) : 0);
 				hashCode = (hashCode * 397) ^ (AssistantEmailPassword != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailPassword) : 0);
@@ -239,7 +236,7 @@ namespace Assistant.AssistantCore {
 				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
 				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
 				   CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
-				   TCPServerPort == other.TCPServerPort && KestrelServerPort == other.KestrelServerPort &&
+				   TCPServerPort == other.TCPServerPort &&
 				   string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
 				   string.Equals(AssistantEmailId, other.AssistantEmailId, StringComparison.OrdinalIgnoreCase) &&
 				   string.Equals(AssistantEmailPassword, other.AssistantEmailPassword, StringComparison.OrdinalIgnoreCase) &&

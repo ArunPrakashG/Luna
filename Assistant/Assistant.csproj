@@ -85,12 +85,6 @@
 		<None Update="Modules\EmailModules\Email.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\GoogleMapModules\GoogleMap.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Modules\MiscModules\MiscModule.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
 		<None Update="Modules\SteamModules\Steam.dll">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>

@@ -40,11 +40,9 @@ namespace Assistant.AssistantCore {
 		public enum ModulesContext {
 			Email,
 			Discord,
-			GoogleMap,
 			Steam,
 			Youtube,
 			Logger,
-			Misc,
 			Default
 		}
 

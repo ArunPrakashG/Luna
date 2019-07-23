@@ -272,7 +272,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		private static void SetConsoleTitle() {
-			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Constants.LocalIP}:{Config.KestrelServerPort} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
+			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Config.KestrelServerUrl} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
 			if (RefreshConsoleTitleTimer == null) {
 				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
