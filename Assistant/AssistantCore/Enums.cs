@@ -12,8 +12,6 @@ namespace Assistant.AssistantCore {
 		public enum ModuleLoaderContext : byte {
 			EmailClients,
 			DiscordClients,
-			GoogleMaps,
-			MiscModules,
 			SteamClients,
 			YoutubeClients,
 			Logger,
@@ -94,6 +92,13 @@ namespace Assistant.AssistantCore {
 			AssistantShutdown,
 			NewEmaiNotification,
 			Custom
+		}
+
+		public enum ModuleType {
+			Discord,
+			Email,
+			Steam,
+			Youtube
 		}
 
 		public enum KeywordType {

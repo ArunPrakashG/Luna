@@ -3,6 +3,7 @@ using Assistant.Modules.Interfaces;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Assistant.AssistantCore;
 using VideoLibrary;
 
 namespace Youtube {
@@ -14,7 +15,7 @@ namespace Youtube {
 
 		public bool RequiresInternetConnection { get; set; }
 
-		public long ModuleIdentifier { get; set; }
+		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
 
 		public Version ModuleVersion { get; } = new Version("4.9.0.0");
 

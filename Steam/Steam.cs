@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Assistant.AssistantCore;
 using static Assistant.AssistantCore.Enums;
 
 namespace Steam {
@@ -25,7 +26,7 @@ namespace Steam {
 		public string BotConfigDirectory { get; set; } = Constants.ConfigDirectory + "/SteamBots/";
 		public string SteamConfigPath { get; set; } = Constants.ConfigDirectory + "/SteamConfig.json";
 
-		public long ModuleIdentifier { get; set; }
+		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
 
 		public Version ModuleVersion { get; } = new Version("3.0.0.0");
 

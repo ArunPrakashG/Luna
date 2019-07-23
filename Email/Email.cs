@@ -21,7 +21,7 @@ namespace Email {
 
 		public bool RequiresInternetConnection { get; set; }
 
-		public long ModuleIdentifier { get; set; }
+		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
 
 		public Version ModuleVersion { get; set; } = new Version("5.0.0.0");
 

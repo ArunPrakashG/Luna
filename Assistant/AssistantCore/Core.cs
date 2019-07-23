@@ -95,6 +95,10 @@ namespace Assistant.AssistantCore {
 		public static string AssistantName { get; set; } = "TESS";
 
 		public static async Task<bool> InitCore(string[] args) {
+			if (File.Exists(Constants.TraceLogPath)) {
+				File.Delete(Constants.TraceLogPath);
+			}
+
 			Logger = new Logger("ASSISTANT");
 			Logger.Log("Loading core config...", Enums.LogLevels.Trace);
 			try {
@@ -373,7 +377,7 @@ namespace Assistant.AssistantCore {
 
 					case Constants.ConsoleModuleShutdownKey when !ModuleLoader.LoadedModules.IsModulesEmpty && Config.EnableModules: {
 							Logger.Log("Shutting down all modules...", Enums.LogLevels.Warn);
-							await ModuleLoader.OnCoreShutdown().ConfigureAwait(false);
+							ModuleLoader.OnCoreShutdown();
 						}
 						return;
 
@@ -825,7 +829,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			if (ModuleLoader != null) {
-				_ = await ModuleLoader.OnCoreShutdown().ConfigureAwait(false);
+				ModuleLoader.OnCoreShutdown();
 			}
 
 			if (Controller != null) {

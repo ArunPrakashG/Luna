@@ -95,12 +95,6 @@ namespace Assistant.AssistantCore {
 			else if (t.Equals("EmailClients", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.EmailClients;
 			}
-			else if (t.Equals("GoogleMapModules", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.GoogleMaps;
-			}
-			else if (t.Equals("MiscModules", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.MiscModules;
-			}
 			else if (t.Equals("SteamClients", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.SteamClients;
 			}

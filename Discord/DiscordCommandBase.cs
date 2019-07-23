@@ -17,7 +17,7 @@ namespace Discord {
 		private bool IsAllowed(ulong id) {
 			if (OwnerID == 0 && Core.ModuleLoader != null && Core.ModuleLoader.LoadedModules != null &&
 				Core.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
-				foreach ((long, Assistant.Modules.Interfaces.IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
+				foreach (((Enums.ModuleType, string), Assistant.Modules.Interfaces.IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
 					if (bot.Item1.Equals(Discord.ModuleIdentifierInternal)) {
 						OwnerID = bot.Item2.BotConfig.DiscordOwnerID;
 					}

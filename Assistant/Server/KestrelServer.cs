@@ -1,3 +1,6 @@
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -5,16 +8,12 @@ using NLog.Web;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using System.Net;
-using Assistant.AssistantCore;
-using Assistant.Extensions;
-using Assistant.Log;
 
 namespace Assistant.Server {
 
 	public static class KestrelServer {
 		private static IWebHost KestrelWebHost;
-		private static readonly Logger Logger = new Logger("KESTREL");
+		private static readonly Logger Logger = new Logger("KESTREL-SERVER");
 		public static bool IsServerOnline;
 
 		public static async Task Start() {
@@ -22,20 +21,29 @@ namespace Assistant.Server {
 				return;
 			}
 
-			Logger.Log("Starting Kestrel IPC server...");
+			Logger.Log("Starting Kestrel IPC server...", Enums.LogLevels.Trace);
 			IWebHostBuilder builder = new WebHostBuilder();
 			string absoluteConfigDirectory = Path.Combine(Directory.GetCurrentDirectory(), Constants.ConfigDirectory);
 			builder.ConfigureLogging(logging => logging.SetMinimumLevel(Core.Config.Debug ? LogLevel.Trace : LogLevel.Warning));
 			if (File.Exists(Path.Combine(absoluteConfigDirectory, Constants.KestrelConfigurationFile))) {
 				builder.UseConfiguration(new ConfigurationBuilder().SetBasePath(absoluteConfigDirectory).AddJsonFile(Constants.KestrelConfigurationFile, false, true).Build());
 				builder.UseKestrel((builderContext, options) => options.Configure(builderContext.Configuration.GetSection("Kestrel")));
-				builder.UseUrls($"{Core.Config.KestrelServerUrl}:{Core.Config.KestrelServerPort}");
+				if (Helpers.IsNullOrEmpty(Core.Config.KestrelServerUrl)) {
+					builder.UseUrls("http://localhost:9090");
+				}
+				else {
+					builder.UseUrls(Core.Config.KestrelServerUrl);
+				}
 				builder.ConfigureLogging((hostingContext, logging) => logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging")));
 			}
 			else {
-				builder.UseKestrel(options => {
-					options.ListenAnyIP(Core.Config.KestrelServerPort);
-				});
+				builder.UseKestrel();
+				if (Helpers.IsNullOrEmpty(Core.Config.KestrelServerUrl)) {
+					builder.UseUrls("http://localhost:9090");
+				}
+				else {
+					builder.UseUrls(Core.Config.KestrelServerUrl);
+				}
 			}
 
 			builder.UseNLog();
@@ -54,7 +62,12 @@ namespace Assistant.Server {
 
 			KestrelWebHost = kestrelWebHost;
 			IsServerOnline = true;
-			Logger.Log($"Kestrel server is running at http://localhost:{Core.Config.KestrelServerPort}/");
+			if (Helpers.IsNullOrEmpty(Core.Config.KestrelServerUrl)) {
+				Logger.Log($"Kestrel server is running at http://localhost:9090/");
+			}
+			else {
+				Logger.Log($"Kestrel server is running at {Core.Config.KestrelServerUrl}");
+			}
 		}
 
 		public static async Task Stop() {

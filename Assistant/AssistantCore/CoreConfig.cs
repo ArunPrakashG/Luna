@@ -63,10 +63,6 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool MuteAssistant { get; set; } = false;
 
-		[JsonProperty] public bool EnableGoogleMapModules { get; set; } = true;
-
-		[JsonProperty] public bool EnableYoutubeModules { get; set; } = true;
-
 		[JsonProperty] public string OpenWeatherApiKey { get; set; } = null;
 
 		[JsonProperty] public string PushBulletApiKey { get; set; } = null;

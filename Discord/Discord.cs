@@ -28,13 +28,13 @@ namespace Discord {
 
 		public IDiscordBotConfig BotConfig { get; set; }
 
-		public long ModuleIdentifier { get; set; }
+		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
 
 		public Version ModuleVersion { get; } = new Version("5.0.0.0");
 
 		public string ModuleAuthor { get; } = "Arun Prakash";
 
-		public static long ModuleIdentifierInternal { get; private set; }
+		public static (Enums.ModuleType, string) ModuleIdentifierInternal { get; private set; }
 
 		public Discord() {
 			Client = new DiscordSocketClient(new DiscordSocketConfig {

@@ -1,4 +1,5 @@
 using System;
+using Assistant.AssistantCore;
 
 namespace Assistant.Modules.Interfaces {
 
@@ -7,7 +8,7 @@ namespace Assistant.Modules.Interfaces {
 		///<summary>
 		/// Identifier for the Module.
 		///</summary>
-		long ModuleIdentifier { get; set; }
+		(Enums.ModuleType, string) ModuleIdentifier { get; set; }
 
 		///<summary>
 		/// Specifies if the module requires a stable constant internet connection to function.
