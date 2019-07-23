@@ -1,3 +1,5 @@
+using Assistant.AssistantCore;
+using Assistant.Log;
 using Figgle;
 using RestSharp;
 using System;
@@ -12,8 +14,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.AssistantCore;
-using Assistant.Log;
 using Unosquare.RaspberryIO;
 using static Assistant.AssistantCore.Enums;
 using ProcessThread = System.Diagnostics.ProcessThread;
@@ -27,7 +27,7 @@ namespace Assistant.Extensions {
 		private static string FileSeperator { get; set; } = @"\";
 
 		public static void InBackgroundThread(Action action) {
-			if(action == null) {
+			if (action == null) {
 				Logger.Log("Action is null.", Enums.LogLevels.Warn);
 				return;
 			}
@@ -74,16 +74,16 @@ namespace Assistant.Extensions {
 			return OSPlatform.Linux;
 		}
 
-		public static float GenerateTaskIdentifier(Random prng){
-			var sign = prng.Next(2);
-			var exponent = prng.Next((1 << 8) - 1);
-			var mantissa = prng.Next(1 << 23);
-			var bits = (sign << 31) + (exponent << 23) + mantissa;
+		public static float GenerateTaskIdentifier(Random prng) {
+			int sign = prng.Next(2);
+			int exponent = prng.Next((1 << 8) - 1);
+			int mantissa = prng.Next(1 << 23);
+			int bits = (sign << 31) + (exponent << 23) + mantissa;
 			return IntBitsToFloat(bits);
 		}
 
-		private static float IntBitsToFloat(int bits){
-			unsafe{
+		private static float IntBitsToFloat(int bits) {
+			unsafe {
 				return *(float*) &bits;
 			}
 		}
@@ -113,7 +113,7 @@ namespace Assistant.Extensions {
 
 			if (TaskSchedulerTimer == null) {
 				TaskSchedulerTimer = new Timer(e => {
-					if(!structure.MarkAsFinsihed){
+					if (!structure.MarkAsFinsihed) {
 						InBackground(() => structure.Task, longrunning);
 					}
 
@@ -251,7 +251,7 @@ namespace Assistant.Extensions {
 				Logger.Log("The specified text is empty or null", Enums.LogLevels.Warn);
 				return;
 			}
-			
+
 			Logger.Log(FiggleFonts.Ogre.Render(text), Enums.LogLevels.Ascii);
 		}
 
@@ -637,9 +637,42 @@ namespace Assistant.Extensions {
 		public static void CheckMultipleProcess() {
 			string RunningProcess = Process.GetCurrentProcess().ProcessName;
 			Process[] processes = Process.GetProcessesByName(RunningProcess);
+
 			if (processes.Length > 1) {
-				Logger.Log("Exiting current process as another instance of same application is running...");
-				Process.GetCurrentProcess().Kill();
+				while (true) {
+					Logger.Log("There are multiple instance of current program running.", LogLevels.Warn);
+					Logger.Log("> Press Y to close them and continue executing current process.");
+					Logger.Log("> Press N to close current process and continue with the others.");
+
+					char input = Console.ReadKey().KeyChar;
+
+					switch (input) {
+						case 'y': {
+							int procCounter = 0;
+								foreach (Process proc in processes) {
+									if (proc.Id != Process.GetCurrentProcess().Id) {
+										proc.Kill();
+										procCounter++;
+										Logger.Log($"Killed {procCounter} processes.", LogLevels.Warn);
+									}
+								}
+								return;
+							}
+
+						case 'n': {
+								Logger.Log("Exiting current process as another instance of same application is running...");
+								Process.GetCurrentProcess().Kill();
+								return;
+							}
+
+						default: {
+								Logger.Log("Unknown key pressed... try again!", LogLevels.Warn);
+								continue;
+							}
+					}
+				}
+
+
 			}
 		}
 	}

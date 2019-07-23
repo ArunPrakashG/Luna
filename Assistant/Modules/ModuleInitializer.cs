@@ -276,12 +276,12 @@ namespace Assistant.Modules {
 								if (!IsExisitingModule(loadContext, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.DiscordBots.Add((uniqueId, plugin));
-										Logger.Log($"Load successfull. [DISCORD] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Trace);
+										Logger.Log($"Load successfull. [DISCORD] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Info);
 										loadedModuleCount++;
 									}
 								}
 								else {
-									Logger.Log($"Cancelled loading [DISCORD] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Trace);
+									Logger.Log($"Cancelled loading [DISCORD] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Info);
 								}
 							}
 							catch (Exception e) {
@@ -305,12 +305,12 @@ namespace Assistant.Modules {
 								if (!IsExisitingModule(loadContext, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.EmailClients.Add((uniqueId, plugin));
-										Logger.Log($"Load successfull. [EMAIL] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Trace);
+										Logger.Log($"Load successfull. [EMAIL] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Info);
 										loadedModuleCount++;
 									}
 								}
 								else {
-									Logger.Log($"Cancelled loading [EMAIL] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Trace);
+									Logger.Log($"Cancelled loading [EMAIL] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Info);
 								}
 							}
 							catch (Exception e) {
@@ -335,12 +335,12 @@ namespace Assistant.Modules {
 								if (!IsExisitingModule(loadContext, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.SteamClients.Add((uniqueId, plugin));
-										Logger.Log($"Load successfull. [STEAM] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Trace);
+										Logger.Log($"Load successfull. [STEAM] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Info);
 										loadedModuleCount++;
 									}
 								}
 								else {
-									Logger.Log($"Cancelled loading [STEAM] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Trace);
+									Logger.Log($"Cancelled loading [STEAM] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Info);
 								}
 							}
 							catch (Exception e) {
@@ -364,12 +364,12 @@ namespace Assistant.Modules {
 								if (!IsExisitingModule(loadContext, plugin)) {
 									if (plugin.InitModuleService()) {
 										LoadedModules.YoutubeClients.Add((uniqueId, plugin));
-										Logger.Log($"Load successfull. [YOUTUBE] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Trace);
+										Logger.Log($"Load successfull. [YOUTUBE] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Info);
 										loadedModuleCount++;
 									}
 								}
 								else {
-									Logger.Log($"Cancelled loading [YOUTUBE] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Trace);
+									Logger.Log($"Cancelled loading [YOUTUBE] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Info);
 								}
 							}
 							catch (Exception e) {
@@ -429,7 +429,7 @@ namespace Assistant.Modules {
 									foreach (IEmailClient bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier(Enums.ModuleType.Email);
 										EmailModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
+										Logger.Log($"Added {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules collection", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -456,7 +456,7 @@ namespace Assistant.Modules {
 									foreach (IYoutubeClient bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier(Enums.ModuleType.Youtube);
 										YoutubeModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
+										Logger.Log($"Added {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules collection", Enums.LogLevels.Trace);
 									}
 								}
 							}
@@ -483,7 +483,7 @@ namespace Assistant.Modules {
 									foreach (ISteamClient bot in hashSet) {
 										bot.ModuleIdentifier = GenerateModuleIdentifier(Enums.ModuleType.Steam);
 										SteamModules.Add((bot.ModuleIdentifier, bot));
-										Logger.Log($"Added bot {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules list", Enums.LogLevels.Trace);
+										Logger.Log($"Added {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules collection", Enums.LogLevels.Trace);
 									}
 								}
 							}
