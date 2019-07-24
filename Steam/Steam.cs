@@ -34,8 +34,8 @@ namespace Steam {
 
 		public (bool, ConcurrentDictionary<string, ISteamBot>) InitSteamBots() {
 			if (!Directory.Exists(BotConfigDirectory)) {
-				Logger.Log("BotConfig directory doesn't exist!", LogLevels.Warn);
-				return (false, new ConcurrentDictionary<string, ISteamBot>());
+				Logger.Log("BotConfig directory doesn't exist!", LogLevels.Trace);
+				return (true, new ConcurrentDictionary<string, ISteamBot>());
 			}
 
 			SteamBotCollection.Clear();
@@ -110,7 +110,7 @@ namespace Steam {
 
 		public List<ISteamBotConfig> LoadSteamBotConfig() {
 			if (!Directory.Exists(BotConfigDirectory)) {
-				Logger.Log("Steam bot config directory doesn't exist!", LogLevels.Warn);
+				Logger.Log("Steam bot config directory doesn't exist!", LogLevels.Trace);
 				return new List<ISteamBotConfig>();
 			}
 
@@ -152,7 +152,7 @@ namespace Steam {
 			}
 
 			if (!File.Exists(SteamConfigPath)) {
-				Logger.Log("Steam config file doesn't exist!", LogLevels.Warn);
+				Logger.Log("Steam config file doesn't exist!", LogLevels.Info);
 				return new SteamConfig();
 			}
 

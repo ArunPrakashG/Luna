@@ -14,9 +14,9 @@ namespace Assistant.AssistantCore {
 			DiscordClients,
 			SteamClients,
 			YoutubeClients,
-			Logger,
-			All,
-			None
+			AllModules,
+			None,
+			CustomModules
 		}
 
 		public enum PiContext : byte {
@@ -35,15 +35,6 @@ namespace Assistant.AssistantCore {
 			SteamParentalPIN,
 			TwoFactorAuthentication,
 			Unknown
-		}
-
-		public enum ModulesContext {
-			Email,
-			Discord,
-			Steam,
-			Youtube,
-			Logger,
-			Default
 		}
 
 		public enum SteamPermissionLevels {
@@ -96,7 +87,8 @@ namespace Assistant.AssistantCore {
 			Discord,
 			Email,
 			Steam,
-			Youtube
+			Youtube,
+			Custom
 		}
 
 		public enum KeywordType {
@@ -153,40 +145,6 @@ namespace Assistant.AssistantCore {
 			LOW
 		}
 
-		public enum PiPinNumber {
-			PIN_1,
-			PIN_2,
-			PIN_3,
-			PIN_4,
-			PIN_5,
-			PIN_6,
-			PIN_7,
-			PIN_8,
-			PIN_9,
-			PIN_10,
-			PIN_11,
-			PIN_12,
-			PIN_13,
-			PIN_14,
-			PIN_15,
-			PIN_16,
-			PIN_17,
-			PIN_18,
-			PIN_19,
-			PIN_20,
-			PIN_21,
-			PIN_22,
-			PIN_23,
-			PIN_24,
-			PIN_25,
-			PIN_26,
-			PIN_27,
-			PIN_28,
-			PIN_29,
-			PIN_30,
-			PIN_31
-		}
-
 		public enum PiState {
 			INPUT = 0,
 			OUTPUT = 1
@@ -201,7 +159,8 @@ namespace Assistant.AssistantCore {
 			GPIO_FAIL = 0x05,
 			STATUS_FAIL = 0x06,
 			PIN_FAIL = 0x07,
-			CONNECTION_FAIL = 0x08
+			CONNECTION_FAIL = 0x08,
+			EXECUTION_FAIL = 0x09
 		}
 	}
 }

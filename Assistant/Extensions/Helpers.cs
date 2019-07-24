@@ -22,7 +22,6 @@ namespace Assistant.Extensions {
 
 	public static class Helpers {
 		private static readonly Logger Logger = new Logger("HELPERS");
-		private static Timer TaskSchedulerTimer;
 
 		private static string FileSeperator { get; set; } = @"\";
 
@@ -106,23 +105,18 @@ namespace Assistant.Extensions {
 				return;
 			}
 
-			if (TaskSchedulerTimer != null) {
-				TaskSchedulerTimer.Dispose();
-				TaskSchedulerTimer = null;
-			}
+			Timer TaskSchedulerTimer = null;
 
-			if (TaskSchedulerTimer == null) {
-				TaskSchedulerTimer = new Timer(e => {
-					if (!structure.MarkAsFinsihed) {
-						InBackground(() => structure.Task, longrunning);
-					}
+			TaskSchedulerTimer = new Timer(e => {
+				if (!structure.MarkAsFinsihed) {
+					InBackground(() => structure.Task, longrunning);
+				}
 
-					if (TaskSchedulerTimer != null) {
-						TaskSchedulerTimer.Dispose();
-						TaskSchedulerTimer = null;
-					}
-				}, null, delay, delay);
-			}
+				if (TaskSchedulerTimer != null) {
+					TaskSchedulerTimer.Dispose();
+					TaskSchedulerTimer = null;
+				}
+			}, null, delay, delay);
 		}
 
 		public static void ScheduleTask(Action action, TimeSpan delay) {
@@ -131,21 +125,16 @@ namespace Assistant.Extensions {
 				return;
 			}
 
-			if (TaskSchedulerTimer != null) {
-				TaskSchedulerTimer.Dispose();
-				TaskSchedulerTimer = null;
-			}
+			Timer TaskSchedulerTimer = null;
 
-			if (TaskSchedulerTimer == null) {
-				TaskSchedulerTimer = new Timer(e => {
-					InBackgroundThread(action, "Task Scheduler");
+			TaskSchedulerTimer = new Timer(e => {
+				InBackgroundThread(action, "Task Scheduler");
 
-					if (TaskSchedulerTimer != null) {
-						TaskSchedulerTimer.Dispose();
-						TaskSchedulerTimer = null;
-					}
-				}, null, delay, delay);
-			}
+				if (TaskSchedulerTimer != null) {
+					TaskSchedulerTimer.Dispose();
+					TaskSchedulerTimer = null;
+				}
+			}, null, delay, delay);
 		}
 
 		public static bool IsSocketConnected(Socket s) {

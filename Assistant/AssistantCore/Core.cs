@@ -841,7 +841,7 @@ namespace Assistant.AssistantCore {
 				Config.SaveConfig(Config);
 			}
 
-			Logger.Log("Finished on exit tasks...", Enums.LogLevels.Trace);
+			Logger.Log("Finished on exit tasks.", Enums.LogLevels.Trace);
 		}
 
 		public static async Task Exit(bool quickShutdown) {

@@ -95,8 +95,13 @@ namespace Discord {
 		}
 
 		public async Task<(bool, IDiscordBot)> RegisterDiscordClient() {
-			if (BotConfig == null || !BotConfig.EnableDiscordBot) {
+			if (BotConfig == null) {
 				return (false, this);
+			}
+
+			if (!BotConfig.EnableDiscordBot) {
+				Logger.Log("Discord client is disabled in discord config.", LogLevels.Info);
+				return (true, this);
 			}
 
 			Logger.Log("Starting discord client...");

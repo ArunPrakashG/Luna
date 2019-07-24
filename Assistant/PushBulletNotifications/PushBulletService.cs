@@ -1,3 +1,4 @@
+using System;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
@@ -52,7 +53,9 @@ namespace Assistant.PushBulletNotifications {
 				Logger.Log("The specified access token is invalid", LogLevels.Warn);
 				return (false, CachedPushDevices);
 			}
-			
+			catch (NullReferenceException) {
+				return (false, CachedPushDevices);
+			}
 
 			if (CachedPushDevices == null) {
 				Logger.Log("Failed to load PushBullet serivce.", LogLevels.Warn);
@@ -93,6 +96,9 @@ namespace Assistant.PushBulletNotifications {
 			}
 			catch (RequestFailedException) {
 				Logger.Log("Request to the api failed", LogLevels.Warn);
+				return (false, null);
+			}
+			catch (NullReferenceException) {
 				return (false, null);
 			}
 

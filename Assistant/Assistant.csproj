@@ -19,6 +19,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Modules\Loggers\**" />
+	  <EmbeddedResource Remove="Modules\Loggers\**" />
+	  <None Remove="Modules\Loggers\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Server\TCPServer.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="ByteSize" Version="2.0.0-beta1" />
 		<PackageReference Include="CommandLineParser" Version="2.5.0" />
 		<PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0">
@@ -113,7 +123,10 @@
 
 	<ItemGroup>
 	  <Folder Include="Config\SteamBots\" />
-	  <Folder Include="Modules\Loggers\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="Server\TCPServer.cs" />
 	</ItemGroup>
 
 	<PropertyGroup>

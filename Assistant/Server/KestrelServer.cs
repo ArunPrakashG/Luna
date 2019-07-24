@@ -39,7 +39,7 @@ namespace Assistant.Server {
 			else {
 				builder.UseKestrel();
 				if (Helpers.IsNullOrEmpty(Core.Config.KestrelServerUrl)) {
-					builder.UseUrls("http://localhost:9090");
+					builder.UseUrls("http://localhost:9090/");
 				}
 				else {
 					builder.UseUrls(Core.Config.KestrelServerUrl);

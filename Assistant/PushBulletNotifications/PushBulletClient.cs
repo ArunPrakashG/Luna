@@ -17,6 +17,8 @@ namespace Assistant.PushBulletNotifications {
 		private readonly Logger Logger = new Logger("PUSH-BULLET-CLIENT");
 		public string ClientAccessToken { get; private set; }
 		public bool IsServiceLoaded { get; private set; }
+		public int ApiFailedCount { get; private set; }
+		public bool RequestInSleepMode { get; private set; }
 
 		public PushBulletClient(string apiKey) {
 			if (Helpers.IsNullOrEmpty(apiKey)) {
@@ -45,6 +47,10 @@ namespace Assistant.PushBulletNotifications {
 			string requestUrl = "https://api.pushbullet.com/v2/devices";
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET);
 
+			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
+				return null;
+			}
+
 			if (!requestStatus) {
 				throw new RequestFailedException();
 			}
@@ -53,7 +59,7 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
-			Logger.Log("Fetched all devices!");
+			Logger.Log("Fetched all devices!", LogLevels.Trace);
 			return DeserializeJsonObject<UserDeviceList>(response);
 		}
 
@@ -152,6 +158,10 @@ namespace Assistant.PushBulletNotifications {
 
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.POST, true, queryString, bodyParams);
 
+			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
+				return null;
+			}
+
 			if (!requestStatus) {
 				throw new RequestFailedException();
 			}
@@ -171,6 +181,10 @@ namespace Assistant.PushBulletNotifications {
 
 			string requestUrl = "https://api.pushbullet.com/v2/subscriptions";
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET);
+
+			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
+				return null;
+			}
 
 			if (!requestStatus) {
 				throw new RequestFailedException();
@@ -195,6 +209,10 @@ namespace Assistant.PushBulletNotifications {
 
 			string requestUrl = "https://api.pushbullet.com/v2/subscriptions";
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.DELETE);
+
+			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
+				return PushDeleteStatusCode.ObjectNotFound;
+			}
 
 			if (!requestStatus) {
 				throw new RequestFailedException();
@@ -250,6 +268,10 @@ namespace Assistant.PushBulletNotifications {
 
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET, false, paramsValue);
 
+			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
+				return null;
+			}
+
 			if (!requestStatus) {
 				throw new RequestFailedException();
 			}
@@ -278,6 +300,10 @@ namespace Assistant.PushBulletNotifications {
 
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET, false, paramValues);
 
+			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
+				return null;
+			}
+
 			if (!requestStatus) {
 				throw new RequestFailedException();
 			}
@@ -300,6 +326,20 @@ namespace Assistant.PushBulletNotifications {
 
 			if (!Core.IsNetworkAvailable) {
 				throw new RequestFailedException("No internet connectivity");
+			}
+
+			if (RequestInSleepMode) {
+				return (false, null);
+			}
+
+			if (ApiFailedCount > 4) {
+				RequestInSleepMode = true;
+				Logger.Log("API requests have failed multiple times. Sleeping for 30 minutes...", LogLevels.Warn);
+				Helpers.ScheduleTask(() => {
+					RequestInSleepMode = false;
+					ApiFailedCount = 0;
+				}, TimeSpan.FromMinutes(30));
+				return (false, null);
 			}
 
 			RestClient client = new RestClient(requestUrl);
@@ -330,6 +370,7 @@ namespace Assistant.PushBulletNotifications {
 
 			if (response.StatusCode != HttpStatusCode.OK) {
 				Logger.Log("Failed to fetch. Status Code: " + response.StatusCode + "/" + response.ResponseStatus, LogLevels.Warn);
+				ApiFailedCount++;
 				return (false, response.Content);
 			}
 

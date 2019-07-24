@@ -39,12 +39,12 @@ namespace Email {
 			}
 
 			if (!ConfigRoot.EnableEmailModule) {
-				Logger.Log("Email module is disabled in config file.", LogLevels.Trace);
-				return (false, new ConcurrentDictionary<string, IEmailBot>());
+				Logger.Log("Email module is disabled in config file.", LogLevels.Info);
+				return (true, new ConcurrentDictionary<string, IEmailBot>());
 			}
 			if (ConfigRoot.EmailDetails.Count <= 0 || !ConfigRoot.EmailDetails.Any()) {
 				Logger.Log("No email IDs found in global config. cannot start Email Module...", LogLevels.Trace);
-				return (false, new ConcurrentDictionary<string, IEmailBot>());
+				return (true, new ConcurrentDictionary<string, IEmailBot>());
 			}
 
 			EmailClientCollection.Clear();

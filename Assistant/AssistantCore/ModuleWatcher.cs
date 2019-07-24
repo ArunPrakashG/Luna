@@ -1,8 +1,8 @@
-using System;
-using System.IO;
 using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.Modules;
+using System;
+using System.IO;
 
 namespace Assistant.AssistantCore {
 
@@ -46,9 +46,7 @@ namespace Assistant.AssistantCore {
 			Logger.Log("Module watcher started sucessfully!");
 		}
 
-		private void FileSystemWatcherOnError(object sender, ErrorEventArgs e) {
-			Logger.Log(e.GetException());
-		}
+		private void FileSystemWatcherOnError(object sender, ErrorEventArgs e) => Logger.Log(e.GetException());
 
 		public void StopModuleWatcher() {
 			if (FileSystemWatcher != null) {
@@ -92,17 +90,17 @@ namespace Assistant.AssistantCore {
 			if (t.Equals("DiscordModules", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.DiscordClients;
 			}
-			else if (t.Equals("EmailClients", StringComparison.OrdinalIgnoreCase)) {
+			else if (t.Equals("EmailModules", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.EmailClients;
 			}
-			else if (t.Equals("SteamClients", StringComparison.OrdinalIgnoreCase)) {
+			else if (t.Equals("SteamModules", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.SteamClients;
 			}
 			else if (t.Equals("YoutubeClients", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.YoutubeClients;
 			}
-			else if (t.Equals("Loggers", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.Logger;
+			else if (t.Equals("CustomModules", StringComparison.OrdinalIgnoreCase)) {
+				loaderContext = Enums.ModuleLoaderContext.CustomModules;
 			}
 			else {
 				loaderContext = Enums.ModuleLoaderContext.None;
@@ -127,13 +125,7 @@ namespace Assistant.AssistantCore {
 
 				default:
 					Logger.Log("Loading dll...", Enums.LogLevels.Trace);
-					(bool, LoadedModules) result = Core.ModuleLoader.LoadModules(loaderContext, true);
-					if (result.Item1) {
-						Logger.Log("Loaded module.", Enums.LogLevels.Trace);
-					}
-					else {
-						Logger.Log("Failed to load module.", Enums.LogLevels.Trace);
-					}
+					Core.ModuleLoader.LoadModules(loaderContext, true);
 					break;
 			}
 		}
