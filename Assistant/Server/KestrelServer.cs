@@ -45,7 +45,7 @@ namespace Assistant.Server {
 					builder.UseUrls(Core.Config.KestrelServerUrl);
 				}
 			}
-
+			
 			builder.UseNLog();
 			builder.UseStartup<Startup>();
 			IWebHost kestrelWebHost = builder.Build();

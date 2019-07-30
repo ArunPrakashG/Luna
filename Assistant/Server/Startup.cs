@@ -10,7 +10,6 @@ using System;
 using Assistant.AssistantCore;
 
 namespace Assistant.Server {
-
 	public class Startup {
 
 		public void ConfigureServices(IServiceCollection services) {
