@@ -10,7 +10,7 @@ namespace Assistant.Server.Controllers {
 	[Route("api/misc/")]
 	public class KestrelMiscController : Controller {
 		[HttpPost("weather")]
-		public ActionResult<GenericResponse<string>> GetWeatherInfo([FromBody] int pinCode, [FromBody] string countryCode) {
+		public ActionResult<GenericResponse<WeatherData>> GetWeatherInfo(int pinCode, string countryCode) {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
@@ -39,7 +39,7 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("zip")]
-		public ActionResult<GenericResponse<string>> LocationFromZipCode([FromBody] long zipCode) {
+		public ActionResult<GenericResponse<ZipLocationResult>> LocationFromZipCode(long zipCode) {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
