@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using static Assistant.AssistantCore.Enums;
 using ProcessThread = System.Diagnostics.ProcessThread;
+using TaskScheduler = System.Threading.Tasks.TaskScheduler;
 
 namespace Assistant.Extensions {
 
@@ -99,7 +100,7 @@ namespace Assistant.Extensions {
 			return null;
 		}
 
-		public static void ScheduleTask(TaskStructure<Task> structure, TimeSpan delay, bool longrunning) {
+		public static void ScheduleTask(TaskStructure structure, TimeSpan delay, bool longrunning) {
 			if (structure == null) {
 				Logger.Log("Action is null! " + nameof(structure), Enums.LogLevels.Error);
 				return;
@@ -108,9 +109,7 @@ namespace Assistant.Extensions {
 			Timer TaskSchedulerTimer = null;
 
 			TaskSchedulerTimer = new Timer(e => {
-				if (!structure.MarkAsFinsihed) {
-					InBackground(() => structure.Task, longrunning);
-				}
+				InBackground(() => structure.Task, longrunning);
 
 				if (TaskSchedulerTimer != null) {
 					TaskSchedulerTimer.Dispose();

@@ -2,12 +2,12 @@ using System;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
-using Assistant.PushBulletNotifications.ApiResponse;
-using Assistant.PushBulletNotifications.Exceptions;
-using Assistant.PushBulletNotifications.Parameters;
+using Assistant.PushBullet.ApiResponse;
+using Assistant.PushBullet.Exceptions;
+using Assistant.PushBullet.Parameters;
 using static Assistant.AssistantCore.Enums;
 
-namespace Assistant.PushBulletNotifications {
+namespace Assistant.PushBullet {
 	public class PushBulletService {
 		private Logger Logger { get; set; } = new Logger("PUSH-BULLET-SERVICE");
 		public PushBulletClient BulletClient { get; private set; }

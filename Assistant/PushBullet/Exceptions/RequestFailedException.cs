@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBulletNotifications.Exceptions {
+namespace Assistant.PushBullet.Exceptions {
 	public class RequestFailedException : Exception {
 		public RequestFailedException() : base("A request to PushBullet api has been failed.") {
 		}

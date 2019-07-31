@@ -9,7 +9,7 @@ namespace Assistant.Geolocation {
 		public string Message { get; set; }
 		[JsonProperty]
 		public string Status { get; set; }
-
+		[JsonProperty]
 		public List<PostOffice> PostOfficeCollection { get; set; } = new List<PostOffice>();		
 
 		public class PostOffice {

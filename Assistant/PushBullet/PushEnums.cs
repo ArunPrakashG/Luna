@@ -1,4 +1,4 @@
-namespace Assistant.PushBulletNotifications {
+namespace Assistant.PushBullet {
 	public class PushEnums {
 		public enum PushType {
 			Note,

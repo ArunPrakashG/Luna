@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBulletNotifications.Exceptions {
+namespace Assistant.PushBullet.Exceptions {
 	class ParameterValueIsNullException : Exception {
 		public ParameterValueIsNullException() : base("The parameter value is null.") {
 		}

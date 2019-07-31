@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBulletNotifications.Parameters {
+namespace Assistant.PushBullet.Parameters {
 	public class ListPushParams {
 		public string ModifiedAfter { get; set; }
 		public bool ActiveOnly { get; set; } = false;

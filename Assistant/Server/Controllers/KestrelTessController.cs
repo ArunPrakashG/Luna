@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Server.Responses;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Assistant.Server.Controllers {
 
@@ -12,7 +12,7 @@ namespace Assistant.Server.Controllers {
 	public class AssistantMemory : Controller {
 
 		[HttpGet("status")]
-		public ActionResult<GenericResponse<string>> GetMemoryUsage() {
+		public ActionResult<GenericResponse<string>> DisplayAssistantStatus() {
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
@@ -20,7 +20,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			StatusResponse response = new StatusResponse();
-			return Ok(new GenericResponse<StatusResponse>(response.GetResponse(), Helpers.GetOsPlatform() != OSPlatform.Windows ? "Libraries used for checking status are Windows platform dependent." : "Fetched status successfully!", Enums.HttpStatusCodes.OK, DateTime.Now));
+			return Ok(new GenericResponse<StatusResponse>(response.GetResponse(), Enums.HttpStatusCodes.OK, DateTime.Now));
 		}
 
 		[HttpPost("exit")]

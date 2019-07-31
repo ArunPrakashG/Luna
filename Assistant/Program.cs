@@ -1,11 +1,12 @@
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 using System;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
-using Assistant.AssistantCore;
-using Assistant.Extensions;
-using Assistant.Log;
+using TaskScheduler = System.Threading.Tasks.TaskScheduler;
 
 namespace Assistant {
 
@@ -26,7 +27,6 @@ namespace Assistant {
 		private static async void OnForceQuitAssistant(object sender, ConsoleCancelEventArgs e) => await Core.Exit(-1).ConfigureAwait(false);
 
 		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
-			Logger.Log($"{e.Exception.Message}", Enums.LogLevels.Error);
 			Logger.Log($"{e.Exception.ToString()}", Enums.LogLevels.Trace);
 		}
 
@@ -82,7 +82,7 @@ namespace Assistant {
 		}
 
 		private static async Task NetworkReconnect() {
-			if(!Core.IsNetworkAvailable){
+			if (!Core.IsNetworkAvailable) {
 				return;
 			}
 
@@ -91,7 +91,7 @@ namespace Assistant {
 		}
 
 		private static async Task NetworkDisconnect() {
-			if(Core.IsNetworkAvailable){
+			if (Core.IsNetworkAvailable) {
 				return;
 			}
 
@@ -103,52 +103,25 @@ namespace Assistant {
 		private static void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
 			float TaskId = Helpers.GenerateTaskIdentifier(new Random());
 			if (e.IsAvailable) {
-				if(Core.CoreInitiationCompleted){
-					if(Core.TaskManager.TaskFactoryCollection.Count > 0){
-						foreach(var T in Core.TaskManager.TaskFactoryCollection){
-							if(T.TaskIdentifier.Equals(TaskId)){
-								T.MarkAsFinsihed = true;
-								Core.TaskManager.TryRemoveTask(T.TaskIdentifier);
-								Logger.Log($"{T.TaskMessage} task has been removed from the task factory as connection appears to be online.");
-								return;
-							}
-						}
-					}
-					Core.TaskManager.TryAddTask(new TaskStructure<Task>(){
+				if (Core.CoreInitiationCompleted) {
+					Core.TaskManager.TryAddTask(new TaskStructure() {
 						Task = new Task(async () => await NetworkReconnect().ConfigureAwait(false)),
 						TaskIdentifier = TaskId,
-						TaskMessage = "Network reconnect.",
-						TimeAdded = DateTime.Now,
-						MarkAsFinsihed = false,
-						Delay = TimeSpan.FromSeconds(3),
+						ExecutionTime = DateTime.Now.AddSeconds(2),
 						LongRunning = false
-					});
+					}, true);
 				}
 				return;
 			}
 
 			if (!e.IsAvailable) {
-				if(Core.CoreInitiationCompleted){
-					if(Core.TaskManager.TaskFactoryCollection.Count > 0){
-						foreach(var T in Core.TaskManager.TaskFactoryCollection){
-							if(T.TaskIdentifier.Equals(TaskId)){
-								T.MarkAsFinsihed = true;
-								Core.TaskManager.TryRemoveTask(T.TaskIdentifier);
-								Logger.Log($"{T.TaskMessage} task has been removed from the task factory as connection appears to be offline.");
-								return;
-							}
-						}
-					}
-
-					Core.TaskManager.TryAddTask(new TaskStructure<Task>(){
+				if (Core.CoreInitiationCompleted) {
+					Core.TaskManager.TryAddTask(new TaskStructure() {
 						Task = new Task(async () => await NetworkDisconnect().ConfigureAwait(false)),
 						TaskIdentifier = TaskId,
-						TaskMessage = "Network disconnect.",
-						TimeAdded = DateTime.Now,
-						MarkAsFinsihed = false,
-						Delay = TimeSpan.FromSeconds(3),
+						ExecutionTime = DateTime.Now.AddSeconds(2),
 						LongRunning = false
-					});
+					}, true);
 				}
 			}
 		}

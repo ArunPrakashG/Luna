@@ -1,3 +1,4 @@
+using Assistant.AssistantCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,6 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
-using Assistant.AssistantCore;
 
 namespace Assistant.Server {
 	public class Startup {
@@ -26,6 +26,7 @@ namespace Assistant.Server {
 					options.SerializerSettings.Formatting = Formatting.Indented;
 				}
 			);
+
 			services.AddSwaggerGen(c => {
 				c.SwaggerDoc("v1", new OpenApiInfo {
 					Version = "v1",

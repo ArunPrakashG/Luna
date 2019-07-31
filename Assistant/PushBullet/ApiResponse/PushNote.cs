@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Assistant.PushBulletNotifications.ApiResponse {
+namespace Assistant.PushBullet.ApiResponse {
 	public class PushNote {
 		[JsonProperty("active")]
 		public bool IsActive { get; set; }

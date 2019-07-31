@@ -3,8 +3,8 @@ using System.Runtime.CompilerServices;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Modules.Interfaces;
-using Assistant.PushBulletNotifications;
-using Assistant.PushBulletNotifications.Parameters;
+using Assistant.PushBullet;
+using Assistant.PushBullet.Parameters;
 using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Log {

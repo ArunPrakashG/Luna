@@ -2,7 +2,7 @@ using Assistant.Extensions;
 using Assistant.Geolocation;
 using Assistant.Log;
 using Assistant.Modules;
-using Assistant.PushBulletNotifications;
+using Assistant.PushBullet;
 using Assistant.Server;
 using Assistant.Update;
 using Assistant.Weather;
@@ -14,7 +14,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.PushBulletNotifications.ApiResponse;
+using Assistant.PushBullet.ApiResponse;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
@@ -64,7 +64,7 @@ namespace Assistant.AssistantCore {
 
 		public static GpioEventManager EventManager { get; set; }
 
-		public static TaskList TaskManager { get; private set; } = new TaskList();
+		public static TaskScheduler TaskManager { get; private set; } = new TaskScheduler();
 
 		public static ModuleInitializer ModuleLoader { get; private set; }
 
@@ -349,28 +349,7 @@ namespace Assistant.AssistantCore {
 
 					case Constants.ConsoleTestMethodExecutionKey: {
 							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
-							(bool weatherStatus, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, 689653, "in");
-							if (weatherStatus) {
-								Logger.Log($"Temperature: {response.Temperature}");
-								Logger.Log($"Humidity: {response.Humidity}");
-								Logger.Log($"Location name: {response.LocationName}");
-							}
-							else {
-								Logger.Log("Weather api test failed.", Enums.LogLevels.Warn);
-							}
-
-							(bool zipStatus, ZipLocationResult apiResult) = ZipCodeLocater.GetZipLocationInfo(689653);
-							if (zipStatus) {
-								Logger.Log($"Message: {apiResult.Message}");
-								foreach (ZipLocationResult.PostOffice t in apiResult.PostOfficeCollection) {
-									Logger.Log(t.BranchType);
-									Logger.Log(t.Circle);
-									Logger.Log(t.Division);
-								}
-							}
-							else {
-								Logger.Log("Zip code locater test failed.", Enums.LogLevels.Warn);
-							}
+							
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
 						}
 						return;

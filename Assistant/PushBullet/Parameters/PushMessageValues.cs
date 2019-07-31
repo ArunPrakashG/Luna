@@ -1,9 +1,9 @@
-using static Assistant.PushBulletNotifications.PushEnums;
+using static Assistant.PushBullet.PushEnums;
 
-namespace Assistant.PushBulletNotifications.Parameters {
+namespace Assistant.PushBullet.Parameters {
 	public class PushMessageValues {
-		public PushTarget PushTarget { get; set; }
-		public PushType PushType { get; set; }
+		public PushEnums.PushTarget PushTarget { get; set; }
+		public PushEnums.PushType PushType { get; set; }
 		public string PushTargetValue { get; set; }
 		public string PushTitle { get; set; }
 		public string PushBody { get; set; }

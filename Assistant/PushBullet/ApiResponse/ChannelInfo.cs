@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
 
-namespace Assistant.PushBulletNotifications.ApiResponse {
+namespace Assistant.PushBullet.ApiResponse {
 	public class ChannelInfo {
 		[JsonProperty("iden")]
 		public string Identifier { get; set; }

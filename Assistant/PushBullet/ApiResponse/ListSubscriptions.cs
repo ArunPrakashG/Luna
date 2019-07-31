@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBulletNotifications.ApiResponse {
+namespace Assistant.PushBullet.ApiResponse {
 	public class ListSubscriptions {
 
 		[JsonProperty("accounts")]

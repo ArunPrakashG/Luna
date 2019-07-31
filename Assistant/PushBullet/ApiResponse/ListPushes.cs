@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBulletNotifications.ApiResponse {
+namespace Assistant.PushBullet.ApiResponse {
 	public class ListPushes {
 		[JsonProperty("accounts")]
 		public object[] Accounts { get; set; }

@@ -1,18 +1,17 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
-using Assistant.PushBulletNotifications.ApiResponse;
-using Assistant.PushBulletNotifications.Exceptions;
-using Assistant.PushBulletNotifications.Parameters;
+using Assistant.PushBullet.ApiResponse;
+using Assistant.PushBullet.Exceptions;
+using Assistant.PushBullet.Parameters;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using static Assistant.AssistantCore.Enums;
-using static Assistant.PushBulletNotifications.PushEnums;
 
-namespace Assistant.PushBulletNotifications {
+namespace Assistant.PushBullet {
 	public class PushBulletClient {
 		private readonly Logger Logger = new Logger("PUSH-BULLET-CLIENT");
 		public string ClientAccessToken { get; private set; }
@@ -77,37 +76,37 @@ namespace Assistant.PushBulletNotifications {
 			Dictionary<string, string> bodyParams = new Dictionary<string, string>();
 
 			switch (pushMessageValues.PushTarget) {
-				case PushTarget.Device:
+				case PushEnums.PushTarget.Device:
 					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
 						queryString.Add("device_iden", pushMessageValues.PushTargetValue);
 					}
 
 					break;
-				case PushTarget.Client:
+				case PushEnums.PushTarget.Client:
 					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
 						queryString.Add("client_iden", pushMessageValues.PushTargetValue);
 					}
 
 					break;
-				case PushTarget.Email:
+				case PushEnums.PushTarget.Email:
 					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
 						queryString.Add("email", pushMessageValues.PushTargetValue);
 					}
 
 					break;
-				case PushTarget.Channel:
+				case PushEnums.PushTarget.Channel:
 					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
 						queryString.Add("channel_tag", pushMessageValues.PushTargetValue);
 					}
 
 					break;
-				case PushTarget.All:
+				case PushEnums.PushTarget.All:
 					queryString = null;
 					break;
 			}
 
 			switch (pushMessageValues.PushType) {
-				case PushType.Note:
+				case PushEnums.PushType.Note:
 					bodyParams.Add("type", "note");
 					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTitle)) {
 						bodyParams.Add("title", pushMessageValues.PushTitle);
@@ -118,7 +117,7 @@ namespace Assistant.PushBulletNotifications {
 					}
 
 					break;
-				case PushType.Link:
+				case PushEnums.PushType.Link:
 					bodyParams.Add("type", "link");
 					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTitle)) {
 						bodyParams.Add("title", pushMessageValues.PushTitle);
@@ -133,7 +132,7 @@ namespace Assistant.PushBulletNotifications {
 					}
 
 					break;
-				case PushType.File:
+				case PushEnums.PushType.File:
 					bodyParams.Add("type", "file");
 					if (!Helpers.IsNullOrEmpty(pushMessageValues.FileName)) {
 						bodyParams.Add("file_name", pushMessageValues.FileName);
@@ -198,7 +197,7 @@ namespace Assistant.PushBulletNotifications {
 			return DeserializeJsonObject<ListSubscriptions>(response);
 		}
 
-		public PushDeleteStatusCode DeletePush(string pushIdentifier) {
+		public PushEnums.PushDeleteStatusCode DeletePush(string pushIdentifier) {
 			if (Helpers.IsNullOrEmpty(pushIdentifier)) {
 				throw new ParameterValueIsNullException("pushIdentifier");
 			}
@@ -211,7 +210,7 @@ namespace Assistant.PushBulletNotifications {
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.DELETE);
 
 			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
-				return PushDeleteStatusCode.ObjectNotFound;
+				return PushEnums.PushDeleteStatusCode.ObjectNotFound;
 			}
 
 			if (!requestStatus) {
@@ -222,17 +221,17 @@ namespace Assistant.PushBulletNotifications {
 				throw new ResponseIsNullException();
 			}
 
-			PushDeleteStatusCode statusCode;
+			PushEnums.PushDeleteStatusCode statusCode;
 
 			try {
 				DeletePush pushResponse = JsonConvert.DeserializeObject<DeletePush>(response);
 				statusCode = pushResponse.ErrorReason.Message.Equals("Object not found", StringComparison.OrdinalIgnoreCase)
-					? PushDeleteStatusCode.ObjectNotFound
-					: PushDeleteStatusCode.Unknown;
+					? PushEnums.PushDeleteStatusCode.ObjectNotFound
+					: PushEnums.PushDeleteStatusCode.Unknown;
 			}
 			catch (Exception) {
 				Logger.Log("Deleted a push notification!");
-				statusCode = PushDeleteStatusCode.Success;
+				statusCode = PushEnums.PushDeleteStatusCode.Success;
 			}
 
 			return statusCode;

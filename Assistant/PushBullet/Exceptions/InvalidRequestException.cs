@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBulletNotifications.Exceptions {
+namespace Assistant.PushBullet.Exceptions {
 	public class InvalidRequestException : Exception {
 		public InvalidRequestException() : base("Request cannot complete as the request contents are either incorrect or incomplete.") {
 		}
