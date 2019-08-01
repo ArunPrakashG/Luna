@@ -136,8 +136,8 @@ namespace Assistant.AssistantCore {
 					Constants.ExternelIP = "Failed. No internet connection.";
 				}
 
-				Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater");
-				Logger.Log($"X---------------- Starting {AssistantName} Assistant v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
+				Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater", true);
+				Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
 
 				ConfigWatcher.InitConfigWatcher();
 				ParseStartupArguments(args);
@@ -176,28 +176,15 @@ namespace Assistant.AssistantCore {
 
 				Config.ProgramLastStartup = StartupTime;
 
-				bool Token = false;
-
-				try {
-					string checkForToken = Helpers.FetchVariable(0, true, "GITHUB_TOKEN");
-
-					if (string.IsNullOrEmpty(checkForToken) || string.IsNullOrWhiteSpace(checkForToken)) {
-						Logger.Log("Github token isnt found. Updates will be disabled.", Enums.LogLevels.Warn);
-						Token = false;
-					}
-					else {
-						Token = true;
+				if (!Helpers.IsNullOrEmpty(Config.GitHubToken)) {
+					if (Config.AutoUpdates && IsNetworkAvailable) {
+						Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
+						File.WriteAllText("version.txt", Constants.Version.ToString());
+						Update.CheckAndUpdate(true);
 					}
 				}
-				catch (NullReferenceException) {
+				else {
 					Logger.Log("Github token isnt found. Updates will be disabled.", Enums.LogLevels.Warn);
-					Token = false;
-				}
-
-				if (Token && Config.AutoUpdates && IsNetworkAvailable) {
-					Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
-					File.WriteAllText("version.txt", Constants.Version.ToString());
-					Update.CheckAndUpdate(true);
 				}
 
 				if (Config.KestrelServer) {
@@ -267,7 +254,7 @@ namespace Assistant.AssistantCore {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
 			}
 
-			TTSService.SpeakText($"{AssistantName} Home assistant have been sucessfully started!", Enums.SpeechContext.AssistantStartup, true);
+			TTSService.SpeakText($"{AssistantName} has been sucessfully started!", Enums.SpeechContext.AssistantStartup, true);
 			await KeepAlive().ConfigureAwait(false);
 		}
 
@@ -856,6 +843,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			Helpers.ScheduleTask(() => Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll", false), TimeSpan.FromSeconds(delay));
+			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);
 		}
 	}

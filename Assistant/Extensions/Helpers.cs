@@ -206,7 +206,7 @@ namespace Assistant.Extensions {
 			return result;
 		}
 
-		public static void SetConsoleTitle(string text) => Console.Title = $"{Core.AssistantName} Home Assistant V{Constants.Version} | {text}";
+		public static void SetConsoleTitle(string text) => Console.Title = $"{Core.AssistantName} V{Constants.Version} | {text}";
 
 		public static DateTime UnixTimeStampToDateTime(double unixTimeStamp) {
 			DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);

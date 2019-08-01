@@ -47,6 +47,15 @@ namespace Assistant.Log {
 			}
 
 			LogModule.Error($"{previousMethodName}() {message}");
+
+			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
+				Core.PushBulletService.BroadcastMessage(new PushMessageValues() {
+					PushTarget = PushEnums.PushTarget.All,
+					PushTitle = $"{Core.AssistantName} [ERROR] LOG",
+					PushType = PushEnums.PushType.Note,
+					PushBody = $"{previousMethodName}() {message}"
+				});
+			}
 		}
 
 		private void LogGenericException(Exception exception, [CallerMemberName] string previousMethodName = null) {
@@ -56,6 +65,15 @@ namespace Assistant.Log {
 			}
 
 			LogModule.Error($"{previousMethodName}() {exception.GetBaseException().Message}/{exception.GetBaseException().HResult}/{exception.GetBaseException().StackTrace}");
+
+			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
+				Core.PushBulletService.BroadcastMessage(new PushMessageValues() {
+					PushTarget = PushEnums.PushTarget.All,
+					PushTitle = $"{Core.AssistantName} [EXCEPTION] LOG",
+					PushType = PushEnums.PushType.Note,
+					PushBody = $"{previousMethodName}() {exception.GetBaseException().Message}/{exception.GetBaseException().HResult}/{exception.GetBaseException().StackTrace}"
+				});
+			}
 		}
 
 		private void LogGenericInfo(string message, [CallerMemberName] string previousMethodName = null) {
@@ -65,15 +83,6 @@ namespace Assistant.Log {
 			}
 
 			LogModule.Info($"{message}");
-
-			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
-				Core.PushBulletService.BroadcastMessage(new PushMessageValues() {
-					PushTarget = PushEnums.PushTarget.All,
-					PushTitle = $"{Core.AssistantName} [INFO] LOG",
-					PushType = PushEnums.PushType.Note,
-					PushBody = $"{previousMethodName}() " + message
-				});
-			}
 		}
 
 		private void LogGenericTrace(string message, [CallerMemberName] string previousMethodName = null) {
@@ -84,14 +93,6 @@ namespace Assistant.Log {
 
 			if (Core.Config.Debug) {
 				LogGenericInfo($"{previousMethodName}() " + message, previousMethodName);
-				if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
-					Core.PushBulletService.BroadcastMessage(new PushMessageValues() {
-						PushTarget = PushEnums.PushTarget.All,
-						PushTitle = $"{Core.AssistantName} [DEBUG | TRACE] LOG",
-						PushType = PushEnums.PushType.Note,
-						PushBody = $"{previousMethodName}() " + message
-					});
-				}
 			}
 			else {
 				LogModule.Trace($"{previousMethodName}() {message}");
@@ -105,6 +106,15 @@ namespace Assistant.Log {
 			}
 
 			LogModule.Warn($"{previousMethodName}() {message}");
+
+			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
+				Core.PushBulletService.BroadcastMessage(new PushMessageValues() {
+					PushTarget = PushEnums.PushTarget.All,
+					PushTitle = $"{Core.AssistantName} [WARNING] LOG",
+					PushType = PushEnums.PushType.Note,
+					PushBody = $"{previousMethodName}() {message}"
+				});
+			}
 		}
 
 		private void LogNullError(string nullObjectName, [CallerMemberName] string previousMethodName = null) {

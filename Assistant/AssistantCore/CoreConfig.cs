@@ -62,6 +62,7 @@ namespace Assistant.AssistantCore {
 		[JsonProperty] public bool MuteAssistant { get; set; } = false;
 
 		[JsonProperty] public string OpenWeatherApiKey { get; set; } = null;
+		[JsonProperty] public string GitHubToken { get; set; }
 
 		[JsonProperty] public string PushBulletApiKey { get; set; } = null;
 
@@ -120,7 +121,7 @@ namespace Assistant.AssistantCore {
 
 			CoreConfig returnConfig = JsonConvert.DeserializeObject<CoreConfig>(JSON);
 
-			Logger.Log(eventRaisedByConfigWatcher ? "Updated core config!" : "Core Configuration Loaded Successfully!");
+			Logger.Log(eventRaisedByConfigWatcher ? "Updated core config!" : "Core Configuration Loaded Successfully!", Enums.LogLevels.Trace);
 
 			return returnConfig;
 		}
