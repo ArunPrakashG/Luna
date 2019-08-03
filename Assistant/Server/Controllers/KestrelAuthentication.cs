@@ -11,20 +11,12 @@ namespace Assistant.Server.Controllers {
 
 		[HttpPost]
 		[Produces("application/json")]
-		public ActionResult<GenericResponse<string>> Authenticate(string userName, string userDevice, string authToken, string emailId) {
-			if (Helpers.IsNullOrEmpty(userName)) {
-				return BadRequest(new GenericResponse<string>("userName cannot be null!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
-			}
-
-			if (Helpers.IsNullOrEmpty(userDevice)) {
-				return BadRequest(new GenericResponse<string>("userDevice cannot be null!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
-			}
-
-			if (Helpers.IsNullOrEmpty(authToken)) {
+		public ActionResult<GenericResponse<string>> Authenticate(AuthPostData postData) {
+			if (Helpers.IsNullOrEmpty(postData.AuthToken)) {
 				return BadRequest(new GenericResponse<string>("authToken cannot be null!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			if (Helpers.IsNullOrEmpty(emailId)) {
+			if (Helpers.IsNullOrEmpty(postData.ClientEmailId)) {
 				return BadRequest(new GenericResponse<string>("emailId cannot be null!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
@@ -35,14 +27,17 @@ namespace Assistant.Server.Controllers {
 			}
 
 			AuthenticationClientData client = new AuthenticationClientData() {
-				ClientAuthToken = authToken,
-				ClientUserName = userName,
-				ClientDevice = userDevice,
-				ClientEmailAddress = emailId,
+				ClientAuthToken = postData.AuthToken,
+				ClientEmailAddress = postData.ClientEmailId,
 				AuthRequestTime = DateTime.Now
 			};
 
-			if (!KestrelServer.Authentication.IsClientAuthenticated(client)) {
+			if (KestrelServer.Authentication.IsAllowedToExecute(postData)) {
+				return Ok(new GenericResponse<string>("Client has been successfully authenticated.",
+					Enums.HttpStatusCodes.OK, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.AuthenticateClient(client)) {
 				return BadRequest(new GenericResponse<string>("Failed to authenticate.", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 

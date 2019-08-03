@@ -3,13 +3,12 @@ using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.PushBullet.ApiResponse;
 using Assistant.PushBullet.Exceptions;
-using Assistant.PushBullet.Interfaces;
+using Assistant.PushBullet.Parameters;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using Assistant.PushBullet.Parameters;
 using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.PushBullet {

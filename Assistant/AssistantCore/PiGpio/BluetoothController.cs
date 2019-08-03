@@ -3,13 +3,13 @@ using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 
 namespace Assistant.AssistantCore.PiGpio {
-	public class PiBluetoothController {
+	public class BluetoothController {
 
 		private readonly Logger Logger = new Logger("PI-BLUETOOTH");
 
 		private GPIOController Controller => Core.Controller;
 
-		private async Task<bool> FetchControllers() {
+		public async Task<bool> FetchControllers() {
 			if (!Core.CoreInitiationCompleted) {
 				return false;
 			}
@@ -26,7 +26,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			return true;
 		}
 
-		private async Task<bool> FetchDevices() {
+		public async Task<bool> FetchDevices() {
 			if (!Core.CoreInitiationCompleted) {
 				return false;
 			}
@@ -43,7 +43,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			return true;
 		}
 
-		private async Task<bool> TurnOnBluetooth () {
+		public async Task<bool> TurnOnBluetooth () {
 			if (Controller == null) {
 				return false;
 			}
@@ -58,7 +58,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 		}
 
-		private async Task<bool> TurnOffBluetooth () {
+		public async Task<bool> TurnOffBluetooth () {
 			if (Controller == null) {
 				return false;
 			}

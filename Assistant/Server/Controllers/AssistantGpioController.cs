@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Assistant.AssistantCore;
 using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
+using Assistant.Server.Authentication;
 using Assistant.Server.Responses;
 using Unosquare.RaspberryIO.Abstractions;
 
@@ -11,7 +12,7 @@ namespace Assistant.Server.Controllers {
 
 	[Route("api/gpio/status")]
 	[Produces("application/json")]
-	public class KestrelGpioController : Controller {
+	public class AssistantGpioController : Controller {
 
 		[HttpGet]
 		public ActionResult<GenericResponse<string>> GetAllPinStatus() {
@@ -122,12 +123,22 @@ namespace Assistant.Server.Controllers {
 
 	[Route("api/gpio/config")]
 	[Produces("application/json")]
-	public class KestrelGpioConfigController : Controller {
+	public class AssistantGpioConfigController : Controller {
 
 		[HttpPost("pin")]
-		public ActionResult<GenericResponse<string>> SetPinStatus(int pinNumber, Enums.PinMode pinMode, bool isOn) {
+		public ActionResult<GenericResponse<string>> SetPinStatus(AuthPostData auth, int pinNumber, Enums.PinMode pinMode, bool isOn) {
 			if (pinNumber < 0 || pinNumber > 31) {
 				return NotFound(new GenericResponse<string>("The specified pin is either less than 0 or greater than 31.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
+			}
+
+			if (auth == null) {
+				return BadRequest(new GenericResponse<string>(
+					"Please provide the specified authentication information!",
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (Core.IsUnknownOs) {
@@ -154,10 +165,20 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("relay")]
-		public ActionResult<GenericResponse<string>> RelayCycle(Enums.GPIOCycles cycleMode) {
+		public ActionResult<GenericResponse<string>> RelayCycle(AuthPostData auth, Enums.GPIOCycles cycleMode) {
+			if (auth == null) {
+				return BadRequest(new GenericResponse<string>(
+					"Please provide the specified authentication information!",
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
 			if (Core.IsUnknownOs) {
 				return BadRequest(new GenericResponse<string>("Failed to set pin mode, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {

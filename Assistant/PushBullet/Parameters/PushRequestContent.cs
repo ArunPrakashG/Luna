@@ -1,8 +1,7 @@
-using Assistant.PushBullet.Interfaces;
 using static Assistant.PushBullet.PushEnums;
 
 namespace Assistant.PushBullet.Parameters {
-	public class PushRequestContent : IPushRequestContent {
+	public class PushRequestContent {
 		public PushTarget PushTarget { get; set; }
 		public PushType PushType { get; set; }
 		public string PushTargetValue { get; set; }
@@ -13,7 +12,7 @@ namespace Assistant.PushBullet.Parameters {
 		public string FileType { get; set; }
 		public string FileUrl { get; set; }
 
-		public override int GetHashCode () => base.GetHashCode();
+		public override int GetHashCode() => base.GetHashCode();
 
 		public override bool Equals(object obj) {
 			if (obj == null) {

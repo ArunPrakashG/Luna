@@ -68,6 +68,11 @@ namespace Assistant.PushBullet {
 		}
 
 		public (bool broadcastStatus, PushResponse response) BroadcastMessage(PushRequestContent broadcastValue) {
+			if (!Core.IsNetworkAvailable) {
+				Logger.Log("No internet connection available. cannot connect to PushBullet API.", LogLevels.Error);
+				return (false, null);
+			}
+
 			if (!IsBroadcastServiceOnline) {
 				return (false, null);
 			}

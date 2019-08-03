@@ -1,3 +1,4 @@
+using System;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
@@ -8,7 +9,7 @@ namespace Assistant.Server.Authentication {
 		private readonly Logger Logger = new Logger("KESTREL-AUTH");
 		private static AuthenticationClientData PreviousAuthenticationData { get; set; }
 
-		public bool IsClientAuthenticated(AuthenticationClientData clientToAuthenticate) {
+		public bool AuthenticateClient(AuthenticationClientData clientToAuthenticate) {
 			if (clientToAuthenticate == null) {
 				Logger.Log("client data is null", Enums.LogLevels.Warn);
 				return false;
@@ -23,21 +24,30 @@ namespace Assistant.Server.Authentication {
 				return false;
 			}
 
-			Logger.Log($"Starting authentication for {clientToAuthenticate.ClientUserName}/{clientToAuthenticate.ClientEmailAddress}");
+			if (Helpers.IsNullOrEmpty(clientToAuthenticate.ClientAuthToken) ||
+				Helpers.IsNullOrEmpty(clientToAuthenticate.ClientEmailAddress)) {
+				return false;
+			}
 
-			if (clientToAuthenticate.ClientEmailAddress.Equals(PreviousAuthenticationData.ClientEmailAddress) &&
+			Logger.Log($"Starting authentication for {clientToAuthenticate.ClientEmailAddress}/{clientToAuthenticate.ClientAuthToken}");
+			
+			if (PreviousAuthenticationData != null && clientToAuthenticate.ClientEmailAddress.Equals(PreviousAuthenticationData.ClientEmailAddress) &&
 				(clientToAuthenticate.AuthRequestTime - PreviousAuthenticationData.AuthRequestTime).TotalSeconds < 5) {
-				Logger.Log($"{clientToAuthenticate.ClientUserName} failed multiple times in last 5 seconds.", Enums.LogLevels.Warn);
+				Logger.Log($"{clientToAuthenticate.ClientEmailAddress} failed multiple times in last 5 seconds.", Enums.LogLevels.Warn);
 				return false;
 			}
 
 			PreviousAuthenticationData = clientToAuthenticate;
 
-			if (!Helpers.IsNullOrEmpty(clientToAuthenticate.ClientAuthToken) && !Helpers.IsNullOrEmpty(clientToAuthenticate.ClientDevice)) {
-				if (Core.Config.VerifiedAuthenticationTokens != null && Core.Config.VerifiedAuthenticationTokens.Count > 0) {
-					foreach (string token in Core.Config.VerifiedAuthenticationTokens) {
-						if (token.Equals(clientToAuthenticate.ClientAuthToken)) {
-							Logger.Log($"{clientToAuthenticate.ClientUserName} authenticated with assistant API.");
+			if (!Helpers.IsNullOrEmpty(clientToAuthenticate.ClientAuthToken) && !Helpers.IsNullOrEmpty(clientToAuthenticate.ClientEmailAddress)) {
+				if (Core.Config.ClientAuthenticationData != null && Core.Config.ClientAuthenticationData.Count > 0) {
+					foreach (AuthenticationClientData client in Core.Config.ClientAuthenticationData) {
+						if (client != null && client.ClientAuthToken.Equals(clientToAuthenticate.ClientAuthToken) && client.ClientEmailAddress.Equals(clientToAuthenticate.ClientEmailAddress)) {
+							Logger.Log($"{clientToAuthenticate.ClientEmailAddress} authenticated with assistant API.");
+							client.IsAuthenticated = true;
+							clientToAuthenticate.IsAuthenticated = true;
+							client.AuthenticatedUntil = client.AuthRequestTime.AddHours(1);
+							clientToAuthenticate.AuthenticatedUntil = clientToAuthenticate.AuthRequestTime.AddHours(1);
 							KestrelServer.AuthenticatedClients.Add(clientToAuthenticate);
 							return true;
 						}
@@ -52,7 +62,7 @@ namespace Assistant.Server.Authentication {
 			return false;
 		}
 
-		public bool IsAllowedToExecute (AuthPostData postData) {
+		public bool IsAllowedToExecute(AuthPostData postData) {
 			if (postData == null) {
 				return false;
 			}
@@ -61,19 +71,21 @@ namespace Assistant.Server.Authentication {
 				return false;
 			}
 
-			if (Helpers.IsNullOrEmpty(postData.DeviceName)) {
+			if (Helpers.IsNullOrEmpty(postData.ClientEmailId)) {
 				return false;
 			}
 
-			if (Helpers.IsNullOrEmpty(postData.UserName)) {
-				return false;
-			}
-
-			foreach (var client in KestrelServer.AuthenticatedClients) {
-				if (client.ClientAuthToken.Equals(postData.AuthToken) &&
-				    client.ClientDevice.Equals(postData.DeviceName) &&
-				    client.ClientUserName.Equals(postData.UserName)) {
-					return true;
+			foreach (AuthenticationClientData client in KestrelServer.AuthenticatedClients) {
+				if (client.ClientAuthToken.Equals(postData.AuthToken) && client.ClientEmailAddress.Equals(postData.ClientEmailId)) {
+					if (client.AuthenticatedUntil > DateTime.Now) {
+						return client.IsAuthenticated;
+					}
+					else {
+						client.IsAuthenticated = false;
+						KestrelServer.AuthenticatedClients.Remove(client);
+						Logger.Log($"Removed a client from authenticated list as the time period is over. ({client.ClientEmailAddress})", Enums.LogLevels.Trace);
+						return false;
+					}
 				}
 			}
 

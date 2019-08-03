@@ -1,3 +1,4 @@
+using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
 using Assistant.Geolocation;
 using Assistant.Log;
@@ -7,7 +8,6 @@ using Assistant.PushBullet.ApiResponse;
 using Assistant.Server;
 using Assistant.Update;
 using Assistant.Weather;
-using Assistant.AssistantCore.PiGpio;
 using CommandLine;
 using System;
 using System.Collections.Generic;
@@ -43,56 +43,33 @@ namespace Assistant.AssistantCore {
 	}
 
 	public class Core {
-		private static Logger Logger;
-
+		private static Logger Logger { get; set; }
 		public static GPIOController Controller { get; private set; }
-
 		public static Updater Update { get; private set; } = new Updater();
-
 		public static ProcessStatus AssistantStatus { get; private set; }
-
 		public static CoreConfig Config { get; set; } = new CoreConfig();
-
 		private static ConfigWatcher ConfigWatcher { get; set; } = new ConfigWatcher();
-
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
-
 		public static GpioConfigHandler GPIOConfigHandler { get; private set; } = new GpioConfigHandler();
-
 		private static GpioConfigRoot GPIORootObject { get; set; } = new GpioConfigRoot();
-
 		private static List<GpioPinConfig> GPIOConfig { get; set; } = new List<GpioPinConfig>();
-
-		public static GpioEventManager EventManager { get; set; }
-
+		public static BluetoothController PiBluetooth { get; private set; }
+		public static SoundController PiSound { get; private set; }
 		public static TaskScheduler TaskManager { get; private set; } = new TaskScheduler();
-
 		public static ModuleInitializer ModuleLoader { get; private set; }
-
 		public static DateTime StartupTime { get; private set; }
-
 		private static Timer RefreshConsoleTitleTimer { get; set; }
-
 		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
-
 		public static WeatherApi WeatherApi { get; private set; } = new WeatherApi();
-
 		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
-
 		public static PushBulletService PushBulletService { get; private set; }
 
 		public static bool CoreInitiationCompleted { get; private set; }
-
 		public static bool DisablePiMethods { get; private set; }
-
 		public static bool IsUnknownOs { get; set; }
-
 		public static bool IsNetworkAvailable { get; set; }
-
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
-
 		public static bool GracefullModuleShutdown { get; set; } = false;
-
 		public static string AssistantName { get; set; } = "TESS";
 
 		public static async Task<bool> InitCore(string[] args) {
@@ -237,12 +214,13 @@ namespace Assistant.AssistantCore {
 				if (Config.EnableGpioControl) {
 					Pi.Init<BootstrapWiringPi>();
 					Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
+					PiBluetooth = new BluetoothController();
+					PiSound = new SoundController();
 					ControllerHelpers.DisplayPiInfo();
-					EventManager = Controller.GpioPollingManager;
 					Logger.Log("Successfully Initiated Pi Configuration!");
 				}
 				else {
-					Logger.Log("Not starting GPIO controller as its disabled in config file.");
+					Logger.Log("Not starting Gpio configuration as its disabled in config file.");
 				}
 			}
 			else {
@@ -337,7 +315,11 @@ namespace Assistant.AssistantCore {
 
 					case Constants.ConsoleTestMethodExecutionKey: {
 							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
+							if (await PiBluetooth.TurnOnBluetooth().ConfigureAwait(false)) {
+								if (await PiBluetooth.FetchDevices().ConfigureAwait(false)) {
 
+								}
+							}
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
 						}
 						return;

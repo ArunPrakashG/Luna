@@ -1,8 +1,7 @@
-using Assistant.PushBullet.Interfaces;
 using Newtonsoft.Json;
 
 namespace Assistant.PushBullet.ApiResponse {
-	public class PushResponse : IPushResponse {
+	public class PushResponse {
 		[JsonProperty("active")]
 		public bool IsActive { get; set; }
 		[JsonProperty("iden")]

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Assistant.Server.Authentication;
 
 namespace Assistant.AssistantCore {
 
@@ -36,7 +37,7 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool GPIOSafeMode { get; set; } = false;
 
-		[JsonProperty] public List<string> VerifiedAuthenticationTokens { get; set; }
+		[JsonProperty] public List<AuthenticationClientData> ClientAuthenticationData { get; set; }
 
 		[JsonProperty]
 		public int[] RelayPins = new int[]

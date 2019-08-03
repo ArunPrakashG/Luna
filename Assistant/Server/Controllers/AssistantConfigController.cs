@@ -10,7 +10,7 @@ using Assistant.Server.Responses;
 namespace Assistant.Server.Controllers {
 
 	[Route("api/config")]
-	public class KestrelConfigController : Controller {
+	public class AssistantConfigController : Controller {
 
 		[HttpGet("coreconfig")]
 		[Produces("application/json")]
@@ -21,7 +21,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant.", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {
@@ -42,7 +42,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant.", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (Core.IsUnknownOs) {
@@ -68,7 +68,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant.", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {
@@ -102,7 +102,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant.", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (Core.IsUnknownOs) {
