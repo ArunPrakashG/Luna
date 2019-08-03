@@ -1,10 +1,14 @@
-# TESS ASSISTANT
+# HOME ASSISTANT
 
-A simple console application written in C# using .NET Core framework with a single goal, provide you with assistance in your home,
+A simple console application written in C# using .NET Core framework with a single goal, provide you with assistance in your home!
 turning on lights, and turning them off, just with your voice!
-that's not all, it can be more than your personal assistant, it can be your J.A.R.V.I.S.
+that's not all, it can be more than your personal assistant, it can be your J.A.R.V.I.S!
 Built and designed to run on raspberry pi 3 in headless and completely unattended mode.
 able to handle errors smartly and do the needful on certain circumstances.
+
+## Back story
+Well, i had free time during my vacation so i decided to start a project for my raspberry pi 3. Here we are!
+this is actually a Hobby/Learning project. i am a student learning C# myself everyday, this project taught me a lot of stuff which am proud off. If you have some time, feel free to look into the code and open an issue or pull request for the part if you feel it can be improved, with a reason, so that i can learn and correct my own mistakes :D
 
 ## Installation
 - Install .NET Core on your raspberry pi 3 first. see here for installation [.net core installation](https://www.hanselman.com/blog/InstallingTheNETCore2xSDKOnARaspberryPiAndBlinkingAnLEDWithSystemDeviceGpio.aspx)
