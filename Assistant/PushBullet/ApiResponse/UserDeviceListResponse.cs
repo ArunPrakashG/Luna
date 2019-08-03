@@ -1,7 +1,8 @@
+using Assistant.PushBullet.Interfaces;
 using Newtonsoft.Json;
 
 namespace Assistant.PushBullet.ApiResponse {
-	public class UserDeviceList {
+	public class UserDeviceListResponse : IUserDeviceListResponse {
 
 		[JsonProperty("accounts")]
 		public object[] Accounts { get; set; }
@@ -16,7 +17,7 @@ namespace Assistant.PushBullet.ApiResponse {
 		[JsonProperty("contacts")]
 		public object[] Contacts { get; set; }
 		[JsonProperty("devices")]
-		public Device[] Devices { get; set; }
+		public IDevice[] Devices { get; set; }
 		[JsonProperty("grants")]
 		public object[] Grants { get; set; }
 		[JsonProperty("pushes")]
@@ -28,7 +29,7 @@ namespace Assistant.PushBullet.ApiResponse {
 		[JsonProperty("texts")]
 		public object[] Texts { get; set; }
 
-		public class Device {
+		public class Device : IDevice {
 			[JsonProperty("active")]
 			public bool CurrentlyActive { get; set; }
 			[JsonProperty("iden")]

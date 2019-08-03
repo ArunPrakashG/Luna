@@ -7,7 +7,7 @@ using Assistant.Log;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.AssistantCore.PiGpio {
 
 	public sealed class GpioPinEventData {
 

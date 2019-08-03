@@ -11,10 +11,10 @@ namespace Assistant.PushBullet {
 	public class PushBulletService {
 		private Logger Logger { get; set; } = new Logger("PUSH-BULLET-SERVICE");
 		public PushBulletClient BulletClient { get; private set; }
-		public UserDeviceList CachedPushDevices { get; private set; }
+		public UserDeviceListResponse CachedPushDevices { get; private set; }
 		private string AccessToken { get; set; }
 		public bool IsBroadcastServiceOnline { get; set; }
-		private PushMessageValues PreviousBroadcastMessage { get; set; } = new PushMessageValues();
+		private PushRequestContent PreviousBroadcastMessage { get; set; } = new PushRequestContent();
 
 		public PushBulletService(string accessToken) {
 			if (!Helpers.IsNullOrEmpty(accessToken)) {
@@ -34,7 +34,7 @@ namespace Assistant.PushBullet {
 			}
 		}
 
-		public (bool status, UserDeviceList currentPushDevices) InitPushService() {
+		public (bool status, UserDeviceListResponse currentPushDevices) InitPushService() {
 			if (!Core.IsNetworkAvailable) {
 				Logger.Log("No internet connection available. cannot connect to PushBullet API.", LogLevels.Error);
 				return (false, CachedPushDevices);
@@ -43,7 +43,7 @@ namespace Assistant.PushBullet {
 			BulletClient = new PushBulletClient(AccessToken);
 
 			try {
-				CachedPushDevices = BulletClient.GetCurrentDevices();
+				CachedPushDevices = (UserDeviceListResponse) BulletClient.GetCurrentDevices();
 			}
 			catch (RequestFailedException) {
 				Logger.Log("Request to the api failed", LogLevels.Warn);
@@ -67,7 +67,7 @@ namespace Assistant.PushBullet {
 			return (true, CachedPushDevices);
 		}
 
-		public (bool broadcastStatus, PushNote response) BroadcastMessage(PushMessageValues broadcastValue) {
+		public (bool broadcastStatus, PushResponse response) BroadcastMessage(PushRequestContent broadcastValue) {
 			if (!IsBroadcastServiceOnline) {
 				return (false, null);
 			}
@@ -82,7 +82,7 @@ namespace Assistant.PushBullet {
 			}
 
 			PreviousBroadcastMessage = broadcastValue;
-			PushNote pushResponse;
+			PushResponse pushResponse;
 			try {
 				pushResponse = BulletClient.SendPush(broadcastValue);
 			}

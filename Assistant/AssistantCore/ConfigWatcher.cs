@@ -91,7 +91,7 @@ namespace Assistant.AssistantCore {
 				case "GpioConfig.json":
 					Logger.Log("Config watcher event raised for GPIO Config file.", Enums.LogLevels.Trace);
 					Logger.Log("Updating gpio config as the local config as been updated...");
-					Core.Controller.GPIOConfig = Core.GPIOConfigHandler.LoadConfig().GPIOData;
+					Core.Controller.GpioConfigCollection = Core.GPIOConfigHandler.LoadConfig().GPIOData;
 					break;
 
 				case "MailConfig.json":

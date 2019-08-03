@@ -1,10 +1,10 @@
-using Newtonsoft.Json;
-using Org.BouncyCastle.Bcpg;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Assistant.Extensions;
 using Assistant.Log;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Assistant.AssistantCore {
 
@@ -36,6 +36,8 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool GPIOSafeMode { get; set; } = false;
 
+		[JsonProperty] public List<string> VerifiedAuthenticationTokens { get; set; }
+
 		[JsonProperty]
 		public int[] RelayPins = new int[]
 		{
@@ -62,6 +64,7 @@ namespace Assistant.AssistantCore {
 		[JsonProperty] public bool MuteAssistant { get; set; } = false;
 
 		[JsonProperty] public string OpenWeatherApiKey { get; set; } = null;
+
 		[JsonProperty] public string GitHubToken { get; set; }
 
 		[JsonProperty] public string PushBulletApiKey { get; set; } = null;

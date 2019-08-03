@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Assistant.PushBullet.Interfaces;
 using Newtonsoft.Json;
 
 namespace Assistant.PushBullet.ApiResponse {
-	public class ChannelInfo {
+	public class ChannelInfoResponse : IChannelInfoResponse {
 		[JsonProperty("iden")]
 		public string Identifier { get; set; }
 		[JsonProperty("name")]
@@ -14,9 +12,9 @@ namespace Assistant.PushBullet.ApiResponse {
 		[JsonProperty("subscriber_count")]
 		public int SubscriberCount { get; set; }
 		[JsonProperty("recent_pushes")]
-		public Recent_Pushes[] RecentPushes { get; set; }
+		public IRecent_Pushes[] RecentPushes { get; set; }
 
-		public class Recent_Pushes {
+		public class Recent_Pushes : IRecent_Pushes {
 			[JsonProperty("active")]
 			public bool IsActive { get; set; }
 			[JsonProperty("created")]

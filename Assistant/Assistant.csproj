@@ -3,9 +3,9 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>netcoreapp2.1</TargetFramework>
-		<AssemblyVersion>5.0.0.0</AssemblyVersion>
-		<FileVersion>5.0.0.0</FileVersion>
-		<Version>5.0.0.0</Version>
+		<AssemblyVersion>6.0.0.0</AssemblyVersion>
+		<FileVersion>6.0.0.0</FileVersion>
+		<Version>6.0.0.0</Version>
 		<Authors>Arun</Authors>
 		<Company>Arun Prakash</Company>
 		<Copyright>Copyright © Home Assistant 2019-2019</Copyright>
@@ -30,7 +30,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="ByteSize" Version="2.0.0-beta1" />
-		<PackageReference Include="CommandLineParser" Version="2.5.0" />
+		<PackageReference Include="CommandLineParser" Version="2.6.0" />
 		<PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -62,7 +62,7 @@
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
 		<PackageReference Include="Unosquare.Raspberry.Abstractions" Version="0.3.1" />
-		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.23.0" />
+		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.24.0" />
 		<PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.4.1" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc2" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.0.0-rc2" />
@@ -82,9 +82,6 @@
 		</None>
 		<None Update="Config\Assistant.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Update="HomeAssistant_GCloud.json">
-		  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</None>
 		<None Update="Modules">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -136,7 +133,7 @@
 		<SshDeployUsername>pi</SshDeployUsername>
 		<SshDeployPassword>miniprakash</SshDeployPassword>
 		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-		<LangVersion>7.3</LangVersion>
+		<LangVersion>latest</LangVersion>
 		<Authors>Arun Prakash (SynergyFTW)</Authors>
 		<Product>Home Assistant</Product>
 		<Description>Home automation and personal assistant running on raspberry pi using C# .NET Core Framework.</Description>

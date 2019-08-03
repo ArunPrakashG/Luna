@@ -3,18 +3,19 @@ using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.PushBullet.ApiResponse;
 using Assistant.PushBullet.Exceptions;
-using Assistant.PushBullet.Parameters;
+using Assistant.PushBullet.Interfaces;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using Assistant.PushBullet.Parameters;
 using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.PushBullet {
 	public class PushBulletClient {
 		private readonly Logger Logger = new Logger("PUSH-BULLET-CLIENT");
-		public string ClientAccessToken { get; private set; }
+		public string ClientAccessToken { get; set; }
 		public bool IsServiceLoaded { get; private set; }
 		public int ApiFailedCount { get; private set; }
 		public bool RequestInSleepMode { get; private set; }
@@ -38,7 +39,7 @@ namespace Assistant.PushBullet {
 			IsServiceLoaded = true;
 		}
 
-		public UserDeviceList GetCurrentDevices() {
+		public UserDeviceListResponse GetCurrentDevices() {
 			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
 				throw new IncorrectAccessTokenException(ClientAccessToken);
 			}
@@ -59,11 +60,11 @@ namespace Assistant.PushBullet {
 			}
 
 			Logger.Log("Fetched all devices!", LogLevels.Trace);
-			return DeserializeJsonObject<UserDeviceList>(response);
+			return DeserializeJsonObject<UserDeviceListResponse>(response);
 		}
 
-		public PushNote SendPush(PushMessageValues pushMessageValues) {
-			if (pushMessageValues == null) {
+		public PushResponse SendPush(PushRequestContent pushRequestContent) {
+			if (pushRequestContent == null) {
 				throw new ParameterValueIsNullException("pushMessageValues value is null.");
 			}
 
@@ -75,28 +76,28 @@ namespace Assistant.PushBullet {
 			Dictionary<string, string> queryString = new Dictionary<string, string>();
 			Dictionary<string, string> bodyParams = new Dictionary<string, string>();
 
-			switch (pushMessageValues.PushTarget) {
+			switch (pushRequestContent.PushTarget) {
 				case PushEnums.PushTarget.Device:
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
-						queryString.Add("device_iden", pushMessageValues.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
+						queryString.Add("device_iden", pushRequestContent.PushTargetValue);
 					}
 
 					break;
 				case PushEnums.PushTarget.Client:
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
-						queryString.Add("client_iden", pushMessageValues.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
+						queryString.Add("client_iden", pushRequestContent.PushTargetValue);
 					}
 
 					break;
 				case PushEnums.PushTarget.Email:
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
-						queryString.Add("email", pushMessageValues.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
+						queryString.Add("email", pushRequestContent.PushTargetValue);
 					}
 
 					break;
 				case PushEnums.PushTarget.Channel:
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTargetValue)) {
-						queryString.Add("channel_tag", pushMessageValues.PushTargetValue);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
+						queryString.Add("channel_tag", pushRequestContent.PushTargetValue);
 					}
 
 					break;
@@ -105,49 +106,49 @@ namespace Assistant.PushBullet {
 					break;
 			}
 
-			switch (pushMessageValues.PushType) {
+			switch (pushRequestContent.PushType) {
 				case PushEnums.PushType.Note:
 					bodyParams.Add("type", "note");
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTitle)) {
-						bodyParams.Add("title", pushMessageValues.PushTitle);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushTitle)) {
+						bodyParams.Add("title", pushRequestContent.PushTitle);
 					}
 
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushBody)) {
-						bodyParams.Add("body", pushMessageValues.PushBody);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushBody)) {
+						bodyParams.Add("body", pushRequestContent.PushBody);
 					}
 
 					break;
 				case PushEnums.PushType.Link:
 					bodyParams.Add("type", "link");
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushTitle)) {
-						bodyParams.Add("title", pushMessageValues.PushTitle);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushTitle)) {
+						bodyParams.Add("title", pushRequestContent.PushTitle);
 					}
 
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushBody)) {
-						bodyParams.Add("body", pushMessageValues.PushBody);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushBody)) {
+						bodyParams.Add("body", pushRequestContent.PushBody);
 					}
 
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.LinkUrl)) {
-						bodyParams.Add("url", pushMessageValues.LinkUrl);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.LinkUrl)) {
+						bodyParams.Add("url", pushRequestContent.LinkUrl);
 					}
 
 					break;
 				case PushEnums.PushType.File:
 					bodyParams.Add("type", "file");
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.FileName)) {
-						bodyParams.Add("file_name", pushMessageValues.FileName);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.FileName)) {
+						bodyParams.Add("file_name", pushRequestContent.FileName);
 					}
 
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.FileType)) {
-						bodyParams.Add("file_type", pushMessageValues.FileType);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.FileType)) {
+						bodyParams.Add("file_type", pushRequestContent.FileType);
 					}
 
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.FileUrl)) {
-						bodyParams.Add("file_url", pushMessageValues.FileUrl);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.FileUrl)) {
+						bodyParams.Add("file_url", pushRequestContent.FileUrl);
 					}
 
-					if (!Helpers.IsNullOrEmpty(pushMessageValues.PushBody)) {
-						bodyParams.Add("body", pushMessageValues.PushBody);
+					if (!Helpers.IsNullOrEmpty(pushRequestContent.PushBody)) {
+						bodyParams.Add("body", pushRequestContent.PushBody);
 					}
 
 					break;
@@ -170,10 +171,10 @@ namespace Assistant.PushBullet {
 			}
 
 			Logger.Log("Push notification send!", LogLevels.Trace);
-			return DeserializeJsonObject<PushNote>(response);
+			return DeserializeJsonObject<PushResponse>(response);
 		}
 
-		public ListSubscriptions GetSubscriptions() {
+		public ListSubscriptionsResponse GetSubscriptions() {
 			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
 				throw new IncorrectAccessTokenException(ClientAccessToken);
 			}
@@ -194,7 +195,7 @@ namespace Assistant.PushBullet {
 			}
 
 			Logger.Log("Fetched all subscriptions!");
-			return DeserializeJsonObject<ListSubscriptions>(response);
+			return DeserializeJsonObject<ListSubscriptionsResponse>(response);
 		}
 
 		public PushEnums.PushDeleteStatusCode DeletePush(string pushIdentifier) {
@@ -224,7 +225,7 @@ namespace Assistant.PushBullet {
 			PushEnums.PushDeleteStatusCode statusCode;
 
 			try {
-				DeletePush pushResponse = JsonConvert.DeserializeObject<DeletePush>(response);
+				DeletePushResponse pushResponse = JsonConvert.DeserializeObject<DeletePushResponse>(response);
 				statusCode = pushResponse.ErrorReason.Message.Equals("Object not found", StringComparison.OrdinalIgnoreCase)
 					? PushEnums.PushDeleteStatusCode.ObjectNotFound
 					: PushEnums.PushDeleteStatusCode.Unknown;
@@ -237,7 +238,7 @@ namespace Assistant.PushBullet {
 			return statusCode;
 		}
 
-		public ListPushes GetAllPushes(ListPushParams listPushParams) {
+		public PushListResponse GetAllPushes(PushListRequestContent listPushParams) {
 			if (listPushParams == null) {
 				throw new ParameterValueIsNullException("listPushParams is null.");
 			}
@@ -280,10 +281,10 @@ namespace Assistant.PushBullet {
 			}
 
 			Logger.Log("Fetched all push notifications!");
-			return DeserializeJsonObject<ListPushes>(response);
+			return DeserializeJsonObject<PushListResponse>(response);
 		}
 
-		public ChannelInfo GetChannelInfo(string channelTag) {
+		public ChannelInfoResponse GetChannelInfo(string channelTag) {
 			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
 				throw new IncorrectAccessTokenException(ClientAccessToken);
 			}
@@ -312,7 +313,7 @@ namespace Assistant.PushBullet {
 			}
 
 			Logger.Log("Fetched channel information!");
-			return DeserializeJsonObject<ChannelInfo>(response);
+			return DeserializeJsonObject<ChannelInfoResponse>(response);
 		}
 
 		private T DeserializeJsonObject<T>(string jsonObject) => Helpers.IsNullOrEmpty(jsonObject) ? throw new ResponseIsNullException() : JsonConvert.DeserializeObject<T>(jsonObject);

@@ -1,53 +1,31 @@
+using Assistant.Extensions;
+using Assistant.Log;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Devices.Gpio;
 using System.Linq;
 using System.Threading.Tasks;
-using Assistant.Extensions;
-using Assistant.Log;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 
-namespace Assistant.AssistantCore {
-
-	public class GPIOTaskQueue {
-
-		public int PinNumber { get; set; }
-
-		public DateTime CreationTime { get; set; }
-
-		public DateTime EndingTime { get; set; }
-
-		public GpioPinValue InitialValue { get; set; }
-
-		public GpioPinValue FinalValue { get; set; }
-
-		public string Message { get; set; }
-
-		public TimeSpan Delay { get; set; }
-	}
+namespace Assistant.AssistantCore.PiGpio {
 
 	//High = OFF
 	//Low = ON
 	public class GPIOController {
 		private readonly Logger Logger = new Logger("GPIO-CONTROLLER");
-		private readonly GPIOConfigHandler GPIOConfigHandler;
+		private GpioConfigHandler GPIOConfigHandler { get; set; }
 
-		public List<GPIOPinConfig> GPIOConfig { get; set; }
+		public List<GpioPinConfig> GpioConfigCollection { get; set; }
 
-		public GPIOConfigRoot GPIOConfigRoot { get; private set; }
-
-		private bool IsWaitForValueCancellationRequested { get; set; } = false;
+		public GpioConfigRoot GpioConfigRoot { get; private set; }
 
 		public GpioEventManager GpioPollingManager { get; private set; }
 
-		private readonly ConcurrentQueue<GPIOTaskQueue> TaskQueue = new ConcurrentQueue<GPIOTaskQueue>();
-
-		public GPIOController(GPIOConfigRoot rootObject, List<GPIOPinConfig> config, GPIOConfigHandler configHandler) {
-			GPIOConfig = config;
+		public GPIOController(GpioConfigRoot rootObject, List<GpioPinConfig> config, GpioConfigHandler configHandler) {
+			GpioConfigCollection = config;
 			GPIOConfigHandler = configHandler;
-			GPIOConfigRoot = rootObject;
+			GpioConfigRoot = rootObject;
 			GpioPollingManager = new GpioEventManager(this);
 
 			Helpers.ScheduleTask(() => {
@@ -71,6 +49,7 @@ namespace Assistant.AssistantCore {
 					c.GPIOPinValueChanged += OnGpioPinValueChanged;
 				}
 			}, TimeSpan.FromSeconds(5));
+
 
 			Logger.Log("Initiated GPIO Controller class!", Enums.LogLevels.Trace);
 		}
@@ -99,39 +78,9 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		private void OnEnqueued(GPIOTaskQueue item) {
-		}
-
-		private void OnDequeued(GPIOTaskQueue item) {
-		}
-
-		private void TryEnqueue(GPIOTaskQueue task) {
-			if (task == null) {
-				Logger.Log("Task is null.", Enums.LogLevels.Warn);
-				return;
-			}
-
-			TaskQueue.Enqueue(task);
-			Helpers.InBackgroundThread(() => OnEnqueued(task), "OnEnqueued");
-			Logger.Log("Task added sucessfully.", Enums.LogLevels.Trace);
-		}
-
-		private GPIOTaskQueue TryDequeue() {
-			bool result = TaskQueue.TryDequeue(out GPIOTaskQueue task);
-
-			if (!result) {
-				Logger.Log("Failed to fetch from the queue.", Enums.LogLevels.Error);
-				return null;
-			}
-
-			Logger.Log("Fetching task sucessfully!", Enums.LogLevels.Trace);
-			Helpers.InBackground(() => OnDequeued(task));
-			return task;
-		}
-
-		[Obsolete("Temporary use for testing only")]
+		[Obsolete("System.Devices.Gpio test method")]
 		public void GpioTest() {
-			GpioController controllerTest = new GpioController(PinNumberingScheme.Gpio);
+			System.Devices.Gpio.GpioController controllerTest = new System.Devices.Gpio.GpioController(PinNumberingScheme.Gpio);
 			if (!controllerTest.IsPinOpen(Core.Config.RelayPins.FirstOrDefault())) {
 				controllerTest.OpenPin(Core.Config.RelayPins.FirstOrDefault());
 			}
@@ -142,189 +91,17 @@ namespace Assistant.AssistantCore {
 			controllerTest[Core.Config.RelayPins.FirstOrDefault()].ValueChanged += OnPinValueChangedTest;
 		}
 
+		[Obsolete("System.Devices.Gpio test method")]
 		private void OnPinValueChangedTest(object sender, PinValueChangedEventArgs e) {
 			Logger.Log($"pin value changed test method fired for pin {e.GpioPinNumber}");
 		}
 
 		private bool CheckSafeMode() => Core.Config.GPIOSafeMode;
 
-		public void StopWaitForValue() => IsWaitForValueCancellationRequested = true;
+		public GpioPinConfig FetchPinStatus(int pin) {
+			GpioPinConfig Status = new GpioPinConfig();
 
-		public void ChargerController(int pin, TimeSpan delay, GpioPinValue initialValue, GpioPinValue finalValue) {
-			if (pin <= 0) {
-				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
-				return;
-			}
-
-			if (Core.Config.IRSensorPins.Contains(pin)) {
-				Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!", Enums.LogLevels.Error);
-				return;
-			}
-
-			if (!Core.Config.RelayPins.Contains(pin)) {
-				Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.", Enums.LogLevels.Error);
-				return;
-			}
-
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(pin);
-
-			//TODO: Task based system for scheduling various tasks like remainders and charger controller
-			if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.Low) {
-				if (PinStatus.IsOn) {
-					GPIOTaskQueue task = new GPIOTaskQueue() {
-						CreationTime = DateTime.Now,
-						EndingTime = DateTime.Now.Add(delay),
-						Delay = delay,
-						Message = null,
-						FinalValue = finalValue,
-						InitialValue = initialValue,
-						PinNumber = pin
-					};
-					TryEnqueue(task);
-					Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
-					Logger.Log($"TASK >> {pin} configured to OFF state. Waiting {delay.Minutes} minutes...");
-					Core.Controller.FetchPinStatus(pin);
-					Helpers.ScheduleTask(() => {
-						Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
-						Logger.Log($"TASK >> {pin} configured to ON state. Task completed sucessfully!");
-					}, delay);
-				}
-				else {
-					Logger.Log("Pin is already in OFF state. disposing the task.", Enums.LogLevels.Error);
-				}
-			}
-			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.High) {
-				if (!PinStatus.IsOn) {
-					GPIOTaskQueue task = new GPIOTaskQueue() {
-						CreationTime = DateTime.Now,
-						EndingTime = DateTime.Now.Add(delay),
-						Delay = delay,
-						Message = null,
-						FinalValue = finalValue,
-						InitialValue = initialValue,
-						PinNumber = pin
-					};
-					TryEnqueue(task);
-					Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, initialValue);
-					Logger.Log($"TASK >> {pin} configured to ON state. Waiting {delay.Minutes} minutes...");
-					Core.Controller.FetchPinStatus(pin);
-					Helpers.ScheduleTask(() => {
-						Core.Controller.SetGPIO(pin, GpioPinDriveMode.Output, finalValue);
-						Logger.Log($"TASK >> {pin} configured to OFF state. Task completed sucessfully!");
-					}, delay);
-				}
-				else {
-					Logger.Log("Pin is already in ON state. disposing the task.", Enums.LogLevels.Error);
-				}
-			}
-			else if (initialValue == GpioPinValue.Low && finalValue == GpioPinValue.Low) {
-				Logger.Log("Both initial and final values cant be equal. (ON-ON)", Enums.LogLevels.Error);
-			}
-			else if (initialValue == GpioPinValue.High && finalValue == GpioPinValue.High) {
-				Logger.Log("Both initial and final values cant be equal (OFF-OFF)", Enums.LogLevels.Error);
-			}
-			else {
-				Logger.Log("Unknown value, an error has occured.", Enums.LogLevels.Error);
-			}
-		}
-
-		public void ContinuousWaitForValue(int pin, bool pinValue, Action action) {
-			if (action == null) {
-				Logger.Log("Action is null!", Enums.LogLevels.Error);
-				return;
-			}
-
-			if (pin == 0) {
-				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
-				return;
-			}
-
-			if (!Core.Config.IRSensorPins.Contains(pin)) {
-				Logger.Log("The specified pin doesn't exist in IR Sensor pin list.", Enums.LogLevels.Error);
-				return;
-			}
-
-			int failedAttempts = 0;
-
-			while (true) {
-				if (IsWaitForValueCancellationRequested) {
-					break;
-				}
-
-				if (failedAttempts.Equals(7)) {
-					Logger.Log("Failed to run the specified action.", Enums.LogLevels.Error);
-					return;
-				}
-
-				bool? pinState = GpioDigitalRead(pin);
-
-				if (!pinState.HasValue) {
-					Logger.Log("Could not fetch pin state value, trying again...", Enums.LogLevels.Trace);
-					failedAttempts++;
-					continue;
-				}
-
-				if (pinState.Equals(pinValue)) {
-					Task.Run(action);
-				}
-				Task.Delay(100).Wait();
-			}
-		}
-
-		public bool WaitUntilPinValue(int pin, GpioPinValue value, int timeOutValueMillisecond) {
-			if (pin <= 0) {
-				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
-				return false;
-			}
-
-			if (timeOutValueMillisecond <= 0) {
-				Logger.Log("Time out value is set to unknown digit.", Enums.LogLevels.Error);
-			}
-
-			IGpioPin GPIOPin = Pi.Gpio[pin];
-			return GPIOPin.WaitForValue(value, timeOutValueMillisecond);
-		}
-
-		public bool RunOnPinValue(int pin, bool pinValueConditon, Action action) {
-			if (action == null) {
-				Logger.Log("Action is null!", Enums.LogLevels.Error);
-				return false;
-			}
-
-			if (pin == 0) {
-				Logger.Log("Pin number is set to unknown value.", Enums.LogLevels.Error);
-				return false;
-			}
-
-			int failedAttempts = 0;
-
-			while (true) {
-				if (failedAttempts.Equals(7)) {
-					Logger.Log("Failed to run the specified action.", Enums.LogLevels.Error);
-					return false;
-				}
-
-				bool? pinState = GpioDigitalRead(pin);
-
-				if (!pinState.HasValue) {
-					Logger.Log("Could not fetch pin state value, trying again...", Enums.LogLevels.Trace);
-					failedAttempts++;
-					continue;
-				}
-
-				if (pinState.Value.Equals(pinValueConditon)) {
-					Helpers.InBackground(action);
-					Logger.Log("Started the specified action process.", Enums.LogLevels.Trace);
-					return true;
-				}
-				Task.Delay(100).Wait();
-			}
-		}
-
-		public GPIOPinConfig FetchPinStatus(int pin) {
-			GPIOPinConfig Status = new GPIOPinConfig();
-
-			foreach (GPIOPinConfig value in GPIOConfig) {
+			foreach (GpioPinConfig value in GpioConfigCollection) {
 				if (value.Pin.Equals(pin)) {
 					Status.IsOn = value.IsOn;
 					Status.Mode = value.Mode;
@@ -336,10 +113,10 @@ namespace Assistant.AssistantCore {
 			return Status;
 		}
 
-		public GPIOPinConfig FetchPinStatus(BcmPin pin) {
-			GPIOPinConfig Status = new GPIOPinConfig();
+		public GpioPinConfig FetchPinStatus(BcmPin pin) {
+			GpioPinConfig Status = new GpioPinConfig();
 
-			foreach (GPIOPinConfig value in GPIOConfig) {
+			foreach (GpioPinConfig value in GpioConfigCollection) {
 				if (value.Pin.Equals(pin)) {
 					Status.IsOn = value.IsOn;
 					Status.Mode = value.Mode;
@@ -374,7 +151,7 @@ namespace Assistant.AssistantCore {
 				}
 			}
 
-			GPIOPinConfig Status = FetchPinStatus(pin);
+			GpioPinConfig Status = FetchPinStatus(pin);
 
 			switch (state) {
 				case GpioPinValue.High:
@@ -445,7 +222,7 @@ namespace Assistant.AssistantCore {
 				}
 			}
 
-			GPIOPinConfig Status = FetchPinStatus(pin);
+			GpioPinConfig Status = FetchPinStatus(pin);
 
 			switch (state) {
 				case GpioPinValue.High:
@@ -510,18 +287,18 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		private void UpdatePinStatus(int pin, bool IsOn, Enums.PinMode mode = Enums.PinMode.Output) {
-			foreach (GPIOPinConfig value in GPIOConfig) {
+		private void UpdatePinStatus(int pin, bool isOn, Enums.PinMode mode = Enums.PinMode.Output) {
+			foreach (GpioPinConfig value in GpioConfigCollection) {
 				if (value.Pin.Equals(pin)) {
 					value.Pin = pin;
-					value.IsOn = IsOn;
+					value.IsOn = isOn;
 					value.Mode = mode;
 				}
 			}
 		}
 
 		private void UpdatePinStatus(BcmPin pin, bool isOn, Enums.PinMode mode = Enums.PinMode.Output) {
-			foreach (GPIOPinConfig value in GPIOConfig) {
+			foreach (GpioPinConfig value in GpioConfigCollection) {
 				if (value.Pin.Equals(pin)) {
 					value.Pin = (int) pin;
 					value.IsOn = isOn;
@@ -531,7 +308,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		public async Task InitShutdown() {
-			if (!GPIOConfig.Any() || GPIOConfig == null) {
+			if (!GpioConfigCollection.Any() || GpioConfigCollection == null) {
 				return;
 			}
 
@@ -546,47 +323,15 @@ namespace Assistant.AssistantCore {
 			GpioPollingManager.ExitEventGenerator();
 
 			if (Core.Config.CloseRelayOnShutdown) {
-				foreach (GPIOPinConfig value in GPIOConfig) {
+				foreach (GpioPinConfig value in GpioConfigCollection) {
 					if (value.IsOn) {
 						SetGPIO(value.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
 					}
 				}
 			}
 
-			GPIOConfigRoot.GPIOData = GPIOConfig;
-			GPIOConfigHandler.SaveGPIOConfig(GPIOConfigRoot);
-		}
-
-		public void DisplayPiInfo() {
-			Logger.Log($"OS: {Pi.Info.OperatingSystem.SysName}", Enums.LogLevels.Trace);
-			Logger.Log($"Processor count: {Pi.Info.ProcessorCount}", Enums.LogLevels.Trace);
-			Logger.Log($"Model name: {Pi.Info.ModelName}", Enums.LogLevels.Trace);
-			Logger.Log($"Release name: {Pi.Info.OperatingSystem.Release}", Enums.LogLevels.Trace);
-			Logger.Log($"Board revision: {Pi.Info.BoardRevision}", Enums.LogLevels.Trace);
-			Logger.Log($"Pi Version: {Pi.Info.RaspberryPiVersion.ToString()}", Enums.LogLevels.Trace);
-			Logger.Log($"Memory size: {Pi.Info.MemorySize.ToString()}", Enums.LogLevels.Trace);
-			Logger.Log($"Serial: {Pi.Info.Serial}", Enums.LogLevels.Trace);
-			Logger.Log($"Pi Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 4)} minutes", Enums.LogLevels.Trace);
-		}
-
-		public void SetPiAudioState(Enums.PiAudioState state) {
-			switch (state) {
-				case Enums.PiAudioState.Mute:
-					Pi.Audio.ToggleMute(true);
-					break;
-
-				case Enums.PiAudioState.Unmute:
-					Pi.Audio.ToggleMute(false);
-					break;
-			}
-		}
-
-		public async Task SetPiVolume(int level = 80) {
-			await Pi.Audio.SetVolumePercentage(level).ConfigureAwait(false);
-		}
-
-		public async Task SetPiVolume(float decibels = -1.00f) {
-			await Pi.Audio.SetVolumeByDecibels(decibels).ConfigureAwait(false);
+			GpioConfigRoot.GPIOData = GpioConfigCollection;
+			GPIOConfigHandler.SaveGPIOConfig(GpioConfigRoot);
 		}
 
 		public async Task<bool> RelayTestService(Enums.GPIOCycles selectedCycle, int singleChannelValue = 0) {
@@ -638,7 +383,7 @@ namespace Assistant.AssistantCore {
 
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
-				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
+				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
 					}
@@ -677,7 +422,7 @@ namespace Assistant.AssistantCore {
 
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
-				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
+				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
 					}
@@ -698,7 +443,7 @@ namespace Assistant.AssistantCore {
 
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
-				foreach (GPIOPinConfig pinvalue in GPIOConfig) {
+				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {
 					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
 						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
 					}

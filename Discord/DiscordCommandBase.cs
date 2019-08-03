@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
 using Assistant.AssistantCore;
+using Assistant.AssistantCore.PiGpio;
 
 namespace Discord {
 
@@ -89,7 +90,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[0]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[0]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -113,7 +114,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[1]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[1]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -137,7 +138,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[2]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[2]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -161,7 +162,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[3]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[3]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -185,7 +186,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[4]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[4]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -209,7 +210,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[5]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[5]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -233,7 +234,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[6]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[6]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -257,7 +258,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[7]);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[7]);
 
 			if (PinStatus.IsOn) {
 				Core.Controller.SetGPIO(Core.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
@@ -358,7 +359,7 @@ namespace Discord {
 				return;
 			}
 
-			GPIOPinConfig PinStatus = Core.Controller.FetchPinStatus(relaypinNumber);
+			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(relaypinNumber);
 
 			if (PinStatus.IsOn && pinStatus.Equals(1)) {
 				await Response("Pin is already configured to be in ON State. Command doesn't make any sense.").ConfigureAwait(false);

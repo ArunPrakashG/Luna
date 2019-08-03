@@ -3,9 +3,11 @@ using Assistant.Geolocation;
 using Assistant.Log;
 using Assistant.Modules;
 using Assistant.PushBullet;
+using Assistant.PushBullet.ApiResponse;
 using Assistant.Server;
 using Assistant.Update;
 using Assistant.Weather;
+using Assistant.AssistantCore.PiGpio;
 using CommandLine;
 using System;
 using System.Collections.Generic;
@@ -14,7 +16,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.PushBullet.ApiResponse;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
@@ -56,11 +57,11 @@ namespace Assistant.AssistantCore {
 
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
 
-		public static GPIOConfigHandler GPIOConfigHandler { get; private set; } = new GPIOConfigHandler();
+		public static GpioConfigHandler GPIOConfigHandler { get; private set; } = new GpioConfigHandler();
 
-		private static GPIOConfigRoot GPIORootObject { get; set; } = new GPIOConfigRoot();
+		private static GpioConfigRoot GPIORootObject { get; set; } = new GpioConfigRoot();
 
-		private static List<GPIOPinConfig> GPIOConfig { get; set; } = new List<GPIOPinConfig>();
+		private static List<GpioPinConfig> GPIOConfig { get; set; } = new List<GpioPinConfig>();
 
 		public static GpioEventManager EventManager { get; set; }
 
@@ -111,7 +112,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			AssistantName = Config.AssistantDisplayName;
-			Logger = new Logger(AssistantName);
+			Logger.LogIdentifier = AssistantName;
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
 			Helpers.SetFileSeperator();
@@ -142,7 +143,7 @@ namespace Assistant.AssistantCore {
 				ConfigWatcher.InitConfigWatcher();
 				ParseStartupArguments(args);
 				PushBulletService = new PushBulletService(Config.PushBulletApiKey);
-				(bool status, UserDeviceList currentPushDevices) = PushBulletService.InitPushService();
+				(bool status, UserDeviceListResponse currentPushDevices) = PushBulletService.InitPushService();
 
 				if (status) {
 					Logger.Log("Push bullet service started.", Enums.LogLevels.Trace);
@@ -236,7 +237,7 @@ namespace Assistant.AssistantCore {
 				if (Config.EnableGpioControl) {
 					Pi.Init<BootstrapWiringPi>();
 					Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
-					Controller.DisplayPiInfo();
+					ControllerHelpers.DisplayPiInfo();
 					EventManager = Controller.GpioPollingManager;
 					Logger.Log("Successfully Initiated Pi Configuration!");
 				}
@@ -336,7 +337,7 @@ namespace Assistant.AssistantCore {
 
 					case Constants.ConsoleTestMethodExecutionKey: {
 							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
-							
+
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
 						}
 						return;
@@ -437,7 +438,7 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
-			GPIOPinConfig PinStatus;
+			GpioPinConfig PinStatus;
 			switch (SelectedValue) {
 				case 1:
 					PinStatus = Controller.FetchPinStatus(Config.RelayPins[0]);
@@ -582,7 +583,7 @@ namespace Assistant.AssistantCore {
 						}
 					}
 
-					GPIOPinConfig Status = Controller.FetchPinStatus(pinNumber);
+					GpioPinConfig Status = Controller.FetchPinStatus(pinNumber);
 
 					if (Status.IsOn && pinStatus.Equals(1)) {
 						Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
@@ -847,4 +848,5 @@ namespace Assistant.AssistantCore {
 			await Exit(0).ConfigureAwait(false);
 		}
 	}
+
 }

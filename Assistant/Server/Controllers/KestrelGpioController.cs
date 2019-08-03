@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using Assistant.AssistantCore;
+using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
 using Assistant.Server.Responses;
 using Unosquare.RaspberryIO.Abstractions;
@@ -26,8 +27,8 @@ namespace Assistant.Server.Controllers {
 			}
 
 			try {
-				List<GPIOPinConfig> config = Core.Controller.GPIOConfig;
-				return Ok(new GenericResponse<List<GPIOPinConfig>>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
+				List<GpioPinConfig> config = Core.Controller.GpioConfigCollection;
+				return Ok(new GenericResponse<List<GpioPinConfig>>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
 				return NotFound(new GenericResponse<string>($"Failed to fetch pin status, possibly {Core.AssistantName} isn't fully started yet.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
@@ -52,8 +53,8 @@ namespace Assistant.Server.Controllers {
 			}
 
 			try {
-				GPIOPinConfig config = Core.Controller.FetchPinStatus(pinNumber);
-				return Ok(new GenericResponse<GPIOPinConfig>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
+				GpioPinConfig config = Core.Controller.FetchPinStatus(pinNumber);
+				return Ok(new GenericResponse<GpioPinConfig>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
 				return NotFound(new GenericResponse<string>("the specified pin isn't found or the pin configuration cannot be accessed", Enums.HttpStatusCodes.NotFound, DateTime.Now));
@@ -73,7 +74,7 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			List<GPIOPinConfig> resultConfig = new List<GPIOPinConfig>();
+			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
 			foreach (int pin in Core.Config.RelayPins) {
 				resultConfig.Add(Core.Controller.FetchPinStatus(pin));
@@ -81,7 +82,7 @@ namespace Assistant.Server.Controllers {
 
 			if (resultConfig.Count > 0) {
 				return Ok(
-					new GenericResponse<List<GPIOPinConfig>>(resultConfig, Enums.HttpStatusCodes.OK, DateTime.Now));
+					new GenericResponse<List<GpioPinConfig>>(resultConfig, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 
 			return NotFound(new GenericResponse<string>(
@@ -102,7 +103,7 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			List<GPIOPinConfig> resultConfig = new List<GPIOPinConfig>();
+			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
 			foreach (int pin in Core.Config.IRSensorPins) {
 				resultConfig.Add(Core.Controller.FetchPinStatus(pin));
@@ -110,7 +111,7 @@ namespace Assistant.Server.Controllers {
 
 			if (resultConfig.Count > 0) {
 				return Ok(
-					new GenericResponse<List<GPIOPinConfig>>(resultConfig, Enums.HttpStatusCodes.OK, DateTime.Now));
+					new GenericResponse<List<GpioPinConfig>>(resultConfig, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 
 			return NotFound(new GenericResponse<string>(

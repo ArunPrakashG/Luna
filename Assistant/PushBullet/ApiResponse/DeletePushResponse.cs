@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Assistant.PushBullet.ApiResponse {
-	public class DeletePush {
+	public class DeletePushResponse {
 
 		[JsonProperty("error")]
 		public Error ErrorReason { get; set; }

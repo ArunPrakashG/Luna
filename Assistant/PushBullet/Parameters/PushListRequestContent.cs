@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Assistant.PushBullet.Interfaces;
 
 namespace Assistant.PushBullet.Parameters {
-	public class ListPushParams {
+	public class PushListRequestContent : IPushListRequestContent {
 		public string ModifiedAfter { get; set; }
 		public bool ActiveOnly { get; set; } = false;
 		public string Cursor { get; set; }

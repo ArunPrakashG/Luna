@@ -3,9 +3,10 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Assistant.PushBullet.Interfaces;
 
 namespace Assistant.PushBullet.ApiResponse {
-	public class ListPushes {
+	public class PushListResponse : IPushListResponse {
 		[JsonProperty("accounts")]
 		public object[] Accounts { get; set; }
 		[JsonProperty("blocks")]
@@ -23,7 +24,7 @@ namespace Assistant.PushBullet.ApiResponse {
 		[JsonProperty("grants")]
 		public object[] Grants { get; set; }
 		[JsonProperty("pushes")]
-		public Push[] Pushes { get; set; }
+		public IPush[] Pushes { get; set; }
 		[JsonProperty("profiles")]
 		public object[] Profiles { get; set; }
 		[JsonProperty("subscriptions")]
@@ -31,7 +32,7 @@ namespace Assistant.PushBullet.ApiResponse {
 		[JsonProperty("texts")]
 		public object[] Texts { get; set; }
 
-		public class Push {
+		public class Push : IPush {
 			[JsonProperty("accounts")]
 			public bool IsActive { get; set; }
 			[JsonProperty("iden")]

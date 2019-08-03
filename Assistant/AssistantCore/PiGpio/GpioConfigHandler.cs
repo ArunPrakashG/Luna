@@ -5,11 +5,11 @@ using System.IO;
 using Assistant.Extensions;
 using Assistant.Log;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.AssistantCore.PiGpio {
 
-	public class GPIOConfigRoot : IEquatable<GPIOConfigRoot> {
+	public class GpioConfigRoot : IEquatable<GpioConfigRoot> {
 
-		public bool Equals(GPIOConfigRoot other) {
+		public bool Equals(GpioConfigRoot other) {
 			if (ReferenceEquals(null, other)) {
 				return false;
 			}
@@ -34,20 +34,20 @@ namespace Assistant.AssistantCore {
 				return false;
 			}
 
-			return Equals((GPIOConfigRoot) obj);
+			return Equals((GpioConfigRoot) obj);
 		}
 
 		public override int GetHashCode() => GPIOData != null ? GPIOData.GetHashCode() : 0;
 
-		public static bool operator ==(GPIOConfigRoot left, GPIOConfigRoot right) => Equals(left, right);
+		public static bool operator ==(GpioConfigRoot left, GpioConfigRoot right) => Equals(left, right);
 
-		public static bool operator !=(GPIOConfigRoot left, GPIOConfigRoot right) => !Equals(left, right);
+		public static bool operator !=(GpioConfigRoot left, GpioConfigRoot right) => !Equals(left, right);
 
 		[JsonProperty]
-		public List<GPIOPinConfig> GPIOData { get; set; }
+		public List<GpioPinConfig> GPIOData { get; set; }
 	}
 
-	public class GPIOPinConfig {
+	public class GpioPinConfig {
 
 		[JsonProperty]
 		public int Pin { get; set; } = 0;
@@ -59,12 +59,12 @@ namespace Assistant.AssistantCore {
 		public Enums.PinMode Mode { get; set; } = Enums.PinMode.Output;
 	}
 
-	public class GPIOConfigHandler {
+	public class GpioConfigHandler {
 		private readonly Logger Logger = new Logger("GPIO-CONFIG-HANDLER");
 
-		private GPIOConfigRoot RootObject;
+		private GpioConfigRoot RootObject;
 
-		public GPIOConfigRoot SaveGPIOConfig(GPIOConfigRoot Config) {
+		public GpioConfigRoot SaveGPIOConfig(GpioConfigRoot Config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
@@ -84,7 +84,7 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		public GPIOConfigRoot LoadConfig() {
+		public GpioConfigRoot LoadConfig() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Such a folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
@@ -104,7 +104,7 @@ namespace Assistant.AssistantCore {
 				}
 			}
 
-			RootObject = JsonConvert.DeserializeObject<GPIOConfigRoot>(JSON);
+			RootObject = JsonConvert.DeserializeObject<GpioConfigRoot>(JSON);
 			Logger.Log("GPIO Configuration Loaded Successfully!");
 			return RootObject;
 		}
@@ -143,12 +143,12 @@ namespace Assistant.AssistantCore {
 				return true;
 			}
 
-			GPIOConfigRoot Config = new GPIOConfigRoot {
-				GPIOData = new List<GPIOPinConfig>()
+			GpioConfigRoot Config = new GpioConfigRoot {
+				GPIOData = new List<GpioPinConfig>()
 			};
 
 			for (int i = 0; i <= 31; i++) {
-				GPIOPinConfig PinConfig = new GPIOPinConfig() {
+				GpioPinConfig PinConfig = new GpioPinConfig() {
 					IsOn = false,
 					Mode = Enums.PinMode.Output,
 					Pin = i

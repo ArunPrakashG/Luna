@@ -1,10 +1,8 @@
+using Assistant.PushBullet.Interfaces;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Assistant.PushBullet.ApiResponse {
-	public class ListSubscriptions {
+	public class ListSubscriptionsResponse : IListSubscriptionsResponse {
 
 		[JsonProperty("accounts")]
 		public object[] Accounts { get; set; }
@@ -27,11 +25,11 @@ namespace Assistant.PushBullet.ApiResponse {
 		[JsonProperty("profiles")]
 		public object[] Profiles { get; set; }
 		[JsonProperty("subscriptions")]
-		public Subscription[] Subscriptions { get; set; }
+		public ISubscription[] Subscriptions { get; set; }
 		[JsonProperty("texts")]
 		public object[] Texts { get; set; }
 
-		public class Subscription {
+		public class Subscription : ISubscription {
 			[JsonProperty("active")]
 			public bool IsActive { get; set; }
 			[JsonProperty("iden")]
@@ -41,10 +39,10 @@ namespace Assistant.PushBullet.ApiResponse {
 			[JsonProperty("modified")]
 			public float ModifiedAt { get; set; }
 			[JsonProperty("channel")]
-			public Channel Channel { get; set; }
+			public IChannel Channel { get; set; }
 		}
 
-		public class Channel {
+		public class Channel : IChannel {
 			[JsonProperty("iden")]
 			public string Identifier { get; set; }
 			[JsonProperty("tag")]
