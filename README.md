@@ -6,10 +6,6 @@ that's not all, it can be more than your personal assistant, it can be your J.A.
 Built and designed to run on raspberry pi 3 in headless and completely unattended mode.
 able to handle errors smartly and do the needful on certain circumstances.
 
-## Back story
-Well, i had free time during my vacation so i decided to start a project for my raspberry pi 3. Here we are!
-this is actually a Hobby/Learning project. i am a student learning C# myself everyday, this project taught me a lot of stuff which am proud off. If you have some time, feel free to look into the code and open an issue or pull request for the part if you feel it can be improved, with a reason, so that i can learn and correct my own mistakes :D
-
 ## Installation
 - Install .NET Core on your raspberry pi 3 first. see here for installation [.NET Core installation guide](https://www.hanselman.com/blog/InstallingTheNETCore2xSDKOnARaspberryPiAndBlinkingAnLEDWithSystemDeviceGpio.aspx)
 - If you installed .NET Core correctly, when running `dotnet --info` command, you will see the installed version of the .NET Core.
@@ -61,5 +57,5 @@ This way, without modifying the Core project, you can customize your Assistant! 
 Each foldername has its own value, use this diagram to know which folders can be renamed.
 ![Diagram](Assistant/Resources/AssistantFolderHierarchy.jpeg)
 
-**To be edited later on**
-
+### Contributions
+This project was started as my hobby project, just so that i could learn more of C# and .NET Framework and work with Linux commands and get familier with Raspian system. I always try my best to write the best code i can write as far as my knowledge go, if you feel you can improve a certain part of the code, feel free to send a pull request, with the specification on how i can improve the part so that i can correct myself for future codes i write!
