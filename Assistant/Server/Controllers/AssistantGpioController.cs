@@ -126,18 +126,17 @@ namespace Assistant.Server.Controllers {
 	public class AssistantGpioConfigController : Controller {
 
 		[HttpPost("pin")]
-		public ActionResult<GenericResponse<string>> SetPinStatus(AuthPostData auth, int pinNumber, Enums.PinMode pinMode, bool isOn) {
+		public ActionResult<GenericResponse<string>> SetPinStatus(string apiKey, int pinNumber, Enums.PinMode pinMode, bool isOn) {
 			if (pinNumber < 0 || pinNumber > 31) {
 				return NotFound(new GenericResponse<string>("The specified pin is either less than 0 or greater than 31.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
 			}
 
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>(
-					"Please provide the specified authentication information!",
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
 				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
@@ -165,20 +164,19 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("relay")]
-		public ActionResult<GenericResponse<string>> RelayCycle(AuthPostData auth, Enums.GPIOCycles cycleMode) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>(
-					"Please provide the specified authentication information!",
+		public ActionResult<GenericResponse<string>> RelayCycle(string apiKey, Enums.GPIOCycles cycleMode) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (Core.IsUnknownOs) {
 				return BadRequest(new GenericResponse<string>("Failed to set pin mode, Core running on unknown OS.", Enums.HttpStatusCodes.BadRequest,
 					DateTime.Now));
-			}
-
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {

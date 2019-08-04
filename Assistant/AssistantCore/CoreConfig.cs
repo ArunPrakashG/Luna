@@ -37,7 +37,7 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool GPIOSafeMode { get; set; } = false;
 
-		[JsonProperty] public List<AuthenticationClientData> ClientAuthenticationData { get; set; }
+		[JsonProperty] public Dictionary<string, int> AuthenticatedTokens { get; set; }
 
 		[JsonProperty]
 		public int[] RelayPins = new int[]

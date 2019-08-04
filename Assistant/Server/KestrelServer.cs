@@ -1,22 +1,20 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
+using Assistant.Server.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using Assistant.Server.Authentication;
 
 namespace Assistant.Server {
 	public static class KestrelServer {
 		private static IWebHost KestrelWebHost;
 		private static readonly Logger Logger = new Logger("KESTREL-SERVER");
 		public static UserAuthentication Authentication { get; set; } = new UserAuthentication();
-		public static List<AuthenticationClientData> AuthenticatedClients { get; set; } = new List<AuthenticationClientData>();
 		public static bool IsServerOnline;
 
 		public static async Task Start() {
@@ -48,7 +46,7 @@ namespace Assistant.Server {
 					builder.UseUrls(Core.Config.KestrelServerUrl);
 				}
 			}
-			
+
 			builder.UseNLog();
 			builder.UseStartup<Startup>();
 			IWebHost kestrelWebHost = builder.Build();

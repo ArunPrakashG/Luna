@@ -16,6 +16,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Assistant.MorseCode;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
@@ -63,6 +64,7 @@ namespace Assistant.AssistantCore {
 		public static WeatherApi WeatherApi { get; private set; } = new WeatherApi();
 		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
 		public static PushBulletService PushBulletService { get; private set; }
+		public static MorseCore MorseCode { get; private set; } = new MorseCore();
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
@@ -315,11 +317,15 @@ namespace Assistant.AssistantCore {
 
 					case Constants.ConsoleTestMethodExecutionKey: {
 							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
-							if (await PiBluetooth.TurnOnBluetooth().ConfigureAwait(false)) {
-								if (await PiBluetooth.FetchDevices().ConfigureAwait(false)) {
-
-								}
+							//Logger.Log("Enter text to convert to morse: ");
+							//string morse = MorseCode.ConvertToMorseCode(Console.ReadLine());
+							//Logger.Log($"MORSE >> {morse}");
+							Logger.Log("Enter text to convert to morse relay cycle: ");
+							string morseCycle = Console.ReadLine();
+							if (Controller.MorseTranslator.IsTranslatorOnline) {
+								await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.RelayPins[0], 200).ConfigureAwait(false);
 							}
+
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
 						}
 						return;

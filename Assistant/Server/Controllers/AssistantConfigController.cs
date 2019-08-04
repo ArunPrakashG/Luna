@@ -14,13 +14,13 @@ namespace Assistant.Server.Controllers {
 
 		[HttpGet("coreconfig")]
 		[Produces("application/json")]
-		public ActionResult<GenericResponse<string>> GetCoreConfig(AuthPostData auth) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>("Authentication code cannot be equal to 0, or empty.",
+		public ActionResult<GenericResponse<string>> GetCoreConfig(string apiKey) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
 				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
@@ -35,13 +35,13 @@ namespace Assistant.Server.Controllers {
 
 		[HttpGet("gpioconfig")]
 		[Produces("application/json")]
-		public ActionResult<GenericResponse<string>> GetGpioConfig(AuthPostData auth) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>("Authentication code cannot be equal to 0, or empty.",
+		public ActionResult<GenericResponse<string>> GetGpioConfig(string apiKey) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
 				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
@@ -61,13 +61,13 @@ namespace Assistant.Server.Controllers {
 
 		[HttpPost("coreconfig")]
 		[Consumes("application/json")]
-		public ActionResult<GenericResponse<string>> SetCoreConfig(AuthPostData auth, [FromBody]CoreConfig config) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>("Authentication code cannot be equal to 0, or empty.",
+		public ActionResult<GenericResponse<string>> SetCoreConfig(string apiKey, [FromBody]CoreConfig config) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
 				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
@@ -95,13 +95,13 @@ namespace Assistant.Server.Controllers {
 
 		[HttpPost("gpioconfig")]
 		[Consumes("application/json")]
-		public ActionResult<GenericResponse<string>> SetGpioConfig(AuthPostData auth, [FromBody] GpioConfigRoot config) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>("Authentication code cannot be equal to 0, or empty.",
+		public ActionResult<GenericResponse<string>> SetGpioConfig(string apiKey, [FromBody] GpioConfigRoot config) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
 				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 

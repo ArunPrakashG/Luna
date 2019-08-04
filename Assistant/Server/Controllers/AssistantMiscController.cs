@@ -1,31 +1,29 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
+using Assistant.Geolocation;
 using Assistant.Server.Responses;
 using Assistant.Weather;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using Assistant.Geolocation;
-using Assistant.Server.Authentication;
 
 namespace Assistant.Server.Controllers {
 	[Route("api/misc/")]
 	public class AssistantMiscController : Controller {
 		[HttpPost("weather")]
-		public ActionResult<GenericResponse<WeatherData>> GetWeatherInfo(AuthPostData auth, int pinCode, string countryCode) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>(
-					"Please provide the specified authentication information!",
+		public ActionResult<GenericResponse<WeatherData>> GetWeatherInfo(string apiKey, int pinCode, string countryCode) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
-			}
-
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (pinCode <= 0) {
@@ -50,21 +48,20 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("zip")]
-		public ActionResult<GenericResponse<ZipLocationResult>> LocationFromZipCode(AuthPostData auth, long zipCode) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>(
-					"Please provide the specified authentication information!",
+		public ActionResult<GenericResponse<ZipLocationResult>> LocationFromZipCode(string apiKey, long zipCode) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
-			}
-
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (zipCode <= 0) {

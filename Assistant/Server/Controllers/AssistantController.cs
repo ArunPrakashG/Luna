@@ -25,21 +25,20 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("exit")]
-		public ActionResult<GenericResponse<string>> AssistantExit(AuthPostData auth, byte exitCode) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>(
-					"Please provide the specified authentication information!",
+		public ActionResult<GenericResponse<string>> AssistantExit(string apiKey, byte exitCode) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
-			}
-
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			Helpers.ScheduleTask(async () => { await Core.Exit(exitCode).ConfigureAwait(false); }, TimeSpan.FromSeconds(10));
@@ -48,21 +47,20 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("restart")]
-		public ActionResult<GenericResponse<string>> AssistantRestart(AuthPostData auth, int delay) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>(
-					"Please provide the specified authentication information!",
+		public ActionResult<GenericResponse<string>> AssistantRestart(string apiKey, int delay) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
-			}
-
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			Helpers.InBackground(async () => await Core.Restart(delay).ConfigureAwait(false));
@@ -71,21 +69,20 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("update")]
-		public ActionResult<GenericResponse<string>> CheckAndUpdate(AuthPostData auth) {
-			if (auth == null) {
-				return BadRequest(new GenericResponse<string>(
-					"Please provide the specified authentication information!",
+		public ActionResult<GenericResponse<string>> CheckAndUpdate(string apiKey) {
+			if (Helpers.IsNullOrEmpty(apiKey)) {
+				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			if (!KestrelServer.Authentication.IsAllowedToExecute(apiKey)) {
+				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			if (!Core.CoreInitiationCompleted) {
 				return BadRequest(new GenericResponse<string>(
 					$"{Core.AssistantName} core initiation isn't completed yet, please be patient while it is completed. retry after 20 seconds.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
-			}
-
-			if (!KestrelServer.Authentication.IsAllowedToExecute(auth)) {
-				return BadRequest(new GenericResponse<string>("You are not authenticated with the assistant. Please use the authentication endpoint to authenticate yourself!", Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
 			(bool updateCheckStatus, Version updateVersion) updateResult = Core.Update.CheckAndUpdate(false);

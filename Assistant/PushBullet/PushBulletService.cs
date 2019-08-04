@@ -12,8 +12,8 @@ namespace Assistant.PushBullet {
 		private Logger Logger { get; set; } = new Logger("PUSH-BULLET-SERVICE");
 		public PushBulletClient BulletClient { get; private set; }
 		public UserDeviceListResponse CachedPushDevices { get; private set; }
-		private string AccessToken { get; set; }
-		public bool IsBroadcastServiceOnline { get; set; }
+		public string AccessToken { get; private set; }
+		public bool IsBroadcastServiceOnline { get; private set; }
 		private PushRequestContent PreviousBroadcastMessage { get; set; } = new PushRequestContent();
 
 		public PushBulletService(string accessToken) {

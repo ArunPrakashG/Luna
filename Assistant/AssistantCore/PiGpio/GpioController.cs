@@ -22,11 +22,14 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		public GpioEventManager GpioPollingManager { get; private set; }
 
+		public GpioMorseTranslator MorseTranslator { get; private set; }
+
 		public GPIOController(GpioConfigRoot rootObject, List<GpioPinConfig> config, GpioConfigHandler configHandler) {
 			GpioConfigCollection = config;
 			GPIOConfigHandler = configHandler;
 			GpioConfigRoot = rootObject;
 			GpioPollingManager = new GpioEventManager(this);
+			MorseTranslator = new GpioMorseTranslator(this);
 
 			Helpers.ScheduleTask(() => {
 				if (GpioPollingManager == null) {
@@ -54,22 +57,23 @@ namespace Assistant.AssistantCore.PiGpio {
 			Logger.Log("Initiated GPIO Controller class!", Enums.LogLevels.Trace);
 		}
 
+		[Obsolete("Testing purpose")]
 		private void OnGpioPinValueChanged(object sender, GpioPinValueChangedEventArgs e) {
 			switch (e.PinState) {
 				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
-					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)");
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)", Enums.LogLevels.Trace);
 					break;
 
 				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.ON:
-					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)");
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)", Enums.LogLevels.Trace);
 					break;
 
 				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
-					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)");
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)", Enums.LogLevels.Trace);
 					break;
 
 				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.ON:
-					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)");
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)", Enums.LogLevels.Trace);
 					break;
 
 				default:
@@ -126,6 +130,18 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 
 			return Status;
+		}
+
+		public async Task<bool> SetGPIO(int pin, GpioPinDriveMode mode, GpioPinValue state, int timeoutDuration) {
+			if (pin <= 0 || timeoutDuration <= 0) {
+				return false;
+			}
+
+			if (SetGPIO(pin, mode, state)) {
+				await Task.Delay(timeoutDuration).ConfigureAwait(false);
+				return SetGPIO(pin, mode, GpioPinValue.High);
+			}
+			return false;
 		}
 
 		public bool GpioDigitalRead(int pin, bool onlyInputPins = false) {
