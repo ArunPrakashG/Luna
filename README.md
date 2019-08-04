@@ -11,7 +11,7 @@ Well, i had free time during my vacation so i decided to start a project for my 
 this is actually a Hobby/Learning project. i am a student learning C# myself everyday, this project taught me a lot of stuff which am proud off. If you have some time, feel free to look into the code and open an issue or pull request for the part if you feel it can be improved, with a reason, so that i can learn and correct my own mistakes :D
 
 ## Installation
-- Install .NET Core on your raspberry pi 3 first. see here for installation [.net core installation](https://www.hanselman.com/blog/InstallingTheNETCore2xSDKOnARaspberryPiAndBlinkingAnLEDWithSystemDeviceGpio.aspx)
+- Install .NET Core on your raspberry pi 3 first. see here for installation [.NET Core installation guide](https://www.hanselman.com/blog/InstallingTheNETCore2xSDKOnARaspberryPiAndBlinkingAnLEDWithSystemDeviceGpio.aspx)
 - If you installed .NET Core correctly, when running `dotnet --info` command, you will see the installed version of the .NET Core.
 - Download the latest release from here [Release](https://github.com/SynergYFTW/HomeAssistant/releases)
 - Create a new directory called Assistant (or whatever name you prefer) and extract downloaded .zip file to that folder.
