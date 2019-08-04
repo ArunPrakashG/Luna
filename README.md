@@ -40,6 +40,10 @@ this is actually a Hobby/Learning project. i am a student learning C# myself eve
 - On-the-fly config updater - Update config using the endpoints of Kestrel server.
 - Dynamic assembly loader - Load modules and integrate with core assistant process automatically from `Modules` directory during the run-time as well as during a pre-configured check on the directory on assistant startup.
 - Polling system - generate events based on GPIO pin value change by using polling technique on GPIO pin value.
+- Weather API - Get weather info on a specific location based on Zip/Pin code and the country code.
+- Zip code Data - Fetch Post offices/taluks of a region based on its Zip/Pin code. 
+- Morse code Generator - Generate morse code from the specified text.
+- Morse code translator - Translate the generated morse code to Sound using Console beeps (Windows only) or Gpio pin values (Raspberry only)
 
 ### Modules
 Modules are extensions, by which you can modify most of the core parts (excluding crucial core files which are required to run assistant ofcourse) of your assistant with your own definitions. The definitions can be anything, starting from, displaying an ASCII doggo on console window to changing the general logging systems.
