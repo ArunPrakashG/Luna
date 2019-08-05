@@ -56,6 +56,8 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool Debug { get; set; } = false;
 
+		[JsonProperty] public string ZomatoApiKey { get; set; }
+
 		[JsonProperty] public string OwnerEmailAddress { get; set; } = "arun.prakash.456789@gmail.com";
 
 		[JsonProperty] public bool EnableFirstChanceLog { get; set; } = false;
