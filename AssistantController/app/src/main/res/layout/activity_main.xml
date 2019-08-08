@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
+	android:id="@+id/linearLayout"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
 	tools:context=".MainActivity">
@@ -10,23 +11,28 @@
 		android:id="@+id/light1Button"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
+		android:layout_marginStart="16dp"
+		android:layout_marginLeft="16dp"
 		android:checked="false"
 		android:text="Light"
 		android:textOff="light off"
 		android:textOn="light on"
-		tools:layout_editor_absoluteX="53dp"
-		tools:layout_editor_absoluteY="72dp" />
+		app:layout_constraintStart_toStartOf="parent"
+		tools:layout_editor_absoluteY="108dp" />
 
 	<ToggleButton
 		android:id="@+id/light1Button"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
+		android:layout_marginStart="120dp"
+		android:layout_marginLeft="120dp"
+		android:layout_marginTop="108dp"
 		android:checked="false"
 		android:text="Light"
 		android:textOff="light off"
 		android:textOn="light on"
-		tools:layout_editor_absoluteX="53dp"
-		tools:layout_editor_absoluteY="72dp" />
+		app:layout_constraintStart_toStartOf="parent"
+		app:layout_constraintTop_toTopOf="parent" />
 
 	<ToggleButton
 		android:id="@+id/light2Button"
@@ -36,7 +42,7 @@
 		android:text="Light"
 		android:textOff="light off"
 		android:textOn="light on"
-		tools:layout_editor_absoluteX="159dp"
-		tools:layout_editor_absoluteY="72dp" />
+		tools:layout_editor_absoluteX="252dp"
+		tools:layout_editor_absoluteY="108dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -3,6 +3,7 @@ using Assistant.Extensions;
 using Assistant.Geolocation;
 using Assistant.Log;
 using Assistant.Modules;
+using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.PushBullet.ApiResponse;
 using Assistant.Server;
@@ -11,12 +12,12 @@ using Assistant.Weather;
 using CommandLine;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.MorseCode;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.Swan;
@@ -757,6 +758,8 @@ namespace Assistant.AssistantCore {
 
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
+			TaskManager.OnCoreShutdownRequested();
+
 			if (Update != null) {
 				Update.StopUpdateTimer();
 				Logger.Log("Update timer disposed!", Enums.LogLevels.Trace);
@@ -835,6 +838,47 @@ namespace Assistant.AssistantCore {
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);
 		}
-	}
 
+		public static async Task SystemShutdown() {
+			if (Helpers.IsRaspberryEnvironment()) {
+				Logger.Log($"Assistant is running on raspberry pi.", Enums.LogLevels.Trace);
+				Logger.Log("Shutting down pi...", Enums.LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				await Pi.ShutdownAsync().ConfigureAwait(false);
+				return;
+			}
+
+			if (Helpers.GetOsPlatform() == OSPlatform.Windows) {
+				Logger.Log($"Assistant is running on a windows system.", Enums.LogLevels.Trace);
+				Logger.Log("Shutting down system...", Enums.LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/s /t 0") {
+					CreateNoWindow = true,
+					UseShellExecute = false
+				};
+				Process.Start(psi);
+			}
+		}
+
+		public static async Task SystemRestart () {
+			if (Helpers.IsRaspberryEnvironment()) {
+				Logger.Log($"Assistant is running on raspberry pi.", Enums.LogLevels.Trace);
+				Logger.Log("Restarting pi...", Enums.LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				await Pi.RestartAsync().ConfigureAwait(false);
+				return;
+			}
+
+			if (Helpers.GetOsPlatform() == OSPlatform.Windows) {
+				Logger.Log($"Assistant is running on a windows system.", Enums.LogLevels.Trace);
+				Logger.Log("Restarting system...", Enums.LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/r /t 0") {
+					CreateNoWindow = true,
+					UseShellExecute = false
+				};
+				Process.Start(psi);
+			}
+		}
+	}
 }

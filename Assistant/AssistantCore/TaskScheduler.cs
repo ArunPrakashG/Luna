@@ -1,9 +1,9 @@
+using Assistant.Extensions;
+using Assistant.Log;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
-using Assistant.Extensions;
-using Assistant.Log;
 
 namespace Assistant.AssistantCore {
 
@@ -29,17 +29,25 @@ namespace Assistant.AssistantCore {
 
 		public bool IsTaskCollectionEmpty => TaskFactoryCollection.Count <= 0;
 
+		public void OnCoreShutdownRequested() {
+			if (!IsTaskCollectionEmpty) {
+				foreach (TaskStructure task in TaskFactoryCollection) {
+					Logger.Log($"TASK > {task.TaskIdentifier} execution cancelled as shutdown was requested.", Enums.LogLevels.Warn);
+				}
+			}
+		}
+
 		public (bool, Task) TryAddTask(TaskStructure task) {
 			if (task == null) {
 				Logger.Log("Task is null.", Enums.LogLevels.Warn);
 				return (false, null);
 			}
 
-			if(TaskFactoryCollection.Count > 0){
-				foreach(TaskStructure t in TaskFactoryCollection){
-					if(t.TaskIdentifier.Equals(task.TaskIdentifier)){
+			if (TaskFactoryCollection.Count > 0) {
+				foreach (TaskStructure t in TaskFactoryCollection) {
+					if (t.TaskIdentifier.Equals(task.TaskIdentifier)) {
 						Logger.Log("Such a task already exists. cannot add again!", Enums.LogLevels.Warn);
-						return(false, t.Task);
+						return (false, t.Task);
 					}
 				}
 			}

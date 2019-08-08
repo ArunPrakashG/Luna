@@ -120,7 +120,6 @@
 
 	<ItemGroup>
 	  <Folder Include="Config\SteamBots\" />
-	  <Folder Include="Zomato\" />
 	</ItemGroup>
 
 	<ItemGroup>

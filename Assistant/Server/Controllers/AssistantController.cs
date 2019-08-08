@@ -3,9 +3,6 @@ using Assistant.Extensions;
 using Assistant.Server.Responses;
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Runtime.InteropServices;
-using System.Text;
-using Assistant.Server.Authentication;
 
 namespace Assistant.Server.Controllers {
 

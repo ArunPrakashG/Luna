@@ -562,8 +562,14 @@ namespace Assistant.Extensions {
 		}
 
 		public static bool IsRaspberryEnvironment() {
-			if (Pi.Info.RaspberryPiVersion.ToString().Equals("Pi3ModelBEmbest", StringComparison.OrdinalIgnoreCase)) {
-				return true;
+			try {
+				if (GetOsPlatform() == OSPlatform.Linux
+					&& Pi.Info.RaspberryPiVersion.ToString().Equals("Pi3ModelBEmbest", StringComparison.OrdinalIgnoreCase)) {
+					return true;
+				}
+			}
+			catch {
+				return false;
 			}
 
 			return false;
@@ -636,7 +642,7 @@ namespace Assistant.Extensions {
 
 					switch (input) {
 						case 'y': {
-							int procCounter = 0;
+								int procCounter = 0;
 								foreach (Process proc in processes) {
 									if (proc.Id != Process.GetCurrentProcess().Id) {
 										proc.Kill();
