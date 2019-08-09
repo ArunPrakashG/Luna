@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Assistant.Extensions;
+using Assistant.Log;
 
 namespace Assistant.MorseCode {
 	public class MorseCore {
@@ -23,6 +24,8 @@ namespace Assistant.MorseCode {
 		public char Dash { get; set; } = '-';
 
 		private Codes CodeStore { get; set; }
+
+		private Logger Logger = new Logger("MORSE-CORE");
 
 		public MorseCore() => CodeStore = new Codes();
 
@@ -55,6 +58,7 @@ namespace Assistant.MorseCode {
 
 		public void PlayMorseTone(string morseStringOrSentence) {
 			if (!Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
+				Logger.Log("Cannot play the morse tone as the OS platform is not windows.");
 				return;
 			}
 

@@ -14,7 +14,7 @@ namespace Assistant.AssistantCore {
 		public TTSService() {
 		}
 
-		private void SpeechToTextFromFile(string filePath) {
+		private static void SpeechToTextFromFile(string filePath) {
 			SpeechClient speech = SpeechClient.Create();
 
 			RecognizeResponse response = speech.Recognize(new RecognitionConfig() {

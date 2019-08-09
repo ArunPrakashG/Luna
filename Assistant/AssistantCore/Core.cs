@@ -73,7 +73,7 @@ namespace Assistant.AssistantCore {
 		public static bool IsNetworkAvailable { get; set; }
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
 		public static bool GracefullModuleShutdown { get; set; } = false;
-		public static string AssistantName { get; set; } = "TESS";
+		public static string AssistantName { get; set; } = "TESS Assistant";
 
 		public static async Task<bool> InitCore(string[] args) {
 			if (File.Exists(Constants.TraceLogPath)) {
@@ -265,6 +265,14 @@ namespace Assistant.AssistantCore {
 				Logger.Log($"{Constants.ConsoleModuleShutdownKey} - Invoke shutdown method on all currently running modules.", Enums.LogLevels.UserInput);
 			}
 
+			if (MorseCode != null) {
+				Logger.Log($"{Constants.ConsoleMorseCodeKey} - Morse code generator", Enums.LogLevels.UserInput);
+			}
+
+			if (WeatherApi != null) {
+				Logger.Log($"{Constants.ConsoleWheatherInfoKey} - Get weather info", Enums.LogLevels.UserInput);
+			}
+
 			Logger.Log($"-------------------------------------------------------------------", Enums.LogLevels.UserInput);
 			Logger.Log("Awaiting user input: \n", Enums.LogLevels.UserInput);
 
@@ -316,17 +324,71 @@ namespace Assistant.AssistantCore {
 						}
 						return;
 
-					case Constants.ConsoleTestMethodExecutionKey: {
-							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
-							//Logger.Log("Enter text to convert to morse: ");
-							//string morse = MorseCode.ConvertToMorseCode(Console.ReadLine());
-							//Logger.Log($"MORSE >> {morse}");
-							Logger.Log("Enter text to convert to morse relay cycle: ");
+					case Constants.ConsoleMorseCodeKey: {
+							Logger.Log("Enter text to convert to morse: ");
 							string morseCycle = Console.ReadLine();
 							if (Controller.MorseTranslator.IsTranslatorOnline) {
 								await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.RelayPins[0], 200).ConfigureAwait(false);
 							}
+							else {
+								Logger.Log("Could not convert due to an unknown error.", Enums.LogLevels.Warn);
+							}
+						}
+						return;
 
+					case Constants.ConsoleWheatherInfoKey: {
+							Logger.Log("Please enter the pin code of the location: ");
+							int counter = 0;
+
+							int pinCode;
+							while (true) {
+								if (counter > 4) {
+									Logger.Log("Failed multiple times. aborting...");
+									return;
+								}
+
+								try {
+									pinCode = Convert.ToInt32(Console.ReadLine());
+									break;
+								}
+								catch {
+									counter++;
+									Logger.Log("Please try again!", Enums.LogLevels.Warn);
+									continue;
+								}
+							}
+
+							if (WeatherApi != null) {
+								(bool status, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, pinCode, "in");
+								if (status) {
+									Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", Enums.LogLevels.Sucess);
+									Logger.Log($"Temperature: {response.Temperature}", Enums.LogLevels.Sucess);
+									Logger.Log($"Humidity: {response.Temperature}", Enums.LogLevels.Sucess);
+									Logger.Log($"Latitude: {response.Latitude}", Enums.LogLevels.Sucess);
+									Logger.Log($"Longitude: {response.Logitude}", Enums.LogLevels.Sucess);
+									Logger.Log($"Location name: {response.LocationName}", Enums.LogLevels.Sucess);
+									Logger.Log($"Preasure: {response.Pressure}", Enums.LogLevels.Sucess);
+									Logger.Log($"Wind speed: {response.WindDegree}", Enums.LogLevels.Sucess);
+
+									TTSService.SpeakText($"Weather information for {response.LocationName} is", Enums.SpeechContext.Custom);
+									await Task.Delay(500).ConfigureAwait(false);
+									TTSService.SpeakText($"Temperature is {response.Temperature}", Enums.SpeechContext.Custom);
+									await Task.Delay(500).ConfigureAwait(false);
+									TTSService.SpeakText($"Humidity is {response.Humidity}", Enums.SpeechContext.Custom);
+									await Task.Delay(500).ConfigureAwait(false);
+									TTSService.SpeakText($"Location name is {response.LocationName}", Enums.SpeechContext.Custom);
+									await Task.Delay(500).ConfigureAwait(false);
+									TTSService.SpeakText($"Wind speed is {response.WindDegree}", Enums.SpeechContext.Custom);
+								}
+								else {
+									Logger.Log("Failed to fetch wheather information, try again later!");
+								}
+							}
+						}
+						return;
+
+					case Constants.ConsoleTestMethodExecutionKey: {
+							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
 						}
 						return;
@@ -860,7 +922,7 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		public static async Task SystemRestart () {
+		public static async Task SystemRestart() {
 			if (Helpers.IsRaspberryEnvironment()) {
 				Logger.Log($"Assistant is running on raspberry pi.", Enums.LogLevels.Trace);
 				Logger.Log("Restarting pi...", Enums.LogLevels.Warn);

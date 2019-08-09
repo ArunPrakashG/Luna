@@ -54,6 +54,8 @@ namespace Assistant.Extensions {
 		public const char ConsoleTestMethodExecutionKey = 't';
 		public const char ConsoleModuleShutdownKey = 'm';
 		public const char ConsoleRelayCycleMenuKey = 'r';
+		public const char ConsoleMorseCodeKey = 'v';
+		public const char ConsoleWheatherInfoKey = 'w';
 
 		public static string ExternelIP { get; set; }
 
