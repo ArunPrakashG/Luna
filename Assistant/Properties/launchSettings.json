@@ -1,0 +1,7 @@
+{
+		"profiles": {
+				"HomeAssistant": {
+						"commandName": "Project"
+				}
+		}
+}

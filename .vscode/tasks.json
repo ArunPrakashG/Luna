@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/HomeAssistant/HomeAssistant.csproj"
+            ],
+            "problemMatcher": "$tsc"
+        },
+        {
+            "label": "publish",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "publish",
+                "${workspaceFolder}/HomeAssistant/HomeAssistant.csproj"
+            ],
+            "problemMatcher": "$tsc"
+		},
+		{
+            "label": "publish",
+            "type": "process",
+            "dependsOn": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "command": "Publish.cmd",
+            "windows": {
+                "command": "Publish.cmd",
+                "args": []
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "watch",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "watch",
+                "run",
+                "${workspaceFolder}/HomeAssistant/HomeAssistant.csproj"
+            ],
+            "problemMatcher": "$tsc"
+        }
+    ]
+}
