@@ -105,10 +105,8 @@ namespace Assistant.Update {
 			Rootobject GitRoot = null;
 
 			try {
-				string gitToken = Helpers.FetchVariable(0, true, "GITHUB_TOKEN");
-
-				if (!string.IsNullOrEmpty(gitToken) || !string.IsNullOrWhiteSpace(gitToken)) {
-					GitRoot = Git.FetchLatestAssest(gitToken);
+				if (!Helpers.IsNullOrEmpty(Core.Config.GitHubToken)) {
+					GitRoot = Git.FetchLatestAssest(Core.Config.GitHubToken);
 				}
 			}
 			catch (NullReferenceException) {

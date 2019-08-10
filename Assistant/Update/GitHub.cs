@@ -185,7 +185,7 @@ namespace Assistant.Update {
 		private readonly Logger Logger = new Logger("GIT-HUB");
 
 		public Rootobject FetchLatestAssest(string gitToken) {
-			if (string.IsNullOrEmpty(gitToken) || string.IsNullOrWhiteSpace(gitToken)) {
+			if (Helpers.IsNullOrEmpty(gitToken)) {
 				Logger.Log("Token is empty!, cannot proceed.");
 				return new Rootobject();
 			}
