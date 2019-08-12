@@ -134,14 +134,11 @@ namespace Assistant.Update {
 			}
 
 			if (LatestVersion > Constants.Version) {
-				Logger.Log($"New version available!");
+				Logger.Log($"New version available!", Enums.LogLevels.Sucess);
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
-				Logger.Log("Automatically updating in 10 seconds...");
+				Logger.Log("Automatically updating in 10 seconds...", Enums.LogLevels.Warn);
 				UpdateAvailable = true;
-				Helpers.InBackground(async () => {
-					await Task.Delay(10000).ConfigureAwait(false);
-					await InitUpdate().ConfigureAwait(false);
-				});
+				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
 				return (true, LatestVersion);
 			}
 			else if (LatestVersion < Constants.Version) {
@@ -156,16 +153,10 @@ namespace Assistant.Update {
 
 		public async Task InitUpdate() {
 			Rootobject GitRoot = null;
-			string gitToken;
-			try {
-				gitToken = Helpers.FetchVariable(0, true, "GITHUB_TOKEN");
+			string gitToken = Core.Config.GitHubToken;
 
-				if (!string.IsNullOrEmpty(gitToken) || !string.IsNullOrWhiteSpace(gitToken)) {
-					GitRoot = Git.FetchLatestAssest(gitToken);
-				}
-			}
-			catch (NullReferenceException) {
-				Logger.Log("Failed to fetch GITHUB_TOKEN variable value from file. file exists ?", Enums.LogLevels.Warn);
+			if (Helpers.IsNullOrEmpty(gitToken)) {
+				Logger.Log("The github token is null.", Enums.LogLevels.Warn);
 				return;
 			}
 

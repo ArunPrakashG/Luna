@@ -59,7 +59,7 @@ namespace Assistant {
 		}
 
 		public static void HandleFirstChanceExceptions(object sender, FirstChanceExceptionEventArgs e) {
-			if (Core.Config.Debug) {
+			if (Core.Config != null && Core.Config.Debug) {
 				if (Core.DisableFirstChanceLogWithDebug) {
 					return;
 				}
