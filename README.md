@@ -1,8 +1,7 @@
 # HOME ASSISTANT
 
 A simple console application written in C# using .NET Core framework with a single goal, provide you with assistance in your home!
-turning on lights, and turning them off, just with your voice!
-that's not all, it can be more than your personal assistant, it can be your J.A.R.V.I.S!
+turning on lights, and turning them off, getting weather update, email notifications and more!
 Built and designed to run on raspberry pi 3 in headless and completely unattended mode.
 able to handle errors smartly and do the needful on certain circumstances.
 
@@ -38,7 +37,7 @@ This way, without modifying the Core project, you can customize your Assistant! 
 
 ### Currently available modules
 - Email System - Login with your email accounts to send, receive, delete or even search emails in your inbox. Supports 50+ accounts at a time also, get notified of new emails you receive by taking control of the IMAP server push notifications. Enable the push notifications service on config file.
-- Steam bot - control your assistant and get chat notifications on steam, moreover, let your assistant take control of your account so that you can set custom away message and Hour boost as well as card farm games on steam.
+- [WIP] Steam bot - control your assistant and get chat notifications on steam, moreover, let your assistant take control of your account so that you can set custom away message and Hour boost as well as card farm games on steam.
 - Discord bot - allows to control tess using discord bot commands from home assistant discord channel.
 - Youtube - download video only or sound only or both from a youtube link.
 
