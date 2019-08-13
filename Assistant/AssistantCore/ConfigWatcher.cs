@@ -28,6 +28,7 @@
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Assistant.Extensions;
 using Assistant.Log;
 
@@ -109,25 +110,43 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
+			Task.Run(async () => await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.ConfigWatcherEvent, sender, e).ConfigureAwait(false));
+
 			switch (absoluteFileName) {
 				case "Assistant.json":
 					Logger.Log("Config watcher event raised for core config file.", Enums.LogLevels.Trace);
+
+					if (e.ChangeType == WatcherChangeTypes.Deleted) {
+						Logger.Log("The core config file has been deleted.", Enums.LogLevels.Warn);
+						Logger.Log("Fore quitting assistant.", Enums.LogLevels.Warn);
+						Task.Run(async () => await Core.Exit(0).ConfigureAwait(false));
+					}
+
 					Logger.Log("Updating core config as the local config file as been updated...");
 					Core.Config = Core.Config.LoadConfig(true);
 					break;
 
 				case "GpioConfig.json":
 					Logger.Log("Config watcher event raised for GPIO Config file.", Enums.LogLevels.Trace);
+
+					if (e.ChangeType == WatcherChangeTypes.Deleted) {
+						Logger.Log("The Gpio config file has been deleted.", Enums.LogLevels.Warn);
+						Logger.Log("Fore quitting assistant.", Enums.LogLevels.Warn);
+						Task.Run(async () => await Core.Exit(0).ConfigureAwait(false));
+					}
+
 					Logger.Log("Updating gpio config as the local config as been updated...");
 					Core.Controller.GpioConfigCollection = Core.GPIOConfigHandler.LoadConfig().GPIOData;
 					break;
 
 				case "MailConfig.json":
 					Logger.Log("Mail config has been modified.", Enums.LogLevels.Trace);
+					//TODO: handle MailConfig file change events
 					break;
 
 				case "DiscordBot.json":
 					Logger.Log("Discord bot config has been modified.", Enums.LogLevels.Trace);
+					//TODO: handle DiscordBot config file change events
 					break;
 
 				case "AssistantExample.json":

@@ -356,12 +356,10 @@ namespace Assistant.Extensions {
 			return Response;
 		}
 
-		public static DateTime ConvertTo24Hours
-			(DateTime source) =>
+		public static DateTime ConvertTo24Hours(DateTime source) =>
 			DateTime.TryParse(source.ToString("yyyy MMMM d HH:mm:ss tt"), out DateTime result) ? result : DateTime.Now;
 
-		public static DateTime ConvertTo12Hours
-			(DateTime source) =>
+		public static DateTime ConvertTo12Hours(DateTime source) =>
 			DateTime.TryParse(source.ToString("dddd, dd MMMM yyyy"), out DateTime result) ? result : DateTime.Now;
 
 		public static string GetUrlToString(string url, Method method, bool withuseragent = true) {

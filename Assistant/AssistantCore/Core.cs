@@ -236,7 +236,7 @@ namespace Assistant.AssistantCore {
 		private static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", Enums.LogLevels.Trace);
 			ModuleWatcher.InitConfigWatcher();
-			if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
+			if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows) && Config.Debug) {
 				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
 				Logger.Log("Gpio controller has been started despite OS differences, there are chances of crashs and some methods won't work.", Enums.LogLevels.Error);
 			}
@@ -259,6 +259,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			CoreInitiationCompleted = true;
+			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantStartup).ConfigureAwait(false);
 
 			if (Config.DisplayStartupMenu && !DisablePiMethods) {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
@@ -806,6 +807,7 @@ namespace Assistant.AssistantCore {
 
 		public static async Task OnNetworkDisconnected() {
 			IsNetworkAvailable = false;
+			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.NetworkDisconnected).ConfigureAwait(false);
 			Constants.ExternelIP = "Internet connection lost.";
 
 			if (Update != null) {
@@ -824,6 +826,7 @@ namespace Assistant.AssistantCore {
 
 		public static async Task OnNetworkReconnected() {
 			IsNetworkAvailable = true;
+			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.NetworkReconnected).ConfigureAwait(false);
 			Constants.ExternelIP = Task.Run(Helpers.GetExternalIp).Result;
 
 			if (Config.AutoUpdates && IsNetworkAvailable) {
@@ -848,6 +851,7 @@ namespace Assistant.AssistantCore {
 
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
+			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantShutdown).ConfigureAwait(false);
 			TaskManager.OnCoreShutdownRequested();
 
 			if (Update != null) {
@@ -923,13 +927,14 @@ namespace Assistant.AssistantCore {
 				Logger.Log("Auto restart is turned off in config.", Enums.LogLevels.Warn);
 				return;
 			}
-
+			
 			Helpers.ScheduleTask(() => Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll", false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);
 		}
 
 		public static async Task SystemShutdown() {
+			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.SystemShutdown).ConfigureAwait(false);
 			if (Helpers.IsRaspberryEnvironment()) {
 				Logger.Log($"Assistant is running on raspberry pi.", Enums.LogLevels.Trace);
 				Logger.Log("Shutting down pi...", Enums.LogLevels.Warn);
@@ -951,6 +956,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		public static async Task SystemRestart() {
+			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.SystemRestart).ConfigureAwait(false);
 			if (Helpers.IsRaspberryEnvironment()) {
 				Logger.Log($"Assistant is running on raspberry pi.", Enums.LogLevels.Trace);
 				Logger.Log("Restarting pi...", Enums.LogLevels.Warn);

@@ -31,6 +31,7 @@ using Assistant.Log;
 using Assistant.Modules;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Assistant.AssistantCore {
 
@@ -114,6 +115,7 @@ namespace Assistant.AssistantCore {
 			string t = new DirectoryInfo(e.FullPath).Parent.Name;
 			Logger.Log(t, Enums.LogLevels.Trace);
 
+			Task.Run(async () => await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.ModuleWatcherEvent, sender, e).ConfigureAwait(false));
 			Enums.ModuleLoaderContext loaderContext;
 			if (t.Equals("DiscordModules", StringComparison.OrdinalIgnoreCase)) {
 				loaderContext = Enums.ModuleLoaderContext.DiscordClients;

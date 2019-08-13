@@ -44,7 +44,8 @@ namespace Assistant.AssistantCore {
 			YoutubeClients,
 			AllModules,
 			None,
-			CustomModules
+			CustomModules,
+			AsyncEventModules
 		}
 
 		public enum PiContext : byte {
@@ -53,6 +54,19 @@ namespace Assistant.AssistantCore {
 			SHUTDOWN,
 			FETCH,
 			RELAY
+		}
+
+		public enum AsyncModuleContext {
+			AssistantStartup,
+			AssistantShutdown,
+			UpdateAvailable,
+			UpdateStarted,
+			NetworkDisconnected,
+			NetworkReconnected,
+			SystemShutdown,
+			SystemRestart,
+			ConfigWatcherEvent,
+			ModuleWatcherEvent
 		}
 
 		public enum SteamUserInputType {
@@ -116,7 +130,8 @@ namespace Assistant.AssistantCore {
 			Email,
 			Steam,
 			Youtube,
-			Custom
+			Custom,
+			Events
 		}
 
 		public enum KeywordType {

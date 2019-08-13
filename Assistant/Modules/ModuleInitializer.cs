@@ -39,6 +39,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Assistant.Modules {
 
@@ -54,10 +55,13 @@ namespace Assistant.Modules {
 
 		public HashSet<((Enums.ModuleType, string), ICustomModule)> CustomModules { get; set; } = new HashSet<((Enums.ModuleType, string), ICustomModule)>();
 
+		public HashSet<((Enums.ModuleType, string), IAsyncEventBase)> AsyncEventModules { get; set; } = new HashSet<((Enums.ModuleType, string), IAsyncEventBase)>();
+
 		public HashSet<Assembly> LoadedAssemblies { get; set; } = new HashSet<Assembly>();
 
 		public bool IsModulesEmpty =>
-			EmailClients.Count <= 0 && DiscordBots.Count <= 0 && SteamClients.Count <= 0 && YoutubeClients.Count <= 0 && CustomModules.Count <= 0;
+			EmailClients.Count <= 0 && DiscordBots.Count <= 0 && SteamClients.Count <= 0 && YoutubeClients.Count <= 0 &&
+			CustomModules.Count <= 0 && AsyncEventModules.Count <= 0;
 	}
 
 	public class ModuleInitializer {
@@ -99,6 +103,13 @@ namespace Assistant.Modules {
 							}
 						}
 
+						if (LoadedModules.AsyncEventModules.Count > 0) {
+							foreach (((Enums.ModuleType, string) UniqueId, IAsyncEventBase eventMod) in LoadedModules.AsyncEventModules) {
+								eventMod.InitModuleShutdown();
+								Logger.Log($"Unloaded {UniqueId} / {eventMod.ModuleVersion} module.");
+							}
+						}
+
 						if (LoadedModules.CustomModules.Count > 0) {
 							foreach (((Enums.ModuleType, string) UniqueId, ICustomModule custom) in LoadedModules.CustomModules) {
 								custom.InitModuleShutdown();
@@ -118,6 +129,18 @@ namespace Assistant.Modules {
 								}
 							}
 						}
+						return true;
+					}
+
+				case Enums.ModuleLoaderContext.AsyncEventModules: {
+						if (LoadedModules.AsyncEventModules.Count > 0) {
+							foreach (((Enums.ModuleType, string), IAsyncEventBase) bot in LoadedModules.AsyncEventModules) {
+								if (bot.Item2.InitModuleShutdown()) {
+									Logger.Log($"MODULE > {bot.Item1}/{bot.Item2.ModuleAuthor} has been unloaded.", Enums.LogLevels.Trace);
+								}
+							}
+						}
+
 						return true;
 					}
 
@@ -176,6 +199,23 @@ namespace Assistant.Modules {
 			}
 
 			switch (context) {
+				case Enums.ModuleLoaderContext.AsyncEventModules: {
+						IAsyncEventBase bot = (IAsyncEventBase) module;
+
+						if (LoadedModules.AsyncEventModules.Count <= 0) {
+							return false;
+						}
+
+						foreach (((Enums.ModuleType, string), IAsyncEventBase) mod in LoadedModules.AsyncEventModules) {
+							if (mod.Item1.Equals(bot.ModuleIdentifier)) {
+								Logger.Log("This module is already loaded and added to module collection.", Enums.LogLevels.Trace);
+								return true;
+							}
+						}
+
+						return false;
+					}
+
 				case Enums.ModuleLoaderContext.DiscordClients: {
 						IDiscordBot bot = (IDiscordBot) module;
 
@@ -301,6 +341,17 @@ namespace Assistant.Modules {
 
 					if (Load<ICustomModule>(Enums.ModuleLoaderContext.CustomModules)) {
 						Logger.Log("Finished loading [CUSTOM] modules.", Enums.LogLevels.Trace);
+					}
+
+					if (Load<IAsyncEventBase>(Enums.ModuleLoaderContext.AsyncEventModules)) {
+						Logger.Log("Finished loading [ASYNC-EVENT] modules.", Enums.LogLevels.Trace);
+					}
+
+					break;
+
+				case Enums.ModuleLoaderContext.AsyncEventModules:
+					if (Load<IAsyncEventBase>(loadContext)) {
+						Logger.Log("Finished loading [ASYNC-EVENT] modules.", Enums.LogLevels.Trace);
 					}
 
 					break;
@@ -494,6 +545,34 @@ namespace Assistant.Modules {
 					}
 					break;
 
+				case Enums.ModuleLoaderContext.AsyncEventModules: {
+						int loadedModuleCount = 0;
+						foreach (((Enums.ModuleType, string), T) value in moduleCollection) {
+							IAsyncEventBase plugin = (IAsyncEventBase) value.Item2;
+							(Enums.ModuleType, string) uniqueId = value.Item1;
+
+							try {
+								Logger.Log($"Loading [ASYNC-EVENT] {plugin.ModuleIdentifier} module...", Enums.LogLevels.Trace);
+
+								if (!IsExisitingModule(loadContext, plugin)) {
+									if (plugin.InitModuleService()) {
+										LoadedModules.AsyncEventModules.Add((uniqueId, plugin));
+										Logger.Log($"Load successfull. [ASYNC-EVENT] {plugin.ModuleIdentifier} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion}", Enums.LogLevels.Info);
+										loadedModuleCount++;
+									}
+								}
+								else {
+									Logger.Log($"Cancelled loading [ASYNC-EVENT] {uniqueId} / {plugin.ModuleAuthor} / V{plugin.ModuleVersion} module as its already loaded.", Enums.LogLevels.Info);
+								}
+							}
+							catch (Exception e) {
+								Logger.Log(e);
+							}
+						}
+						Logger.Log($"Successfully loaded {loadedModuleCount} Async-Event modules. ({loadedModuleCount}/{moduleCollection.Count - loadedModuleCount})", Enums.LogLevels.Trace);
+					}
+					break;
+
 				default: {
 						return false;
 					}
@@ -625,7 +704,7 @@ namespace Assistant.Modules {
 
 								if (hashSet.Count > 0) {
 									foreach (ICustomModule bot in hashSet) {
-										bot.ModuleIdentifier = GenerateModuleIdentifier(Enums.ModuleType.Steam);
+										bot.ModuleIdentifier = GenerateModuleIdentifier(Enums.ModuleType.Custom);
 										CustomModules.Add((bot.ModuleIdentifier, bot));
 										Logger.Log($"Added {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules collection", Enums.LogLevels.Trace);
 									}
@@ -642,6 +721,33 @@ namespace Assistant.Modules {
 						}
 
 						return InitLoadedModuleService<ICustomModule>(CustomModules, Enums.ModuleLoaderContext.CustomModules);
+					}
+
+				case Enums.ModuleLoaderContext.AsyncEventModules: {
+						HashSet<((Enums.ModuleType, string), IAsyncEventBase)> AsyncModules = new HashSet<((Enums.ModuleType, string), IAsyncEventBase)>();
+						try {
+							using (CompositionHost container = configuration.CreateContainer()) {
+								HashSet<IAsyncEventBase> hashSet = container.GetExports<IAsyncEventBase>().ToHashSet();
+
+								if (hashSet.Count > 0) {
+									foreach (IAsyncEventBase bot in hashSet) {
+										bot.ModuleIdentifier = GenerateModuleIdentifier(Enums.ModuleType.Events);
+										AsyncModules.Add((bot.ModuleIdentifier, bot));
+										Logger.Log($"Added {bot.ModuleIdentifier}/{bot.ModuleAuthor}/{bot.ModuleVersion} to modules collection", Enums.LogLevels.Trace);
+									}
+								}
+							}
+						}
+						catch (Exception e) {
+							Logger.Log(e);
+							return false;
+						}
+
+						if (AsyncModules.Count <= 0) {
+							return false;
+						}
+
+						return InitLoadedModuleService<IAsyncEventBase>(AsyncModules, Enums.ModuleLoaderContext.AsyncEventModules);
 					}
 
 				default:
@@ -711,6 +817,70 @@ namespace Assistant.Modules {
 			}
 
 			Logger.Log("Failed to shutdown modules.", Enums.LogLevels.Warn);
+			return false;
+		}
+
+		public async Task<bool> ExecuteAsyncEvent(Enums.AsyncModuleContext context, object fileEventSender = null, FileSystemEventArgs fileEventArgs = null) {
+			if (LoadedModules.IsModulesEmpty || LoadedModules.AsyncEventModules.Count <= 0) {
+				return false;
+			}
+
+			foreach (((Enums.ModuleType, string), IAsyncEventBase) eventMod in LoadedModules.AsyncEventModules) {
+				switch (context) {
+					case Enums.AsyncModuleContext.AssistantShutdown: {
+							return await eventMod.Item2.OnAssistantShutdownRequestedAsync().ConfigureAwait(false);
+						}
+
+					case Enums.AsyncModuleContext.AssistantStartup: {
+							return await eventMod.Item2.OnAssistantStartedAsync().ConfigureAwait(false);
+						}
+
+					case Enums.AsyncModuleContext.ConfigWatcherEvent: {
+							if (fileEventArgs == null || fileEventSender == null) {
+								return false;
+							}
+
+							return await eventMod.Item2.OnConfigWatcherEventRasiedAsync(fileEventSender, fileEventArgs).ConfigureAwait(false);
+						}
+
+					case Enums.AsyncModuleContext.ModuleWatcherEvent: {
+							if (fileEventArgs == null || fileEventSender == null) {
+								return false;
+							}
+
+							return await eventMod.Item2.OnModuleWatcherEventRasiedAsync(fileEventSender, fileEventArgs).ConfigureAwait(false);
+						}
+
+					case Enums.AsyncModuleContext.NetworkDisconnected: {
+						return await eventMod.Item2.OnNetworkDisconnectedAsync().ConfigureAwait(false);
+					}
+
+					case Enums.AsyncModuleContext.NetworkReconnected: {
+						return await eventMod.Item2.OnNetworkReconnectedAsync().ConfigureAwait(false);
+					}
+
+					case Enums.AsyncModuleContext.SystemRestart: {
+						return await eventMod.Item2.OnSystemRestartRequestedAsync().ConfigureAwait(false);
+					}
+
+					case Enums.AsyncModuleContext.SystemShutdown: {
+						return await eventMod.Item2.OnSystemShutdownRequestedAsync().ConfigureAwait(false);
+					}
+
+					case Enums.AsyncModuleContext.UpdateAvailable: {
+						return await eventMod.Item2.OnUpdateAvailableAsync().ConfigureAwait(false);
+					}
+
+					case Enums.AsyncModuleContext.UpdateStarted: {
+						return await eventMod.Item2.OnUpdateStartedAsync().ConfigureAwait(false);
+					}
+
+					default: {
+						return false;
+					}
+				}
+			}
+
 			return false;
 		}
 

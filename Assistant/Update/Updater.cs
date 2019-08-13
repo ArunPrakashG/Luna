@@ -138,6 +138,7 @@ namespace Assistant.Update {
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...", Enums.LogLevels.Warn);
 				UpdateAvailable = true;
+				Task.Run(async () => await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateAvailable).ConfigureAwait(false));
 				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
 				return (true, LatestVersion);
 			}
@@ -213,6 +214,7 @@ namespace Assistant.Update {
 				}
 
 				await Task.Delay(1000).ConfigureAwait(false);
+				await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateStarted).ConfigureAwait(false);
 				Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll", true);
 				_ = await Helpers.RestartOrExit().ConfigureAwait(false);
 			}
