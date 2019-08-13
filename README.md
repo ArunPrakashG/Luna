@@ -6,17 +6,6 @@ that's not all, it can be more than your personal assistant, it can be your J.A.
 Built and designed to run on raspberry pi 3 in headless and completely unattended mode.
 able to handle errors smartly and do the needful on certain circumstances.
 
-## Installation
-- Install .NET Core on your raspberry pi 3 first. see here for installation [.NET Core installation guide](https://www.hanselman.com/blog/InstallingTheNETCore2xSDKOnARaspberryPiAndBlinkingAnLEDWithSystemDeviceGpio.aspx)
-- If you installed .NET Core correctly, when running `dotnet --info` command, you will see the installed version of the .NET Core.
-- Download the latest release from here [Release](https://github.com/SynergYFTW/HomeAssistant/releases)
-- Create a new directory called Assistant (or whatever name you prefer) and extract downloaded .zip file to that folder.
-
-## Startup (assuming you followed the above installation steps...)
-- Open a terminal on assistant folder. (or open the terminal from anywhere, then use `cd` command to target the assistant directory)
-- Run Assistant.dll using command `dotnet Assistant.dll` on terminal.
-- Wait for assistant to initialise.
-
 ## Features
 - Cross-platform - not just because its made on dotnet core, but because it is smart enough to know its platform and adapt accordingly.it can switch off various platform specific methods if it decteted that the current running os isn't what it is made to run on.
 - Smart network switcher - during network issues or network connection loss, it can know about the change and switch to offline mode were all network related tasks will be stopped to prevent exceptions. when the network is back online, it can start the previously stopped tasks again.
