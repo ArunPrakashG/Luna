@@ -691,8 +691,6 @@ namespace Assistant.Extensions {
 							}
 					}
 				}
-
-
 			}
 		}
 	}
