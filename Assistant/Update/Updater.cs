@@ -37,6 +37,7 @@ using System.Threading.Tasks;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
+using Microsoft.AspNetCore.Mvc.Formatters;
 
 namespace Assistant.Update {
 
@@ -47,6 +48,7 @@ namespace Assistant.Update {
 		private Timer AutoUpdateTimer;
 		private readonly Stopwatch ElapasedTimeCalculator = new Stopwatch();
 		private DateTime UpdateTimerStartTime;
+		private static readonly SemaphoreSlim UpdateSemaphore = new SemaphoreSlim(1, 1);
 
 		public void StopUpdateTimer() {
 			if (AutoUpdateTimer != null) {
@@ -77,7 +79,7 @@ namespace Assistant.Update {
 				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(Core.Config.UpdateIntervalInHours);
 
 				AutoUpdateTimer = new Timer(
-					e => CheckAndUpdate(true),
+					e => CheckAndUpdateAsync(true),
 					null,
 					autoUpdatePeriod, // Delay
 					autoUpdatePeriod // Period
@@ -89,16 +91,23 @@ namespace Assistant.Update {
 			}
 		}
 
-		public (bool, Version) CheckAndUpdate(bool withTimer) {
+		public async Task<(bool, Version)> CheckAndUpdateAsync(bool withTimer) {
+			if (!Core.IsNetworkAvailable) {
+				return (false, Constants.Version);
+			}
+
 			if (withTimer && AutoUpdateTimer == null) {
 				StartUpdateTimer();
 			}
 
+			Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
+			await UpdateSemaphore.WaitAsync().ConfigureAwait(false);
 			UpdateTimerStartTime = DateTime.Now;
 			ElapasedTimeCalculator.Restart();
 
 			if (!Core.Config.AutoUpdates) {
-				Logger.Log("Updates are disabled.");
+				Logger.Log("Updates are disabled.", Enums.LogLevels.Trace);
+				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
@@ -111,6 +120,7 @@ namespace Assistant.Update {
 			}
 			catch (NullReferenceException) {
 				Logger.Log("Could not fetch the required details from github api.", Enums.LogLevels.Warn);
+				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
@@ -120,6 +130,7 @@ namespace Assistant.Update {
 			}
 			else {
 				Logger.Log("Failed to fetch the required details from github api.", Enums.LogLevels.Error);
+				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
@@ -130,6 +141,7 @@ namespace Assistant.Update {
 			}
 			catch (Exception) {
 				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", Enums.LogLevels.Warn);
+				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
@@ -138,16 +150,19 @@ namespace Assistant.Update {
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...", Enums.LogLevels.Warn);
 				UpdateAvailable = true;
-				Task.Run(async () => await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateAvailable).ConfigureAwait(false));
+				await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateAvailable).ConfigureAwait(false);
 				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
+				UpdateSemaphore.Release();
 				return (true, LatestVersion);
 			}
 			else if (LatestVersion < Constants.Version) {
 				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", Enums.LogLevels.Warn);
+				UpdateSemaphore.Release();
 				return (true, LatestVersion);
 			}
 			else {
 				Logger.Log($"You are up to date! ({LatestVersion}/{Constants.Version})");
+				UpdateSemaphore.Release();
 				return (true, LatestVersion);
 			}
 		}

@@ -142,6 +142,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 
 			string JSON;
+			Logger.Log("Loading Gpio config...", Enums.LogLevels.Trace);
 			ConfigSemaphore.Wait();
 			using (FileStream Stream = new FileStream(Constants.GpioConfigPath, FileMode.Open, FileAccess.Read)) {
 				using (StreamReader ReadSettings = new StreamReader(Stream)) {

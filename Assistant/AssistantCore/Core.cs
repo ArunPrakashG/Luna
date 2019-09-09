@@ -108,25 +108,14 @@ namespace Assistant.AssistantCore {
 			}
 
 			Logger = new Logger("ASSISTANT");
-			Logger.Log("Loading core config...", Enums.LogLevels.Trace);
-			try {
-				Config = Config.LoadConfig();
-			}
-			catch (NullReferenceException) {
-				Logger.Log("Fatal error has occured during loading Core Config. exiting...", Enums.LogLevels.Error);
-				await Exit(1).ConfigureAwait(false);
-				return false;
-			}
-
+			Config = Config.LoadConfig();
 			AssistantName = Config.AssistantDisplayName;
 			Logger.LogIdentifier = AssistantName;
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
 			Helpers.SetFileSeperator();
-			Logger.Log("Verifying internet connectivity...", Enums.LogLevels.Trace);
 
-			if (Helpers.CheckForInternetConnection()) {
-				Logger.Log("Internet connection verified!", Enums.LogLevels.Trace);
+			if (Helpers.CheckForInternetConnection()) {				
 				IsNetworkAvailable = true;
 			}
 			else {
@@ -135,123 +124,80 @@ namespace Assistant.AssistantCore {
 				IsNetworkAvailable = false;
 			}
 
-			try {
-				Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
-				Constants.ExternelIP = Helpers.GetExternalIp();
-				Constants.LocalIP = Helpers.GetLocalIpAddress();
+			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
+			Constants.ExternelIP = Helpers.GetExternalIp();
+			Constants.LocalIP = Helpers.GetLocalIpAddress();
+			File.WriteAllText("version.txt", Constants.Version.ToString());
 
-				if (string.IsNullOrEmpty(Constants.ExternelIP) || string.IsNullOrWhiteSpace(Constants.ExternelIP)) {
-					Constants.ExternelIP = "Failed. No internet connection.";
-				}
+			if (Helpers.IsNullOrEmpty(Constants.ExternelIP)) {
+				Constants.ExternelIP = "Failed.";
+			}
 
-				Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater", true);
-				Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
+			Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater", true);
+			Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
 
-				ConfigWatcher.InitConfigWatcher();
-				ParseStartupArguments(args);
+			ConfigWatcher.InitConfigWatcher();
+			ParseStartupArguments(args);
+
+			if (!Helpers.IsNullOrEmpty(Config.PushBulletApiKey)) {
 				PushBulletService = new PushBulletService(Config.PushBulletApiKey);
 				(bool status, UserDeviceListResponse currentPushDevices) = PushBulletService.InitPushService();
 
 				if (status) {
 					Logger.Log("Push bullet service started.", Enums.LogLevels.Trace);
 				}
-
-				if (!Helpers.IsRaspberryEnvironment() || Helpers.GetOsPlatform() != OSPlatform.Linux) {
-					DisablePiMethods = true;
-					IsUnknownOs = true;
-				}
-
-				Logger.Log("Loading GPIO config...", Enums.LogLevels.Trace);
-				try {
-					GPIORootObject = GPIOConfigHandler.LoadConfig();
-
-					if (GPIORootObject != null) {
-						GPIOConfig = GPIORootObject.GPIOData;
-					}
-				}
-				catch (NullReferenceException) {
-					Logger.Log("Fatal error has occured during loading GPIO Config. exiting...", Enums.LogLevels.Error);
-					await Exit(1).ConfigureAwait(false);
-					return false;
-				}
-
-				if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
-					AssistantStatus = new ProcessStatus();
-				}
-				else {
-					Logger.Log("Could not start performence counters as it is not supported on this platform.", Enums.LogLevels.Trace);
-				}
-
-				Config.ProgramLastStartup = StartupTime;
-
-				if (!Helpers.IsNullOrEmpty(Config.GitHubToken)) {
-					if (Config.AutoUpdates && IsNetworkAvailable) {
-						Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
-						File.WriteAllText("version.txt", Constants.Version.ToString());
-						Update.CheckAndUpdate(true);
-					}
-				}
-				else {
-					Logger.Log("Github token isnt found. Updates will be disabled.", Enums.LogLevels.Warn);
-				}
-
-				if (Config.KestrelServer) {
-					if (IsNetworkAvailable) {
-						await KestrelServer.Start().ConfigureAwait(false);
-					}
-					else {
-						Logger.Log("Could not start Kestrel server as network is unavailable.", Enums.LogLevels.Warn);
-					}
-				}
-
-				ModuleLoader = new ModuleInitializer();
-
-				if (IsNetworkAvailable) {
-					if (Config.EnableModules) {
-						(bool, LoadedModules) loadStatus = ModuleLoader.LoadModules();
-						if (!loadStatus.Item1) {
-							Logger.Log("Failed to load modules.", Enums.LogLevels.Warn);
-						}
-						else {
-						}
-					}
-					else {
-						Logger.Log("Not starting modules as its disabled in config file.", Enums.LogLevels.Trace);
-					}
-				}
-				else {
-					Logger.Log("Could not start the modules as network is unavailable.", Enums.LogLevels.Warn);
-				}
-
-				await PostInitTasks().ConfigureAwait(false);
 			}
-			catch (Exception e) {
-				Logger.Log(e, Enums.LogLevels.Fatal);
-				return false;
+
+			if (!Helpers.IsRaspberryEnvironment()) {
+				DisablePiMethods = true;
+				IsUnknownOs = true;
 			}
+
+			GPIORootObject = GPIOConfigHandler.LoadConfig();
+
+			if (GPIORootObject != null) {
+				GPIOConfig = GPIORootObject.GPIOData;
+			}
+
+			if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
+				AssistantStatus = new ProcessStatus();
+			}
+			else {
+				Logger.Log("Could not start performence counters as it is not supported on this platform.", Enums.LogLevels.Trace);
+			}
+
+			Config.ProgramLastStartup = StartupTime;
+
+			await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
+
+			if(Config.KestrelServer && !Helpers.IsNullOrEmpty(Config.KestrelServerUrl)) {
+				await KestrelServer.Start().ConfigureAwait(false);
+			}
+
+			ModuleLoader = new ModuleInitializer();
+
+			if (IsNetworkAvailable && Config.EnableModules) {
+				(bool, LoadedModules) loadStatus = ModuleLoader.LoadModules();
+				if (!loadStatus.Item1) {
+					Logger.Log("Failed to load modules.", Enums.LogLevels.Warn);
+				}
+			}
+
+			await PostInitTasks().ConfigureAwait(false);
 			return true;
 		}
 
 		private static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", Enums.LogLevels.Trace);
 			ModuleWatcher.InitConfigWatcher();
-			if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows) && Config.Debug) {
-				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
-				Logger.Log("Gpio controller has been started despite OS differences, there are chances of crashs and some methods won't work.", Enums.LogLevels.Error);
-			}
 
-			if (!DisablePiMethods) {
-				if (Config.EnableGpioControl) {
-					Pi.Init<BootstrapWiringPi>();
-					Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
-					PiBluetooth = new BluetoothController();
-					PiSound = new SoundController();
-					ControllerHelpers.DisplayPiInfo();
-					Logger.Log("Successfully Initiated Pi Configuration!");
-				}
-				else {
-					Logger.Log("Not starting Gpio configuration as its disabled in config file.");
-				}
+			if (!DisablePiMethods && Config.EnableGpioControl) {
+				Pi.Init<BootstrapWiringPi>();
+				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
+				PiBluetooth = new BluetoothController();
+				PiSound = new SoundController();
+				ControllerHelpers.DisplayPiInfo();
+				Logger.Log("Successfully Initiated Pi Configuration!");
 			}
 			else {
 				Logger.Log("Disabled Raspberry Pi related methods and initiation tasks.");
@@ -831,7 +777,7 @@ namespace Assistant.AssistantCore {
 			if (Config.AutoUpdates && IsNetworkAvailable) {
 				Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
 				File.WriteAllText("version.txt", Constants.Version.ToString());
-				Update.CheckAndUpdate(true);
+				Update.CheckAndUpdateAsync(true);
 			}
 
 			if (!KestrelServer.IsServerOnline) {

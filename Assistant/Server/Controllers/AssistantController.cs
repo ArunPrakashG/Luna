@@ -110,7 +110,7 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			(bool updateCheckStatus, Version updateVersion) updateResult = Core.Update.CheckAndUpdate(false);
+			(bool updateCheckStatus, Version updateVersion) updateResult = Core.Update.CheckAndUpdateAsync(false);
 			return Ok(new GenericResponse<string>(Core.Update.UpdateAvailable ? $"New update is available, Core will automatically update in 10 seconds." : $"Core is up-to-date! ({updateResult.updateVersion}/{Constants.Version})", Core.Update.UpdateAvailable ? $"Local version: {Constants.Version} / Latest version: {updateResult.updateVersion}" : "Update check success!", Enums.HttpStatusCodes.OK, DateTime.Now));
 		}
 	}

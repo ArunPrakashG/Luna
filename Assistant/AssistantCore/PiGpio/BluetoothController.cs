@@ -60,8 +60,7 @@ using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 
 namespace Assistant.AssistantCore.PiGpio {
-
-	[Obsolete("Currently buggy due to rasperrypiio library issues.")]
+	
 	public class BluetoothController {
 
 		private readonly Logger Logger = new Logger("PI-BLUETOOTH");

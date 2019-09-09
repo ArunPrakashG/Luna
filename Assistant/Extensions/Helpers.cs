@@ -611,6 +611,7 @@ namespace Assistant.Extensions {
 		}
 
 		public static bool CheckForInternetConnection() {
+			Logger.Log("Checking internet connectivity...", LogLevels.Trace);
 			try {
 				Ping myPing = new Ping();
 				string host = "8.8.8.8";
@@ -618,6 +619,7 @@ namespace Assistant.Extensions {
 				int timeout = 1000;
 				PingOptions pingOptions = new PingOptions();
 				PingReply reply = myPing.Send(host, timeout, buffer, pingOptions);
+				Logger.Log("Connection verified!", LogLevels.Trace);
 				return reply != null && reply.Status == IPStatus.Success;
 			}
 			catch (Exception e) {
