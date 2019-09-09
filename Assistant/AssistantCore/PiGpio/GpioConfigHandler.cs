@@ -26,12 +26,13 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.Extensions;
+using Assistant.Log;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Assistant.Extensions;
-using Assistant.Log;
+using System.Threading;
 
 namespace Assistant.AssistantCore.PiGpio {
 
@@ -91,25 +92,43 @@ namespace Assistant.AssistantCore.PiGpio {
 		private readonly Logger Logger = new Logger("GPIO-CONFIG-HANDLER");
 
 		private GpioConfigRoot RootObject;
+		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 
-		public GpioConfigRoot SaveGPIOConfig(GpioConfigRoot Config) {
+		public GpioConfigRoot SaveGPIOConfig(GpioConfigRoot config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			JsonSerializer serializer = new JsonSerializer();
-			JsonConvert.SerializeObject(Config, Formatting.Indented);
-			string pathName = Constants.GPIOConfigPath;
-			using (StreamWriter sw = new StreamWriter(pathName, false)) {
-				using (JsonWriter writer = new JsonTextWriter(sw)) {
-					writer.Formatting = Formatting.Indented;
-					serializer.Serialize(writer, Config);
-					Logger.Log("Updated GPIO Config!");
-					sw.Dispose();
-					return Config;
+			string filePath = Constants.GpioConfigPath;
+			string json = JsonConvert.SerializeObject(config, Formatting.Indented);
+			string newFilePath = filePath + ".new";
+
+			ConfigSemaphore.Wait();
+			Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = false;
+
+			try {
+				File.WriteAllText(newFilePath, json);
+
+				if (File.Exists(filePath)) {
+					File.Replace(newFilePath, filePath, null);
+				}
+				else {
+					File.Move(newFilePath, filePath);
 				}
 			}
+			catch (Exception e) {
+				Logger.Log(e);
+				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+				return config;
+			}
+			finally {
+				ConfigSemaphore.Release();
+			}
+
+			Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+			Logger.Log("Saved config!", Enums.LogLevels.Trace);
+			return config;
 		}
 
 		public GpioConfigRoot LoadConfig() {
@@ -118,23 +137,22 @@ namespace Assistant.AssistantCore.PiGpio {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			if (!File.Exists(Constants.GPIOConfigPath)) {
-				bool loaded = GenerateDefaultConfig();
-				if (!loaded) {
-					return null;
-				}
+			if (!File.Exists(Constants.GpioConfigPath) && !GenerateDefaultConfig()) {
+				return null;
 			}
 
 			string JSON;
-			using (FileStream Stream = new FileStream(Constants.GPIOConfigPath, FileMode.Open, FileAccess.Read)) {
+			ConfigSemaphore.Wait();
+			using (FileStream Stream = new FileStream(Constants.GpioConfigPath, FileMode.Open, FileAccess.Read)) {
 				using (StreamReader ReadSettings = new StreamReader(Stream)) {
 					JSON = ReadSettings.ReadToEnd();
 				}
 			}
 
-			RootObject = JsonConvert.DeserializeObject<GpioConfigRoot>(JSON);
-			Logger.Log("GPIO Configuration Loaded Successfully!");
-			return RootObject;
+			GpioConfigRoot config = JsonConvert.DeserializeObject<GpioConfigRoot>(JSON);
+			ConfigSemaphore.Release();
+			Logger.Log("Gpio configuration loaded successfully!", Enums.LogLevels.Trace);
+			return config;
 		}
 
 		public bool GenerateDefaultConfig() {
@@ -167,7 +185,7 @@ namespace Assistant.AssistantCore.PiGpio {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			if (File.Exists(Constants.GPIOConfigPath)) {
+			if (File.Exists(Constants.GpioConfigPath)) {
 				return true;
 			}
 
@@ -185,15 +203,7 @@ namespace Assistant.AssistantCore.PiGpio {
 				Config.GPIOData.Add(PinConfig);
 			}
 
-			JsonSerializer serializer = new JsonSerializer();
-			JsonConvert.SerializeObject(Config, Formatting.Indented);
-			string pathName = Constants.GPIOConfigPath;
-			using (StreamWriter sw = new StreamWriter(pathName, false))
-			using (JsonWriter writer = new JsonTextWriter(sw)) {
-				writer.Formatting = Formatting.Indented;
-				serializer.Serialize(writer, Config);
-				sw.Dispose();
-			}
+			SaveGPIOConfig(Config);
 			return true;
 		}
 	}

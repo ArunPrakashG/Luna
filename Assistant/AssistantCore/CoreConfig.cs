@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Assistant.Server.Authentication;
+using System.Threading;
 
 namespace Assistant.AssistantCore {
 
@@ -113,6 +114,7 @@ namespace Assistant.AssistantCore {
 		[JsonProperty] public bool CloseRelayOnShutdown { get; set; } = false;
 
 		[JsonIgnore] private readonly Logger Logger = new Logger("CORE-CONFIG");
+		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 
 		public CoreConfig SaveConfig(CoreConfig config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
@@ -120,44 +122,61 @@ namespace Assistant.AssistantCore {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			JsonSerializer serializer = new JsonSerializer();
-			JsonConvert.SerializeObject(config, Formatting.Indented);
-			string pathName = Constants.CoreConfigPath;
-			using (StreamWriter sw = new StreamWriter(pathName, false)) {
-				using (JsonWriter writer = new JsonTextWriter(sw)) {
-					writer.Formatting = Formatting.Indented;
-					serializer.Serialize(writer, config);
-					Logger.Log("Updated Core Config!");
-					sw.Dispose();
-					return config;
+			Logger.Log("Saving core config...", Enums.LogLevels.Trace);
+			string filePath = Constants.CoreConfigPath;
+			string json = JsonConvert.SerializeObject(config, Formatting.Indented);
+			string newFilePath = filePath + ".new";
+
+			ConfigSemaphore.Wait();
+			Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = false;
+
+			try {
+				File.WriteAllText(newFilePath, json);
+
+				if (File.Exists(filePath)) {
+					File.Replace(newFilePath, filePath, null);
+				}
+				else {
+					File.Move(newFilePath, filePath);
 				}
 			}
+			catch (Exception e) {
+				Logger.Log(e);
+				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+				return config;
+			}
+			finally {
+				ConfigSemaphore.Release();
+			}
+
+			Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+			Logger.Log("Saved core config!", Enums.LogLevels.Trace);
+			return config;
 		}
 
-		public CoreConfig LoadConfig(bool eventRaisedByConfigWatcher = false) {
+		public CoreConfig LoadConfig() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			if (!eventRaisedByConfigWatcher && !File.Exists(Constants.CoreConfigPath)) {
-				if (!GenerateDefaultConfig()) {
-					return null;
-				}
+			if (!File.Exists(Constants.CoreConfigPath) && !GenerateDefaultConfig()) {
+				return new CoreConfig();
 			}
 
+			Logger.Log("Loading core config...", Enums.LogLevels.Trace);
 			string JSON;
+			ConfigSemaphore.Wait();
 			using (FileStream Stream = new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read)) {
 				using (StreamReader ReadSettings = new StreamReader(Stream)) {
 					JSON = ReadSettings.ReadToEnd();
 				}
 			}
 
-			CoreConfig returnConfig = JsonConvert.DeserializeObject<CoreConfig>(JSON);
-
-			Logger.Log(eventRaisedByConfigWatcher ? "Updated core config!" : "Core Configuration Loaded Successfully!", Enums.LogLevels.Trace);
-
-			return returnConfig;
+			Core.Config = JsonConvert.DeserializeObject<CoreConfig>(JSON);
+			ConfigSemaphore.Release();
+			Logger.Log("Core configuration loaded successfully!", Enums.LogLevels.Trace);
+			return Core.Config;
 		}
 
 		public bool GenerateDefaultConfig() {
@@ -194,15 +213,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			CoreConfig Config = new CoreConfig();
-			JsonSerializer serializer = new JsonSerializer();
-			JsonConvert.SerializeObject(Config, Formatting.Indented);
-			string pathName = Constants.CoreConfigPath;
-			using (StreamWriter sw = new StreamWriter(pathName, false))
-			using (JsonWriter writer = new JsonTextWriter(sw)) {
-				writer.Formatting = Formatting.Indented;
-				serializer.Serialize(writer, Config);
-				sw.Dispose();
-			}
+			SaveConfig(Config);
 			return true;
 		}
 

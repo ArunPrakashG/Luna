@@ -30,7 +30,6 @@ using Assistant.Extensions;
 using Assistant.Log;
 using System;
 using System.Collections.Generic;
-using System.Devices.Gpio;
 using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
@@ -108,24 +107,6 @@ namespace Assistant.AssistantCore.PiGpio {
 					Logger.Log($"Value for {e.PinNumber} pin changed to {e.PinCurrentDigitalValue} from {e.PinPreviousDigitalValue.ToString()}");
 					break;
 			}
-		}
-
-		[Obsolete("System.Devices.Gpio test method")]
-		public void GpioTest() {
-			System.Devices.Gpio.GpioController controllerTest = new System.Devices.Gpio.GpioController(PinNumberingScheme.Gpio);
-			if (!controllerTest.IsPinOpen(Core.Config.RelayPins.FirstOrDefault())) {
-				controllerTest.OpenPin(Core.Config.RelayPins.FirstOrDefault());
-			}
-
-			controllerTest[Core.Config.RelayPins.FirstOrDefault()].Mode = PinMode.Output;
-			controllerTest[Core.Config.RelayPins.FirstOrDefault()].NotifyEvents = PinEvent.Any;
-			controllerTest[Core.Config.RelayPins.FirstOrDefault()].EnableRaisingEvents = true;
-			controllerTest[Core.Config.RelayPins.FirstOrDefault()].ValueChanged += OnPinValueChangedTest;
-		}
-
-		[Obsolete("System.Devices.Gpio test method")]
-		private void OnPinValueChangedTest(object sender, PinValueChangedEventArgs e) {
-			Logger.Log($"pin value changed test method fired for pin {e.GpioPinNumber}");
 		}
 
 		private bool CheckSafeMode() => Core.Config.GPIOSafeMode;
@@ -463,7 +444,6 @@ namespace Assistant.AssistantCore.PiGpio {
 		}
 
 		public async Task<bool> RelayOneOne() {
-
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
 				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {
@@ -484,7 +464,6 @@ namespace Assistant.AssistantCore.PiGpio {
 		}
 
 		public async Task<bool> RelayOneMany() {
-
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
 				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {

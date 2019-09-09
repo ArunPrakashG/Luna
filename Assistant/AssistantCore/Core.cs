@@ -48,7 +48,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
-using Unosquare.Swan;
 using Unosquare.WiringPi;
 using Logging = Assistant.Log.Logging;
 
@@ -78,7 +77,7 @@ namespace Assistant.AssistantCore {
 		public static Updater Update { get; private set; } = new Updater();
 		public static ProcessStatus AssistantStatus { get; private set; }
 		public static CoreConfig Config { get; set; } = new CoreConfig();
-		private static ConfigWatcher ConfigWatcher { get; set; } = new ConfigWatcher();
+		public static ConfigWatcher ConfigWatcher { get; private set; } = new ConfigWatcher();
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
 		public static GpioConfigHandler GPIOConfigHandler { get; private set; } = new GpioConfigHandler();
 		private static GpioConfigRoot GPIORootObject { get; set; } = new GpioConfigRoot();
@@ -851,8 +850,13 @@ namespace Assistant.AssistantCore {
 
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
-			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantShutdown).ConfigureAwait(false);
-			TaskManager.OnCoreShutdownRequested();
+			if(ModuleLoader != null) {
+				await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantShutdown).ConfigureAwait(false);
+			}
+
+			if(TaskManager != null) {
+				TaskManager.OnCoreShutdownRequested();
+			}
 
 			if (Update != null) {
 				Update.StopUpdateTimer();
@@ -864,7 +868,7 @@ namespace Assistant.AssistantCore {
 				Logger.Log("Console title refresh timer disposed!", Enums.LogLevels.Trace);
 			}
 
-			if (ConfigWatcher.ConfigWatcherOnline) {
+			if (ConfigWatcher != null && ConfigWatcher.ConfigWatcherOnline) {
 				ConfigWatcher.StopConfigWatcher();
 			}
 

@@ -41,7 +41,7 @@ namespace Assistant.Extensions {
 		public const string ModuleDirectory = @"Modules";
 		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 
-		public const string GPIOConfigPath = ConfigDirectory + "/GpioConfig.json";
+		public const string GpioConfigPath = ConfigDirectory + "/GpioConfig.json";
 		public const string CoreConfigPath = ConfigDirectory + "/Assistant.json";
 		public const string IPBlacklistPath = ConfigDirectory + "/IPBlacklist.txt";
 		public const string TaskQueueFilePath = ConfigDirectory + "/TaskQueue.json";

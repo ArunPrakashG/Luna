@@ -36,7 +36,7 @@ namespace Assistant.AssistantCore {
 
 	public class ConfigWatcher {
 		private readonly Logger Logger = new Logger("CONFIG-WATCHER");
-		private FileSystemWatcher FileSystemWatcher;
+		public FileSystemWatcher FileSystemWatcher;
 		private DateTime LastRead = DateTime.MinValue;
 		public bool ConfigWatcherOnline = false;
 
@@ -123,7 +123,7 @@ namespace Assistant.AssistantCore {
 					}
 
 					Logger.Log("Updating core config as the local config file as been updated...");
-					Core.Config = Core.Config.LoadConfig(true);
+					Core.Config = Core.Config.LoadConfig();
 					break;
 
 				case "GpioConfig.json":
