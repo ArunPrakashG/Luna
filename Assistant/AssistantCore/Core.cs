@@ -35,6 +35,7 @@ using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.PushBullet.ApiResponse;
 using Assistant.Server;
+using Assistant.Server.SecureLine;
 using Assistant.Update;
 using Assistant.Weather;
 using CommandLine;
@@ -43,6 +44,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,6 +95,7 @@ namespace Assistant.AssistantCore {
 		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
 		public static PushBulletService PushBulletService { get; private set; }
 		public static MorseCore MorseCode { get; private set; } = new MorseCore();
+		public static SecureLineServer SecureLine { get; private set; }
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
@@ -111,11 +114,12 @@ namespace Assistant.AssistantCore {
 			Config = Config.LoadConfig();
 			AssistantName = Config.AssistantDisplayName;
 			Logger.LogIdentifier = AssistantName;
+			SecureLine = new SecureLineServer(IPAddress.Any, 7777);
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
 			Helpers.SetFileSeperator();
 
-			if (Helpers.CheckForInternetConnection()) {				
+			if (Helpers.CheckForInternetConnection()) {
 				IsNetworkAvailable = true;
 			}
 			else {
@@ -170,7 +174,7 @@ namespace Assistant.AssistantCore {
 
 			await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
-			if(Config.KestrelServer && !Helpers.IsNullOrEmpty(Config.KestrelServerUrl)) {
+			if (Config.KestrelServer && !Helpers.IsNullOrEmpty(Config.KestrelServerUrl)) {
 				await KestrelServer.Start().ConfigureAwait(false);
 			}
 
@@ -777,7 +781,7 @@ namespace Assistant.AssistantCore {
 			if (Config.AutoUpdates && IsNetworkAvailable) {
 				Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
 				File.WriteAllText("version.txt", Constants.Version.ToString());
-				Update.CheckAndUpdateAsync(true);
+				await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
 			}
 
 			if (!KestrelServer.IsServerOnline) {
@@ -796,11 +800,11 @@ namespace Assistant.AssistantCore {
 
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
-			if(ModuleLoader != null) {
+			if (ModuleLoader != null) {
 				await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantShutdown).ConfigureAwait(false);
 			}
 
-			if(TaskManager != null) {
+			if (TaskManager != null) {
 				TaskManager.OnCoreShutdownRequested();
 			}
 
@@ -877,7 +881,7 @@ namespace Assistant.AssistantCore {
 				Logger.Log("Auto restart is turned off in config.", Enums.LogLevels.Warn);
 				return;
 			}
-			
+
 			Helpers.ScheduleTask(() => Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll", false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);

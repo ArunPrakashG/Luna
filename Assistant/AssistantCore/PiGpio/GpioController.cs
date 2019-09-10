@@ -84,7 +84,6 @@ namespace Assistant.AssistantCore.PiGpio {
 			Logger.Log("Initiated GPIO Controller class!", Enums.LogLevels.Trace);
 		}
 
-		[Obsolete("Testing purpose")]
 		private void OnGpioPinValueChanged(object sender, GpioPinValueChangedEventArgs e) {
 			switch (e.PinState) {
 				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
@@ -111,35 +110,19 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		private bool CheckSafeMode() => Core.Config.GPIOSafeMode;
 
-		public GpioPinConfig FetchPinStatus(int pin) {
-			GpioPinConfig Status = new GpioPinConfig();
+		public GpioPinConfig FetchPinStatus(int pinToCheck) {
+			(int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) = GetGpio(pinToCheck);
+			GpioPinConfig result = new GpioPinConfig() {
+				IsOn = pinValue == GpioPinValue.Low ? true : false,
+				Mode = driveMode == GpioPinDriveMode.Input ? Enums.PinMode.Input : Enums.PinMode.Output,
+				Pin = pin
+			};
 
-			foreach (GpioPinConfig value in GpioConfigCollection) {
-				if (value.Pin.Equals(pin)) {
-					Status.IsOn = value.IsOn;
-					Status.Mode = value.Mode;
-					Status.Pin = value.Pin;
-					return Status;
-				}
-			}
-
-			return Status;
+			return result;
 		}
 
-		public GpioPinConfig FetchPinStatus(BcmPin pin) {
-			GpioPinConfig Status = new GpioPinConfig();
-
-			foreach (GpioPinConfig value in GpioConfigCollection) {
-				if (value.Pin.Equals(pin)) {
-					Status.IsOn = value.IsOn;
-					Status.Mode = value.Mode;
-					Status.Pin = value.Pin;
-					return Status;
-				}
-			}
-
-			return Status;
-		}
+		public (int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) GetGpio(int pinNumber) =>
+			(pinNumber, Pi.Gpio[pinNumber].PinMode, Pi.Gpio[pinNumber].Read() ? GpioPinValue.Low : GpioPinValue.High);
 
 		public async Task<bool> SetGPIO(int pin, GpioPinDriveMode mode, GpioPinValue state, int timeoutDuration) {
 			if (pin <= 0 || timeoutDuration <= 0) {
@@ -235,97 +218,10 @@ namespace Assistant.AssistantCore.PiGpio {
 			return true;
 		}
 
-		public bool SetGPIO(BcmPin pin, GpioPinDriveMode mode, GpioPinValue state) {
-			if (!Core.Config.EnableGpioControl) {
-				return false;
-			}
-
-			if (CheckSafeMode()) {
-				if (!Core.Config.RelayPins.Contains((int) pin)) {
-					Logger.Log("Could not configure {pin} as safe mode is enabled.");
-					return false;
-				}
-			}
-
-			GpioPinConfig Status = FetchPinStatus(pin);
-
-			switch (state) {
-				case GpioPinValue.High:
-					if (Status.Pin.Equals(pin) && !Status.IsOn) {
-						return true;
-					}
-					break;
-
-				case GpioPinValue.Low:
-					if (Status.Pin.Equals(pin) && Status.IsOn) {
-						return true;
-					}
-					break;
-
-				default:
-					return false;
-			}
-
-			try {
-				IGpioPin GPIOPin = Pi.Gpio[pin];
-				GPIOPin.PinMode = mode;
-				GPIOPin.Write(state);
-
-				switch (mode) {
-					case GpioPinDriveMode.Input:
-						switch (state) {
-							case GpioPinValue.High:
-								Logger.Log($"Configured {pin.ToString()} pin to OFF. (INPUT)", Enums.LogLevels.Trace);
-								UpdatePinStatus(pin, false, Enums.PinMode.Input);
-								break;
-
-							case GpioPinValue.Low:
-								Logger.Log($"Configured {pin.ToString()} pin to ON. (INPUT)", Enums.LogLevels.Trace);
-								UpdatePinStatus(pin, true, Enums.PinMode.Input);
-								break;
-						}
-						break;
-
-					case GpioPinDriveMode.Output:
-						switch (state) {
-							case GpioPinValue.High:
-								Logger.Log($"Configured {pin.ToString()} pin to OFF. (OUTPUT)", Enums.LogLevels.Trace);
-								UpdatePinStatus(pin, false);
-								break;
-
-							case GpioPinValue.Low:
-								Logger.Log($"Configured {pin.ToString()} pin to ON. (OUTPUT)", Enums.LogLevels.Trace);
-								UpdatePinStatus(pin, true);
-								break;
-						}
-						break;
-
-					default:
-						goto case GpioPinDriveMode.Output;
-				}
-
-				return true;
-			}
-			catch (Exception e) {
-				Logger.Log(e.ToString(), Enums.LogLevels.Error);
-				return false;
-			}
-		}
-
 		private void UpdatePinStatus(int pin, bool isOn, Enums.PinMode mode = Enums.PinMode.Output) {
 			foreach (GpioPinConfig value in GpioConfigCollection) {
 				if (value.Pin.Equals(pin)) {
 					value.Pin = pin;
-					value.IsOn = isOn;
-					value.Mode = mode;
-				}
-			}
-		}
-
-		private void UpdatePinStatus(BcmPin pin, bool isOn, Enums.PinMode mode = Enums.PinMode.Output) {
-			foreach (GpioPinConfig value in GpioConfigCollection) {
-				if (value.Pin.Equals(pin)) {
-					value.Pin = (int) pin;
 					value.IsOn = isOn;
 					value.Mode = mode;
 				}

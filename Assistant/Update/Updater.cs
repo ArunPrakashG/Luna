@@ -79,7 +79,7 @@ namespace Assistant.Update {
 				TimeSpan autoUpdatePeriod = TimeSpan.FromHours(Core.Config.UpdateIntervalInHours);
 
 				AutoUpdateTimer = new Timer(
-					e => CheckAndUpdateAsync(true),
+					async e => await CheckAndUpdateAsync(true).ConfigureAwait(false),
 					null,
 					autoUpdatePeriod, // Delay
 					autoUpdatePeriod // Period
