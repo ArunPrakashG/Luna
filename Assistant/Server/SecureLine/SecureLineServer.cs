@@ -41,54 +41,57 @@ namespace Assistant.Server.SecureLine {
 			throw new NotSupportedException("Initilize server with parameters!");
 		}
 
-		public async Task<bool> StartSecureLine(TimeSpan disposingTime) {
-			Logger.Log("Starting secure line server...", Enums.LogLevels.Info);
+		public bool StartSecureLine() {
+			Logger.Log("Starting secure line server...", Enums.LogLevels.Trace);
 			Listener = new TcpListener(EndPoint);
 			Listener.Start(10);
 			IsOnline = true;
 
-			try {
-				while (!StopServer && Listener != null) {
-					Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);
-					byte[] receiveBuffer = new byte[5024];
-					int b = socket.Receive(receiveBuffer);
-					EndPoint remoteEndpoint = socket.RemoteEndPoint;
-					ConnectedClient client = new ConnectedClient() {
-						IPAddress = remoteEndpoint.ToString().Split(':')[0].Trim()
-					};
-					Logger.Log($"Connected client IP => {client.IPAddress}", Enums.LogLevels.Trace);
+			Helpers.InBackgroundThread(async () => {
+				try {
+					while (!StopServer && Listener != null) {
+						Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);
+						byte[] receiveBuffer = new byte[5024];
+						int b = socket.Receive(receiveBuffer);
+						EndPoint remoteEndpoint = socket.RemoteEndPoint;
+						ConnectedClient client = new ConnectedClient() {
+							IPAddress = remoteEndpoint.ToString().Split(':')[0].Trim()
+						};
+						Logger.Log($"Connected client IP => {client.IPAddress}", Enums.LogLevels.Trace);
 
-					if (!ConnectedClients.Contains(client)) {
-						ConnectedClients.Add(client);
+						if (!ConnectedClients.Contains(client)) {
+							ConnectedClients.Add(client);
+						}
+
+						string recevied = Encoding.ASCII.GetString(receiveBuffer, 0, b);
+						string resultObject = await OnReceviedAsync(recevied).ConfigureAwait(false);
+
+						if (!Helpers.IsNullOrEmpty(resultObject)) {
+							socket.Send(Encoding.ASCII.GetBytes(ObjectToString<SuccessCommand>(new SuccessCommand() {
+								ResponseCode = 0x00,
+								ResponseMessage = "Success",
+								JsonResponseObject = resultObject
+							})));
+						}
+						else {
+							socket.Send(Encoding.ASCII.GetBytes(ObjectToString<FailedCommand>(new FailedCommand() {
+								ResponseCode = 0x01,
+								FailReason = "The processed result is null!"
+							})));
+						}
+
+						socket.Close();
 					}
-
-					string recevied = Encoding.ASCII.GetString(receiveBuffer, 0, b);
-					string resultObject = await OnReceviedAsync(recevied).ConfigureAwait(false);
-
-					if (!Helpers.IsNullOrEmpty(resultObject)) {
-						socket.Send(Encoding.ASCII.GetBytes(ObjectToString<SuccessCommand>(new SuccessCommand() {
-							ResponseCode = 0x00,
-							ResponseMessage = "Success",
-							JsonResponseObject = resultObject
-						})));
-					}
-					else {
-						socket.Send(Encoding.ASCII.GetBytes(ObjectToString<FailedCommand>(new FailedCommand() {
-							ResponseCode = 0x01,
-							FailReason = "The processed result is null!"
-						})));
-					}
-
-					socket.Close();
 				}
-			}
-			catch (Exception e) {
-				Logger.Log(e);
-			}
-			finally {
-				Listener.Stop();
-			}
+				catch (Exception e) {
+					Logger.Log(e);
+				}
+				finally {
+					Listener.Stop();
+				}
+			}, "Secure Line Server", true);
 
+			Logger.Log($"Secure line server running at {ServerPort} port", Enums.LogLevels.Trace);
 			return true;
 		}
 
@@ -138,7 +141,7 @@ namespace Assistant.Server.SecureLine {
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
 					mode = (GpioPinDriveMode) Convert.ToInt32(request.StringParameters[1].Trim());
 					value = (GpioPinValue) Convert.ToInt32(request.StringParameters[2].Trim());
-					if (Core.Controller.SetGPIO(pinNumber, mode, value)) {
+					if (Core.Controller.SetGpioValue(pinNumber, mode, value)) {
 						result = $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()}";
 					}
 					else {
@@ -154,7 +157,7 @@ namespace Assistant.Server.SecureLine {
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
 					mode = (GpioPinDriveMode) Convert.ToInt32(request.StringParameters[1].Trim());
 
-					if (Core.Controller.SetGPIO(pinNumber, mode, GpioPinValue.High)) {
+					if (Core.Controller.SetGpioValue(pinNumber, mode, GpioPinValue.High)) {
 						result = $"Successfully set {pinNumber} pin to {mode.ToString()} mode.";
 					}
 					else {
@@ -168,12 +171,12 @@ namespace Assistant.Server.SecureLine {
 					}
 
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
-					GpioPinConfig pinConfig = Core.Controller.FetchPinStatus(pinNumber);
+					GpioPinConfig pinConfig = Core.Controller.GetPinConfig(pinNumber);
 
 					GetGpioResponse response = new GetGpioResponse() {
-						DriveMode = pinConfig.Mode == Enums.PinMode.Input ? GpioPinDriveMode.Input : GpioPinDriveMode.Output,
+						DriveMode = pinConfig.Mode,
 						PinNumber = pinConfig.Pin,
-						PinValue = pinConfig.IsOn ? GpioPinValue.Low : GpioPinValue.High
+						PinValue = pinConfig.PinValue
 					};
 
 					result = ObjectToString<GetGpioResponse>(response);

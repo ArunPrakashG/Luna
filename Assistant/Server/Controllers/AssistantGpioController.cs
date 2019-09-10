@@ -56,7 +56,11 @@ namespace Assistant.Server.Controllers {
 			}
 
 			try {
-				List<GpioPinConfig> config = Core.Controller.GpioConfigCollection;
+				List<GpioPinConfig> config = new List<GpioPinConfig>();
+				for(int i=0; i<=40; i++) {
+					config.Add(Core.Controller.GetPinConfig(i));
+				}
+
 				return Ok(new GenericResponse<List<GpioPinConfig>>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
@@ -82,7 +86,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			try {
-				GpioPinConfig config = Core.Controller.FetchPinStatus(pinNumber);
+				GpioPinConfig config = Core.Controller.GetPinConfig(pinNumber);
 				return Ok(new GenericResponse<GpioPinConfig>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
@@ -106,7 +110,7 @@ namespace Assistant.Server.Controllers {
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
 			foreach (int pin in Core.Config.RelayPins) {
-				resultConfig.Add(Core.Controller.FetchPinStatus(pin));
+				resultConfig.Add(Core.Controller.GetPinConfig(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -135,7 +139,7 @@ namespace Assistant.Server.Controllers {
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
 			foreach (int pin in Core.Config.IRSensorPins) {
-				resultConfig.Add(Core.Controller.FetchPinStatus(pin));
+				resultConfig.Add(Core.Controller.GetPinConfig(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -179,7 +183,7 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			bool result = Core.Controller.SetGPIO(pinNumber, pinMode == Enums.PinMode.Output ? GpioPinDriveMode.Output : GpioPinDriveMode.Input,
+			bool result = Core.Controller.SetGpioValue(pinNumber, pinMode == Enums.PinMode.Output ? GpioPinDriveMode.Output : GpioPinDriveMode.Input,
 				isOn ? GpioPinValue.Low : GpioPinValue.High);
 
 			if (result) {

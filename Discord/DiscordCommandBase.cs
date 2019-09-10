@@ -26,15 +26,15 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using Discord.Commands;
+using Assistant.AssistantCore;
+using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
 using Assistant.Log;
+using Discord.Commands;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO.Abstractions;
-using Assistant.AssistantCore;
-using Assistant.AssistantCore.PiGpio;
 
 namespace Discord {
 
@@ -44,11 +44,11 @@ namespace Discord {
 		private ulong OwnerID = 0;
 
 		private bool IsAllowed(ulong id) {
-			if (OwnerID == 0 && Core.ModuleLoader != null && Core.ModuleLoader.LoadedModules != null &&
-				Core.ModuleLoader.LoadedModules.DiscordBots.Count > 0) {
-				foreach (((Enums.ModuleType, string), Assistant.Modules.Interfaces.IDiscordBot) bot in Core.ModuleLoader.LoadedModules.DiscordBots) {
-					if (bot.Item1.Equals(Discord.ModuleIdentifierInternal)) {
-						OwnerID = bot.Item2.BotConfig.DiscordOwnerID;
+			if (OwnerID == 0 && Core.ModuleLoader != null && Core.ModuleLoader.ModulesCollection != null &&
+				Core.ModuleLoader.ModulesCollection.DiscordBots.Count > 0) {
+				foreach (Assistant.Modules.ModuleInfo<Assistant.Modules.Interfaces.IDiscordBot> bot in Core.ModuleLoader.ModulesCollection.DiscordBots) {
+					if (bot.ModuleIdentifier.Equals(Discord.ModuleIdentifierInternal)) {
+						OwnerID = bot.Module.BotConfig.DiscordOwnerID;
 					}
 				}
 			}
@@ -118,14 +118,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[0]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[0]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[0]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[0]} pin to ON.");
 			}
 		}
@@ -142,14 +142,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[1]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[1]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[1]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[1]} pin to ON.");
 			}
 		}
@@ -166,14 +166,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[2]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[2]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[2]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[2]} pin to ON.");
 			}
 		}
@@ -190,14 +190,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[3]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[3]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[3]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[3]} pin to ON.");
 			}
 		}
@@ -214,14 +214,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[4]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[4]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[4]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[3]} pin to ON.");
 			}
 		}
@@ -238,14 +238,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[5]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[5]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[5]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[6]} pin to ON.");
 			}
 		}
@@ -262,14 +262,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[6]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[6]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[6]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[5]} pin to ON.");
 			}
 		}
@@ -286,14 +286,14 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(Core.Config.RelayPins[7]);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(Core.Config.RelayPins[7]);
 
-			if (PinStatus.IsOn) {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
+			if (PinStatus.PinValue == GpioPinValue.Low) {
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
 				await Response($"Sucessfully set {Core.Config.RelayPins[7]} pin to OFF.");
 			}
 			else {
-				Core.Controller.SetGPIO(Core.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
+				Core.Controller.SetGpioValue(Core.Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
 				await Response($"Sucessfully set {Core.Config.RelayPins[7]} pin to ON.");
 			}
 		}
@@ -387,26 +387,26 @@ namespace Discord {
 				return;
 			}
 
-			GpioPinConfig PinStatus = Core.Controller.FetchPinStatus(relaypinNumber);
+			GpioPinConfig PinStatus = Core.Controller.GetPinConfig(relaypinNumber);
 
-			if (PinStatus.IsOn && pinStatus.Equals(1)) {
+			if (PinStatus.PinValue == GpioPinValue.Low && pinStatus.Equals(1)) {
 				await Response("Pin is already configured to be in ON State. Command doesn't make any sense.").ConfigureAwait(false);
 				return;
 			}
 
-			if (!PinStatus.IsOn && pinStatus.Equals(0)) {
+			if (PinStatus.PinValue == GpioPinValue.High && pinStatus.Equals(0)) {
 				await Response("Pin is already configured to be in OFF State. Command doesn't make any sense.").ConfigureAwait(false);
 				return;
 			}
 
 			Helpers.ScheduleTask(async () => {
-				if (PinStatus.IsOn && pinStatus.Equals(0)) {
-					Core.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
+				if (PinStatus.PinValue == GpioPinValue.Low && pinStatus.Equals(0)) {
+					Core.Controller.SetGpioValue(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
 					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to OFF.");
 				}
 
-				if (!PinStatus.IsOn && pinStatus.Equals(1)) {
-					Core.Controller.SetGPIO(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
+				if (PinStatus.PinValue == GpioPinValue.High && pinStatus.Equals(1)) {
+					Core.Controller.SetGpioValue(relaypinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
 					await Response($"Sucessfully finished execution of the task: {relaypinNumber} pin set to ON.");
 				}
 			}, TimeSpan.FromMinutes(delayInMinutes));

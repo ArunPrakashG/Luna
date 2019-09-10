@@ -26,9 +26,9 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using Assistant.Modules.Interfaces;
 using Assistant.Extensions;
 using Assistant.Log;
+using Assistant.Modules.Interfaces;
 using Newtonsoft.Json;
 using SteamKit2;
 using System;
@@ -36,14 +36,15 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
-using Assistant.AssistantCore;
 using static Assistant.AssistantCore.Enums;
 
 namespace Steam {
 
 	public class Steam : IModuleBase, ISteamClient {
 		private readonly Logger Logger = new Logger("STEAM");
+		public string ModulePath { get; set; } = Path.Combine(Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)), nameof(Steam) + ".dll");
 
 		public bool RequiresInternetConnection { get; set; } = true;
 		public uint SteamCellID { get; set; }
@@ -54,11 +55,13 @@ namespace Steam {
 		public string BotConfigDirectory { get; set; } = Constants.ConfigDirectory + "/SteamBots/";
 		public string SteamConfigPath { get; set; } = Constants.ConfigDirectory + "/SteamConfig.json";
 
-		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
+		public string ModuleIdentifier { get; set; }
 
 		public Version ModuleVersion { get; } = new Version("3.0.0.0");
 
 		public string ModuleAuthor { get; } = "Arun Prakash";
+
+		public int ModuleType { get; set; } = 2;
 
 		public (bool, ConcurrentDictionary<string, ISteamBot>) InitSteamBots() {
 			if (!Directory.Exists(BotConfigDirectory)) {
@@ -339,7 +342,7 @@ namespace Steam {
 
 		public bool InitModuleService() {
 			RequiresInternetConnection = true;
-			SteamConfig = LoadSteamConfig();
+			SteamConfig = LoadSteamConfig();			
 			(bool, ConcurrentDictionary<string, ISteamBot>) result = InitSteamBots();
 			if (result.Item1) {
 				return true;

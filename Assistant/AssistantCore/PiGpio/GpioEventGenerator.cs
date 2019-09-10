@@ -71,7 +71,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 	public sealed class GpioEventGenerator {
 
-		private GPIOController Controller { get; set; }
+		private PiController Controller { get; set; }
 
 		private Logger Logger { get; set; }
 
@@ -97,7 +97,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 		}
 
-		public GpioEventGenerator(GPIOController controller, GpioEventManager manager) {
+		public GpioEventGenerator(PiController controller, GpioEventManager manager) {
 			Controller = controller ?? throw new ArgumentNullException();
 			Manager = manager ?? throw new ArgumentNullException();
 			Logger = Manager.Logger;
@@ -117,7 +117,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 			EventData = pinData;
 			IGpioPin GPIOPin = Pi.Gpio[pinData.GpioPin];
-			if (!Controller.SetGPIO(pinData.GpioPin, pinData.PinMode, GpioPinValue.High)) {
+			if (!Controller.SetGpioValue(pinData.GpioPin, pinData.PinMode, GpioPinValue.High)) {
 				Logger.Log($"Failed to set the pin status, cannot continue with the event for pin > {pinData.GpioPin}", Enums.LogLevels.Warn);
 				return;
 			}
@@ -220,10 +220,10 @@ namespace Assistant.AssistantCore.PiGpio {
 
 	public class GpioEventManager {
 		internal readonly Logger Logger = new Logger("GPIO-EVENTS");
-		public GPIOController Controller;
+		public PiController Controller;
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();
 
-		public GpioEventManager(GPIOController controller) {
+		public GpioEventManager(PiController controller) {
 			Controller = controller ?? throw new ArgumentNullException();
 		}
 

@@ -26,6 +26,7 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.Modules.Interfaces;
@@ -39,8 +40,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Threading.Tasks;
-using Assistant.AssistantCore;
 using static Assistant.AssistantCore.Enums;
 
 namespace Email {
@@ -49,7 +50,10 @@ namespace Email {
 
 		public bool RequiresInternetConnection { get; set; }
 
-		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
+		public string ModuleIdentifier { get; set; }
+
+		public int ModuleType { get; set; } = 1;
+		public string ModulePath { get; set; } = Path.Combine(Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)), nameof(Email) + ".dll");
 
 		public Version ModuleVersion { get; set; } = new Version("5.0.0.0");
 
@@ -98,7 +102,7 @@ namespace Email {
 
 						try {
 							Logger BotLogger = new Logger(entry.Value.EmailID?.Split('@')?.FirstOrDefault()?.Trim());
-							Logger.Log($"Loaded {entry.Value.EmailID} mail account to processing state.",LogLevels.Trace);
+							Logger.Log($"Loaded {entry.Value.EmailID} mail account to processing state.", LogLevels.Trace);
 
 							ImapClient BotClient = Core.Config.Debug
 								? new ImapClient(new ProtocolLogger(uniqueId + ".txt")) {
@@ -275,7 +279,7 @@ namespace Email {
 		}
 
 		public bool InitModuleService() {
-			RequiresInternetConnection = true;
+			RequiresInternetConnection = true;			
 			(bool, ConcurrentDictionary<string, IEmailBot>) result = InitEmailBots();
 			if (result.Item1) {
 				return true;

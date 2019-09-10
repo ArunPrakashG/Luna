@@ -126,19 +126,6 @@ namespace Assistant.AssistantCore {
 					Core.Config = Core.Config.LoadConfig();
 					break;
 
-				case "GpioConfig.json":
-					Logger.Log("Config watcher event raised for GPIO Config file.", Enums.LogLevels.Trace);
-
-					if (e.ChangeType == WatcherChangeTypes.Deleted) {
-						Logger.Log("The Gpio config file has been deleted.", Enums.LogLevels.Warn);
-						Logger.Log("Fore quitting assistant.", Enums.LogLevels.Warn);
-						Task.Run(async () => await Core.Exit(0).ConfigureAwait(false));
-					}
-
-					Logger.Log("Updating gpio config as the local config as been updated...");
-					Core.Controller.GpioConfigCollection = Core.GPIOConfigHandler.LoadConfig().GPIOData;
-					break;
-
 				case "MailConfig.json":
 					Logger.Log("Mail config has been modified.", Enums.LogLevels.Trace);
 					//TODO: handle MailConfig file change events

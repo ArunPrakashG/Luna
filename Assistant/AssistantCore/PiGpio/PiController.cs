@@ -28,78 +28,100 @@
 
 using Assistant.Extensions;
 using Assistant.Log;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
+using Unosquare.WiringPi;
 
 namespace Assistant.AssistantCore.PiGpio {
+	public class GpioPinConfig {
+		[JsonProperty]
+		public int Pin { get; set; } = 0;
 
-	//High = OFF
-	//Low = ON
-	public class GPIOController {
-		private readonly Logger Logger = new Logger("GPIO-CONTROLLER");
-		private GpioConfigHandler GPIOConfigHandler { get; set; }
+		[JsonProperty]
+		public GpioPinValue PinValue { get; set; }
 
-		public List<GpioPinConfig> GpioConfigCollection { get; set; }
+		[JsonProperty]
+		public GpioPinDriveMode Mode { get; set; }
 
-		public GpioConfigRoot GpioConfigRoot { get; private set; }
+		[JsonProperty]
+		public bool IsPinOn => PinValue == GpioPinValue.High ? false : true;
+	}
+
+	public class PiController {
+		private readonly Logger Logger = new Logger("PI-CONTROLLER");
 
 		public GpioEventManager GpioPollingManager { get; private set; }
 
 		public GpioMorseTranslator MorseTranslator { get; private set; }
 
-		public GPIOController(GpioConfigRoot rootObject, List<GpioPinConfig> config, GpioConfigHandler configHandler) {
-			GpioConfigCollection = config;
-			GPIOConfigHandler = configHandler;
-			GpioConfigRoot = rootObject;
+		public BluetoothController PiBluetooth { get; private set; }
+
+		public SoundController PiSound { get; private set; }
+
+		public static bool IsProperlyInitialized { get; private set; }
+
+		public PiController(bool withPolling) {
+			if (Core.DisablePiMethods || Core.RunningPlatform != OSPlatform.Linux) {
+				Logger.Log("Failed to start PiController.", Enums.LogLevels.Warn);
+				return;
+			}
+
+			Pi.Init<BootstrapWiringPi>();
 			GpioPollingManager = new GpioEventManager(this);
 			MorseTranslator = new GpioMorseTranslator(this);
+			PiBluetooth = new BluetoothController();
+			PiSound = new SoundController();
+			ControllerHelpers.DisplayPiInfo();
 
-			Helpers.ScheduleTask(() => {
-				if (GpioPollingManager == null) {
-					return;
-				}
+			if (withPolling) {
+				Helpers.ScheduleTask(() => {
+					if (GpioPollingManager == null) {
+						return;
+					}
 
-				List<GpioPinEventData> pinData = new List<GpioPinEventData>();
+					List<GpioPinEventData> pinData = new List<GpioPinEventData>();
 
-				foreach (int pin in Core.Config.RelayPins) {
-					pinData.Add(new GpioPinEventData() {
-						PinMode = GpioPinDriveMode.Output,
-						GpioPin = pin,
-						PinEventState = Enums.GpioPinEventStates.ALL
-					});
-				}
+					foreach (int pin in Core.Config.RelayPins) {
+						pinData.Add(new GpioPinEventData() {
+							PinMode = GpioPinDriveMode.Output,
+							GpioPin = pin,
+							PinEventState = Enums.GpioPinEventStates.ALL
+						});
+					}
 
-				GpioPollingManager.RegisterGpioEvent(pinData);
+					GpioPollingManager.RegisterGpioEvent(pinData);
 
-				foreach (GpioEventGenerator c in GpioPollingManager.GpioPinEventGenerators) {
-					c.GPIOPinValueChanged += OnGpioPinValueChanged;
-				}
-			}, TimeSpan.FromSeconds(5));
+					foreach (GpioEventGenerator gen in GpioPollingManager.GpioPinEventGenerators) {
+						gen.GPIOPinValueChanged += OnGpioPinValueChanged;
+					}
+				}, TimeSpan.FromSeconds(5));
+			}
 
-
+			IsProperlyInitialized = true;
 			Logger.Log("Initiated GPIO Controller class!", Enums.LogLevels.Trace);
 		}
 
 		private void OnGpioPinValueChanged(object sender, GpioPinValueChangedEventArgs e) {
 			switch (e.PinState) {
 				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
-					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)", Enums.LogLevels.Trace);
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (OFF)", Enums.LogLevels.Info);
 					break;
 
 				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.ON:
-					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)", Enums.LogLevels.Trace);
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (ON)", Enums.LogLevels.Info);
 					break;
 
 				case Enums.GpioPinEventStates.ON when e.PinPreviousState == Enums.GpioPinEventStates.OFF:
-					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)", Enums.LogLevels.Trace);
+					Logger.Log($"{e.PinNumber} gpio pin set to ON state. (OFF)", Enums.LogLevels.Info);
 					break;
 
 				case Enums.GpioPinEventStates.OFF when e.PinPreviousState == Enums.GpioPinEventStates.ON:
-					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)", Enums.LogLevels.Trace);
+					Logger.Log($"{e.PinNumber} gpio pin set to OFF state. (ON)", Enums.LogLevels.Info);
 					break;
 
 				default:
@@ -108,13 +130,11 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 		}
 
-		private bool CheckSafeMode() => Core.Config.GPIOSafeMode;
-
-		public GpioPinConfig FetchPinStatus(int pinToCheck) {
+		public GpioPinConfig GetPinConfig(int pinToCheck) {
 			(int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) = GetGpio(pinToCheck);
 			GpioPinConfig result = new GpioPinConfig() {
-				IsOn = pinValue == GpioPinValue.Low ? true : false,
-				Mode = driveMode == GpioPinDriveMode.Input ? Enums.PinMode.Input : Enums.PinMode.Output,
+				PinValue = pinValue,
+				Mode = driveMode,
 				Pin = pin
 			};
 
@@ -122,119 +142,50 @@ namespace Assistant.AssistantCore.PiGpio {
 		}
 
 		public (int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) GetGpio(int pinNumber) =>
-			(pinNumber, Pi.Gpio[pinNumber].PinMode, Pi.Gpio[pinNumber].Read() ? GpioPinValue.Low : GpioPinValue.High);
+			(pinNumber, Pi.Gpio[pinNumber].PinMode, Pi.Gpio[pinNumber].Read() ? GpioPinValue.High : GpioPinValue.Low);
 
-		public async Task<bool> SetGPIO(int pin, GpioPinDriveMode mode, GpioPinValue state, int timeoutDuration) {
+		public async Task<bool> SetGpioWithTimeout(int pin, GpioPinDriveMode mode, GpioPinValue state, int timeoutDuration) {
 			if (pin <= 0 || timeoutDuration <= 0) {
 				return false;
 			}
 
-			if (SetGPIO(pin, mode, state)) {
+			if (SetGpioValue(pin, mode, state)) {
 				await Task.Delay(timeoutDuration).ConfigureAwait(false);
-				return SetGPIO(pin, mode, GpioPinValue.High);
+				return SetGpioValue(pin, mode, GpioPinValue.High);
 			}
 			return false;
 		}
 
 		public bool GpioDigitalRead(int pin, bool onlyInputPins = false) {
-			IGpioPin GPIOPin = Pi.Gpio[pin];
+			IGpioPin gpioPin = Pi.Gpio[pin];
 
-			if (onlyInputPins && GPIOPin.PinMode != GpioPinDriveMode.Input) {
+			if (onlyInputPins && gpioPin.PinMode != GpioPinDriveMode.Input) {
 				Logger.Log("The specified gpio pin mode isn't set to Input.", Enums.LogLevels.Error);
 				return false;
 			}
 
-			return GPIOPin.Read();
+			return gpioPin.Read();
 		}
 
-		public bool SetGPIO(int pin, GpioPinDriveMode mode, GpioPinValue state) {
+		public bool SetGpioValue(int pin, GpioPinDriveMode mode, GpioPinValue state) {
 			if (!Core.Config.EnableGpioControl) {
 				return false;
 			}
 
-			if (CheckSafeMode()) {
-				if (!Core.Config.RelayPins.Contains(pin)) {
-					Logger.Log($"Could not configure {pin} as it's marked as SAFE. (SAFE-MODE)");
-					return false;
-				}
+			IGpioPin GpioPin = Pi.Gpio[pin];
+			GpioPin.PinMode = mode;
+
+			if(mode == GpioPinDriveMode.Output) {
+				GpioPin.Write(state);
+				Logger.Log($"Configured ({pin}) gpio pin to ({state.ToString()}) state with ({mode.ToString()}) mode.", Enums.LogLevels.Trace);
+				return true;
 			}
 
-			GpioPinConfig Status = FetchPinStatus(pin);
-
-			switch (state) {
-				case GpioPinValue.High:
-					if (Status.Pin.Equals(pin) && !Status.IsOn) {
-						return true;
-					}
-					break;
-
-				case GpioPinValue.Low:
-					if (Status.Pin.Equals(pin) && Status.IsOn) {
-						return true;
-					}
-					break;
-
-				default:
-					return false;
-			}
-
-			IGpioPin GPIOPin = Pi.Gpio[pin];
-			GPIOPin.PinMode = mode;
-			GPIOPin.Write(state);
-
-			switch (mode) {
-				case GpioPinDriveMode.Input:
-					switch (state) {
-						case GpioPinValue.High:
-							Logger.Log($"Configured {pin} pin to OFF. (INPUT)", Enums.LogLevels.Trace);
-							UpdatePinStatus(pin, false, Enums.PinMode.Input);
-							break;
-
-						case GpioPinValue.Low:
-							Logger.Log($"Configured {pin} pin to ON. (INPUT)", Enums.LogLevels.Trace);
-							UpdatePinStatus(pin, true, Enums.PinMode.Input);
-							break;
-					}
-					break;
-
-				case GpioPinDriveMode.Output:
-					switch (state) {
-						case GpioPinValue.High:
-							Logger.Log($"Configured {pin} pin to OFF. (OUTPUT)", Enums.LogLevels.Trace);
-							UpdatePinStatus(pin, false);
-							break;
-
-						case GpioPinValue.Low:
-							Logger.Log($"Configured {pin} pin to ON. (OUTPUT)", Enums.LogLevels.Trace);
-							UpdatePinStatus(pin, true);
-							break;
-					}
-					break;
-
-				default:
-					goto case GpioPinDriveMode.Output;
-			}
-
+			Logger.Log($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.", Enums.LogLevels.Trace);
 			return true;
 		}
 
-		private void UpdatePinStatus(int pin, bool isOn, Enums.PinMode mode = Enums.PinMode.Output) {
-			foreach (GpioPinConfig value in GpioConfigCollection) {
-				if (value.Pin.Equals(pin)) {
-					value.Pin = pin;
-					value.IsOn = isOn;
-					value.Mode = mode;
-				}
-			}
-		}
-
-		public async Task InitShutdown() {
-			if (!GpioConfigCollection.Any() || GpioConfigCollection == null) {
-				return;
-			}
-
-			await Task.Delay(100).ConfigureAwait(false);
-
+		public void InitGpioShutdownTasks() {
 			if (GpioPollingManager != null) {
 				foreach (GpioEventGenerator c in GpioPollingManager.GpioPinEventGenerators) {
 					c.GPIOPinValueChanged -= OnGpioPinValueChanged;
@@ -244,15 +195,13 @@ namespace Assistant.AssistantCore.PiGpio {
 			GpioPollingManager.ExitEventGenerator();
 
 			if (Core.Config.CloseRelayOnShutdown) {
-				foreach (GpioPinConfig value in GpioConfigCollection) {
-					if (value.IsOn) {
-						SetGPIO(value.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
+				foreach (int pin in Core.Config.RelayPins) {
+					GpioPinConfig pinStatus = GetPinConfig(pin);
+					if (pinStatus.PinValue == GpioPinValue.Low) {
+						SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 					}
 				}
 			}
-
-			GpioConfigRoot.GPIOData = GpioConfigCollection;
-			GPIOConfigHandler.SaveGPIOConfig(GpioConfigRoot);
 		}
 
 		public async Task<bool> RelayTestService(Enums.GPIOCycles selectedCycle, int singleChannelValue = 0) {
@@ -292,49 +241,44 @@ namespace Assistant.AssistantCore.PiGpio {
 		}
 
 		public async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
-			SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+			SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			Logger.Log($"Waiting for {delayInMs} ms to close the relay...");
-			await System.Threading.Tasks.Task.Delay(delayInMs).ConfigureAwait(false);
-			SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+			await Task.Delay(delayInMs).ConfigureAwait(false);
+			SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			Logger.Log("Relay closed!");
 			return true;
 		}
 
 		public async Task<bool> RelayOneTwo() {
-
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
-				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {
-					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
-						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
-					}
-				}
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
 			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(400).Wait();
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
 			await Task.Delay(500).ConfigureAwait(false);
 
 			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(200).Wait();
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
 			Task.Delay(800).Wait();
 
 			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(200).Wait();
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 			}
 
 			await Task.Delay(500).ConfigureAwait(false);
 
 			foreach (int pin in Core.Config.RelayPins) {
 				Task.Delay(400).Wait();
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 			return true;
 		}
@@ -342,17 +286,13 @@ namespace Assistant.AssistantCore.PiGpio {
 		public async Task<bool> RelayOneOne() {
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
-				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {
-					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
-						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
-					}
-				}
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
 			foreach (int pin in Core.Config.RelayPins) {
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 				Task.Delay(500).Wait();
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 				await Task.Delay(100).ConfigureAwait(false);
 			}
 
@@ -362,28 +302,24 @@ namespace Assistant.AssistantCore.PiGpio {
 		public async Task<bool> RelayOneMany() {
 			//make sure all relay is off
 			foreach (int pin in Core.Config.RelayPins) {
-				foreach (GpioPinConfig pinvalue in GpioConfigCollection) {
-					if (pin.Equals(pinvalue.Pin) && pinvalue.IsOn) {
-						SetGPIO(pinvalue.Pin, GpioPinDriveMode.Output, GpioPinValue.High);
-					}
-				}
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
 			int counter = 0;
 
 			foreach (int pin in Core.Config.RelayPins) {
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 
 				while (counter < 4) {
 					Task.Delay(200).Wait();
-					SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+					SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 					Task.Delay(500).Wait();
-					SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+					SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
 					counter++;
 				}
 
 				await Task.Delay(100).ConfigureAwait(false);
-				SetGPIO(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+				SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
 			}
 
 			return true;

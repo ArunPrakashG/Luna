@@ -36,7 +36,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		private readonly Logger Logger = new Logger("PI-BLUETOOTH");
 
-		private GPIOController Controller => Core.Controller;
+		private PiController Controller => Core.Controller;
 
 		public async Task<bool> FetchControllers() {
 			if (!Core.CoreInitiationCompleted) {

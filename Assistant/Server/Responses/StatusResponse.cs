@@ -67,10 +67,8 @@ namespace Assistant.Server.Responses {
 				AssistantRamUsage = status.AssistantRamUsage;
 				OSPlatform = "Windows";
 
-				foreach (GpioPinConfig pin in Core.Controller.GpioConfigCollection) {
-					if (pin.IsOn) {
-						GpioStatus.Add(pin);
-					}
+				for (int i = 0; i <= 40; i++) {
+					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 
 				AssistantCurrentDateTime = DateTime.Now;
@@ -83,10 +81,9 @@ namespace Assistant.Server.Responses {
 				OSRamUsage = "Core is running on a Linux based platform, the required libraries are not supported.";
 				AssistantRamUsage = "Core is running on a Linux based platform, the required libraries are not supported.";
 				OSPlatform = "Linux";
-				foreach (GpioPinConfig pin in Core.Controller.GpioConfigCollection) {
-					if (pin.IsOn) {
-						GpioStatus.Add(pin);
-					}
+
+				for (int i = 0; i <= 40; i++) {
+					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 
 				AssistantCurrentDateTime = DateTime.Now;
@@ -98,10 +95,8 @@ namespace Assistant.Server.Responses {
 				OSRamUsage = "Core is running on a OSX based platform, the required libraries are not supported.";
 				AssistantRamUsage = "Core is running on a OSX based platform, the required libraries are not supported.";
 				OSPlatform = "OSX";
-				foreach (GpioPinConfig pin in Core.Controller.GpioConfigCollection) {
-					if (pin.IsOn) {
-						GpioStatus.Add(pin);
-					}
+				for (int i = 0; i <= 40; i++) {
+					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 
 				AssistantCurrentDateTime = DateTime.Now;
@@ -113,10 +108,8 @@ namespace Assistant.Server.Responses {
 				OSRamUsage = "Core is running on an Unknown platform, the required libraries won't run to prevent damage.";
 				AssistantRamUsage = "Core is running on an Unknown platform, the required libraries won't run to prevent damage.";
 				OSPlatform = "Unknown platform";
-				foreach (GpioPinConfig pin in Core.Controller.GpioConfigCollection) {
-					if (pin.IsOn) {
-						GpioStatus.Add(pin);
-					}
+				for (int i = 0; i <= 40; i++) {
+					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 
 				AssistantCurrentDateTime = DateTime.Now;

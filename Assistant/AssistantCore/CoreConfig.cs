@@ -32,9 +32,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
-using Assistant.Server.Authentication;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Assistant.AssistantCore {
 
@@ -128,7 +127,10 @@ namespace Assistant.AssistantCore {
 			string newFilePath = filePath + ".new";
 
 			ConfigSemaphore.Wait();
-			Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = false;
+
+			if(Core.ConfigWatcher.FileSystemWatcher != null) {
+				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = false;
+			}			
 
 			try {
 				File.WriteAllText(newFilePath, json);
@@ -142,14 +144,18 @@ namespace Assistant.AssistantCore {
 			}
 			catch (Exception e) {
 				Logger.Log(e);
-				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+				if (Core.ConfigWatcher.FileSystemWatcher != null) {
+					Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+				}
 				return config;
 			}
 			finally {
 				ConfigSemaphore.Release();
 			}
 
-			Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+			if (Core.ConfigWatcher.FileSystemWatcher != null) {
+				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
+			}
 			Logger.Log("Saved core config!", Enums.LogLevels.Trace);
 			return config;
 		}

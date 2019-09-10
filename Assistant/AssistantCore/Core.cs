@@ -31,6 +31,7 @@ using Assistant.Extensions;
 using Assistant.Geolocation;
 using Assistant.Log;
 using Assistant.Modules;
+using Assistant.Modules.Interfaces;
 using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.PushBullet.ApiResponse;
@@ -40,7 +41,6 @@ using Assistant.Update;
 using Assistant.Weather;
 using CommandLine;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -50,7 +50,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
-using Unosquare.WiringPi;
 using Logging = Assistant.Log.Logging;
 
 namespace Assistant.AssistantCore {
@@ -74,18 +73,13 @@ namespace Assistant.AssistantCore {
 	}
 
 	public class Core {
-		private static Logger Logger { get; set; }
-		public static GPIOController Controller { get; private set; }
+		private static Logger Logger { get; set; } = new Logger("ASSISTANT");
+		public static PiController Controller { get; private set; }
 		public static Updater Update { get; private set; } = new Updater();
 		public static ProcessStatus AssistantStatus { get; private set; }
 		public static CoreConfig Config { get; set; } = new CoreConfig();
 		public static ConfigWatcher ConfigWatcher { get; private set; } = new ConfigWatcher();
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
-		public static GpioConfigHandler GPIOConfigHandler { get; private set; } = new GpioConfigHandler();
-		private static GpioConfigRoot GPIORootObject { get; set; } = new GpioConfigRoot();
-		private static List<GpioPinConfig> GPIOConfig { get; set; } = new List<GpioPinConfig>();
-		public static BluetoothController PiBluetooth { get; private set; }
-		public static SoundController PiSound { get; private set; }
 		public static TaskScheduler TaskManager { get; private set; } = new TaskScheduler();
 		public static ModuleInitializer ModuleLoader { get; private set; }
 		public static DateTime StartupTime { get; private set; }
@@ -103,6 +97,7 @@ namespace Assistant.AssistantCore {
 		public static bool IsNetworkAvailable { get; set; }
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
 		public static bool GracefullModuleShutdown { get; set; } = false;
+		public static OSPlatform RunningPlatform { get; private set; }
 		public static string AssistantName { get; set; } = "TESS Assistant";
 
 		public static async Task<bool> InitCore(string[] args) {
@@ -110,14 +105,19 @@ namespace Assistant.AssistantCore {
 				File.Delete(Constants.TraceLogPath);
 			}
 
-			Logger = new Logger("ASSISTANT");
+			Helpers.CheckMultipleProcess();
+			StartupTime = DateTime.Now;
+
 			Config = Config.LoadConfig();
 			AssistantName = Config.AssistantDisplayName;
 			Logger.LogIdentifier = AssistantName;
+			Config.ProgramLastStartup = StartupTime;
 			SecureLine = new SecureLineServer(IPAddress.Any, 7777);
-			Helpers.CheckMultipleProcess();
-			StartupTime = DateTime.Now;
+			SecureLine.StartSecureLine();
+
+
 			Helpers.SetFileSeperator();
+			RunningPlatform = Helpers.GetOsPlatform();
 
 			if (Helpers.CheckForInternetConnection()) {
 				IsNetworkAvailable = true;
@@ -157,20 +157,12 @@ namespace Assistant.AssistantCore {
 				IsUnknownOs = true;
 			}
 
-			GPIORootObject = GPIOConfigHandler.LoadConfig();
-
-			if (GPIORootObject != null) {
-				GPIOConfig = GPIORootObject.GPIOData;
-			}
-
 			if (Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
 				AssistantStatus = new ProcessStatus();
 			}
 			else {
 				Logger.Log("Could not start performence counters as it is not supported on this platform.", Enums.LogLevels.Trace);
 			}
-
-			Config.ProgramLastStartup = StartupTime;
 
 			await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
@@ -180,12 +172,15 @@ namespace Assistant.AssistantCore {
 
 			ModuleLoader = new ModuleInitializer();
 
-			if (IsNetworkAvailable && Config.EnableModules) {
-				(bool, LoadedModules) loadStatus = ModuleLoader.LoadModules();
-				if (!loadStatus.Item1) {
-					Logger.Log("Failed to load modules.", Enums.LogLevels.Warn);
-				}
-			}
+			ModuleLoader.LoadAndStartModulesOfType<IModuleBase>();
+			//ModuleLoader.LoadAndStartModulesOfType<IEmailClient>();
+			//ModuleLoader.LoadAndStartModulesOfType<IYoutubeClient>();
+			//ModuleLoader.LoadAndStartModulesOfType<ISteamClient>();
+			//ModuleLoader.LoadAndStartModulesOfType<IAsyncEventBase>();
+
+			ModuleWatcher.InitModuleWatcher();
+			Controller = new PiController(true);
+			CoreInitiationCompleted = true;
 
 			await PostInitTasks().ConfigureAwait(false);
 			return true;
@@ -193,24 +188,9 @@ namespace Assistant.AssistantCore {
 
 		private static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", Enums.LogLevels.Trace);
-			ModuleWatcher.InitConfigWatcher();
-
-			if (!DisablePiMethods && Config.EnableGpioControl) {
-				Pi.Init<BootstrapWiringPi>();
-				Controller = new GPIOController(GPIORootObject, GPIOConfig, GPIOConfigHandler);
-				PiBluetooth = new BluetoothController();
-				PiSound = new SoundController();
-				ControllerHelpers.DisplayPiInfo();
-				Logger.Log("Successfully Initiated Pi Configuration!");
-			}
-			else {
-				Logger.Log("Disabled Raspberry Pi related methods and initiation tasks.");
-			}
-
-			CoreInitiationCompleted = true;
 			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantStartup).ConfigureAwait(false);
 
-			if (Config.DisplayStartupMenu && !DisablePiMethods) {
+			if (Config.DisplayStartupMenu) {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
 			}
 
@@ -371,13 +351,13 @@ namespace Assistant.AssistantCore {
 						}
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when !ModuleLoader.LoadedModules.IsModulesEmpty && Config.EnableModules: {
+					case Constants.ConsoleModuleShutdownKey when !ModuleLoader.ModulesCollection.IsModulesEmpty && Config.EnableModules: {
 							Logger.Log("Shutting down all modules...", Enums.LogLevels.Warn);
 							ModuleLoader.OnCoreShutdown();
 						}
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleLoader.LoadedModules.IsModulesEmpty: {
+					case Constants.ConsoleModuleShutdownKey when ModuleLoader.ModulesCollection.IsModulesEmpty: {
 							Logger.Log("There are no modules to shutdown...");
 						}
 						return;
@@ -460,6 +440,7 @@ namespace Assistant.AssistantCore {
 			Logger.Log("Press any key (between 0 - 9) for their respective option.\n", Enums.LogLevels.UserInput);
 			ConsoleKeyInfo key = Console.ReadKey();
 			Logger.Log("\n", Enums.LogLevels.UserInput);
+
 			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
 				Logger.Log("Could not parse the input key. please try again!", Enums.LogLevels.Error);
 				Logger.Log("Command menu closed.");
@@ -467,110 +448,49 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
-			GpioPinConfig PinStatus;
+			void set(int pin) {
+				GpioPinConfig pinStatus = Controller.GetPinConfig(pin);
+				if (pinStatus.PinValue == GpioPinValue.Low) {
+					Controller.SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
+					Logger.Log($"Sucessfully set {pin} pin to OFF.", Enums.LogLevels.Sucess);
+				}
+				else {
+					Controller.SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
+					Logger.Log($"Sucessfully set {pin} pin to ON.", Enums.LogLevels.Sucess);
+				}
+			}
+
 			switch (SelectedValue) {
 				case 1:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[0]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[0]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[0], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[0]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[0]);
 					break;
 
 				case 2:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[1]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[1]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[1], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[1]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[1]);
 					break;
 
 				case 3:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[2]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[2]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[2], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[2]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[2]);
 					break;
 
 				case 4:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[3]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[3]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[3], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[3]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[3]);
 					break;
 
 				case 5:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[4]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[4]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[4], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[4]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[4]);
 					break;
 
 				case 6:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[5]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[5]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[5], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[5]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[5]);
 					break;
 
 				case 7:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[6]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[6]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[6], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[6]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[6]);
 					break;
 
 				case 8:
-					PinStatus = Controller.FetchPinStatus(Config.RelayPins[7]);
-
-					if (PinStatus.IsOn) {
-						Controller.SetGPIO(Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.High);
-						Logger.Log($"Sucessfully set {Config.RelayPins[7]} pin to OFF.", Enums.LogLevels.Sucess);
-					}
-					else {
-						Controller.SetGPIO(Config.RelayPins[7], GpioPinDriveMode.Output, GpioPinValue.Low);
-						Logger.Log($"Sucessfully set {Config.RelayPins[7]} pin to ON.", Enums.LogLevels.Sucess);
-					}
+					set(Config.RelayPins[7]);
 					break;
 
 				case 9:
@@ -612,14 +532,14 @@ namespace Assistant.AssistantCore {
 						}
 					}
 
-					GpioPinConfig Status = Controller.FetchPinStatus(pinNumber);
+					GpioPinConfig status = Controller.GetPinConfig(pinNumber);
 
-					if (Status.IsOn && pinStatus.Equals(1)) {
+					if (status.PinValue == GpioPinValue.Low && pinStatus.Equals(1)) {
 						Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
 						return;
 					}
 
-					if (!Status.IsOn && pinStatus.Equals(0)) {
+					if (status.PinValue == GpioPinValue.High && pinStatus.Equals(0)) {
 						Logger.Log("Pin is already configured to be in OFF State. Command doesn't make any sense.");
 						return;
 					}
@@ -635,13 +555,13 @@ namespace Assistant.AssistantCore {
 					}
 
 					Helpers.ScheduleTask(() => {
-						if (Status.IsOn && pinStatus.Equals(0)) {
-							Controller.SetGPIO(pinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
+						if (status.PinValue == GpioPinValue.Low && pinStatus.Equals(0)) {
+							Controller.SetGpioValue(pinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
 							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to OFF.", Enums.LogLevels.Sucess);
 						}
 
-						if (!Status.IsOn && pinStatus.Equals(1)) {
-							Controller.SetGPIO(pinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
+						if (status.PinValue == GpioPinValue.High && pinStatus.Equals(1)) {
+							Controller.SetGpioValue(pinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
 							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to ON.", Enums.LogLevels.Sucess);
 						}
 					}, TimeSpan.FromMinutes(delay));
@@ -717,10 +637,10 @@ namespace Assistant.AssistantCore {
 					break;
 
 				case 5:
-					Logger.Log("\nPlease select the channel (2, 3, 4, 17, 27, 22, 10, 9, etc): ", Enums.LogLevels.UserInput);
-					ConsoleKeyInfo singleKey = Console.ReadKey();
+					Logger.Log("\nPlease select the channel (3, 4, 17, 2, 27, 10, 22, 9, etc): ", Enums.LogLevels.UserInput);
+					string singleKey = Console.ReadLine();
 
-					if (!int.TryParse(singleKey.KeyChar.ToString(), out int selectedsingleKey)) {
+					if (!int.TryParse(singleKey, out int selectedsingleKey)) {
 						Logger.Log("Could not prase the input key. please try again!", Enums.LogLevels.Error);
 						goto case 5;
 					}
@@ -764,10 +684,6 @@ namespace Assistant.AssistantCore {
 				Logger.Log("Stopped update timer.", Enums.LogLevels.Warn);
 			}
 
-			if (ModuleLoader != null) {
-				_ = ModuleLoader.OnCoreShutdown();
-			}
-
 			if (KestrelServer.IsServerOnline) {
 				await KestrelServer.Stop().ConfigureAwait(false);
 			}
@@ -786,15 +702,6 @@ namespace Assistant.AssistantCore {
 
 			if (!KestrelServer.IsServerOnline) {
 				await KestrelServer.Start().ConfigureAwait(false);
-			}
-
-			if (IsNetworkAvailable && ModuleLoader != null && Config.EnableModules) {
-				if (ModuleLoader.LoadModules().Item1) {
-					Logger.Log("Failed to load modules.", Enums.LogLevels.Warn);
-				}
-			}
-			else {
-				Logger.Log("Could not start the modules as network is unavailable or modules is not initilized.", Enums.LogLevels.Warn);
 			}
 		}
 
@@ -839,7 +746,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			if (Controller != null) {
-				await Controller.InitShutdown().ConfigureAwait(false);
+				Controller.InitGpioShutdownTasks();
 			}
 
 			if (Config != null) {

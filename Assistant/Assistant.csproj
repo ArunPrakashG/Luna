@@ -18,15 +18,18 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<ItemGroup>
-	  <Compile Remove="Modules\Loggers\**" />
-	  <EmbeddedResource Remove="Modules\Loggers\**" />
-	  <None Remove="Modules\Loggers\**" />
+	<ItemGroup>	  
+	  
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="AssistantCore\PiGpio\GpioConfigHandler.cs" />
 	  <Compile Remove="Server\SecureLine\TCPServer.cs" />
 	  <Compile Remove="Server\TCPServer.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="AssistantCore\PiGpio\GpioConfigHandler.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -82,29 +85,14 @@
 		<None Update="Config\DiscordBot.json">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Config\GpioConfig.json">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
 		<None Update="Config\MailConfig.json">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="Config\Assistant.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules">
+		<None Update="Modules\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Update="Modules\DiscordModules\Discord.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Modules\EmailModules\Email.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Modules\SteamModules\Steam.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Modules\YoutubeModules\Youtube.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="NLog.config">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -125,7 +113,6 @@
 
 	<ItemGroup>
 	  <Folder Include="Config\SteamBots\" />
-	  <Folder Include="Modules\BaseModules\" />
 	</ItemGroup>
 
 	<ItemGroup>

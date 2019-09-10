@@ -56,13 +56,17 @@ namespace Discord {
 
 		public IDiscordBotConfig BotConfig { get; set; }
 
-		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
+		public string ModuleIdentifier { get; set; }
+
+		public int ModuleType { get; set; } = 0;
 
 		public Version ModuleVersion { get; } = new Version("5.0.0.0");
 
 		public string ModuleAuthor { get; } = "Arun Prakash";
 
-		public static (Enums.ModuleType, string) ModuleIdentifierInternal { get; private set; }
+		public string ModulePath { get; set; } = Path.Combine(Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)), nameof(Discord) + ".dll");
+
+		public static string ModuleIdentifierInternal { get; private set; }
 
 		public Discord() {
 			Client = new DiscordSocketClient(new DiscordSocketConfig {
@@ -272,7 +276,7 @@ namespace Discord {
 		}
 
 		public bool InitModuleService() {
-			RequiresInternetConnection = true;
+			RequiresInternetConnection = true;			
 			if (RegisterDiscordClient().Result.Item1) {
 				return true;
 			}
@@ -296,7 +300,7 @@ namespace Discord {
 				return;
 			}
 
-			if (!Core.CoreInitiationCompleted || !BotConfig.DiscordLog || !Core.IsNetworkAvailable || Core.ModuleLoader.LoadedModules.DiscordBots == null || Core.ModuleLoader.LoadedModules.DiscordBots.Count <= 0) {
+			if (!Core.CoreInitiationCompleted || !BotConfig.DiscordLog || !Core.IsNetworkAvailable || Core.ModuleLoader.ModulesCollection.DiscordBots == null || Core.ModuleLoader.ModulesCollection.DiscordBots.Count <= 0) {
 				return;
 			}
 

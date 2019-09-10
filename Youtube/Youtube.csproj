@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Youtube\bin\Debug\netcoreapp2.1\Youtube.dll&quot; &quot;$(SolutionDir)Assistant\Modules\YoutubeModules&quot; /Y /I" />
+    <Exec Command="xcopy $(SolutionDir)Youtube\bin\Release\netcoreapp2.1\Youtube.dll $(SolutionDir)Assistant\Modules\ /Y /I" />
   </Target>
 
   <ItemGroup>

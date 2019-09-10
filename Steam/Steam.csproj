@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Steam\bin\Debug\netcoreapp2.1\Steam.dll&quot; &quot;$(SolutionDir)Assistant\Modules\SteamModules&quot; /Y /I" />
+    <Exec Command="xcopy $(SolutionDir)Steam\bin\Release\netcoreapp2.1\Steam.dll $(SolutionDir)Assistant\Modules\ /Y /I" />
   </Target>
 
   <ItemGroup>

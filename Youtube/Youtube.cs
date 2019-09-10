@@ -30,8 +30,8 @@ using Assistant.Log;
 using Assistant.Modules.Interfaces;
 using System;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
-using Assistant.AssistantCore;
 using VideoLibrary;
 
 namespace Youtube {
@@ -40,10 +40,13 @@ namespace Youtube {
 		private readonly Logger Logger = new Logger("YOUTUBE");
 
 		public Youtube YoutubeInstance { get; set; }
+		public string ModulePath { get; set; } = Path.Combine(Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)), nameof(Youtube) + ".dll");
 
 		public bool RequiresInternetConnection { get; set; }
 
-		public (Enums.ModuleType, string) ModuleIdentifier { get; set; }
+		public string ModuleIdentifier { get; set; }
+
+		public int ModuleType { get; set; } = 3;
 
 		public Version ModuleVersion { get; } = new Version("4.9.0.0");
 
@@ -60,7 +63,7 @@ namespace Youtube {
 
 		public bool InitModuleService() {
 			RequiresInternetConnection = true;
-			YoutubeInstance = this;
+			YoutubeInstance = this;			
 			return true;
 		}
 

@@ -44,10 +44,9 @@ namespace Assistant.AssistantCore {
 			DiscordClients,
 			SteamClients,
 			YoutubeClients,
+			AsyncEventModules,
 			AllModules,
-			None,
-			CustomModules,
-			AsyncEventModules
+			None
 		}
 
 		public enum PiContext : byte {
@@ -131,8 +130,7 @@ namespace Assistant.AssistantCore {
 			Discord,
 			Email,
 			Steam,
-			Youtube,
-			Custom,
+			Youtube,			
 			Events
 		}
 

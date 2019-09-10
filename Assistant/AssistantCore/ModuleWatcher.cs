@@ -28,7 +28,7 @@
 
 using Assistant.Extensions;
 using Assistant.Log;
-using Assistant.Modules;
+using Assistant.Modules.Interfaces;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -52,7 +52,7 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		public void InitConfigWatcher() {
+		public void InitModuleWatcher() {
 			Logger.Log("Starting module watcher...", Enums.LogLevels.Trace);
 			if (!Core.Config.EnableModuleWatcher && !Core.Config.EnableModules) {
 				Logger.Log("Module watcher is disabled.", Enums.LogLevels.Trace);
@@ -84,16 +84,16 @@ namespace Assistant.AssistantCore {
 				FileSystemWatcher.EnableRaisingEvents = false;
 				FileSystemWatcher.Dispose();
 				FileSystemWatcher = null;
-				Logger.Log("Stopped module watcher sucessfully.");
+				Logger.Log("Stopped module watcher.");
 			}
 		}
 
-		private void OnModuleDeleted(string fileName, string filePath, Enums.ModuleLoaderContext context) {
-			if (Helpers.IsNullOrEmpty(fileName) || Helpers.IsNullOrEmpty(filePath)) {
+		private void OnModuleDeleted(string filePath) {
+			if (Helpers.IsNullOrEmpty(filePath)) {
 				return;
 			}
-
-			Core.ModuleLoader.UnloadModules(context);
+		
+			Core.ModuleLoader.UnloadFromPath(filePath);
 		}
 
 		private void OnFileEventRaised(object sender, FileSystemEventArgs e) {
@@ -102,7 +102,9 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
-			if (!Core.CoreInitiationCompleted) { return; }
+			if (!Core.CoreInitiationCompleted) {
+				return;
+			}
 
 			double secondsSinceLastRead = DateTime.Now.Subtract(LastRead).TotalSeconds;
 			LastRead = DateTime.Now;
@@ -111,40 +113,17 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
-			Logger.Log(e.FullPath, Enums.LogLevels.Trace);
-			string t = new DirectoryInfo(e.FullPath).Parent.Name;
-			Logger.Log(t, Enums.LogLevels.Trace);
+			Logger.Log(e.FullPath, Enums.LogLevels.Trace);			
 
 			Task.Run(async () => await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.ModuleWatcherEvent, sender, e).ConfigureAwait(false));
-			Enums.ModuleLoaderContext loaderContext;
-			if (t.Equals("DiscordModules", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.DiscordClients;
-			}
-			else if (t.Equals("EmailModules", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.EmailClients;
-			}
-			else if (t.Equals("SteamModules", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.SteamClients;
-			}
-			else if (t.Equals("YoutubeClients", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.YoutubeClients;
-			}
-			else if (t.Equals("CustomModules", StringComparison.OrdinalIgnoreCase)) {
-				loaderContext = Enums.ModuleLoaderContext.CustomModules;
-			}
-			else {
-				loaderContext = Enums.ModuleLoaderContext.None;
-			}
-
+			
 			string fileName = e.Name;
 			string absoluteFileName = Path.GetFileName(fileName);
 			Logger.Log($"An event has been raised on module folder for file > {absoluteFileName}", Enums.LogLevels.Trace);
-			if (string.IsNullOrEmpty(absoluteFileName) || string.IsNullOrWhiteSpace(absoluteFileName)) {
-				return;
-			}
 
+			
 			if (e.ChangeType.Equals(WatcherChangeTypes.Deleted)) {
-				OnModuleDeleted(e.Name, e.FullPath, loaderContext);
+				OnModuleDeleted(e.FullPath);
 				return;
 			}
 
@@ -154,8 +133,11 @@ namespace Assistant.AssistantCore {
 					break;
 
 				default:
-					Logger.Log("Loading dll...", Enums.LogLevels.Trace);
-					Core.ModuleLoader.LoadModules(loaderContext, true);
+					Core.ModuleLoader.LoadAndStartModulesOfType<IDiscordBot>(true);
+					Core.ModuleLoader.LoadAndStartModulesOfType<IEmailClient>(true);
+					Core.ModuleLoader.LoadAndStartModulesOfType<IYoutubeClient>(true);
+					Core.ModuleLoader.LoadAndStartModulesOfType<ISteamClient>(true);
+					Core.ModuleLoader.LoadAndStartModulesOfType<IAsyncEventBase>(true);
 					break;
 			}
 		}
