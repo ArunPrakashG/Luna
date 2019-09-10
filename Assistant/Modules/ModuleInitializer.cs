@@ -30,7 +30,6 @@ using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.Modules.Interfaces;
-using Org.BouncyCastle.Math.EC.Rfc7748;
 using System;
 using System.Collections.Generic;
 using System.Composition.Convention;
@@ -57,6 +56,9 @@ namespace Assistant.Modules {
 		public List<ModuleInfo<ISteamClient>> SteamClients { get; set; } = new List<ModuleInfo<ISteamClient>>();
 		public List<ModuleInfo<IAsyncEventBase>> AsyncEventModules { get; set; } = new List<ModuleInfo<IAsyncEventBase>>();
 		public List<ModuleInfo<IYoutubeClient>> YoutubeClients { get; set; } = new List<ModuleInfo<IYoutubeClient>>();
+
+		//TODO: Merge multiple to single list
+		public List<ModuleInfo<IModuleBase>> Collection { get; set; } = new List<ModuleInfo<IModuleBase>>();
 
 		public bool IsModulesEmpty =>
 			EmailClients.Count() <= 0 && DiscordBots.Count() <= 0 &&
@@ -251,17 +253,17 @@ namespace Assistant.Modules {
 
 				Logger.Log($"Starting {((ModuleType) value.ModuleType).ToString()} module... ({value.ModuleIdentifier})", LogLevels.Trace);
 
-				if (IsExisitingModule(value)) {					
+				if (IsExisitingModule(value)) {
 					continue;
 				}
 
-				if (value.RequiresInternetConnection && !Core.IsNetworkAvailable) {					
+				if (value.RequiresInternetConnection && !Core.IsNetworkAvailable) {
 					continue;
 				}
 
 				if (value.InitModuleService()) {
 					Logger.Log($"Starting successfull! {value.ModuleIdentifier}/{((ModuleType) value.ModuleType).ToString()}", LogLevels.Info);
-					switch (value.ModuleType) {						
+					switch (value.ModuleType) {
 						case 0:
 							ModulesCollection.DiscordBots.Add(new ModuleInfo<IDiscordBot>() {
 								IsLoaded = true,
@@ -275,7 +277,7 @@ namespace Assistant.Modules {
 								IsLoaded = true,
 								Module = (IEmailClient) value,
 								ModuleIdentifier = value.ModuleIdentifier,
-								ModuleType = (ModuleType)  value.ModuleType
+								ModuleType = (ModuleType) value.ModuleType
 							});
 							break;
 						case 2:
@@ -283,7 +285,7 @@ namespace Assistant.Modules {
 								IsLoaded = true,
 								Module = (ISteamClient) value,
 								ModuleIdentifier = value.ModuleIdentifier,
-								ModuleType = (ModuleType)  value.ModuleType
+								ModuleType = (ModuleType) value.ModuleType
 							});
 							break;
 						case 3:
@@ -294,7 +296,7 @@ namespace Assistant.Modules {
 								ModuleType = (ModuleType) value.ModuleType
 							});
 							break;
-						case 4:							
+						case 4:
 							ModulesCollection.AsyncEventModules.Add(new ModuleInfo<IAsyncEventBase>() {
 								IsLoaded = true,
 								Module = (IAsyncEventBase) value,
@@ -454,42 +456,42 @@ namespace Assistant.Modules {
 			}
 
 			assemblyPath = Path.GetFullPath(assemblyPath);
-			
+
 			if (ModulesCollection.EmailClients.Count > 0) {
-				foreach (ModuleInfo<IEmailClient> client in ModulesCollection.EmailClients) {					
-					if (client.Module.ModulePath == assemblyPath) {					
+				foreach (ModuleInfo<IEmailClient> client in ModulesCollection.EmailClients) {
+					if (client.Module.ModulePath == assemblyPath) {
 						return Unload(client.ModuleIdentifier);
 					}
 				}
 			}
 
 			if (ModulesCollection.SteamClients.Count > 0) {
-				foreach (ModuleInfo<ISteamClient> client in ModulesCollection.SteamClients) {					
-					if (client.Module.ModulePath == assemblyPath) {						
+				foreach (ModuleInfo<ISteamClient> client in ModulesCollection.SteamClients) {
+					if (client.Module.ModulePath == assemblyPath) {
 						return Unload(client.ModuleIdentifier);
 					}
 				}
 			}
 
 			if (ModulesCollection.YoutubeClients.Count > 0) {
-				foreach (ModuleInfo<IYoutubeClient> client in ModulesCollection.YoutubeClients) {					
-					if (client.Module.ModulePath == assemblyPath) {						
+				foreach (ModuleInfo<IYoutubeClient> client in ModulesCollection.YoutubeClients) {
+					if (client.Module.ModulePath == assemblyPath) {
 						return Unload(client.ModuleIdentifier);
 					}
 				}
 			}
 
 			if (ModulesCollection.DiscordBots.Count > 0) {
-				foreach (ModuleInfo<IDiscordBot> client in ModulesCollection.DiscordBots) {					
-					if (client.Module.ModulePath == assemblyPath) {						
+				foreach (ModuleInfo<IDiscordBot> client in ModulesCollection.DiscordBots) {
+					if (client.Module.ModulePath == assemblyPath) {
 						return Unload(client.ModuleIdentifier);
 					}
 				}
 			}
 
 			if (ModulesCollection.AsyncEventModules.Count > 0) {
-				foreach (ModuleInfo<IAsyncEventBase> client in ModulesCollection.AsyncEventModules) {					
-					if (client.Module.ModulePath == assemblyPath) {						
+				foreach (ModuleInfo<IAsyncEventBase> client in ModulesCollection.AsyncEventModules) {
+					if (client.Module.ModulePath == assemblyPath) {
 						return Unload(client.ModuleIdentifier);
 					}
 				}
