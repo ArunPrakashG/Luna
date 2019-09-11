@@ -36,6 +36,7 @@ The module will be compiled and placed inside the `Assistant/Modules/` directory
 This way, without modifying the Core project, you can customize your Assistant! more Interface's will be added soon!
 
 ### Currently available modules
+NOTE - The module projects have been seperated from main project [this] and they will be linked in this readme file shortly.
 - Email System - Login with your email accounts to send, receive, delete or even search emails in your inbox. Supports 50+ accounts at a time also, get notified of new emails you receive by taking control of the IMAP server push notifications. Enable the push notifications service on config file.
 - [WIP] Steam bot - control your assistant and get chat notifications on steam, moreover, let your assistant take control of your account so that you can set custom away message and Hour boost as well as card farm games on steam.
 - Discord bot - allows to control tess using discord bot commands from home assistant discord channel.
