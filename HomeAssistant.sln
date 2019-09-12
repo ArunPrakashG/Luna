@@ -20,14 +20,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Email", "Email\Email.csproj", "{32818B85-D9E3-48A8-9D98-38AEBBA73576}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Discord", "Discord\Discord.csproj", "{254F658C-2D7C-4293-B4DA-7B77DA98BD9B}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Youtube", "Youtube\Youtube.csproj", "{A155F95B-7C3A-44DC-B09B-CB956B9438A9}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Steam", "Steam\Steam.csproj", "{1926B03D-D0C2-43E0-A4F3-CF0F02F9CDAB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,22 +38,6 @@ Global
 		{AF331F5B-62CB-4593-9CBB-F5C6583A714C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF331F5B-62CB-4593-9CBB-F5C6583A714C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF331F5B-62CB-4593-9CBB-F5C6583A714C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{32818B85-D9E3-48A8-9D98-38AEBBA73576}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{32818B85-D9E3-48A8-9D98-38AEBBA73576}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{32818B85-D9E3-48A8-9D98-38AEBBA73576}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{32818B85-D9E3-48A8-9D98-38AEBBA73576}.Release|Any CPU.Build.0 = Release|Any CPU
-		{254F658C-2D7C-4293-B4DA-7B77DA98BD9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{254F658C-2D7C-4293-B4DA-7B77DA98BD9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{254F658C-2D7C-4293-B4DA-7B77DA98BD9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{254F658C-2D7C-4293-B4DA-7B77DA98BD9B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A155F95B-7C3A-44DC-B09B-CB956B9438A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A155F95B-7C3A-44DC-B09B-CB956B9438A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A155F95B-7C3A-44DC-B09B-CB956B9438A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A155F95B-7C3A-44DC-B09B-CB956B9438A9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1926B03D-D0C2-43E0-A4F3-CF0F02F9CDAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1926B03D-D0C2-43E0-A4F3-CF0F02F9CDAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1926B03D-D0C2-43E0-A4F3-CF0F02F9CDAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1926B03D-D0C2-43E0-A4F3-CF0F02F9CDAB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

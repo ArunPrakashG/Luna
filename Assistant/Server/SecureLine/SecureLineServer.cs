@@ -17,6 +17,8 @@ using Unosquare.RaspberryIO.Abstractions;
 namespace Assistant.Server.SecureLine {
 	public class ConnectedClient {
 		public string IPAddress { get; set; }
+		public int ConnectedCount { get; set; }
+		public DateTime LastConnectedTime { get; set; }
 	}
 
 	public class SecureLineServer : IDisposable {
@@ -55,12 +57,41 @@ namespace Assistant.Server.SecureLine {
 						int b = socket.Receive(receiveBuffer);
 						EndPoint remoteEndpoint = socket.RemoteEndPoint;
 						ConnectedClient client = new ConnectedClient() {
-							IPAddress = remoteEndpoint.ToString().Split(':')[0].Trim()
+							IPAddress = remoteEndpoint.ToString().Split(':')[0].Trim(),
+							ConnectedCount = 0,
+							LastConnectedTime = DateTime.Now
 						};
+
 						Logger.Log($"Connected client IP => {client.IPAddress}", Enums.LogLevels.Trace);
 
 						if (!ConnectedClients.Contains(client)) {
 							ConnectedClients.Add(client);
+						}
+						else {
+							ConnectedClient i = ConnectedClients.Find(x => x.IPAddress == client.IPAddress);
+							i.ConnectedCount++;
+
+							if ((DateTime.Now - i.LastConnectedTime).TotalSeconds < 1) {
+								Logger.Log($"Request from client {i.IPAddress} has been ignored due to over requesting.", Enums.LogLevels.Trace);
+								i.LastConnectedTime = DateTime.Now;
+
+								foreach (ConnectedClient t in ConnectedClients) {
+									if (t.IPAddress == client.IPAddress) {
+										ConnectedClients[ConnectedClients.IndexOf(t)] = i;
+									}
+								}
+
+								socket.Close();
+								continue;
+							}
+
+							i.LastConnectedTime = DateTime.Now;
+
+							foreach (ConnectedClient t in ConnectedClients) {
+								if (t.IPAddress == client.IPAddress) {
+									ConnectedClients[ConnectedClients.IndexOf(t)] = i;
+								}
+							}
 						}
 
 						string recevied = Encoding.ASCII.GetString(receiveBuffer, 0, b);
@@ -133,6 +164,22 @@ namespace Assistant.Server.SecureLine {
 			string result = null;
 
 			switch (request.Command) {
+				case "SETGPIO" when request.StringParameters.Count == 4:
+					if (request.StringParameters == null) {
+						result = null;
+					}
+
+					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
+					mode = (GpioPinDriveMode) Convert.ToInt32(request.StringParameters[1].Trim());
+					value = (GpioPinValue) Convert.ToInt32(request.StringParameters[2].Trim());
+					int delay = Convert.ToInt32(request.StringParameters[3].Trim());
+					if (Core.Controller.SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay))) {
+						result = $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()} for {delay} minutes.";
+					}
+					else {
+						result = "Failed";
+					}
+					break;
 				case "SETGPIO" when request.StringParameters.Count == 3:
 					if (request.StringParameters == null) {
 						result = null;

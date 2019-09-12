@@ -31,6 +31,7 @@ using Assistant.Log;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
@@ -78,27 +79,26 @@ namespace Assistant.AssistantCore.PiGpio {
 			PiSound = new SoundController();
 			ControllerHelpers.DisplayPiInfo();
 
-			if (withPolling) {
+			if (withPolling && GpioPollingManager != null) {
 				Helpers.ScheduleTask(() => {
-					if (GpioPollingManager == null) {
-						return;
-					}
-
 					List<GpioPinEventData> pinData = new List<GpioPinEventData>();
 
-					foreach (int pin in Core.Config.RelayPins) {
-						pinData.Add(new GpioPinEventData() {
-							PinMode = GpioPinDriveMode.Output,
-							GpioPin = pin,
-							PinEventState = Enums.GpioPinEventStates.ALL
-						});
+					if (Core.Config.RelayPins.Count() > 0) {
+						foreach (int pin in Core.Config.RelayPins) {
+							pinData.Add(new GpioPinEventData() {
+								PinMode = GpioPinDriveMode.Output,
+								GpioPin = pin,
+								PinEventState = Enums.GpioPinEventStates.ALL
+							});
+						}
+
+						GpioPollingManager.RegisterGpioEvent(pinData);
+
+						foreach (GpioEventGenerator gen in GpioPollingManager.GpioPinEventGenerators) {
+							gen.GPIOPinValueChanged += OnGpioPinValueChanged;
+						}
 					}
 
-					GpioPollingManager.RegisterGpioEvent(pinData);
-
-					foreach (GpioEventGenerator gen in GpioPollingManager.GpioPinEventGenerators) {
-						gen.GPIOPinValueChanged += OnGpioPinValueChanged;
-					}
 				}, TimeSpan.FromSeconds(5));
 			}
 
@@ -144,14 +144,16 @@ namespace Assistant.AssistantCore.PiGpio {
 		public (int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) GetGpio(int pinNumber) =>
 			(pinNumber, Pi.Gpio[pinNumber].PinMode, Pi.Gpio[pinNumber].Read() ? GpioPinValue.High : GpioPinValue.Low);
 
-		public async Task<bool> SetGpioWithTimeout(int pin, GpioPinDriveMode mode, GpioPinValue state, int timeoutDuration) {
-			if (pin <= 0 || timeoutDuration <= 0) {
+		public bool SetGpioWithTimeout(int pin, GpioPinDriveMode mode, GpioPinValue state, TimeSpan duration) {
+			if (pin <= 0) {
 				return false;
 			}
 
 			if (SetGpioValue(pin, mode, state)) {
-				await Task.Delay(timeoutDuration).ConfigureAwait(false);
-				return SetGpioValue(pin, mode, GpioPinValue.High);
+				Helpers.ScheduleTask(() => {
+					SetGpioValue(pin, mode, GpioPinValue.High);
+				}, duration);
+				return true;
 			}
 			return false;
 		}
@@ -175,7 +177,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			IGpioPin GpioPin = Pi.Gpio[pin];
 			GpioPin.PinMode = mode;
 
-			if(mode == GpioPinDriveMode.Output) {
+			if (mode == GpioPinDriveMode.Output) {
 				GpioPin.Write(state);
 				Logger.Log($"Configured ({pin}) gpio pin to ({state.ToString()}) state with ({mode.ToString()}) mode.", Enums.LogLevels.Trace);
 				return true;

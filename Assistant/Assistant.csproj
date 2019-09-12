@@ -42,7 +42,7 @@
 		<PackageReference Include="Discord.Net" Version="2.1.1" />
 		<PackageReference Include="Figgle" Version="0.3.0" />
 		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.2.0" />
-		<PackageReference Include="MailKit" Version="2.3.0" />		
+		<PackageReference Include="MailKit" Version="2.3.1.6" />		
 		<PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Diagnostics" Version="2.2.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
@@ -57,7 +57,7 @@
 		<PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.0.0-preview6.19304.6" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.0.0-preview6.19304.6" />
-		<PackageReference Include="NLog.Web.AspNetCore" Version="4.8.4" />
+		<PackageReference Include="NLog.Web.AspNetCore" Version="4.8.5" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
 		<PackageReference Include="NLog" Version="4.6.7" />
 		<PackageReference Include="JetBrains.Annotations" Version="2019.1.3" />

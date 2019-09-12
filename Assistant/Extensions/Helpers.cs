@@ -219,13 +219,14 @@ namespace Assistant.Extensions {
 		}
 
 		public static string GetLocalIpAddress() {
-			IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-			foreach (IPAddress ip in host.AddressList) {
-				if (ip.AddressFamily == AddressFamily.InterNetwork) {
-					return ip.ToString();
-				}
+			string localIP;
+			using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0)) {
+				socket.Connect("8.8.8.8", 65530);
+				IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+				localIP = endPoint.Address.ToString();
 			}
-			throw new Exception("No network adapters with an IPv4 address in the system!");
+
+			return localIP;
 		}
 
 		public static ConsoleKeyInfo? FetchUserInputSingleChar(TimeSpan delay) {
@@ -361,6 +362,20 @@ namespace Assistant.Extensions {
 
 		public static DateTime ConvertTo12Hours(DateTime source) =>
 			DateTime.TryParse(source.ToString("dddd, dd MMMM yyyy"), out DateTime result) ? result : DateTime.Now;
+
+		public static string GetLocalIPv4(NetworkInterfaceType typeOfNetwork) {
+			string output = "";
+			foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces()) {
+				if (item.NetworkInterfaceType == typeOfNetwork && item.OperationalStatus == OperationalStatus.Up) {
+					foreach (UnicastIPAddressInformation ip in item.GetIPProperties().UnicastAddresses) {
+						if (ip.Address.AddressFamily == AddressFamily.InterNetwork) {
+							output = ip.Address.ToString();
+						}
+					}
+				}
+			}
+			return output;
+		}
 
 		public static string GetUrlToString(string url, Method method, bool withuseragent = true) {
 			if (!Core.IsNetworkAvailable) {

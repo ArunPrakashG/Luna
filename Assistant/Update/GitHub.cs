@@ -26,185 +26,49 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using Newtonsoft.Json;
-using RestSharp;
-using System;
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
+using Newtonsoft.Json;
+using RestSharp;
+using System;
 
 namespace Assistant.Update {
-
-	public class Rootobject {
-
-		public string url { get; set; }
-
-		public string assets_url { get; set; }
-
-		public string upload_url { get; set; }
-
-		public string html_url { get; set; }
-
-		public int id { get; set; }
-
-		public string node_id { get; set; }
-
-		public string tag_name { get; set; }
-
-		public string target_commitish { get; set; }
-
-		public string name { get; set; }
-
-		public bool draft { get; set; }
-
-		public Author author { get; set; }
-
-		public bool prerelease { get; set; }
-
-		public DateTime created_at { get; set; }
-
-		public DateTime published_at { get; set; }
-
-		public Asset[] assets { get; set; }
-
-		public string tarball_url { get; set; }
-
-		public string zipball_url { get; set; }
-
-		public string body { get; set; }
-	}
-
-	public class Author {
-
-		public string login { get; set; }
-
-		public int id { get; set; }
-
-		public string node_id { get; set; }
-
-		public string avatar_url { get; set; }
-
-		public string gravatar_id { get; set; }
-
-		public string url { get; set; }
-
-		public string html_url { get; set; }
-
-		public string followers_url { get; set; }
-
-		public string following_url { get; set; }
-
-		public string gists_url { get; set; }
-
-		public string starred_url { get; set; }
-
-		public string subscriptions_url { get; set; }
-
-		public string organizations_url { get; set; }
-
-		public string repos_url { get; set; }
-
-		public string events_url { get; set; }
-
-		public string received_events_url { get; set; }
-
-		public string type { get; set; }
-
-		public bool site_admin { get; set; }
-	}
-
-	public class Asset {
-
-		public string url { get; set; }
-
-		public int id { get; set; }
-
-		public string node_id { get; set; }
-
-		public string name { get; set; }
-
-		public object label { get; set; }
-
-		public Uploader uploader { get; set; }
-
-		public string content_type { get; set; }
-
-		public string state { get; set; }
-
-		public int size { get; set; }
-
-		public int download_count { get; set; }
-
-		public DateTime created_at { get; set; }
-
-		public DateTime updated_at { get; set; }
-
-		public string browser_download_url { get; set; }
-	}
-
-	public class Uploader {
-
-		public string login { get; set; }
-
-		public int id { get; set; }
-
-		public string node_id { get; set; }
-
-		public string avatar_url { get; set; }
-
-		public string gravatar_id { get; set; }
-
-		public string url { get; set; }
-
-		public string html_url { get; set; }
-
-		public string followers_url { get; set; }
-
-		public string following_url { get; set; }
-
-		public string gists_url { get; set; }
-
-		public string starred_url { get; set; }
-
-		public string subscriptions_url { get; set; }
-
-		public string organizations_url { get; set; }
-
-		public string repos_url { get; set; }
-
-		public string events_url { get; set; }
-
-		public string received_events_url { get; set; }
-
-		public string type { get; set; }
-
-		public bool site_admin { get; set; }
-	}
-
 	internal class GitHub {
+		[JsonProperty("url")]
+		public string ReleaseUrl { get; set; }
+		[JsonProperty("tag_name")]
+
+		public string ReleaseTagName { get; set; }
+		[JsonProperty("name")]
+
+		public string ReleaseFileName { get; set; }
+		[JsonProperty("published_at")]
+
+		public DateTime PublishedAt { get; set; }
+		[JsonProperty("assets")]
+
+		public Asset[] Assets { get; set; }
+
+		public class Asset {
+			[JsonProperty("id")]
+			public int AssetId { get; set; }
+			[JsonProperty("browser_download_url")]
+
+			public string AssetDownloadUrl { get; set; }
+		}
+
 		private readonly Logger Logger = new Logger("GIT-HUB");
 
-		public Rootobject FetchLatestAssest(string gitToken) {
-			if (Helpers.IsNullOrEmpty(gitToken)) {
-				Logger.Log("Token is empty!, cannot proceed.");
-				return new Rootobject();
-			}
+		public GitHub FetchLatestAssest() {
+			string json = Helpers.GetUrlToString(Constants.GitHubReleaseURL, Method.GET, true);
 
-			string json = Helpers.GetUrlToString(Constants.GitHubReleaseURL + "?access_token=" + gitToken, Method.GET, true);
-
-			if (string.IsNullOrEmpty(json) || string.IsNullOrWhiteSpace(json)) {
+			if (Helpers.IsNullOrEmpty(json)) {
 				Logger.Log("Could not fetch the latest patch release. Try again later!", Enums.LogLevels.Warn);
-				return null;
+				return new GitHub();
 			}
 
-			try {
-				Rootobject Root = JsonConvert.DeserializeObject<Rootobject>(json);
-				return Root;
-			}
-			catch (Exception e) {
-				Logger.Log(e, Enums.LogLevels.Fatal);
-				return null;
-			}
+			return JsonConvert.DeserializeObject<GitHub>(json);
 		}
 	}
 }

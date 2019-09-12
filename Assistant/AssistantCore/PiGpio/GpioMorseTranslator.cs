@@ -53,7 +53,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		}
 
-		public async Task<bool> RelayMorseCycle(string textToConvert, int relayPin, int timeout = 300) {
+		public async Task<bool> RelayMorseCycle(string textToConvert, int relayPin) {
 			if (Helpers.IsNullOrEmpty(textToConvert)) {
 				Logger.Log("The specified text is either null or empty.", Enums.LogLevels.Warn);
 				return false;
@@ -103,13 +103,13 @@ namespace Assistant.AssistantCore.PiGpio {
 			foreach (char character in Morse.ToCharArray()) {
 				switch (character) {
 					case '.':
-						await Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, timeout).ConfigureAwait(false);
+						Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, TimeSpan.FromMilliseconds(300));
 						break;
 					case '-':
-						await Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, timeout * 3).ConfigureAwait(false);
+						Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, TimeSpan.FromMilliseconds(300 * 3));
 						break;
 					case '_':
-						await Task.Delay(timeout).ConfigureAwait(false);
+						await Task.Delay(300).ConfigureAwait(false);
 						break;
 				}
 			}

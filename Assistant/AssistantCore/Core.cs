@@ -40,6 +40,7 @@ using Assistant.Server.SecureLine;
 using Assistant.Update;
 using Assistant.Weather;
 using CommandLine;
+using RestSharp;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -73,6 +74,7 @@ namespace Assistant.AssistantCore {
 	}
 
 	public class Core {
+		private const int SendIpDelay = 20;
 		private static Logger Logger { get; set; } = new Logger("ASSISTANT");
 		public static PiController Controller { get; private set; }
 		public static Updater Update { get; private set; } = new Updater();
@@ -100,6 +102,13 @@ namespace Assistant.AssistantCore {
 		public static OSPlatform RunningPlatform { get; private set; }
 		public static string AssistantName { get; set; } = "TESS Assistant";
 
+		/// <summary>
+		/// This method starts up the assistant core.
+		/// After registration of very important events on Program.cs, control moves to here.
+		/// This is basically the entry point of the application.
+		/// </summary>
+		/// <param name="args">The startup arguments. (if any)</param>
+		/// <returns></returns>
 		public static async Task<bool> InitCore(string[] args) {
 			if (File.Exists(Constants.TraceLogPath)) {
 				File.Delete(Constants.TraceLogPath);
@@ -107,17 +116,6 @@ namespace Assistant.AssistantCore {
 
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
-
-			Config = Config.LoadConfig();
-			AssistantName = Config.AssistantDisplayName;
-			Logger.LogIdentifier = AssistantName;
-			Config.ProgramLastStartup = StartupTime;
-			SecureLine = new SecureLineServer(IPAddress.Any, 7777);
-			SecureLine.StartSecureLine();
-
-
-			Helpers.SetFileSeperator();
-			RunningPlatform = Helpers.GetOsPlatform();
 
 			if (Helpers.CheckForInternetConnection()) {
 				IsNetworkAvailable = true;
@@ -128,9 +126,23 @@ namespace Assistant.AssistantCore {
 				IsNetworkAvailable = false;
 			}
 
+			Config = Config.LoadConfig();
+			RunningPlatform = Helpers.GetOsPlatform();
+			AssistantName = Config.AssistantDisplayName;
+			Logger.LogIdentifier = AssistantName;
+			Config.ProgramLastStartup = StartupTime;
+			Constants.LocalIP = Helpers.GetLocalIpAddress();
+
+			SecureLine = new SecureLineServer(IPAddress.Any, 7777);
+			SecureLine.StartSecureLine();
+
+			SendLocalIp(!Helpers.IsNullOrEmpty(Constants.LocalIP));
+
+			Helpers.SetFileSeperator();
+
 			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
 			Constants.ExternelIP = Helpers.GetExternalIp();
-			Constants.LocalIP = Helpers.GetLocalIpAddress();
+
 			File.WriteAllText("version.txt", Constants.Version.ToString());
 
 			if (Helpers.IsNullOrEmpty(Constants.ExternelIP)) {
@@ -173,10 +185,6 @@ namespace Assistant.AssistantCore {
 			ModuleLoader = new ModuleInitializer();
 
 			ModuleLoader.LoadAndStartModulesOfType<IModuleBase>();
-			//ModuleLoader.LoadAndStartModulesOfType<IEmailClient>();
-			//ModuleLoader.LoadAndStartModulesOfType<IYoutubeClient>();
-			//ModuleLoader.LoadAndStartModulesOfType<ISteamClient>();
-			//ModuleLoader.LoadAndStartModulesOfType<IAsyncEventBase>();
 
 			ModuleWatcher.InitModuleWatcher();
 			Controller = new PiController(true);
@@ -248,7 +256,7 @@ namespace Assistant.AssistantCore {
 				switch (pressedKey) {
 					case Constants.ConsoleQuickShutdownKey: {
 							Logger.Log("Force quitting assistant...", Enums.LogLevels.Warn);
-							await Exit(true).ConfigureAwait(false);
+							Exit(true);
 						}
 						return;
 
@@ -286,7 +294,7 @@ namespace Assistant.AssistantCore {
 							Logger.Log("Enter text to convert to morse: ");
 							string morseCycle = Console.ReadLine();
 							if (Controller.MorseTranslator.IsTranslatorOnline) {
-								await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.RelayPins[0], 200).ConfigureAwait(false);
+								await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.RelayPins[0]).ConfigureAwait(false);
 							}
 							else {
 								Logger.Log("Could not convert due to an unknown error.", Enums.LogLevels.Warn);
@@ -683,10 +691,6 @@ namespace Assistant.AssistantCore {
 				Update.StopUpdateTimer();
 				Logger.Log("Stopped update timer.", Enums.LogLevels.Warn);
 			}
-
-			if (KestrelServer.IsServerOnline) {
-				await KestrelServer.Stop().ConfigureAwait(false);
-			}
 		}
 
 		public static async Task OnNetworkReconnected() {
@@ -698,10 +702,6 @@ namespace Assistant.AssistantCore {
 				Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
 				File.WriteAllText("version.txt", Constants.Version.ToString());
 				await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
-			}
-
-			if (!KestrelServer.IsServerOnline) {
-				await KestrelServer.Start().ConfigureAwait(false);
 			}
 		}
 
@@ -757,11 +757,29 @@ namespace Assistant.AssistantCore {
 			Logger.Log("Finished on exit tasks.", Enums.LogLevels.Trace);
 		}
 
-		public static async Task Exit(bool quickShutdown) {
+		public static void Exit(bool quickShutdown) {
 			if (quickShutdown) {
 				GracefullModuleShutdown = false;
-				await OnExit().ConfigureAwait(false);
-				Logger.Log("Bye, have a good day sir!");
+
+				if (Controller != null) {
+					Controller.InitGpioShutdownTasks();
+				}
+
+				if (TaskManager != null) {
+					TaskManager.OnCoreShutdownRequested();
+				}
+
+				if (Update != null) {
+					Update.StopUpdateTimer();
+					Logger.Log("Update timer disposed!", Enums.LogLevels.Trace);
+				}
+
+				if (RefreshConsoleTitleTimer != null) {
+					RefreshConsoleTitleTimer.Dispose();
+					Logger.Log("Console title refresh timer disposed!", Enums.LogLevels.Trace);
+				}
+
+				Logger.Log("Bye, Sorry to see you go so fast!");
 				Logging.LoggerOnShutdown();
 				Environment.Exit(0);
 			}
@@ -835,6 +853,28 @@ namespace Assistant.AssistantCore {
 					UseShellExecute = false
 				};
 				Process.Start(psi);
+			}
+		}
+
+		/// <summary>
+		/// The method sends the current working local ip to an central server which i personally use for such tasks and for authentication etc.
+		/// You have to specify such a server manually else contact me personally for my server IP.
+		/// We use this so that the mobile controller app of the assistant can connect to the assistant running on the connected local interface.
+		/// </summary>
+		/// <param name="enableRecrussion">Specify if you want to execute this method in a loop every SendIpDelay minutes. (recommended)</param>
+		private static void SendLocalIp(bool enableRecrussion) {
+			Constants.LocalIP = Helpers.GetLocalIpAddress();
+			RestClient client = new RestClient($"http://{Config.StatisticsServerIP}/api/v1/assistant/ip?ip={Constants.LocalIP}");
+			RestRequest request = new RestRequest(Method.POST);
+			request.AddHeader("cache-control", "no-cache");
+			IRestResponse response = client.Execute(request);
+			if (response.StatusCode != HttpStatusCode.OK) {
+				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+			}
+
+			Logger.Log($"{Constants.LocalIP} IP request send!", Enums.LogLevels.Trace);
+			if (enableRecrussion) {
+				Helpers.ScheduleTask(() => SendLocalIp(enableRecrussion), TimeSpan.FromMinutes(SendIpDelay));
 			}
 		}
 	}

@@ -57,10 +57,6 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool PushBulletLogging { get; set; } = true;
 
-		[JsonProperty] public int TCPServerPort { get; set; } = 6060;
-
-		[JsonProperty] public bool TCPServer { get; set; } = true;
-
 		[JsonProperty] public bool KestrelServer { get; set; } = true;
 
 		[JsonProperty] public bool GPIOSafeMode { get; set; } = false;
@@ -85,6 +81,8 @@ namespace Assistant.AssistantCore {
 		[JsonProperty] public bool Debug { get; set; } = false;
 
 		[JsonProperty] public string ZomatoApiKey { get; set; }
+
+		[JsonProperty] public string StatisticsServerIP { get; set; }
 
 		[JsonProperty] public string OwnerEmailAddress { get; set; } = "arun.prakash.456789@gmail.com";
 
@@ -128,9 +126,9 @@ namespace Assistant.AssistantCore {
 
 			ConfigSemaphore.Wait();
 
-			if(Core.ConfigWatcher.FileSystemWatcher != null) {
+			if (Core.ConfigWatcher.FileSystemWatcher != null) {
 				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = false;
-			}			
+			}
 
 			try {
 				File.WriteAllText(newFilePath, json);
@@ -245,7 +243,6 @@ namespace Assistant.AssistantCore {
 				hashCode = (hashCode * 397) ^ AutoUpdates.GetHashCode();
 				hashCode = (hashCode * 397) ^ EnableConfigWatcher.GetHashCode();
 				hashCode = (hashCode * 397) ^ UpdateIntervalInHours;
-				hashCode = (hashCode * 397) ^ TCPServer.GetHashCode();
 				hashCode = (hashCode * 397) ^ KestrelServer.GetHashCode();
 				hashCode = (hashCode * 397) ^ GPIOSafeMode.GetHashCode();
 				hashCode = (hashCode * 397) ^ (RelayPins != null ? RelayPins.GetHashCode() : 0);
@@ -258,7 +255,6 @@ namespace Assistant.AssistantCore {
 				hashCode = (hashCode * 397) ^ MuteAssistant.GetHashCode();
 				hashCode = (hashCode * 397) ^ CloseRelayOnShutdown.GetHashCode();
 				hashCode = (hashCode * 397) ^ ServerAuthCode;
-				hashCode = (hashCode * 397) ^ TCPServerPort;
 				hashCode = (hashCode * 397) ^ (OwnerEmailAddress != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(OwnerEmailAddress) : 0);
 				hashCode = (hashCode * 397) ^ (AssistantEmailId != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailId) : 0);
 				hashCode = (hashCode * 397) ^ (AssistantEmailPassword != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailPassword) : 0);
@@ -281,14 +277,13 @@ namespace Assistant.AssistantCore {
 
 			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
 				   EnableConfigWatcher == other.EnableConfigWatcher &&
-				   UpdateIntervalInHours == other.UpdateIntervalInHours && TCPServer == other.TCPServer &&
+				   UpdateIntervalInHours == other.UpdateIntervalInHours &&
 				   KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
 				   Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
 				   DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
 				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
 				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
 				   CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
-				   TCPServerPort == other.TCPServerPort &&
 				   string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
 				   string.Equals(AssistantEmailId, other.AssistantEmailId, StringComparison.OrdinalIgnoreCase) &&
 				   string.Equals(AssistantEmailPassword, other.AssistantEmailPassword, StringComparison.OrdinalIgnoreCase) &&

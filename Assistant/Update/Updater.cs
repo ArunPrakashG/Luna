@@ -26,6 +26,9 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.AssistantCore;
+using Assistant.Extensions;
+using Assistant.Log;
 using RestSharp;
 using RestSharp.Extensions;
 using System;
@@ -34,16 +37,12 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.AssistantCore;
-using Assistant.Extensions;
-using Assistant.Log;
-using Microsoft.AspNetCore.Mvc.Formatters;
 
 namespace Assistant.Update {
 
 	public class Updater {
 		private readonly Logger Logger = new Logger("UPDATER");
-		private readonly GitHub Git = new GitHub();
+		private GitHub Git = new GitHub();
 		public bool UpdateAvailable = false;
 		private Timer AutoUpdateTimer;
 		private readonly Stopwatch ElapasedTimeCalculator = new Stopwatch();
@@ -100,8 +99,8 @@ namespace Assistant.Update {
 				StartUpdateTimer();
 			}
 
-			Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
 			await UpdateSemaphore.WaitAsync().ConfigureAwait(false);
+			Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
 			UpdateTimerStartTime = DateTime.Now;
 			ElapasedTimeCalculator.Restart();
 
@@ -111,106 +110,84 @@ namespace Assistant.Update {
 				return (false, Constants.Version);
 			}
 
-			Rootobject GitRoot = null;
+			Git = Git.FetchLatestAssest();
+			string GitVersion = !Helpers.IsNullOrEmpty(Git.ReleaseTagName) ? Git.ReleaseTagName : string.Empty;
 
-			try {
-				if (!Helpers.IsNullOrEmpty(Core.Config.GitHubToken)) {
-					GitRoot = Git.FetchLatestAssest(Core.Config.GitHubToken);
-				}
-			}
-			catch (NullReferenceException) {
-				Logger.Log("Could not fetch the required details from github api.", Enums.LogLevels.Warn);
-				UpdateSemaphore.Release();
-				return (false, Constants.Version);
-			}
-
-			string GitVersion;
-			if (GitRoot != null) {
-				GitVersion = GitRoot.tag_name;
-			}
-			else {
+			if (Helpers.IsNullOrEmpty(GitVersion)) {
 				Logger.Log("Failed to fetch the required details from github api.", Enums.LogLevels.Error);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
-			Version LatestVersion;
-
-			try {
-				LatestVersion = Version.Parse(GitVersion);
-			}
-			catch (Exception) {
+			if (!Version.TryParse(GitVersion, out Version LatestVersion)) {
 				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", Enums.LogLevels.Warn);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
 			if (LatestVersion > Constants.Version) {
+				UpdateAvailable = true;
 				Logger.Log($"New version available!", Enums.LogLevels.Sucess);
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...", Enums.LogLevels.Warn);
-				UpdateAvailable = true;
 				await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateAvailable).ConfigureAwait(false);
 				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
 				UpdateSemaphore.Release();
 				return (true, LatestVersion);
 			}
-			else if (LatestVersion < Constants.Version) {
+
+			if (LatestVersion < Constants.Version) {
 				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", Enums.LogLevels.Warn);
 				UpdateSemaphore.Release();
 				return (true, LatestVersion);
 			}
-			else {
-				Logger.Log($"You are up to date! ({LatestVersion}/{Constants.Version})");
-				UpdateSemaphore.Release();
-				return (true, LatestVersion);
-			}
+
+			Logger.Log($"You are up to date! ({LatestVersion}/{Constants.Version})");
+			UpdateSemaphore.Release();
+			return (true, LatestVersion);
 		}
 
-		public async Task InitUpdate() {
-			Rootobject GitRoot = null;
-			string gitToken = Core.Config.GitHubToken;
-
-			if (Helpers.IsNullOrEmpty(gitToken)) {
-				Logger.Log("The github token is null.", Enums.LogLevels.Warn);
-				return;
+		public async Task<bool> InitUpdate() {
+			if (Git == null) {
+				return false;
 			}
 
-			if (GitRoot != null) {
-				int releaseID = GitRoot.assets[0].id;
+			await UpdateSemaphore.WaitAsync().ConfigureAwait(false);
+			int releaseID = Git.Assets[0].AssetId;
+			Logger.Log($"Release name: {Git.ReleaseFileName}");
+			Logger.Log($"URL: {Git.ReleaseUrl}", Enums.LogLevels.Trace);
+			Logger.Log($"Version: {Git.ReleaseTagName}", Enums.LogLevels.Trace);
+			Logger.Log($"Publish time: {Git.PublishedAt.ToLongTimeString()}");
+			Logger.Log($"ZIP URL: {Git.Assets[0].AssetDownloadUrl}", Enums.LogLevels.Trace);
+			Logger.Log($"Downloading {Git.ReleaseFileName}.zip...");
 
-				Logger.Log($"Release name: {GitRoot.name}");
-				Logger.Log($"URL: {GitRoot.url}", Enums.LogLevels.Trace);
-				Logger.Log($"Version: {GitRoot.tag_name}", Enums.LogLevels.Trace);
-				Logger.Log($"Publish time: {GitRoot.published_at.ToLongTimeString()}");
-				Logger.Log($"ZIP URL: {GitRoot.assets[0].browser_download_url}", Enums.LogLevels.Trace);
-				Logger.Log($"Downloading {GitRoot.name}.zip...");
-
-				if (File.Exists(Constants.UpdateZipFileName)) {
-					File.Delete(Constants.UpdateZipFileName);
-				}
-
-				RestClient client = new RestClient($"{Constants.GitHubAssetDownloadURL}/{releaseID}?access_token={gitToken}");
-				RestRequest request = new RestRequest(Method.GET);
-				client.UserAgent = Constants.GitHubProjectName;
-				request.AddHeader("cache-control", "no-cache");
-				request.AddHeader("Accept", "application/octet-stream");
-				IRestResponse response = client.Execute(request);
-
-				if (response.StatusCode != HttpStatusCode.OK) {
-					Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
-					return;
-				}
-
-				response.RawBytes.SaveAs(Constants.UpdateZipFileName);
+			if (File.Exists(Constants.UpdateZipFileName)) {
+				File.Delete(Constants.UpdateZipFileName);
 			}
+
+			RestClient client = new RestClient($"{Constants.GitHubAssetDownloadURL}/{releaseID}");
+			RestRequest request = new RestRequest(Method.GET);
+			client.UserAgent = Constants.GitHubProjectName;
+			request.AddHeader("cache-control", "no-cache");
+			request.AddHeader("Accept", "application/octet-stream");
+			IRestResponse response = client.Execute(request);
+
+			if (response.StatusCode != HttpStatusCode.OK) {
+				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
+				UpdateSemaphore.Release();
+				return false;
+			}
+
+			response.RawBytes.SaveAs(Constants.UpdateZipFileName);
+
 
 			Logger.Log("Sucessfully Downloaded, Starting update process...");
-			await Task.Delay(1000).ConfigureAwait(false);
+			await Task.Delay(2000).ConfigureAwait(false);
 
 			if (!File.Exists(Constants.UpdateZipFileName)) {
 				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", Enums.LogLevels.Error);
-				return;
+				UpdateSemaphore.Release();
+				return false;
 			}
 
 			if (Directory.Exists(Constants.BackupDirectoryPath)) {
@@ -218,25 +195,20 @@ namespace Assistant.Update {
 				Logger.Log("Deleted old backup folder and its contents.");
 			}
 
-			try {
-				if (OS.IsUnix) {
-					string executable = Path.Combine(Constants.HomeDirectory, Constants.GitHubProjectName);
+			if (OS.IsUnix) {
+				string executable = Path.Combine(Constants.HomeDirectory, Constants.GitHubProjectName);
 
-					if (File.Exists(executable)) {
-						OS.UnixSetFileAccessExecutable(executable);
-						Logger.Log("File Permission set successfully!");
-					}
+				if (File.Exists(executable)) {
+					OS.UnixSetFileAccessExecutable(executable);
+					Logger.Log("File Permission set successfully!");
 				}
+			}
 
-				await Task.Delay(1000).ConfigureAwait(false);
-				await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateStarted).ConfigureAwait(false);
-				Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll", true);
-				_ = await Helpers.RestartOrExit().ConfigureAwait(false);
-			}
-			catch (Exception e) {
-				Logger.Log(e, Enums.LogLevels.Error);
-				return;
-			}
+			UpdateSemaphore.Release();
+			await Task.Delay(1000).ConfigureAwait(false);
+			await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateStarted).ConfigureAwait(false);
+			Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll", true);
+			return await Helpers.RestartOrExit().ConfigureAwait(false);
 		}
 	}
 }

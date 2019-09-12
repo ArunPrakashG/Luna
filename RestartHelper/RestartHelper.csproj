@@ -10,8 +10,7 @@
 
   <PropertyGroup>
     <SshDeployHost>raspberrypi</SshDeployHost>
-    <SshDeployClean />
-    <SourcePath>C:\projects\Unosquare.Labs.RasPiConsole\Unosquare.Labs.RasPiConsole\bin\Debug</SourcePath>
+    <SshDeployClean />    
     <SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Helpers/Restarter</SshDeployTargetPath>
     <SshDeployUsername>pi</SshDeployUsername>
     <SshDeployPassword>miniprakash</SshDeployPassword>
