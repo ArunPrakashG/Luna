@@ -180,7 +180,7 @@ namespace Assistant.AssistantCore {
 			UserInput,
 			ServerResult,
 			Custom,
-			Sucess
+			Success
 		}
 
 		public enum PiVoltage : byte {

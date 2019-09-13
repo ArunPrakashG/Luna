@@ -227,7 +227,7 @@ namespace Assistant.Log {
 					LogGenericTrace(message, previousMethodName);
 					break;
 
-				case Enums.LogLevels.Sucess:
+				case Enums.LogLevels.Success:
 					Console.ForegroundColor = ConsoleColor.DarkMagenta;
 					LogGenericInfo(message, previousMethodName);
 					Console.ResetColor();

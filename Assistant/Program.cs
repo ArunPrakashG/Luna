@@ -128,29 +128,15 @@ namespace Assistant {
 			await Core.OnNetworkDisconnected().ConfigureAwait(false);
 		}
 
-		private static void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
-			float TaskId = Helpers.GenerateTaskIdentifier(new Random());
-			if (e.IsAvailable) {
-				if (Core.CoreInitiationCompleted) {
-					Core.TaskManager.TryAddTask(new TaskStructure() {
-						Task = new Task(async () => await NetworkReconnect().ConfigureAwait(false)),
-						TaskIdentifier = TaskId,
-						ExecutionTime = DateTime.Now.AddSeconds(2),
-						LongRunning = false
-					}, true);
-				}
+		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {			
+			if (e.IsAvailable && !Core.IsNetworkAvailable) {
+				await NetworkReconnect().ConfigureAwait(false);
 				return;
 			}
 
-			if (!e.IsAvailable) {
-				if (Core.CoreInitiationCompleted) {
-					Core.TaskManager.TryAddTask(new TaskStructure() {
-						Task = new Task(async () => await NetworkDisconnect().ConfigureAwait(false)),
-						TaskIdentifier = TaskId,
-						ExecutionTime = DateTime.Now.AddSeconds(2),
-						LongRunning = false
-					}, true);
-				}
+			if(!e.IsAvailable && Core.IsNetworkAvailable) {
+				await NetworkDisconnect().ConfigureAwait(false);
+				return;
 			}
 		}
 

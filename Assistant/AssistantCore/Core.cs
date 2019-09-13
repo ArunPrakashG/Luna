@@ -35,6 +35,7 @@ using Assistant.Modules.Interfaces;
 using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.PushBullet.ApiResponse;
+using Assistant.Remainders;
 using Assistant.Server;
 using Assistant.Server.SecureLine;
 using Assistant.Update;
@@ -74,7 +75,7 @@ namespace Assistant.AssistantCore {
 	}
 
 	public class Core {
-		private const int SendIpDelay = 20;
+		private const int SendIpDelay = 60;
 		private static Logger Logger { get; set; } = new Logger("ASSISTANT");
 		public static PiController Controller { get; private set; }
 		public static Updater Update { get; private set; } = new Updater();
@@ -92,6 +93,7 @@ namespace Assistant.AssistantCore {
 		public static PushBulletService PushBulletService { get; private set; }
 		public static MorseCore MorseCode { get; private set; } = new MorseCore();
 		public static SecureLineServer SecureLine { get; private set; }
+		public static RemainderManager RemainderManager { get; private set; } = new RemainderManager();
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
@@ -100,6 +102,7 @@ namespace Assistant.AssistantCore {
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
 		public static bool GracefullModuleShutdown { get; set; } = false;
 		public static OSPlatform RunningPlatform { get; private set; }
+		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
 		public static string AssistantName { get; set; } = "TESS Assistant";
 
 		/// <summary>
@@ -202,7 +205,7 @@ namespace Assistant.AssistantCore {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
 			}
 
-			TTSService.SpeakText($"{AssistantName} has been sucessfully started!", Enums.SpeechContext.AssistantStartup, true);
+			await TTSService.AssistantVoice(Enums.SpeechContext.AssistantStartup).ConfigureAwait(false);
 			await KeepAlive().ConfigureAwait(false);
 		}
 
@@ -327,24 +330,20 @@ namespace Assistant.AssistantCore {
 							if (WeatherApi != null) {
 								(bool status, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, pinCode, "in");
 								if (status) {
-									Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", Enums.LogLevels.Sucess);
-									Logger.Log($"Temperature: {response.Temperature}", Enums.LogLevels.Sucess);
-									Logger.Log($"Humidity: {response.Temperature}", Enums.LogLevels.Sucess);
-									Logger.Log($"Latitude: {response.Latitude}", Enums.LogLevels.Sucess);
-									Logger.Log($"Longitude: {response.Logitude}", Enums.LogLevels.Sucess);
-									Logger.Log($"Location name: {response.LocationName}", Enums.LogLevels.Sucess);
-									Logger.Log($"Preasure: {response.Pressure}", Enums.LogLevels.Sucess);
-									Logger.Log($"Wind speed: {response.WindDegree}", Enums.LogLevels.Sucess);
+									Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", Enums.LogLevels.Success);
+									Logger.Log($"Temperature: {response.Temperature}", Enums.LogLevels.Success);
+									Logger.Log($"Humidity: {response.Temperature}", Enums.LogLevels.Success);
+									Logger.Log($"Latitude: {response.Latitude}", Enums.LogLevels.Success);
+									Logger.Log($"Longitude: {response.Logitude}", Enums.LogLevels.Success);
+									Logger.Log($"Location name: {response.LocationName}", Enums.LogLevels.Success);
+									Logger.Log($"Preasure: {response.Pressure}", Enums.LogLevels.Success);
+									Logger.Log($"Wind speed: {response.WindDegree}", Enums.LogLevels.Success);
 
-									TTSService.SpeakText($"Weather information for {response.LocationName} is", Enums.SpeechContext.Custom);
-									await Task.Delay(500).ConfigureAwait(false);
-									TTSService.SpeakText($"Temperature is {response.Temperature}", Enums.SpeechContext.Custom);
-									await Task.Delay(500).ConfigureAwait(false);
-									TTSService.SpeakText($"Humidity is {response.Humidity}", Enums.SpeechContext.Custom);
-									await Task.Delay(500).ConfigureAwait(false);
-									TTSService.SpeakText($"Location name is {response.LocationName}", Enums.SpeechContext.Custom);
-									await Task.Delay(500).ConfigureAwait(false);
-									TTSService.SpeakText($"Wind speed is {response.WindDegree}", Enums.SpeechContext.Custom);
+									bool result = await TTSService.SpeakText($"Weather information for {response.LocationName} is", true).ConfigureAwait(false);
+									result = await TTSService.SpeakText($"Temperature is {response.Temperature}", false).ConfigureAwait(false);
+									result = await TTSService.SpeakText($"Humidity is {response.Humidity}", false).ConfigureAwait(false);
+									result = await TTSService.SpeakText($"Location name is {response.LocationName}", false).ConfigureAwait(false);
+									result = await TTSService.SpeakText($"Wind speed is {response.WindDegree}", false).ConfigureAwait(false);
 								}
 								else {
 									Logger.Log("Failed to fetch wheather information, try again later!");
@@ -355,7 +354,7 @@ namespace Assistant.AssistantCore {
 
 					case Constants.ConsoleTestMethodExecutionKey: {
 							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
-							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Sucess);
+							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Success);
 						}
 						return;
 
@@ -383,7 +382,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		private static async Task KeepAlive() {
-			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", Enums.LogLevels.Sucess);
+			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", Enums.LogLevels.Success);
 
 			while (true) {
 				char pressedKey = Console.ReadKey().KeyChar;
@@ -452,7 +451,7 @@ namespace Assistant.AssistantCore {
 			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
 				Logger.Log("Could not parse the input key. please try again!", Enums.LogLevels.Error);
 				Logger.Log("Command menu closed.");
-				Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", Enums.LogLevels.Sucess);
+				Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", Enums.LogLevels.Success);
 				return;
 			}
 
@@ -460,11 +459,11 @@ namespace Assistant.AssistantCore {
 				GpioPinConfig pinStatus = Controller.GetPinConfig(pin);
 				if (pinStatus.PinValue == GpioPinValue.Low) {
 					Controller.SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.High);
-					Logger.Log($"Sucessfully set {pin} pin to OFF.", Enums.LogLevels.Sucess);
+					Logger.Log($"Sucessfully set {pin} pin to OFF.", Enums.LogLevels.Success);
 				}
 				else {
 					Controller.SetGpioValue(pin, GpioPinDriveMode.Output, GpioPinValue.Low);
-					Logger.Log($"Sucessfully set {pin} pin to ON.", Enums.LogLevels.Sucess);
+					Logger.Log($"Sucessfully set {pin} pin to ON.", Enums.LogLevels.Success);
 				}
 			}
 
@@ -565,24 +564,24 @@ namespace Assistant.AssistantCore {
 					Helpers.ScheduleTask(() => {
 						if (status.PinValue == GpioPinValue.Low && pinStatus.Equals(0)) {
 							Controller.SetGpioValue(pinNumber, GpioPinDriveMode.Output, GpioPinValue.High);
-							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to OFF.", Enums.LogLevels.Sucess);
+							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to OFF.", Enums.LogLevels.Success);
 						}
 
 						if (status.PinValue == GpioPinValue.High && pinStatus.Equals(1)) {
 							Controller.SetGpioValue(pinNumber, GpioPinDriveMode.Output, GpioPinValue.Low);
-							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to ON.", Enums.LogLevels.Sucess);
+							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to ON.", Enums.LogLevels.Success);
 						}
 					}, TimeSpan.FromMinutes(delay));
 
 					Logger.Log(
 						pinStatus.Equals(0)
 							? $"Successfully scheduled a task: set {pinNumber} pin to OFF"
-							: $"Successfully scheduled a task: set {pinNumber} pin to ON", Enums.LogLevels.Sucess);
+							: $"Successfully scheduled a task: set {pinNumber} pin to ON", Enums.LogLevels.Success);
 					break;
 			}
 
 			Logger.Log("Command menu closed.");
-			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", Enums.LogLevels.Sucess);
+			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", Enums.LogLevels.Success);
 		}
 
 		private static async Task DisplayRelayCycleMenu() {
@@ -683,6 +682,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		public static async Task OnNetworkDisconnected() {
+			await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
 			IsNetworkAvailable = false;
 			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.NetworkDisconnected).ConfigureAwait(false);
 			Constants.ExternelIP = "Internet connection lost.";
@@ -691,9 +691,12 @@ namespace Assistant.AssistantCore {
 				Update.StopUpdateTimer();
 				Logger.Log("Stopped update timer.", Enums.LogLevels.Warn);
 			}
+
+			NetworkSemaphore.Release();
 		}
 
 		public static async Task OnNetworkReconnected() {
+			await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
 			IsNetworkAvailable = true;
 			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.NetworkReconnected).ConfigureAwait(false);
 			Constants.ExternelIP = Task.Run(Helpers.GetExternalIp).Result;
@@ -703,6 +706,8 @@ namespace Assistant.AssistantCore {
 				File.WriteAllText("version.txt", Constants.Version.ToString());
 				await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
 			}
+
+			NetworkSemaphore.Release();
 		}
 
 		public static async Task OnExit() {

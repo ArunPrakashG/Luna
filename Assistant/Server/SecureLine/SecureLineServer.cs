@@ -4,6 +4,7 @@ using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.Server.SecureLine.Requests;
 using Assistant.Server.SecureLine.Responses;
+using Assistant.Weather;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -71,7 +72,7 @@ namespace Assistant.Server.SecureLine {
 							ConnectedClient i = ConnectedClients.Find(x => x.IPAddress == client.IPAddress);
 							i.ConnectedCount++;
 
-							if ((DateTime.Now - i.LastConnectedTime).TotalSeconds < 1) {
+							if ((DateTime.Now - i.LastConnectedTime).TotalMilliseconds < 200) {
 								Logger.Log($"Request from client {i.IPAddress} has been ignored due to over requesting.", Enums.LogLevels.Trace);
 								i.LastConnectedTime = DateTime.Now;
 
@@ -144,11 +145,52 @@ namespace Assistant.Server.SecureLine {
 			}
 
 			switch (baseRequest.RequestType) {
-				case nameof(GpioRequest):
+				case "GpioRequest":
 					return await OnGpioRequestAsync(ObjectFromString<GpioRequest>(baseRequest.RequestObject)).ConfigureAwait(false);
+				case "WeatherRequest":
+					return await OnWeatherRequestAsync(ObjectFromString<WeatherRequest>(baseRequest.RequestObject)).ConfigureAwait(false);
+				case "RemainderRequest":
+					return await OnRemainderRequestAsync(ObjectFromString<RemainderRequest>(baseRequest.RequestObject)).ConfigureAwait(false);
 				default:
 					return null;
 			}
+		}
+
+		private async Task<string> OnRemainderRequestAsync(RemainderRequest remainderRequest) {
+			if(remainderRequest == null || Helpers.IsNullOrEmpty(remainderRequest.Message) || remainderRequest.MinutesUntilRemainding <= 0) {
+				return "Message or the minutes specified is invalid.";
+			}
+
+			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
+			if(Core.RemainderManager.Remind(remainderRequest.Message, remainderRequest.MinutesUntilRemainding)) {
+				ProcessingSemaphore.Release();
+				return "Successfully set remainder for " + remainderRequest.Message;
+			}
+
+			ProcessingSemaphore.Release();
+			return "Failed to set remainder.";
+		}
+
+		private async Task<string> OnWeatherRequestAsync(WeatherRequest request) {
+			if (request == null || Helpers.IsNullOrEmpty(request.LocationPinCode) || Helpers.IsNullOrEmpty(request.CountryCode)) {
+				return "The request is in incorrect format.";
+			}
+
+			if(!int.TryParse(request.LocationPinCode, out int pinCode)) {
+				return "Could not parse the specified pin code.";
+			}
+
+			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
+
+			(bool status, WeatherData response) = Core.WeatherApi.GetWeatherInfo(Core.Config.OpenWeatherApiKey, pinCode, request.CountryCode);
+
+			if (!status || response == null) {
+				ProcessingSemaphore.Release();
+				return "Internal error occured during the process.";
+			}
+
+			ProcessingSemaphore.Release();
+			return ObjectToString(response);
 		}
 
 		private async Task<string> OnGpioRequestAsync(GpioRequest request) {

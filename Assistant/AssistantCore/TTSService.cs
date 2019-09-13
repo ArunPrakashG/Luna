@@ -26,18 +26,22 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.Extensions;
+using Assistant.Log;
 using Google.Cloud.Speech.V1;
 using RestSharp;
 using System;
 using System.IO;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
-using Assistant.Extensions;
-using Assistant.Log;
 
 namespace Assistant.AssistantCore {
 
 	public class TTSService {
 		private static readonly Logger Logger = new Logger("GOOGLE-SPEECH");
+		private static readonly SemaphoreSlim SpeechSemaphore = new SemaphoreSlim(1, 1);
+		private static readonly SemaphoreSlim SpeechDownloadSemaphore = new SemaphoreSlim(1, 1);
 
 		public TTSService() {
 		}
@@ -58,7 +62,85 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		public static void SpeakText(string text, Enums.SpeechContext context, bool disableTTSalert = true) {
+		public static async Task<bool> SpeakText(this string text, bool enableAlert = false) {
+			if (Core.Config.MuteAssistant || !Helpers.IsRaspberryEnvironment()) {
+				return false;
+			}
+
+			if (Helpers.IsNullOrEmpty(text)) {
+				Logger.Log("The text is empty or null!", Enums.LogLevels.Error);
+				return false;
+			}
+
+			await SpeechSemaphore.WaitAsync().ConfigureAwait(false);
+
+			if (!Directory.Exists(Constants.TextToSpeechDirectory)) {
+				Directory.CreateDirectory(Constants.TextToSpeechDirectory);
+			}
+
+			if (File.Exists(Constants.TTSAlertFilePath) && enableAlert) {
+				string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q".ExecuteBash();
+				Logger.Log(executeResult, Enums.LogLevels.Trace);
+				await Task.Delay(1000).ConfigureAwait(false);
+			}
+
+			string fileName = GetSpeechFile(text);
+
+			if (Helpers.IsNullOrEmpty(fileName)) {
+				SpeechSemaphore.Release();
+				return false;
+			}
+
+			string playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {fileName} -q".ExecuteBash();
+			Logger.Log(playingResult, Enums.LogLevels.Trace);
+			await Task.Delay(500).ConfigureAwait(false);
+			SpeechSemaphore.Release();			
+			return true;
+		}
+
+		public static async Task AssistantVoice(Enums.SpeechContext context) {
+			if (Core.Config.MuteAssistant || !Helpers.IsRaspberryEnvironment()) {
+				return;
+			}
+
+			string playingResult;
+			switch (context) {
+				case Enums.SpeechContext.AssistantStartup:
+					if (!File.Exists(Constants.StartupSpeechFilePath) && Core.CoreInitiationCompleted) {
+						string textToSpeak = $"Hello sir! Your assistant is up and running!";
+						await SpeakText(textToSpeak).ConfigureAwait(false);
+						break;
+					}
+
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q".ExecuteBash();
+					Logger.Log(playingResult, Enums.LogLevels.Trace);
+					break;
+				case Enums.SpeechContext.AssistantShutdown:
+					if (!File.Exists(Constants.ShutdownSpeechFilePath) && Core.CoreInitiationCompleted) {
+						string textToSpeak = $"Sir, your assistant shutting down! Have a nice day!";
+						await SpeakText(textToSpeak).ConfigureAwait(false);
+						break;
+					}
+
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.ShutdownFileName} -q".ExecuteBash();
+					Logger.Log(playingResult, Enums.LogLevels.Trace);
+					break;
+				case Enums.SpeechContext.NewEmaiNotification:
+					if (!File.Exists(Constants.NewMailSpeechFilePath) && Core.CoreInitiationCompleted) {
+						string textToSpeak = $"Sir, you recevied a new email!";
+						await SpeakText(textToSpeak).ConfigureAwait(false);
+						break;
+					}
+
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.NewMailFileName} -q".ExecuteBash();
+					Logger.Log(playingResult, Enums.LogLevels.Trace);
+					break;
+				default:
+					break;
+			}
+		}
+
+		private static void SpeakText(string text, Enums.SpeechContext context, bool disableTTSalert = true) {
 			if (Core.Config.MuteAssistant) {
 				return;
 			}
@@ -163,6 +245,50 @@ namespace Assistant.AssistantCore {
 					}
 					break;
 			}
+		}
+
+		private static string GetSpeechFile(string text, string lang = "En-us", string encoding = "UTF-8") {
+			if (Helpers.IsNullOrEmpty(text)) {
+				return null;
+			}
+
+			if (!Core.IsNetworkAvailable) {
+				return null;
+			}
+
+			SpeechDownloadSemaphore.Wait();
+			RestClient client = new RestClient($"http://translate.google.com/translate_tts?ie={encoding}&client=tw-ob&q={text}&tl={lang}");
+			RestRequest request = new RestRequest(Method.GET);
+			client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
+			request.AddHeader("cache-control", "no-cache");
+			byte[] result;
+			IRestResponse response = client.Execute(request);
+
+			if (response.StatusCode != HttpStatusCode.OK) {
+				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+				SpeechDownloadSemaphore.Release();
+				return null;
+			}
+
+			result = response.RawBytes;
+
+			if (result.Length <= 0 || result == null) {
+				Logger.Log("result returned as null!", Enums.LogLevels.Error);
+				SpeechDownloadSemaphore.Release();
+				return null;
+			}
+
+			string fileName = $"{DateTime.Now.Ticks}.mp3";
+
+			Helpers.WriteBytesToFile(result, Constants.TextToSpeechDirectory + "/" + fileName);
+			if (!File.Exists(Constants.TextToSpeechDirectory + "/" + fileName)) {
+				Logger.Log("An error occured.", Enums.LogLevels.Warn);
+				SpeechDownloadSemaphore.Release();
+				return null;
+			}
+
+			SpeechDownloadSemaphore.Release();
+			return fileName;
 		}
 	}
 }

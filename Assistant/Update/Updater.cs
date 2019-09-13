@@ -127,7 +127,7 @@ namespace Assistant.Update {
 
 			if (LatestVersion > Constants.Version) {
 				UpdateAvailable = true;
-				Logger.Log($"New version available!", Enums.LogLevels.Sucess);
+				Logger.Log($"New version available!", Enums.LogLevels.Success);
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...", Enums.LogLevels.Warn);
 				await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateAvailable).ConfigureAwait(false);

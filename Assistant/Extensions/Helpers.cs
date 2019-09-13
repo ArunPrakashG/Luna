@@ -146,10 +146,10 @@ namespace Assistant.Extensions {
 			}, null, delay, delay);
 		}
 
-		public static void ScheduleTask(Action action, TimeSpan delay) {
+		public static Timer ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
 				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
-				return;
+				return null;
 			}
 
 			Timer TaskSchedulerTimer = null;
@@ -162,6 +162,8 @@ namespace Assistant.Extensions {
 					TaskSchedulerTimer = null;
 				}
 			}, null, delay, delay);
+
+			return TaskSchedulerTimer;
 		}
 
 		public static bool IsSocketConnected(Socket s) {
@@ -172,6 +174,33 @@ namespace Assistant.Extensions {
 			}
 
 			return true;
+		}
+
+		public static string ExecuteBash(this string cmd) {
+			if (IsNullOrEmpty(cmd)) {
+				return null;
+			}
+
+			string escapedArgs = cmd.Replace("\"", "\\\"");
+
+			Process process = new Process() {
+				StartInfo = new ProcessStartInfo {
+					FileName = "/bin/bash",
+					Arguments = $"-c \"{escapedArgs}\"",
+					RedirectStandardOutput = true,
+					UseShellExecute = false,
+					CreateNoWindow = true,
+				}
+			};
+
+			string result = string.Empty;
+
+			if (process.Start()) {
+				result = process.StandardOutput.ReadToEnd();
+				process.WaitForExit(TimeSpan.FromMinutes(4).Milliseconds);
+			}
+			
+			return result;
 		}
 
 		public static void PlayNotification(Enums.NotificationContext context = Enums.NotificationContext.Normal, bool redirectOutput = false) {
@@ -535,7 +564,7 @@ namespace Assistant.Extensions {
 		}
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
-			if (Core.IsUnknownOs && fileName == "/bin/bash") {
+			if (Core.RunningPlatform != OSPlatform.Linux && fileName == "/bin/bash") {
 				Logger.Log($"{Core.AssistantName} is running on unknown OS. command cannot be executed.", Enums.LogLevels.Error);
 				return;
 			}
