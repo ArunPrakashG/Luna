@@ -132,6 +132,7 @@ namespace Assistant.Server.SecureLine {
 				return null;
 			}
 
+			Logger.Log(recevied, Enums.LogLevels.Trace);
 			BaseRequest baseRequest;
 			try {
 				baseRequest = ObjectFromString<BaseRequest>(recevied);
@@ -161,6 +162,7 @@ namespace Assistant.Server.SecureLine {
 				return "Message or the minutes specified is invalid.";
 			}
 
+			
 			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
 			if(Core.RemainderManager.Remind(remainderRequest.Message, remainderRequest.MinutesUntilRemainding)) {
 				ProcessingSemaphore.Release();
@@ -190,7 +192,7 @@ namespace Assistant.Server.SecureLine {
 			}
 
 			ProcessingSemaphore.Release();
-			return ObjectToString(response);
+			return ObjectToString<WeatherData>(response);
 		}
 
 		private async Task<string> OnGpioRequestAsync(GpioRequest request) {

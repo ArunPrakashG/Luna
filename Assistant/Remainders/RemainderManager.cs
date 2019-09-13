@@ -15,12 +15,10 @@ namespace Assistant.Remainders {
 				return false;
 			}
 
-			double hrs = TimeSpan.FromMinutes(minsUntilReminding).TotalHours;
-
 			(Remainder, Timer) remainderData = (new Remainder {
 				IsCompleted = false,
 				Message = msgToRemind,
-				RemaindAt = DateTime.Now.AddHours(hrs),
+				RemaindAt = DateTime.Now.AddMinutes(minsUntilReminding),
 				UniqueId = Guid.NewGuid().ToString()
 			}, null);
 
@@ -36,7 +34,7 @@ namespace Assistant.Remainders {
 				return false;
 			}
 
-			if (remainderData.Item1.IsCompleted || remainderData.Item1.RemaindAt > DateTime.Now) {
+			if (remainderData.Item1.IsCompleted || remainderData.Item1.RemaindAt < DateTime.Now) {
 				return true;
 			}
 
@@ -46,9 +44,12 @@ namespace Assistant.Remainders {
 
 			}, TimeSpan.FromMinutes((remainderData.Item1.RemaindAt - DateTime.Now).TotalMinutes));
 
+			Logger.Log($"A remainder has been set for message: {remainderData.Item1.Message}");
+
 			foreach ((Remainder, Timer) t in RemainderCollection) {
 				if (t.Item1.UniqueId == remainderData.Item1.UniqueId) {
 					RemainderCollection[RemainderCollection.IndexOf(t)] = (remainderData.Item1, timer);
+					break;
 				}
 			}
 
