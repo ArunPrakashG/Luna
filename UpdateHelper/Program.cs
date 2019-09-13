@@ -46,7 +46,7 @@ namespace UpdateHelper {
 			ZipArchive Archive = null;
 
 			try {
-				Archive = ZipFile.OpenRead($@"{Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/"}Latest.zip");
+				Archive = ZipFile.OpenRead($@"{Directory.GetParent(HomeDirectory).Parent?.FullName}/AssistantCore/Latest.zip");
 			}
 			catch (Exception e) {
 				Console.WriteLine($"{e.Source}/{e.Message}/{e.InnerException}");

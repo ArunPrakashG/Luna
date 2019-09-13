@@ -57,20 +57,21 @@ namespace RestartHelper {
 		}
 
 		private static void ExecuteCommand(string command, bool redirectOutput = false) {
-			Process proc = new Process();
-			proc.StartInfo.FileName = "/bin/bash";
-			proc.StartInfo.Arguments = "-c \" " + command;
+            using (Process proc = new Process()) {
+				proc.StartInfo.FileName = "/bin/bash";
+				proc.StartInfo.Arguments = "-c \" " + command;
 
-			if (redirectOutput) {
-				proc.StartInfo.UseShellExecute = false;
-				proc.StartInfo.RedirectStandardOutput = true;
-			}
+				if (redirectOutput) {
+					proc.StartInfo.UseShellExecute = false;
+					proc.StartInfo.RedirectStandardOutput = true;
+				}
 
-			proc.Start();
+				proc.Start();
 
-			if (redirectOutput) {
-				while (!proc.StandardOutput.EndOfStream) {
-					Console.WriteLine(">>> " + proc.StandardOutput.ReadLine());
+				if (redirectOutput) {
+					while (!proc.StandardOutput.EndOfStream) {
+						Console.WriteLine(">>> " + proc.StandardOutput.ReadLine());
+					}
 				}
 			}
 		}

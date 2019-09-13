@@ -62,7 +62,7 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		public static async Task<bool> SpeakText(this string text, bool enableAlert = false) {
+		public static async Task<bool> SpeakText(string text, bool enableAlert = false) {
 			if (Core.Config.MuteAssistant || !Helpers.IsRaspberryEnvironment()) {
 				return false;
 			}
