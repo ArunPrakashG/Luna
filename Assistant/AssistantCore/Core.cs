@@ -206,6 +206,8 @@ namespace Assistant.AssistantCore {
 			}
 
 			await TTSService.AssistantVoice(Enums.SpeechContext.AssistantStartup).ConfigureAwait(false);
+			await TTSService.SpeakText("This is a test text to speech message.").ConfigureAwait(false);
+			await TTSService.SpeakText("This is yet another testing speech message.").ConfigureAwait(false);
 			await KeepAlive().ConfigureAwait(false);
 		}
 
@@ -338,12 +340,6 @@ namespace Assistant.AssistantCore {
 									Logger.Log($"Location name: {response.LocationName}", Enums.LogLevels.Success);
 									Logger.Log($"Preasure: {response.Pressure}", Enums.LogLevels.Success);
 									Logger.Log($"Wind speed: {response.WindDegree}", Enums.LogLevels.Success);
-
-									bool result = await TTSService.SpeakText($"Weather information for {response.LocationName} is", true).ConfigureAwait(false);
-									result = await TTSService.SpeakText($"Temperature is {response.Temperature}", false).ConfigureAwait(false);
-									result = await TTSService.SpeakText($"Humidity is {response.Humidity}", false).ConfigureAwait(false);
-									result = await TTSService.SpeakText($"Location name is {response.LocationName}", false).ConfigureAwait(false);
-									result = await TTSService.SpeakText($"Wind speed is {response.WindDegree}", false).ConfigureAwait(false);
 								}
 								else {
 									Logger.Log("Failed to fetch wheather information, try again later!");

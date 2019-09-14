@@ -40,7 +40,7 @@ namespace Assistant.Weather {
 
 		public static string GenerateWeatherUrl(string apiKey, int pinCode = 689653, string countryCode = "in") => Helpers.IsNullOrEmpty(apiKey) ? null : Helpers.GetUrlToString($"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}", RestSharp.Method.GET);
 
-		public (bool status, WeatherData response) GetWeatherInfo(string apiKey, int pinCode = 689653, string countryCode = "in") {
+		public (bool status, WeatherData response) GetWeatherInfo(string apiKey, int pinCode = 689653, string countryCode = "in", bool withTTS = true) {
 			if (!Core.IsNetworkAvailable) {
 				Logger.Log("Cannot continue as network isn't available.", LogLevels.Warn);
 				return (false, WeatherResult);
@@ -72,7 +72,19 @@ namespace Assistant.Weather {
 				WeatherResult.Clouds = response.clouds.all;
 				WeatherResult.TimeZone = response.timezone;
 				WeatherResult.LocationName = response.name;
-				Logger.Log("Assigined weather info values", LogLevels.Trace);
+				if (withTTS) {
+					Helpers.InBackgroundThread(async () => {
+						await TTSService.SpeakText($"Sir, The weather at {pinCode} is...", true).ConfigureAwait(false);
+						await TTSService.SpeakText($"Temperature is {WeatherResult.Temperature}").ConfigureAwait(false);
+						await TTSService.SpeakText($"Humidity is {WeatherResult.Humidity}").ConfigureAwait(false);
+						await TTSService.SpeakText($"Pressure is {WeatherResult.Pressure}").ConfigureAwait(false);
+						await TTSService.SpeakText($"Sea Level is {WeatherResult.SeaLevel}").ConfigureAwait(false);
+						await TTSService.SpeakText($"Wind Speed is {WeatherResult.WindSpeed}").ConfigureAwait(false);
+						await TTSService.SpeakText($"And the location name is {WeatherResult.LocationName}").ConfigureAwait(false);
+						await TTSService.SpeakText($"and thats all sir!").ConfigureAwait(false);
+					});
+				}
+				
 				return (true, WeatherResult);
 			}
 			else {

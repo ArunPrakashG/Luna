@@ -68,32 +68,6 @@ namespace Assistant.Server.SecureLine {
 						if (!ConnectedClients.Contains(client)) {
 							ConnectedClients.Add(client);
 						}
-						else {
-							ConnectedClient i = ConnectedClients.Find(x => x.IPAddress == client.IPAddress);
-							i.ConnectedCount++;
-
-							if ((DateTime.Now - i.LastConnectedTime).TotalMilliseconds < 200) {
-								Logger.Log($"Request from client {i.IPAddress} has been ignored due to over requesting.", Enums.LogLevels.Trace);
-								i.LastConnectedTime = DateTime.Now;
-
-								foreach (ConnectedClient t in ConnectedClients) {
-									if (t.IPAddress == client.IPAddress) {
-										ConnectedClients[ConnectedClients.IndexOf(t)] = i;
-									}
-								}
-
-								socket.Close();
-								continue;
-							}
-
-							i.LastConnectedTime = DateTime.Now;
-
-							foreach (ConnectedClient t in ConnectedClients) {
-								if (t.IPAddress == client.IPAddress) {
-									ConnectedClients[ConnectedClients.IndexOf(t)] = i;
-								}
-							}
-						}
 
 						string recevied = Encoding.ASCII.GetString(receiveBuffer, 0, b);
 						string resultObject = await OnReceviedAsync(recevied).ConfigureAwait(false);

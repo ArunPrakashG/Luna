@@ -68,12 +68,14 @@ namespace Assistant.Extensions {
 		public const string ShutdownSpeechFilePath = TextToSpeechDirectory + "/shutdown.mp3";
 		public const string IMAPPushNotificationFilePath = ResourcesDirectory + "/mail_push_notification.mp3";
 		public const string TTSAlertFilePath = ResourcesDirectory + "/tts_alert.mp3";
+		public const string AlarmFilePath = ResourcesDirectory + "/" + AlarmFileName;
 
 		public const string StartupFileName = "startup.mp3";
 		public const string NewMailFileName = "newmail.mp3";
 		public const string ShutdownFileName = "shutdown.mp3";
 		public const string IMAPPushFileName = "mail_push_notification.mp3";
 		public const string TTSAlertFileName = "tts_alert.mp3";
+		public const string AlarmFileName = "alarm.mp3";
 
 		public const char ConsoleCommandMenuKey = 'c';
 		public const char ConsoleDelayedShutdownKey = 'q';

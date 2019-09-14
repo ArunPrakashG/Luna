@@ -28,38 +28,28 @@
 
 using Assistant.Extensions;
 using Assistant.Log;
-using Google.Cloud.Speech.V1;
 using RestSharp;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assistant.AssistantCore {
+	public class SpeechServiceCache {
+		public string SpeechText { get; set; }
+		public bool IsCompleted { get; set; }
+		public string SpeechFileName { get; set; }
+	}
 
 	public class TTSService {
 		private static readonly Logger Logger = new Logger("GOOGLE-SPEECH");
 		private static readonly SemaphoreSlim SpeechSemaphore = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim SpeechDownloadSemaphore = new SemaphoreSlim(1, 1);
+		private static List<SpeechServiceCache> SpeechCache { get; set; } = new List<SpeechServiceCache>();
 
 		public TTSService() {
-		}
-
-		private static void SpeechToTextFromFile(string filePath) {
-			SpeechClient speech = SpeechClient.Create();
-
-			RecognizeResponse response = speech.Recognize(new RecognitionConfig() {
-				Encoding = RecognitionConfig.Types.AudioEncoding.Flac,
-				SampleRateHertz = 16000,
-				LanguageCode = LanguageCodes.Malayalam.India
-			}, RecognitionAudio.FromFile(filePath));
-
-			foreach (SpeechRecognitionResult result in response.Results) {
-				foreach (SpeechRecognitionAlternative alternative in result.Alternatives) {
-					Logger.Log(alternative.Transcript, Enums.LogLevels.Info);
-				}
-			}
 		}
 
 		public static async Task<bool> SpeakText(string text, bool enableAlert = false) {
@@ -73,6 +63,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			await SpeechSemaphore.WaitAsync().ConfigureAwait(false);
+			SpeechServiceCache Cache = new SpeechServiceCache();
 
 			if (!Directory.Exists(Constants.TextToSpeechDirectory)) {
 				Directory.CreateDirectory(Constants.TextToSpeechDirectory);
@@ -81,20 +72,43 @@ namespace Assistant.AssistantCore {
 			if (File.Exists(Constants.TTSAlertFilePath) && enableAlert) {
 				string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q".ExecuteBash();
 				Logger.Log(executeResult, Enums.LogLevels.Trace);
-				await Task.Delay(1000).ConfigureAwait(false);
+				await Task.Delay(200).ConfigureAwait(false);
 			}
 
-			string fileName = GetSpeechFile(text);
+			string fileName = string.Empty;
+
+			if (SpeechCache.Count > 0) {
+				SpeechServiceCache cache = SpeechCache.Find(x => x.SpeechText.Equals(text, StringComparison.OrdinalIgnoreCase));
+
+				if (cache != null) {
+					fileName = cache.SpeechFileName;
+					Logger.Log("Using cached speech as a speech file with the specified text already exists!", Enums.LogLevels.Trace);
+					goto PlaySound;
+				}
+				else {
+					fileName = GetSpeechFile(text);
+				}
+			}
+			else {
+				fileName = GetSpeechFile(text);
+			}
 
 			if (Helpers.IsNullOrEmpty(fileName)) {
 				SpeechSemaphore.Release();
 				return false;
 			}
 
+			Cache.SpeechFileName = fileName;
+			Cache.SpeechText = text;
+			Cache.IsCompleted = true;
+			SpeechCache.Add(Cache);
+
+		PlaySound:
 			string playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {fileName} -q".ExecuteBash();
+						
 			Logger.Log(playingResult, Enums.LogLevels.Trace);
 			await Task.Delay(500).ConfigureAwait(false);
-			SpeechSemaphore.Release();			
+			SpeechSemaphore.Release();
 			return true;
 		}
 
@@ -247,7 +261,7 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		private static string GetSpeechFile(string text, string lang = "En-us", string encoding = "UTF-8") {
+		private static string GetSpeechFile(string text) {
 			if (Helpers.IsNullOrEmpty(text)) {
 				return null;
 			}
@@ -257,10 +271,10 @@ namespace Assistant.AssistantCore {
 			}
 
 			SpeechDownloadSemaphore.Wait();
-			RestClient client = new RestClient($"http://translate.google.com/translate_tts?ie={encoding}&client=tw-ob&q={text}&tl={lang}");
+			string requestUrl = "https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&textlen=32&client=tw-ob&q=" + text + "&tl=en-us";
+			RestClient client = new RestClient(requestUrl);
 			RestRequest request = new RestRequest(Method.GET);
-			client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36";
-			request.AddHeader("cache-control", "no-cache");
+			client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36";
 			byte[] result;
 			IRestResponse response = client.Execute(request);
 
@@ -286,7 +300,7 @@ namespace Assistant.AssistantCore {
 				SpeechDownloadSemaphore.Release();
 				return null;
 			}
-
+			
 			SpeechDownloadSemaphore.Release();
 			return fileName;
 		}
