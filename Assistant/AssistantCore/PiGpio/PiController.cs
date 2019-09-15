@@ -50,6 +50,12 @@ namespace Assistant.AssistantCore.PiGpio {
 		public GpioPinDriveMode Mode { get; set; }
 
 		[JsonProperty]
+		public bool IsDelayedTaskSet { get; set; }
+
+		[JsonProperty]
+		public int TaskSetAfterMinutes { get; set; }
+
+		[JsonProperty]
 		public bool IsPinOn => PinValue == GpioPinValue.High ? false : true;
 	}
 
@@ -65,6 +71,7 @@ namespace Assistant.AssistantCore.PiGpio {
 		public SoundController PiSound { get; private set; }
 
 		public static bool IsProperlyInitialized { get; private set; }
+		public static List<GpioPinConfig> PinConfigCollection { get; private set; } = new List<GpioPinConfig>(40);
 
 		public PiController(bool withPolling) {
 			if (Core.DisablePiMethods || Core.RunningPlatform != OSPlatform.Linux) {
@@ -78,6 +85,13 @@ namespace Assistant.AssistantCore.PiGpio {
 			PiBluetooth = new BluetoothController();
 			PiSound = new SoundController();
 			ControllerHelpers.DisplayPiInfo();
+			PinConfigCollection.Clear();
+
+			for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {
+				GpioPinConfig config = GetPinConfig(Constants.BcmGpioPins[i]);
+				PinConfigCollection.Add(config);
+				Logger.Log($"Generated config for {Constants.BcmGpioPins[i]} gpio pin.", Enums.LogLevels.Trace);
+			}
 
 			if (withPolling && GpioPollingManager != null) {
 				Helpers.ScheduleTask(() => {
@@ -131,11 +145,17 @@ namespace Assistant.AssistantCore.PiGpio {
 		}
 
 		public GpioPinConfig GetPinConfig(int pinToCheck) {
+			if (pinToCheck > 40) {
+				return null;
+			}
+
 			(int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) = GetGpio(pinToCheck);
 			GpioPinConfig result = new GpioPinConfig() {
 				PinValue = pinValue,
 				Mode = driveMode,
-				Pin = pin
+				Pin = pin,
+				IsDelayedTaskSet = false,
+				TaskSetAfterMinutes = 0
 			};
 
 			return result;
@@ -149,13 +169,40 @@ namespace Assistant.AssistantCore.PiGpio {
 				return false;
 			}
 
+			if(PinConfigCollection.Count > 0 && PinConfigCollection.Exists(x => x.Pin == pin && x.IsDelayedTaskSet)) {
+				return false;
+			}
+
 			if (SetGpioValue(pin, mode, state)) {
+				UpdatePinConfig(pin, mode, state, true, duration);
 				Helpers.ScheduleTask(() => {
-					SetGpioValue(pin, mode, GpioPinValue.High);
+					if(SetGpioValue(pin, mode, GpioPinValue.High)) {
+						UpdatePinConfig(pin, mode, GpioPinValue.High, false, TimeSpan.Zero);
+					}
 				}, duration);
 				return true;
 			}
 			return false;
+		}
+
+		private void UpdatePinConfig(int pin, GpioPinDriveMode mod, GpioPinValue value, bool delayedTaskSet, TimeSpan duration) {
+			if (pin <= 0 || !Constants.BcmGpioPins.Contains(pin) || duration == null) {
+				return;
+			}
+
+			if (PinConfigCollection.Count <= 0) {
+				return;
+			}
+
+			foreach (GpioPinConfig config in PinConfigCollection) {
+				if (config.Pin == pin) {
+					config.IsDelayedTaskSet = delayedTaskSet;
+					config.TaskSetAfterMinutes = duration != TimeSpan.Zero ? duration.Minutes : 0;
+					config.Mode = mod;
+					config.PinValue = value;
+					break;
+				}
+			}
 		}
 
 		public bool GpioDigitalRead(int pin, bool onlyInputPins = false) {
