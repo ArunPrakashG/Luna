@@ -126,16 +126,32 @@ namespace Assistant.Server.SecureLine {
 					return await OnWeatherRequestAsync(ObjectFromString<WeatherRequest>(baseRequest.RequestObject)).ConfigureAwait(false);
 				case "RemainderRequest":
 					return await OnRemainderRequestAsync(ObjectFromString<RemainderRequest>(baseRequest.RequestObject)).ConfigureAwait(false);
+				case "AlarmRequest":
+					return await OnAlarmRequestAsync(ObjectFromString<AlarmRequest>(baseRequest.RequestObject)).ConfigureAwait(false);
 				default:
 					return null;
 			}
+		}
+
+		private async Task<string> OnAlarmRequestAsync(AlarmRequest alarmRequest) {
+			if(alarmRequest == null || Helpers.IsNullOrEmpty(alarmRequest.AlarmMessage) || alarmRequest.HoursFromNow <= 0) {
+				return "Alarm parameters are empty.";
+			}
+
+			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
+			if (Core.AlarmManager.SetAlarm(alarmRequest.HoursFromNow, alarmRequest.AlarmMessage, alarmRequest.UseTTS, alarmRequest.Repeat, alarmRequest.RepeatHours)) {
+				ProcessingSemaphore.Release();
+				return $"Successfully set an alarm at {alarmRequest.HoursFromNow} hours from now.";
+			}
+
+			ProcessingSemaphore.Release();
+			return "Failed to set alarm.";
 		}
 
 		private async Task<string> OnRemainderRequestAsync(RemainderRequest remainderRequest) {
 			if(remainderRequest == null || Helpers.IsNullOrEmpty(remainderRequest.Message) || remainderRequest.MinutesUntilRemainding <= 0) {
 				return "Message or the minutes specified is invalid.";
 			}
-
 			
 			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
 			if(Core.RemainderManager.Remind(remainderRequest.Message, remainderRequest.MinutesUntilRemainding)) {

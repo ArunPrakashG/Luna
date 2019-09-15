@@ -26,6 +26,7 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.Alarm;
 using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
 using Assistant.Geolocation;
@@ -36,6 +37,7 @@ using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.PushBullet.ApiResponse;
 using Assistant.Remainders;
+using Assistant.Schedulers;
 using Assistant.Server;
 using Assistant.Server.SecureLine;
 using Assistant.Update;
@@ -94,6 +96,8 @@ namespace Assistant.AssistantCore {
 		public static MorseCore MorseCode { get; private set; } = new MorseCore();
 		public static SecureLineServer SecureLine { get; private set; }
 		public static RemainderManager RemainderManager { get; private set; } = new RemainderManager();
+		public static SchedulerService Scheduler { get; private set; } = new SchedulerService();
+		public static AlarmManager AlarmManager { get; private set; } = new AlarmManager();
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
