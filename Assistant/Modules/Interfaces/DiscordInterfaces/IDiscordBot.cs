@@ -26,20 +26,18 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-namespace Assistant.Modules.Interfaces {
+using Discord.WebSocket;
+using System.Threading.Tasks;
 
-	public interface IDiscordBotConfig {
+namespace Assistant.Modules.Interfaces.DiscordInterfaces {
 
-		bool EnableDiscordBot { get; set; }
+	public interface IDiscordBot : IModuleBase, IDiscordLogger {
 
-		ulong DiscordOwnerID { get; set; }
-
-		ulong DiscordServerID { get; set; }
-
-		ulong DiscordLogChannelID { get; set; }
-
-		bool DiscordLog { get; set; }
-
-		string DiscordBotToken { get; set; }
+		/// <summary>
+		/// The discord bot config
+		/// </summary>
+		/// <value></value>
+		IDiscordBotConfig BotConfig { get; set; }
+				
 	}
 }

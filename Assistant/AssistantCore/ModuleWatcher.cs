@@ -133,11 +133,8 @@ namespace Assistant.AssistantCore {
 					break;
 
 				default:
-					Core.ModuleLoader.LoadAndStartModulesOfType<IDiscordBot>(true);
-					Core.ModuleLoader.LoadAndStartModulesOfType<IEmailClient>(true);
-					Core.ModuleLoader.LoadAndStartModulesOfType<IYoutubeClient>(true);
-					Core.ModuleLoader.LoadAndStartModulesOfType<ISteamClient>(true);
-					Core.ModuleLoader.LoadAndStartModulesOfType<IAsyncEventBase>(true);
+					Core.ModuleLoader.LoadAsync().ConfigureAwait(false);
+					Core.ModuleLoader.InitServiceAsync().ConfigureAwait(false);					
 					break;
 			}
 		}

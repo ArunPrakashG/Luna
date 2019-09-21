@@ -191,7 +191,8 @@ namespace Assistant.AssistantCore {
 
 			ModuleLoader = new ModuleInitializer();
 
-			ModuleLoader.LoadAndStartModulesOfType<IModuleBase>();
+			await ModuleLoader.LoadAsync().ConfigureAwait(false);
+			await ModuleLoader.InitServiceAsync().ConfigureAwait(false);
 
 			ModuleWatcher.InitModuleWatcher();
 			Controller = new PiController(true);
@@ -210,8 +211,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			await TTSService.AssistantVoice(Enums.SpeechContext.AssistantStartup).ConfigureAwait(false);
-			await TTSService.SpeakText("This is a test text to speech message.").ConfigureAwait(false);
-			await TTSService.SpeakText("This is yet another testing speech message.").ConfigureAwait(false);
+			
 			await KeepAlive().ConfigureAwait(false);
 		}
 
@@ -358,13 +358,13 @@ namespace Assistant.AssistantCore {
 						}
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when !ModuleLoader.ModulesCollection.IsModulesEmpty && Config.EnableModules: {
+					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count > 0 && Config.EnableModules: {
 							Logger.Log("Shutting down all modules...", Enums.LogLevels.Warn);
 							ModuleLoader.OnCoreShutdown();
 						}
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleLoader.ModulesCollection.IsModulesEmpty: {
+					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count <= 0: {
 							Logger.Log("There are no modules to shutdown...");
 						}
 						return;

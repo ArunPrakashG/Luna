@@ -29,7 +29,7 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.EventInterfaces {
 
 	/// <summary>
 	/// Provides various AsyncTask methods which is fired during certain events occuring in assistant.

@@ -26,47 +26,60 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using Discord.WebSocket;
+using SteamKit2;
 using System.Threading.Tasks;
+using Assistant.Log;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.SteamInterfaces {
 
-	public interface IDiscordBot : IModuleBase, IDiscordLogger {
+	public interface ISteamBot {
 
 		/// <summary>
-		/// The discord bot client
+		/// Indicates status if the bot is running or not
 		/// </summary>
 		/// <value></value>
-		DiscordSocketClient Client { get; set; }
+		bool IsBotRunning { get; set; }
 
 		/// <summary>
-		/// The discord bot config
+		/// The bot name
 		/// </summary>
 		/// <value></value>
-		IDiscordBotConfig BotConfig { get; set; }
+		string BotName { get; set; }
 
 		/// <summary>
-		/// Status if the bot is online or offline
+		/// The bot steam 64 id
 		/// </summary>
 		/// <value></value>
-		bool IsServerOnline { get; set; }
+		ulong CachedSteamId { get; set; }
 
 		/// <summary>
-		/// Stop discord client
+		/// Loads the bot config file and required data and initiates connection with steam servers
 		/// </summary>
-		/// <returns></returns>
-		Task<bool> StopServer();
+		/// <param name="botName">The bot name</param>
+		/// <param name="logger">The bot logger instance to use</param>
+		/// <param name="steamClient">The bot steam client instance</param>
+		/// <param name="steamHandler">The bot steam handler service</param>
+		/// <param name="callbackManager">The bot steam connection callback manager</param>
+		/// <param name="botConfig">The bot config</param>
+		/// <returns>Boolean status and ISteamBot instance of the bot</returns>
+		Task<(bool, ISteamBot)> RegisterSteamBot
+		(
+			string botName,
+			Logger logger,
+			SteamClient steamClient,
+			ISteamClient steamHandler,
+			CallbackManager callbackManager,
+			ISteamBotConfig botConfig
+		);
 
 		/// <summary>
-		/// Start discord bot
+		/// Stops current bot instance
 		/// </summary>
-		/// <returns></returns>
-		Task<(bool, IDiscordBot)> RegisterDiscordClient();
+		void Stop();
 
 		/// <summary>
-		/// Restart discord bot service
+		/// Disposes the current bot instance
 		/// </summary>
-		/// <returns></returns>
-		Task RestartDiscordServer();
+		void Dispose();
 	}
 }

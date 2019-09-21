@@ -31,7 +31,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Assistant.Log;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.EmailClientInterfaces {
 
 	public interface IEmailBot {
 

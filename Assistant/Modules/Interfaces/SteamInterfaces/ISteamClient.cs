@@ -32,7 +32,7 @@ using System.Collections.Generic;
 using Assistant.AssistantCore;
 using static Assistant.AssistantCore.Enums;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.SteamInterfaces {
 
 	public interface ISteamClient : IModuleBase {
 

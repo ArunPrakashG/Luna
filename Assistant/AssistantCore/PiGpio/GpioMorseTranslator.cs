@@ -103,10 +103,10 @@ namespace Assistant.AssistantCore.PiGpio {
 			foreach (char character in Morse.ToCharArray()) {
 				switch (character) {
 					case '.':
-						Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, TimeSpan.FromMilliseconds(300));
+						Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, TimeSpan.FromMilliseconds(300), false);
 						break;
 					case '-':
-						Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, TimeSpan.FromMilliseconds(300 * 3));
+						Controller.SetGpioWithTimeout(relayPin, GpioPinDriveMode.Output, GpioPinValue.Low, TimeSpan.FromMilliseconds(300 * 3), false);
 						break;
 					case '_':
 						await Task.Delay(300).ConfigureAwait(false);

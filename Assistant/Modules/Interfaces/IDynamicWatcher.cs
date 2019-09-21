@@ -27,7 +27,7 @@
 //SOFTWARE.
 
 using Assistant.AssistantCore;
-using Assistant.Modules.Interfaces;
+using Assistant.Modules.Interfaces.LoggerInterfaces;
 using System.IO;
 
 namespace Assistant.Modules.Interfaces {

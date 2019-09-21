@@ -62,8 +62,13 @@ namespace Assistant.Modules.Interfaces {
 		///</summary>
 		Version ModuleVersion { get; }
 
+		/// <summary>
+		/// Indicates if the module loaded successfully.
+		/// </summary>
+		bool IsLoaded { get; set; }
+
 		///<summary>
-		/// Invoked during module startup.
+		/// Invoked to start module service.
 		///</summary>
 		bool InitModuleService();
 

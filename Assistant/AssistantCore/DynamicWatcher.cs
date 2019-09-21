@@ -26,11 +26,11 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.Extensions;
 using Assistant.Modules.Interfaces;
+using Assistant.Modules.Interfaces.LoggerInterfaces;
 using System;
 using System.IO;
-using Assistant.Extensions;
-using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.AssistantCore {
 

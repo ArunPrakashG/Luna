@@ -131,7 +131,8 @@ namespace Assistant.AssistantCore {
 			Email,
 			Steam,
 			Youtube,			
-			Events
+			Events,
+			Unknown
 		}
 
 		public enum KeywordType {

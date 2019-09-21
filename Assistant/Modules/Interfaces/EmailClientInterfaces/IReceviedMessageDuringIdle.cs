@@ -26,26 +26,41 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using System.Threading.Tasks;
+using MailKit;
+using System;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.EmailClientInterfaces {
 
-	public interface IYoutubeClient : IModuleBase {
-
-		/// <summary>
-		/// Downloads the video from the specified url
-		/// </summary>
-		/// <param name="url">The url of the video to download</param>
-		/// <param name="saveLocation">The location to save the downloaded file</param>
-		/// <returns></returns>
-		Task DownloadVideo(string url, string saveLocation);
+	public interface IReceviedMessageDuringIdle {
 
 		/// <summary>
-		/// Fetchs the mp3 sound from the video
+		/// Recevied message data
 		/// </summary>
-		/// <param name="videoUrl">The url of the video</param>
-		/// <param name="saveLocation">The location to save the mp3 file</param>
-		/// <returns></returns>
-		Task FetchMp3FromVideo(string videoUrl, string saveLocation);
+		/// <value></value>
+		IMessageSummary Message { get; set; }
+
+		/// <summary>
+		/// Message unique id
+		/// </summary>
+		/// <value></value>
+		uint UniqueId { get; set; }
+
+		/// <summary>
+		/// Mark the message as read
+		/// </summary>
+		/// <value></value>
+		bool MarkAsRead { get; set; }
+
+		/// <summary>
+		/// The message was marked as deleted
+		/// </summary>
+		/// <value></value>
+		bool MarkedAsDeleted { get; set; }
+
+		/// <summary>
+		/// DateTime when the message arrived
+		/// </summary>
+		/// <value></value>
+		DateTime ArrivedTime { get; set; }
 	}
 }

@@ -26,11 +26,20 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
+namespace Assistant.Modules.Interfaces.DiscordInterfaces {
 
-namespace Assistant.Modules.Interfaces {
-	public interface ICustomModule : IModuleBase {
+	public interface IDiscordBotConfig {
+
+		bool EnableDiscordBot { get; set; }
+
+		ulong DiscordOwnerID { get; set; }
+
+		ulong DiscordServerID { get; set; }
+
+		ulong DiscordLogChannelID { get; set; }
+
+		bool DiscordLog { get; set; }
+
+		string DiscordBotToken { get; set; }
 	}
 }

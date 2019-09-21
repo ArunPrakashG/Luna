@@ -26,41 +26,70 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using MailKit;
-using System;
+using System.Collections.Concurrent;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.EmailClientInterfaces {
 
-	public interface IReceviedMessageDuringIdle {
-
-		/// <summary>
-		/// Recevied message data
-		/// </summary>
-		/// <value></value>
-		IMessageSummary Message { get; set; }
+	public interface IEmailConfig {
 
 		/// <summary>
-		/// Message unique id
+		/// The Email ID
 		/// </summary>
 		/// <value></value>
-		uint UniqueId { get; set; }
+		string EmailID { get; set; }
 
 		/// <summary>
-		/// Mark the message as read
+		/// The Email password
 		/// </summary>
 		/// <value></value>
-		bool MarkAsRead { get; set; }
+		string EmailPass { get; set; }
 
 		/// <summary>
-		/// The message was marked as deleted
+		/// Mark all messages as seen during timed checks
 		/// </summary>
 		/// <value></value>
-		bool MarkedAsDeleted { get; set; }
+		bool MarkAllMessagesAsRead { get; set; }
 
 		/// <summary>
-		/// DateTime when the message arrived
+		/// Mute notification sound
 		/// </summary>
 		/// <value></value>
-		DateTime ArrivedTime { get; set; }
+		bool MuteNotifications { get; set; }
+
+		/// <summary>
+		/// Set text to automatically reply to the sender when your receive a message
+		/// </summary>
+		/// <value></value>
+		string AutoReplyText { get; set; }
+
+		/// <summary>
+		/// Download the recevied emails to .eml formate in the assistant directory
+		/// </summary>
+		/// <value></value>
+		bool DownloadEmails { get; set; }
+
+		/// <summary>
+		/// Enable the bot instance
+		/// </summary>
+		/// <value></value>
+		bool Enabled { get; set; }
+
+		/// <summary>
+		/// Enable IMAP notification service
+		/// </summary>
+		/// <value></value>
+		bool ImapNotifications { get; set; }
+
+		/// <summary>
+		/// Path to the custom notification sound (IMAP Notification)
+		/// </summary>
+		/// <value></value>
+		string NotificationSoundPath { get; set; }
+
+		/// <summary>
+		/// Automatically forwade the recevied emails to the specified email addresses
+		/// </summary>
+		/// <value>Boolean value to enable/disable forward for the address at that index, string value representing the email address to forward to.</value>
+		ConcurrentDictionary<bool, string> AutoForwardEmails { get; set; }
 	}
 }

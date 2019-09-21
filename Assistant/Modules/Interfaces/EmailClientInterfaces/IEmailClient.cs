@@ -28,68 +28,45 @@
 
 using System.Collections.Concurrent;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.EmailClientInterfaces {
 
-	public interface IEmailConfig {
-
-		/// <summary>
-		/// The Email ID
-		/// </summary>
-		/// <value></value>
-		string EmailID { get; set; }
+	public interface IEmailClient : IModuleBase {
 
 		/// <summary>
-		/// The Email password
+		/// The IEmailBot collection
 		/// </summary>
-		/// <value></value>
-		string EmailPass { get; set; }
+		/// <value>String value represents the bot unique id, IEmailBot reporesents the bot instance</value>
+		ConcurrentDictionary<string, IEmailBot> EmailClientCollection { get; set; }
 
 		/// <summary>
-		/// Mark all messages as seen during timed checks
+		/// Invokes RegisterBot() method on all bots
 		/// </summary>
-		/// <value></value>
-		bool MarkAllMessagesAsRead { get; set; }
+		/// <returns>A boolean value indicating the startup status, A Dictionary with the unique id and IEmailBot instance of the specified index</returns>
+		(bool, ConcurrentDictionary<string, IEmailBot>) InitEmailBots();
 
 		/// <summary>
-		/// Mute notification sound
+		/// Dispose the bot with the specified unique id
 		/// </summary>
-		/// <value></value>
-		bool MuteNotifications { get; set; }
+		/// <param name="botUniqueId">The unique id of the bot to remove</param>
+		void DisposeEmailBot(string botUniqueId);
 
 		/// <summary>
-		/// Set text to automatically reply to the sender when your receive a message
+		/// Dispose all the IEmailBot instances which is currently running
 		/// </summary>
-		/// <value></value>
-		string AutoReplyText { get; set; }
+		/// <returns>Boolean value indication status of the Dispose</returns>
+		bool DisposeAllEmailBots();
 
 		/// <summary>
-		/// Download the recevied emails to .eml formate in the assistant directory
+		/// Adds the given instance of IEmailBot into the EmailClientCollection dictionary
 		/// </summary>
-		/// <value></value>
-		bool DownloadEmails { get; set; }
+		/// <param name="uniqueId">The unique id of the bot to add</param>
+		/// <param name="bot">The bot instance</param>
+		void AddBotToCollection(string uniqueId, IEmailBot bot);
 
 		/// <summary>
-		/// Enable the bot instance
+		/// Removes the specified IEmailBot instance from EmailClientCollection dictionary using its unique id
 		/// </summary>
-		/// <value></value>
-		bool Enabled { get; set; }
-
-		/// <summary>
-		/// Enable IMAP notification service
-		/// </summary>
-		/// <value></value>
-		bool ImapNotifications { get; set; }
-
-		/// <summary>
-		/// Path to the custom notification sound (IMAP Notification)
-		/// </summary>
-		/// <value></value>
-		string NotificationSoundPath { get; set; }
-
-		/// <summary>
-		/// Automatically forwade the recevied emails to the specified email addresses
-		/// </summary>
-		/// <value>Boolean value to enable/disable forward for the address at that index, string value representing the email address to forward to.</value>
-		ConcurrentDictionary<bool, string> AutoForwardEmails { get; set; }
+		/// <param name="uniqueId">The unique id of the bot to remove</param>
+		void RemoveBotFromCollection(string uniqueId);
 	}
 }

@@ -164,7 +164,7 @@ namespace Assistant.AssistantCore.PiGpio {
 		public (int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) GetGpio(int pinNumber) =>
 			(pinNumber, Pi.Gpio[pinNumber].PinMode, Pi.Gpio[pinNumber].Read() ? GpioPinValue.High : GpioPinValue.Low);
 
-		public bool SetGpioWithTimeout(int pin, GpioPinDriveMode mode, GpioPinValue state, TimeSpan duration) {
+		public bool SetGpioWithTimeout(int pin, GpioPinDriveMode mode, GpioPinValue state, TimeSpan duration, bool delayedTask) {
 			if (pin <= 0) {
 				return false;
 			}
@@ -174,7 +174,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 
 			if (SetGpioValue(pin, mode, state)) {
-				UpdatePinConfig(pin, mode, state, true, duration);
+				UpdatePinConfig(pin, mode, state, delayedTask, duration);
 				Helpers.ScheduleTask(() => {
 					if(SetGpioValue(pin, mode, GpioPinValue.High)) {
 						UpdatePinConfig(pin, mode, GpioPinValue.High, false, TimeSpan.Zero);

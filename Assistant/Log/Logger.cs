@@ -28,7 +28,7 @@
 
 using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.Modules.Interfaces;
+using Assistant.Modules.Interfaces.LoggerInterfaces;
 using Assistant.PushBullet;
 using Assistant.PushBullet.Parameters;
 using System;
@@ -247,16 +247,18 @@ namespace Assistant.Log {
 				return;
 			}
 
-			if (Core.ModuleLoader != null && Core.ModuleLoader.ModulesCollection != null && Core.ModuleLoader.ModulesCollection.DiscordBots.Count > 0) {
-				foreach (Modules.ModuleInfo<IDiscordBot> bot in Core.ModuleLoader.ModulesCollection.DiscordBots) {
-					if (bot.Module.IsServerOnline && bot.Module.BotConfig.EnableDiscordBot &&
-						bot.Module.BotConfig.DiscordLogChannelID != 0 && bot.Module.BotConfig.DiscordLog) {
-						Helpers.InBackgroundThread(async () => {
-							await bot.Module.LogToChannel(message).ConfigureAwait(false);
-						});
-					}
-				}
-			}
+			Log("Logging to discord is currently turned off. [WIP]", LogLevels.Warn);
+
+			//if (Core.ModuleLoader != null && Core.ModuleLoader.Modules != null && Core.ModuleLoader.Modules.OfType<IDiscordClient>().Count() > 0) {
+			//	foreach (IDiscordClient bot in Core.ModuleLoader.Modules.OfType<IDiscordClient>()) {
+			//		if (bot.IsServerOnline && bot.BotConfig.EnableDiscordBot &&
+			//			bot.Module.BotConfig.DiscordLogChannelID != 0 && bot.Module.BotConfig.DiscordLog) {
+			//			Helpers.InBackgroundThread(async () => {
+			//				await bot.Module.LogToChannel(message).ConfigureAwait(false);
+			//			});
+			//		}
+			//	}
+			//}
 		}
 
 		public void InitLogger(string logId) => RegisterLogger(logId);

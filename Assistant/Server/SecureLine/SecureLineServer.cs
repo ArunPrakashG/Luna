@@ -207,7 +207,7 @@ namespace Assistant.Server.SecureLine {
 					mode = (GpioPinDriveMode) Convert.ToInt32(request.StringParameters[1].Trim());
 					value = (GpioPinValue) Convert.ToInt32(request.StringParameters[2].Trim());
 					int delay = Convert.ToInt32(request.StringParameters[3].Trim());
-					if (Core.Controller.SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay))) {
+					if (Core.Controller.SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay), true)) {
 						result = $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()} for {delay} minutes.";
 					}
 					else {

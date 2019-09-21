@@ -26,12 +26,11 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.AssistantCore;
 using System;
 using System.Runtime.CompilerServices;
-using Assistant.AssistantCore;
-using static Assistant.AssistantCore.Enums;
 
-namespace Assistant.Modules.Interfaces {
+namespace Assistant.Modules.Interfaces.LoggerInterfaces {
 
 	public interface ILoggerBase {
 
