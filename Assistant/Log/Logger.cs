@@ -247,7 +247,7 @@ namespace Assistant.Log {
 				return;
 			}
 
-			Log("Logging to discord is currently turned off. [WIP]", LogLevels.Warn);
+			Log("Logging to discord is currently turned off. [WIP]", LogLevels.Info);
 
 			//if (Core.ModuleLoader != null && Core.ModuleLoader.Modules != null && Core.ModuleLoader.Modules.OfType<IDiscordClient>().Count() > 0) {
 			//	foreach (IDiscordClient bot in Core.ModuleLoader.Modules.OfType<IDiscordClient>()) {

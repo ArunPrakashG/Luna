@@ -303,7 +303,7 @@ namespace Assistant.AssistantCore {
 							Logger.Log("Enter text to convert to morse: ");
 							string morseCycle = Console.ReadLine();
 							if (Controller.MorseTranslator.IsTranslatorOnline) {
-								await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.RelayPins[0]).ConfigureAwait(false);
+								await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.OutputModePins[0]).ConfigureAwait(false);
 							}
 							else {
 								Logger.Log("Could not convert due to an unknown error.", Enums.LogLevels.Warn);
@@ -353,7 +353,7 @@ namespace Assistant.AssistantCore {
 						return;
 
 					case Constants.ConsoleTestMethodExecutionKey: {
-							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
+							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);							
 							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Success);
 						}
 						return;
@@ -412,7 +412,7 @@ namespace Assistant.AssistantCore {
 
 				if (x.Safe) {
 					Logger.Log("Safe mode enabled. Only pre-configured gpio pins are allowed to be modified.", Enums.LogLevels.Warn);
-					Config.GPIOSafeMode = true;
+					Config.GpioSafeMode = true;
 				}
 
 				if (x.EnableFirstChance) {
@@ -469,35 +469,35 @@ namespace Assistant.AssistantCore {
 
 			switch (SelectedValue) {
 				case 1:
-					set(Config.RelayPins[0]);
+					set(Config.OutputModePins[0]);
 					break;
 
 				case 2:
-					set(Config.RelayPins[1]);
+					set(Config.OutputModePins[1]);
 					break;
 
 				case 3:
-					set(Config.RelayPins[2]);
+					set(Config.OutputModePins[2]);
 					break;
 
 				case 4:
-					set(Config.RelayPins[3]);
+					set(Config.OutputModePins[3]);
 					break;
 
 				case 5:
-					set(Config.RelayPins[4]);
+					set(Config.OutputModePins[4]);
 					break;
 
 				case 6:
-					set(Config.RelayPins[5]);
+					set(Config.OutputModePins[5]);
 					break;
 
 				case 7:
-					set(Config.RelayPins[6]);
+					set(Config.OutputModePins[6]);
 					break;
 
 				case 8:
-					set(Config.RelayPins[7]);
+					set(Config.OutputModePins[7]);
 					break;
 
 				case 9:
@@ -551,12 +551,12 @@ namespace Assistant.AssistantCore {
 						return;
 					}
 
-					if (Config.IRSensorPins.Contains(pinNumber)) {
+					if (Config.InputModePins.Contains(pinNumber)) {
 						Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!");
 						return;
 					}
 
-					if (!Config.RelayPins.Contains(pinNumber)) {
+					if (!Config.OutputModePins.Contains(pinNumber)) {
 						Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.");
 						return;
 					}

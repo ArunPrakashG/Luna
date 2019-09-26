@@ -109,7 +109,7 @@ namespace Assistant.Server.Controllers {
 
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
-			foreach (int pin in Core.Config.RelayPins) {
+			foreach (int pin in Core.Config.OutputModePins) {
 				resultConfig.Add(Core.Controller.GetPinConfig(pin));
 			}
 
@@ -138,7 +138,7 @@ namespace Assistant.Server.Controllers {
 
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
-			foreach (int pin in Core.Config.IRSensorPins) {
+			foreach (int pin in Core.Config.InputModePins) {
 				resultConfig.Add(Core.Controller.GetPinConfig(pin));
 			}
 

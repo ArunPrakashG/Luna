@@ -26,18 +26,19 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.Extensions;
+using Assistant.Log;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Assistant.Extensions;
-using Assistant.Log;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
+using Unosquare.WiringPi;
 
 namespace Assistant.AssistantCore.PiGpio {
 
-	public sealed class GpioPinEventData {
+	public sealed class GpioPinEventConfig {
 
 		public int GpioPin { get; set; } = 2;
 
@@ -48,7 +49,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 	public class GpioPinValueChangedEventArgs {
 
-		public IGpioPin Pin { get; set; }
+		public GpioPin Pin { get; set; }
 
 		public int PinNumber { get; set; }
 
@@ -75,133 +76,147 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		private Logger Logger { get; set; }
 
-		private GpioEventManager Manager { get; set; }
+		private GpioEventManager EventManager { get; set; }
 
 		private bool OverrideEventWatcher { get; set; }
 
-		public GpioPinEventData EventData { get; private set; }
+		public GpioPinEventConfig EventPinConfig { get; private set; }
+		public bool IsEventRegistered { get; private set; } = false;
 
 		public (int, Thread) PollingThreadInfo { get; private set; }
 
-		public (object sender, GpioPinValueChangedEventArgs e) GPIOEventPinValueStorage { get; private set; }
+		public (object sender, GpioPinValueChangedEventArgs e) _GpioPinValueChanged { get; private set; }
 
 		public delegate void GPIOPinValueChangedEventHandler(object sender, GpioPinValueChangedEventArgs e);
 
-		public event GPIOPinValueChangedEventHandler GPIOPinValueChanged;
+		public event GPIOPinValueChangedEventHandler GpioPinValueChanged;
 
 		private (object sender, GpioPinValueChangedEventArgs e) GPIOPinValue {
-			get => GPIOEventPinValueStorage;
+			get => _GpioPinValueChanged;
 			set {
-				GPIOPinValueChanged?.Invoke(value.sender, value.e);
-				GPIOEventPinValueStorage = GPIOPinValue;
+				GpioPinValueChanged?.Invoke(value.sender, value.e);
+				_GpioPinValueChanged = GPIOPinValue;
 			}
 		}
 
 		public GpioEventGenerator(PiController controller, GpioEventManager manager) {
 			Controller = controller ?? throw new ArgumentNullException();
-			Manager = manager ?? throw new ArgumentNullException();
-			Logger = Manager.Logger;
+			EventManager = manager ?? throw new ArgumentNullException();
+			Logger = EventManager.Logger;
 		}
 
 		public void OverridePinPolling() => OverrideEventWatcher = true;
 
-		public void StartPinPolling(GpioPinEventData pinData) {
-			if (pinData.GpioPin > 40 || pinData.GpioPin <= 0) {
-				Logger.Log($"Specified pin is either > 40 or <= 0. Aborted. ({pinData.GpioPin})", Enums.LogLevels.Warn);
+		private async Task StartInputPollingAsync() {
+			if(!Core.CoreInitiationCompleted) {
 				return;
 			}
 
-			if (!Core.CoreInitiationCompleted) {
+			if (IsEventRegistered) {
+				Logger.Log("There already seems to have an event registered on this instance.", Enums.LogLevels.Warn);
 				return;
 			}
 
-			EventData = pinData;
-			IGpioPin GPIOPin = Pi.Gpio[pinData.GpioPin];
-			if (!Controller.SetGpioValue(pinData.GpioPin, pinData.PinMode, GpioPinValue.High)) {
-				Logger.Log($"Failed to set the pin status, cannot continue with the event for pin > {pinData.GpioPin}", Enums.LogLevels.Warn);
+			if (EventPinConfig.GpioPin > 40 || EventPinConfig.GpioPin <= 0) {
+				Logger.Log($"Specified pin is either > 40 or <= 0. Aborted. ({EventPinConfig.GpioPin})", Enums.LogLevels.Warn);
 				return;
 			}
 
-			bool val = GPIOPin.Read();
+			if(EventPinConfig.PinMode != GpioPinDriveMode.Input) {
+				Logger.Log($"Internal error.", Enums.LogLevels.Warn);
+				return;
+			}
 
-			GPIOEventPinValueStorage = (this, new GpioPinValueChangedEventArgs() {
-				Pin = GPIOPin,
-				PinNumber = pinData.GpioPin,
-				PinCurrentDigitalValue = val,
+			GpioPin pin = (GpioPin) Pi.Gpio[EventPinConfig.GpioPin];
+			//let the method in controller to set it so that we can later add config system for pins and we can access config from that method for saving etc
+			//pin.PinMode = GpioPinDriveMode.Input;
+			if(!Controller.SetGpioValue(EventPinConfig.GpioPin, GpioPinDriveMode.Input)) {
+				Logger.Log($"Failed to set the pin status, cannot continue with the event for pin > {EventPinConfig.GpioPin}", Enums.LogLevels.Warn);
+				return;
+			}
+
+			//true = off
+			//false = on
+			bool initialValue = await pin.ReadAsync().ConfigureAwait(false);
+			Enums.GpioPinEventStates previousValue = initialValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
+
+			_GpioPinValueChanged = (this, new GpioPinValueChangedEventArgs() {
+				Pin = pin,
+				PinNumber = EventPinConfig.GpioPin,
+				PinCurrentDigitalValue = initialValue,
 				PinPreviousDigitalValue = true,
-				BcmPin = GPIOPin.BcmPin,
-				GpioPhysicalPinNumber = GPIOPin.PhysicalPinNumber,
-				IGpioPinValue = GPIOPin.Value,
-				PinDriveMode = GPIOPin.PinMode,
-				PinState = val ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
+				BcmPin = pin.BcmPin,
+				GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+				IGpioPinValue = pin.Value,
+				PinDriveMode = pin.PinMode,
+				PinState = previousValue,
 				PinPreviousState = Enums.GpioPinEventStates.OFF
 			});
 
-			Logger.Log($"Started pin polling for {pinData.GpioPin}.", Core.Config.Debug ? Enums.LogLevels.Info : Enums.LogLevels.Trace);
-			Enums.GpioPinEventStates previousValue = val ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
+			Logger.Log($"Started input pin polling for {EventPinConfig.GpioPin}.", Enums.LogLevels.Trace);
+			IsEventRegistered = true;
 
 			PollingThreadInfo = Helpers.InBackgroundThread(async () => {
-				while (true) {
-					if (OverrideEventWatcher) {
-						return;
-					}
-
-					bool pinValue = GPIOPin.Read();
-
-					//true = off
-					//false = on
+				while (!OverrideEventWatcher) {
+					bool pinValue = await pin.ReadAsync().ConfigureAwait(false);
 					Enums.GpioPinEventStates currentValue = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
 
-					switch (pinData.PinEventState) {
+					switch (EventPinConfig.PinEventState) {
 						case Enums.GpioPinEventStates.OFF when currentValue == Enums.GpioPinEventStates.OFF:
-							if (previousValue != currentValue) {
-								GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
-									Pin = GPIOPin,
-									PinNumber = pinData.GpioPin,
-									PinCurrentDigitalValue = pinValue,
-									PinPreviousDigitalValue = GPIOEventPinValueStorage.e.PinCurrentDigitalValue,
-									BcmPin = GPIOPin.BcmPin,
-									GpioPhysicalPinNumber = GPIOPin.PhysicalPinNumber,
-									IGpioPinValue = GPIOPin.Value,
-									PinDriveMode = GPIOPin.PinMode,
-									PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
-									PinPreviousState = previousValue
-								});
+							if (previousValue == currentValue) {
+								break;
 							}
+
+							GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
+								Pin = pin,
+								PinNumber = EventPinConfig.GpioPin,
+								PinCurrentDigitalValue = pinValue,
+								PinPreviousDigitalValue = _GpioPinValueChanged.e.PinCurrentDigitalValue,
+								BcmPin = pin.BcmPin,
+								GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+								IGpioPinValue = pin.Value,
+								PinDriveMode = pin.PinMode,
+								PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
+								PinPreviousState = previousValue
+							});
 							break;
 
 						case Enums.GpioPinEventStates.ON when currentValue == Enums.GpioPinEventStates.ON:
-							if (previousValue != currentValue) {
-								GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
-									Pin = GPIOPin,
-									PinNumber = pinData.GpioPin,
-									PinCurrentDigitalValue = pinValue,
-									PinPreviousDigitalValue = GPIOEventPinValueStorage.e.PinCurrentDigitalValue,
-									BcmPin = GPIOPin.BcmPin,
-									GpioPhysicalPinNumber = GPIOPin.PhysicalPinNumber,
-									IGpioPinValue = GPIOPin.Value,
-									PinDriveMode = GPIOPin.PinMode,
-									PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
-									PinPreviousState = previousValue
-								});
+							if (previousValue == currentValue) {
+								break;
 							}
+
+							GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
+								Pin = pin,
+								PinNumber = EventPinConfig.GpioPin,
+								PinCurrentDigitalValue = pinValue,
+								PinPreviousDigitalValue = _GpioPinValueChanged.e.PinCurrentDigitalValue,
+								BcmPin = pin.BcmPin,
+								GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+								IGpioPinValue = pin.Value,
+								PinDriveMode = pin.PinMode,
+								PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
+								PinPreviousState = previousValue
+							});
 							break;
 
 						case Enums.GpioPinEventStates.ALL:
-							if (previousValue != currentValue) {
-								GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
-									Pin = GPIOPin,
-									PinNumber = pinData.GpioPin,
-									PinCurrentDigitalValue = pinValue,
-									PinPreviousDigitalValue = GPIOEventPinValueStorage.e.PinCurrentDigitalValue,
-									BcmPin = GPIOPin.BcmPin,
-									GpioPhysicalPinNumber = GPIOPin.PhysicalPinNumber,
-									IGpioPinValue = GPIOPin.Value,
-									PinDriveMode = GPIOPin.PinMode,
-									PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
-									PinPreviousState = previousValue
-								});
+							if (previousValue == currentValue) {
+								break;
 							}
+
+							GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
+								Pin = pin,
+								PinNumber = EventPinConfig.GpioPin,
+								PinCurrentDigitalValue = pinValue,
+								PinPreviousDigitalValue = _GpioPinValueChanged.e.PinCurrentDigitalValue,
+								BcmPin = pin.BcmPin,
+								GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+								IGpioPinValue = pin.Value,
+								PinDriveMode = pin.PinMode,
+								PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
+								PinPreviousState = previousValue
+							});
 							break;
 
 						case Enums.GpioPinEventStates.NONE:
@@ -214,44 +229,198 @@ namespace Assistant.AssistantCore.PiGpio {
 					previousValue = currentValue;
 					await Task.Delay(1).ConfigureAwait(false);
 				}
-			}, $"Polling thread {pinData.GpioPin}", true);
+			}, $"Polling thread {EventPinConfig.GpioPin}", true);
+		}
+
+		private async Task StartOutputPollingAsync() {
+			if (!Core.CoreInitiationCompleted) {
+				return;
+			}
+
+			if (IsEventRegistered) {
+				Logger.Log("There already seems to have an event registered on this instance.", Enums.LogLevels.Warn);
+				return;
+			}
+
+			if (EventPinConfig.GpioPin > 40 || EventPinConfig.GpioPin <= 0) {
+				Logger.Log($"Specified pin is either > 40 or <= 0. Aborted. ({EventPinConfig.GpioPin})", Enums.LogLevels.Warn);
+				return;
+			}
+
+			if (EventPinConfig.PinMode != GpioPinDriveMode.Output) {
+				Logger.Log($"Internal error.", Enums.LogLevels.Warn);
+				return;
+			}
+
+			GpioPin pin = (GpioPin) Pi.Gpio[EventPinConfig.GpioPin];
+			//let the method in controller to set it so that we can later add config system for pins and we can access config from that method for saving etc
+			//pin.PinMode = GpioPinDriveMode.Output;
+			if (!Controller.SetGpioValue(EventPinConfig.GpioPin, GpioPinDriveMode.Output, GpioPinValue.High)) {
+				Logger.Log($"Failed to set the pin status, cannot continue with the event for pin > {EventPinConfig.GpioPin}", Enums.LogLevels.Warn);
+				return;
+			}
+
+			//true = off
+			//false = on
+			bool initialValue = await pin.ReadAsync().ConfigureAwait(false);
+			Enums.GpioPinEventStates previousValue = initialValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
+
+			_GpioPinValueChanged = (this, new GpioPinValueChangedEventArgs() {
+				Pin = pin,
+				PinNumber = EventPinConfig.GpioPin,
+				PinCurrentDigitalValue = initialValue,
+				PinPreviousDigitalValue = true,
+				BcmPin = pin.BcmPin,
+				GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+				IGpioPinValue = pin.Value,
+				PinDriveMode = pin.PinMode,
+				PinState = previousValue,
+				PinPreviousState = Enums.GpioPinEventStates.OFF
+			});
+
+			Logger.Log($"Started output pin polling for {EventPinConfig.GpioPin}.", Enums.LogLevels.Trace);
+			IsEventRegistered = true;
+
+			PollingThreadInfo = Helpers.InBackgroundThread(async () => {
+				while (!OverrideEventWatcher) {
+					bool pinValue = await pin.ReadAsync().ConfigureAwait(false);
+					Enums.GpioPinEventStates currentValue = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON;
+
+					switch (EventPinConfig.PinEventState) {
+						case Enums.GpioPinEventStates.OFF when currentValue == Enums.GpioPinEventStates.OFF:
+							if (previousValue == currentValue) {
+								break;
+							}
+
+							GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
+								Pin = pin,
+								PinNumber = EventPinConfig.GpioPin,
+								PinCurrentDigitalValue = pinValue,
+								PinPreviousDigitalValue = _GpioPinValueChanged.e.PinCurrentDigitalValue,
+								BcmPin = pin.BcmPin,
+								GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+								IGpioPinValue = pin.Value,
+								PinDriveMode = pin.PinMode,
+								PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
+								PinPreviousState = previousValue
+							});
+							break;
+
+						case Enums.GpioPinEventStates.ON when currentValue == Enums.GpioPinEventStates.ON:
+							if (previousValue == currentValue) {
+								break;
+							}
+
+							GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
+								Pin = pin,
+								PinNumber = EventPinConfig.GpioPin,
+								PinCurrentDigitalValue = pinValue,
+								PinPreviousDigitalValue = _GpioPinValueChanged.e.PinCurrentDigitalValue,
+								BcmPin = pin.BcmPin,
+								GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+								IGpioPinValue = pin.Value,
+								PinDriveMode = pin.PinMode,
+								PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
+								PinPreviousState = previousValue
+							});
+							break;
+
+						case Enums.GpioPinEventStates.ALL:
+							if (previousValue == currentValue) {
+								break;
+							}
+
+							GPIOPinValue = (this, new GpioPinValueChangedEventArgs() {
+								Pin = pin,
+								PinNumber = EventPinConfig.GpioPin,
+								PinCurrentDigitalValue = pinValue,
+								PinPreviousDigitalValue = _GpioPinValueChanged.e.PinCurrentDigitalValue,
+								BcmPin = pin.BcmPin,
+								GpioPhysicalPinNumber = pin.PhysicalPinNumber,
+								IGpioPinValue = pin.Value,
+								PinDriveMode = pin.PinMode,
+								PinState = pinValue ? Enums.GpioPinEventStates.OFF : Enums.GpioPinEventStates.ON,
+								PinPreviousState = previousValue
+							});
+							break;
+
+						case Enums.GpioPinEventStates.NONE:
+							break;
+
+						default:
+							break;
+					}
+
+					previousValue = currentValue;
+					await Task.Delay(1).ConfigureAwait(false);
+				}
+			}, $"Polling thread {EventPinConfig.GpioPin}", true);
+		}
+
+		public async Task<bool> StartPinPolling(GpioPinEventConfig config) {
+			if (config.GpioPin > 40 || config.GpioPin <= 0) {
+				Logger.Log($"Specified pin is either > 40 or <= 0. Aborted. ({config.GpioPin})", Enums.LogLevels.Warn);
+				return false;
+			}
+
+			if (!Core.CoreInitiationCompleted) {
+				return false;
+			}
+
+			EventPinConfig = config;
+			if(config.PinMode == GpioPinDriveMode.Output) {
+				await StartOutputPollingAsync().ConfigureAwait(false);
+				return true;
+			}
+			else if(config.PinMode == GpioPinDriveMode.Input) {
+				await StartInputPollingAsync().ConfigureAwait(false);
+				return true;
+			}
+			else {
+				Logger.Log("Modes other than Output/Input currently isn't supported. (yet)", Enums.LogLevels.Warn);
+				return false;
+			}			
 		}
 	}
 
 	public class GpioEventManager {
 		internal readonly Logger Logger = new Logger("GPIO-EVENTS");
-		public PiController Controller;
+		private PiController Controller { get; set; }
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();
 
 		public GpioEventManager(PiController controller) {
 			Controller = controller ?? throw new ArgumentNullException();
 		}
 
-		public void RegisterGpioEvent(GpioPinEventData pinData) {
+		public bool RegisterGpioEvent(GpioPinEventConfig pinData) {
 			if (pinData == null) {
-				return;
+				return false;
 			}
 
 			if (pinData.GpioPin > 40 || pinData.GpioPin <= 0) {
 				Logger.Log($"Specified pin is either > 40 or <= 0. Aborted. ({pinData.GpioPin})", Enums.LogLevels.Warn);
-				return;
+				return false;
 			}
 
 			if (!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
-				return;
+				return false;
 			}
 
 			GpioEventGenerator Generator = new GpioEventGenerator(Controller, this);
-			Generator.StartPinPolling(pinData);
-			GpioPinEventGenerators.Add(Generator);
+			if (Generator.StartPinPolling(pinData).Result) {
+				GpioPinEventGenerators.Add(Generator);
+				return true;
+			}
+
+			return false;
 		}
 
-		public void RegisterGpioEvent(List<GpioPinEventData> pinDataList) {
+		public void RegisterGpioEvent(List<GpioPinEventConfig> pinDataList) {
 			if (pinDataList == null || pinDataList.Count <= 0) {
 				return;
 			}
 
-			foreach (GpioPinEventData pin in pinDataList) {
+			foreach (GpioPinEventConfig pin in pinDataList) {
 				if (pin.GpioPin > 40 || pin.GpioPin <= 0) {
 					pinDataList.Remove(pin);
 					Logger.Log($"Specified pin is either > 40 or <= 0. Removed from the list. ({pin.GpioPin})", Enums.LogLevels.Warn);
@@ -262,10 +431,11 @@ namespace Assistant.AssistantCore.PiGpio {
 				return;
 			}
 
-			foreach (GpioPinEventData pin in pinDataList) {
+			foreach (GpioPinEventConfig pin in pinDataList) {
 				GpioEventGenerator Generator = new GpioEventGenerator(Controller, this);
-				Generator.StartPinPolling(pin);
-				GpioPinEventGenerators.Add(Generator);
+				if (Generator.StartPinPolling(pin).Result) {
+					GpioPinEventGenerators.Add(Generator);
+				}				
 			}
 		}
 
@@ -276,7 +446,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 			foreach (GpioEventGenerator gen in GpioPinEventGenerators) {
 				gen.OverridePinPolling();
-				Logger.Log($"Stopping pin polling for {gen.EventData.GpioPin}", Enums.LogLevels.Trace);
+				Logger.Log($"Stopping pin polling for {gen.EventPinConfig.GpioPin}", Enums.LogLevels.Trace);
 			}
 		}
 
@@ -290,9 +460,9 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 
 			foreach (GpioEventGenerator gen in GpioPinEventGenerators) {
-				if (gen.EventData.GpioPin.Equals(pin)) {
+				if (gen.EventPinConfig.GpioPin.Equals(pin)) {
 					gen.OverridePinPolling();
-					Logger.Log($"Stopping pin polling for {gen.EventData.GpioPin}", Enums.LogLevels.Trace);
+					Logger.Log($"Stopping pin polling for {gen.EventPinConfig.GpioPin}", Enums.LogLevels.Trace);
 				}
 			}
 		}

@@ -18,18 +18,16 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<ItemGroup>	  
-	  
-	</ItemGroup>
-
 	<ItemGroup>
 	  <Compile Remove="AssistantCore\PiGpio\GpioConfigHandler.cs" />
 	  <Compile Remove="Server\SecureLine\TCPServer.cs" />
+	  <Compile Remove="Server\SignalR\Hubs\ChatHub.cs" />
 	  <Compile Remove="Server\TCPServer.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <None Include="AssistantCore\PiGpio\GpioConfigHandler.cs" />
+	  <None Include="Server\SignalR\Hubs\ChatHub.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -48,25 +46,21 @@
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.ViewFeatures" Version="2.2.0" />
 		<PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="1.1.0" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client.Core" Version="1.1.0" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />		
 		<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
 		<PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.1" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.0.0-preview6.19304.6" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.0.0-preview6.19304.6" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.0.0" />
 		<PackageReference Include="NLog.Web.AspNetCore" Version="4.8.5" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
 		<PackageReference Include="NLog" Version="4.6.7" />
 		<PackageReference Include="JetBrains.Annotations" Version="2019.1.3" />
 		<PackageReference Include="RestSharp" Version="106.6.10" />
 		<PackageReference Include="SteamKit2" Version="2.2.0" />
-		<PackageReference Include="System.Composition" Version="1.3.0-preview6.19303.8" />
-		<PackageReference Include="System.Device.Gpio" Version="1.0.0-prerelease.19413.1" />
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.5.0" />
-		<PackageReference Include="System.Interactive.Async" Version="4.0.0-preview.6.build.801" />
+		<PackageReference Include="System.Composition" Version="1.3.0" />
+		<PackageReference Include="System.Device.Gpio" Version="1.0.0" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.6.0" />
+		<PackageReference Include="System.Interactive.Async" Version="4.0.0" />
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
 		<PackageReference Include="Unosquare.Raspberry.Abstractions" Version="0.4.0" />
@@ -91,7 +85,7 @@
 		<None Update="Config\Assistant.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Update="Modules\*">
+		<None Update="Modules\">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="NLog.config">

@@ -53,7 +53,7 @@ namespace Assistant.Server.SecureLine {
 			Helpers.InBackgroundThread(async () => {
 				try {
 					while (!StopServer && Listener != null) {
-						Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);
+						Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);						
 						byte[] receiveBuffer = new byte[5024];
 						int b = socket.Receive(receiveBuffer);
 						EndPoint remoteEndpoint = socket.RemoteEndPoint;

@@ -75,8 +75,8 @@ namespace Assistant.AssistantCore.PiGpio {
 			Logger.Log($"TEXT >> {textToConvert}");
 			Logger.Log($"MORSE >> {Morse}");
 
-			if (Core.Config.RelayPins != null && Core.Config.RelayPins.Count() > 0) {
-				foreach (int pin in Core.Config.RelayPins) {
+			if (Core.Config.OutputModePins != null && Core.Config.OutputModePins.Count() > 0) {
+				foreach (int pin in Core.Config.OutputModePins) {
 					if (pin.Equals(relayPin)) {
 						GpioPinConfig pinStatus = Controller.GetPinConfig(pin);
 
@@ -114,8 +114,8 @@ namespace Assistant.AssistantCore.PiGpio {
 				}
 			}
 
-			if (Core.Config.RelayPins != null && Core.Config.RelayPins.Count() > 0) {
-				foreach (int pin in Core.Config.RelayPins) {
+			if (Core.Config.OutputModePins != null && Core.Config.OutputModePins.Count() > 0) {
+				foreach (int pin in Core.Config.OutputModePins) {
 					GpioPinConfig pinStatus = Controller.GetPinConfig(pin);
 
 					if (pinStatus.PinValue == GpioPinValue.Low) {

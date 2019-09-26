@@ -59,19 +59,19 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool KestrelServer { get; set; } = true;
 
-		[JsonProperty] public bool GPIOSafeMode { get; set; } = false;
+		[JsonProperty] public bool GpioSafeMode { get; set; } = false;
 
 		[JsonProperty] public Dictionary<string, int> AuthenticatedTokens { get; set; }
 
 		[JsonProperty]
-		public int[] RelayPins = new int[]
+		public int[] OutputModePins = new int[]
 		{
 			2, 3, 4, 17, 27, 22, 10, 9
 		};
 
 		[JsonProperty]
-		public int[] IRSensorPins = new int[] {
-			24
+		public int[] InputModePins = new int[] {
+			26,20
 		};
 
 		[JsonProperty] public bool DisplayStartupMenu { get; set; } = false;
@@ -244,9 +244,9 @@ namespace Assistant.AssistantCore {
 				hashCode = (hashCode * 397) ^ EnableConfigWatcher.GetHashCode();
 				hashCode = (hashCode * 397) ^ UpdateIntervalInHours;
 				hashCode = (hashCode * 397) ^ KestrelServer.GetHashCode();
-				hashCode = (hashCode * 397) ^ GPIOSafeMode.GetHashCode();
-				hashCode = (hashCode * 397) ^ (RelayPins != null ? RelayPins.GetHashCode() : 0);
-				hashCode = (hashCode * 397) ^ (IRSensorPins != null ? IRSensorPins.GetHashCode() : 0);
+				hashCode = (hashCode * 397) ^ GpioSafeMode.GetHashCode();
+				hashCode = (hashCode * 397) ^ (OutputModePins != null ? OutputModePins.GetHashCode() : 0);
+				hashCode = (hashCode * 397) ^ (InputModePins != null ? InputModePins.GetHashCode() : 0);
 				hashCode = (hashCode * 397) ^ DisplayStartupMenu.GetHashCode();
 				hashCode = (hashCode * 397) ^ EnableGpioControl.GetHashCode();
 				hashCode = (hashCode * 397) ^ Debug.GetHashCode();
@@ -278,8 +278,8 @@ namespace Assistant.AssistantCore {
 			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
 				   EnableConfigWatcher == other.EnableConfigWatcher &&
 				   UpdateIntervalInHours == other.UpdateIntervalInHours &&
-				   KestrelServer == other.KestrelServer && GPIOSafeMode == other.GPIOSafeMode &&
-				   Equals(RelayPins, other.RelayPins) && Equals(IRSensorPins, other.IRSensorPins) &&
+				   KestrelServer == other.KestrelServer && GpioSafeMode == other.GpioSafeMode &&
+				   Equals(OutputModePins, other.OutputModePins) && Equals(InputModePins, other.InputModePins) &&
 				   DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
 				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
 				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&

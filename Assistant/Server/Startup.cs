@@ -27,7 +27,6 @@
 //SOFTWARE.
 
 using Assistant.AssistantCore;
-using Assistant.Server.SignalR.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -56,7 +55,7 @@ namespace Assistant.Server {
 				}
 			);
 
-			services.AddSignalR();
+			//services.AddSignalR();
 			services.AddSwaggerGen(c => {
 				c.SwaggerDoc("v1", new OpenApiInfo {
 					Version = "v1",
@@ -79,9 +78,9 @@ namespace Assistant.Server {
 			app.UseSwagger();
 			app.UseResponseCompression();
 			app.UseWebSockets();
-			app.UseSignalR(routes => {
-				routes.MapHub<ChatHub>("/chat");
-			});
+			//app.UseSignalR(routes => {
+			//	routes.MapHub<ChatHub>("/chat");
+			//});
 			app.UseSwaggerUI(c => {
 				c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{Core.AssistantName} api documentation");
 				c.RoutePrefix = string.Empty;
