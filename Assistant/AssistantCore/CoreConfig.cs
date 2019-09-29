@@ -59,6 +59,8 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool KestrelServer { get; set; } = true;
 
+		[JsonProperty] public int KestrelServerPort { get; set; } = 9090;
+
 		[JsonProperty] public bool GpioSafeMode { get; set; } = false;
 
 		[JsonProperty] public Dictionary<string, int> AuthenticatedTokens { get; set; }
@@ -222,7 +224,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		public override bool Equals(object obj) {
-			if (ReferenceEquals(null, obj)) {
+			if (obj is null) {
 				return false;
 			}
 

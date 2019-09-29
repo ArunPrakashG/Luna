@@ -78,7 +78,7 @@ namespace Assistant.Extensions {
 		public const string AlarmFileName = "alarm.mp3";
 
 		public const char ConsoleCommandMenuKey = 'c';
-		public const char ConsoleDelayedShutdownKey = 'q';
+		public const char ConsoleShutdownKey = 'q';
 		public const char ConsoleQuickShutdownKey = 'e';
 		public const char ConsoleRelayCommandMenuKey = 'g';
 		public const char ConsoleTestMethodExecutionKey = 't';

@@ -38,6 +38,7 @@ namespace Assistant.Server.Controllers {
 	[Route("api/speech/")]
 	public class AssistantSpeechController : Controller {
 
+		//TODO: make endpoint for speech communication between two apps
 		[HttpPost("")]
 		public ActionResult<GenericResponse<string>> PostSpeechResult(string speechText) {
 			if (!Core.CoreInitiationCompleted) {
@@ -54,7 +55,5 @@ namespace Assistant.Server.Controllers {
 			SpeechBus.RecognizedSpeech = speechText;
 			return Ok(new GenericResponse<string>("Success!", Enums.HttpStatusCodes.OK, DateTime.Now));
 		}
-
 	}
-
 }

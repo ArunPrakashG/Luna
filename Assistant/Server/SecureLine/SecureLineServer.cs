@@ -53,7 +53,7 @@ namespace Assistant.Server.SecureLine {
 			Helpers.InBackgroundThread(async () => {
 				try {
 					while (!StopServer && Listener != null) {
-						Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);						
+						Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);
 						byte[] receiveBuffer = new byte[5024];
 						int b = socket.Receive(receiveBuffer);
 						EndPoint remoteEndpoint = socket.RemoteEndPoint;
@@ -134,7 +134,7 @@ namespace Assistant.Server.SecureLine {
 		}
 
 		private async Task<string> OnAlarmRequestAsync(AlarmRequest alarmRequest) {
-			if(alarmRequest == null || Helpers.IsNullOrEmpty(alarmRequest.AlarmMessage) || alarmRequest.HoursFromNow <= 0) {
+			if (alarmRequest == null || Helpers.IsNullOrEmpty(alarmRequest.AlarmMessage) || alarmRequest.HoursFromNow <= 0) {
 				return "Alarm parameters are empty.";
 			}
 
@@ -149,12 +149,12 @@ namespace Assistant.Server.SecureLine {
 		}
 
 		private async Task<string> OnRemainderRequestAsync(RemainderRequest remainderRequest) {
-			if(remainderRequest == null || Helpers.IsNullOrEmpty(remainderRequest.Message) || remainderRequest.MinutesUntilRemainding <= 0) {
+			if (remainderRequest == null || Helpers.IsNullOrEmpty(remainderRequest.Message) || remainderRequest.MinutesUntilRemainding <= 0) {
 				return "Message or the minutes specified is invalid.";
 			}
-			
+
 			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
-			if(Core.RemainderManager.Remind(remainderRequest.Message, remainderRequest.MinutesUntilRemainding)) {
+			if (Core.RemainderManager.Remind(remainderRequest.Message, remainderRequest.MinutesUntilRemainding)) {
 				ProcessingSemaphore.Release();
 				return "Successfully set remainder for " + remainderRequest.Message;
 			}
@@ -168,7 +168,7 @@ namespace Assistant.Server.SecureLine {
 				return "The request is in incorrect format.";
 			}
 
-			if(!int.TryParse(request.LocationPinCode, out int pinCode)) {
+			if (!int.TryParse(request.LocationPinCode, out int pinCode)) {
 				return "Could not parse the specified pin code.";
 			}
 

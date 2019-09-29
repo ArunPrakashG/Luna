@@ -68,6 +68,10 @@ namespace Assistant.Server.Responses {
 				OSPlatform = "Windows";
 
 				for (int i = 0; i <= 40; i++) {
+					if(!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
+						break;
+					}
+
 					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 
@@ -83,6 +87,10 @@ namespace Assistant.Server.Responses {
 				OSPlatform = "Linux";
 
 				for (int i = 0; i <= 40; i++) {
+					if (!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
+						break;
+					}
+
 					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 
@@ -96,6 +104,10 @@ namespace Assistant.Server.Responses {
 				AssistantRamUsage = "Core is running on a OSX based platform, the required libraries are not supported.";
 				OSPlatform = "OSX";
 				for (int i = 0; i <= 40; i++) {
+					if (!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
+						break;
+					}
+
 					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 
@@ -109,6 +121,10 @@ namespace Assistant.Server.Responses {
 				AssistantRamUsage = "Core is running on an Unknown platform, the required libraries won't run to prevent damage.";
 				OSPlatform = "Unknown platform";
 				for (int i = 0; i <= 40; i++) {
+					if (!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
+						break;
+					}
+
 					GpioStatus.Add(Core.Controller.GetPinConfig(i));
 				}
 

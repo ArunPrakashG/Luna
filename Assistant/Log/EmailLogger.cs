@@ -26,11 +26,10 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+using Assistant.AssistantCore;
 using System;
 using System.Net;
 using System.Net.Mail;
-using Assistant.AssistantCore;
-using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Log {
 
@@ -45,7 +44,7 @@ namespace Assistant.Log {
 
 			try {
 				MailMessage mail = new MailMessage();
-				SmtpClient SmtpServer = new SmtpClient("smtp.gmail.com");
+				using SmtpClient SmtpServer = new SmtpClient("smtp.gmail.com");
 				mail.From = new MailAddress(Core.Config.AssistantEmailId);
 				mail.To.Add(Core.Config.OwnerEmailAddress);
 				mail.Subject = $"-{Core.AssistantName} Home Assistant Notification-";

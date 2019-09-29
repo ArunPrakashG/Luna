@@ -26,66 +26,70 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
-using Assistant.AssistantCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Assistant.Server {
 	public class Startup {
+		private readonly IConfiguration Configuration;
+
+		public Startup([NotNull] IConfiguration configuration) => Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+
+		public void Configure(IApplicationBuilder app, IWebHostEnvironment env) {
+			if ((app == null) || (env == null)) {
+				return;
+			}
+
+			app.UseForwardedHeaders();
+			app.UseResponseCompression();
+			app.UseWebSockets();
+			app.UseRouting();
+			app.UseEndpoints(endpoints => endpoints.MapControllers());
+			app.UseSwagger();
+			app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/HomeAssistant/swagger.json", "HomeAssistant API"));
+		}
+
+
 
 		public void ConfigureServices(IServiceCollection services) {
+			if (services == null) {
+				return;
+			}
+
+			services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
 			services.AddResponseCompression();
 			services.AddCors(builder => builder.AddDefaultPolicy(policyBuilder => policyBuilder.AllowAnyOrigin()));
-			IMvcCoreBuilder mvc = services.AddMvcCore();
-			mvc.AddApiExplorer();
+			services.AddSwaggerGen(
+				options => {
+					options.EnableAnnotations();
+					options.SwaggerDoc(
+						"HomeAssistant", new OpenApiInfo {
+							License = new OpenApiLicense {
+								Name = "MIT"
+							},
+
+							Title = "HomeAssistant API"
+						}
+					);
+				}
+			);
+			IMvcBuilder mvc = services.AddControllers();
 			mvc.SetCompatibilityVersion(CompatibilityVersion.Latest);
-			mvc.AddFormatterMappings();
-			mvc.AddJsonFormatters();			
-			mvc.AddJsonOptions(
+			mvc.AddNewtonsoftJson(
 				options => {
 					options.SerializerSettings.ContractResolver = new DefaultContractResolver();
 					options.SerializerSettings.Formatting = Formatting.Indented;
 				}
 			);
-
-			//services.AddSignalR();
-			services.AddSwaggerGen(c => {
-				c.SwaggerDoc("v1", new OpenApiInfo {
-					Version = "v1",
-					Title = "Home assistant API",
-					Description = $"Documentation for {Core.AssistantName} api endpoints.",
-					Contact = new OpenApiContact() {
-						Name = "Arun Prakash",
-						Email = "arun.prakash.456789@gmail.com",
-						Url = new Uri("https://github.com/SynergYFTW/HomeAssistant")
-					},
-					License = new OpenApiLicense() {
-						Name = "MIT License",
-						Url = new Uri("https://github.com/SynergYFTW/HomeAssistant/blob/master/LICENSE")
-					}
-				});
-			});
-		}
-
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory) {
-			app.UseSwagger();
-			app.UseResponseCompression();
-			app.UseWebSockets();
-			//app.UseSignalR(routes => {
-			//	routes.MapHub<ChatHub>("/chat");
-			//});
-			app.UseSwaggerUI(c => {
-				c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{Core.AssistantName} api documentation");
-				c.RoutePrefix = string.Empty;
-			});
-			app.UseMvc();
 		}
 	}
 }

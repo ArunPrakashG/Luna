@@ -32,7 +32,6 @@ using Assistant.Extensions;
 using Assistant.Geolocation;
 using Assistant.Log;
 using Assistant.Modules;
-using Assistant.Modules.Interfaces;
 using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.PushBullet.ApiResponse;
@@ -40,6 +39,7 @@ using Assistant.Remainders;
 using Assistant.Schedulers;
 using Assistant.Server;
 using Assistant.Server.SecureLine;
+using Assistant.Server.TCPServer;
 using Assistant.Update;
 using Assistant.Weather;
 using CommandLine;
@@ -76,9 +76,9 @@ namespace Assistant.AssistantCore {
 		public bool DisableFirstChance { get; set; }
 	}
 
-	public class Core {
+	public static class Core {
 		private const int SendIpDelay = 60;
-		private static Logger Logger { get; set; } = new Logger("ASSISTANT");
+		public static Logger Logger { get; set; } = new Logger("ASSISTANT");
 		public static PiController Controller { get; private set; }
 		public static Updater Update { get; private set; } = new Updater();
 		public static ProcessStatus AssistantStatus { get; private set; }
@@ -98,13 +98,13 @@ namespace Assistant.AssistantCore {
 		public static RemainderManager RemainderManager { get; private set; } = new RemainderManager();
 		public static SchedulerService Scheduler { get; private set; } = new SchedulerService();
 		public static AlarmManager AlarmManager { get; private set; } = new AlarmManager();
+		public static TCPServerCore TCPServer { get; private set; }
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
 		public static bool IsUnknownOs { get; set; }
 		public static bool IsNetworkAvailable { get; set; }
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
-		public static bool GracefullModuleShutdown { get; set; } = false;
 		public static OSPlatform RunningPlatform { get; private set; }
 		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
 		public static string AssistantName { get; set; } = "TESS Assistant";
@@ -142,6 +142,8 @@ namespace Assistant.AssistantCore {
 
 			SecureLine = new SecureLineServer(IPAddress.Any, 7777);
 			SecureLine.StartSecureLine();
+			TCPServer = new TCPServerCore(1001);
+			TCPServer.StartServerCore();
 
 			SendLocalIp(!Helpers.IsNullOrEmpty(Constants.LocalIP));
 
@@ -196,6 +198,11 @@ namespace Assistant.AssistantCore {
 
 			ModuleWatcher.InitModuleWatcher();
 			Controller = new PiController(true);
+
+			if (!Controller.IsProperlyInitialized) {
+				Controller = null;
+			}
+
 			CoreInitiationCompleted = true;
 
 			await PostInitTasks().ConfigureAwait(false);
@@ -211,7 +218,6 @@ namespace Assistant.AssistantCore {
 			}
 
 			await TTSService.AssistantVoice(Enums.SpeechContext.AssistantStartup).ConfigureAwait(false);
-			
 			await KeepAlive().ConfigureAwait(false);
 		}
 
@@ -225,9 +231,8 @@ namespace Assistant.AssistantCore {
 
 		private static async Task DisplayConsoleCommandMenu() {
 			Logger.Log("Displaying console command window", Enums.LogLevels.Trace);
-			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", Enums.LogLevels.UserInput);
-			Logger.Log($"{Constants.ConsoleQuickShutdownKey} - Quick shutdown the assistant.", Enums.LogLevels.UserInput);
-			Logger.Log($"{Constants.ConsoleDelayedShutdownKey} - Shutdown assistant in 5 seconds.", Enums.LogLevels.UserInput);
+			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", Enums.LogLevels.UserInput);			
+			Logger.Log($"{Constants.ConsoleShutdownKey} - Shutdown assistant in 5 seconds.", Enums.LogLevels.UserInput);
 
 			if (!DisablePiMethods) {
 				Logger.Log($"{Constants.ConsoleRelayCommandMenuKey} - Display relay pin control menu.", Enums.LogLevels.UserInput);
@@ -263,120 +268,100 @@ namespace Assistant.AssistantCore {
 				char pressedKey = Console.ReadKey().KeyChar;
 
 				switch (pressedKey) {
-					case Constants.ConsoleQuickShutdownKey: {
-							Logger.Log("Force quitting assistant...", Enums.LogLevels.Warn);
-							Exit(true);
+					case Constants.ConsoleShutdownKey:
+						Logger.Log("Shutting down assistant...", Enums.LogLevels.Warn);
+						await Task.Delay(1000).ConfigureAwait(false);
+						await Exit(0).ConfigureAwait(false);
+						return;
+
+					case Constants.ConsoleRelayCommandMenuKey when !DisablePiMethods:
+						Logger.Log("Displaying relay command menu...", Enums.LogLevels.Warn);
+						DisplayRelayCommandMenu();
+						return;
+
+					case Constants.ConsoleRelayCycleMenuKey when !DisablePiMethods:
+						Logger.Log("Displaying relay cycle menu...", Enums.LogLevels.Warn);
+						await DisplayRelayCycleMenu().ConfigureAwait(false);
+						return;
+
+					case Constants.ConsoleRelayCommandMenuKey when DisablePiMethods:
+					case Constants.ConsoleRelayCycleMenuKey when DisablePiMethods:
+						Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
+						return;
+
+					case Constants.ConsoleMorseCodeKey:
+						Logger.Log("Enter text to convert to morse: ");
+						string morseCycle = Console.ReadLine();
+						if (Controller.MorseTranslator.IsTranslatorOnline) {
+							await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.OutputModePins[0]).ConfigureAwait(false);
+						}
+						else {
+							Logger.Log("Could not convert due to an unknown error.", Enums.LogLevels.Warn);
 						}
 						return;
 
-					case Constants.ConsoleDelayedShutdownKey: {
-							Logger.Log("Gracefully shutting down assistant...", Enums.LogLevels.Warn);
-							GracefullModuleShutdown = true;
-							await Task.Delay(5000).ConfigureAwait(false);
-							await Exit(0).ConfigureAwait(false);
-						}
-						return;
+					case Constants.ConsoleWheatherInfoKey:
+						Logger.Log("Please enter the pin code of the location: ");
+						int counter = 0;
 
-					case Constants.ConsoleRelayCommandMenuKey when !DisablePiMethods: {
-							Logger.Log("Displaying relay command menu...", Enums.LogLevels.Warn);
-							DisplayRelayCommandMenu();
-						}
-						return;
+						int pinCode;
+						while (true) {
+							if (counter > 4) {
+								Logger.Log("Failed multiple times. aborting...");
+								return;
+							}
 
-					case Constants.ConsoleRelayCycleMenuKey when !DisablePiMethods: {
-							Logger.Log("Displaying relay cycle menu...", Enums.LogLevels.Warn);
-							await DisplayRelayCycleMenu().ConfigureAwait(false);
+							try {
+								pinCode = Convert.ToInt32(Console.ReadLine());
+								break;
+							}
+							catch {
+								counter++;
+								Logger.Log("Please try again!", Enums.LogLevels.Warn);
+								continue;
+							}
 						}
-						return;
 
-					case Constants.ConsoleRelayCommandMenuKey when DisablePiMethods: {
-							Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
-						}
-						return;
-
-					case Constants.ConsoleRelayCycleMenuKey when DisablePiMethods: {
-							Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
-						}
-						return;
-
-					case Constants.ConsoleMorseCodeKey: {
-							Logger.Log("Enter text to convert to morse: ");
-							string morseCycle = Console.ReadLine();
-							if (Controller.MorseTranslator.IsTranslatorOnline) {
-								await Controller.MorseTranslator.RelayMorseCycle(morseCycle, Config.OutputModePins[0]).ConfigureAwait(false);
+						if (WeatherApi != null) {
+							(bool status, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, pinCode, "in");
+							if (status) {
+								Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", Enums.LogLevels.Success);
+								Logger.Log($"Temperature: {response.Temperature}", Enums.LogLevels.Success);
+								Logger.Log($"Humidity: {response.Temperature}", Enums.LogLevels.Success);
+								Logger.Log($"Latitude: {response.Latitude}", Enums.LogLevels.Success);
+								Logger.Log($"Longitude: {response.Logitude}", Enums.LogLevels.Success);
+								Logger.Log($"Location name: {response.LocationName}", Enums.LogLevels.Success);
+								Logger.Log($"Preasure: {response.Pressure}", Enums.LogLevels.Success);
+								Logger.Log($"Wind speed: {response.WindDegree}", Enums.LogLevels.Success);
 							}
 							else {
-								Logger.Log("Could not convert due to an unknown error.", Enums.LogLevels.Warn);
+								Logger.Log("Failed to fetch wheather information, try again later!");
 							}
 						}
+
 						return;
 
-					case Constants.ConsoleWheatherInfoKey: {
-							Logger.Log("Please enter the pin code of the location: ");
-							int counter = 0;
-
-							int pinCode;
-							while (true) {
-								if (counter > 4) {
-									Logger.Log("Failed multiple times. aborting...");
-									return;
-								}
-
-								try {
-									pinCode = Convert.ToInt32(Console.ReadLine());
-									break;
-								}
-								catch {
-									counter++;
-									Logger.Log("Please try again!", Enums.LogLevels.Warn);
-									continue;
-								}
-							}
-
-							if (WeatherApi != null) {
-								(bool status, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, pinCode, "in");
-								if (status) {
-									Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", Enums.LogLevels.Success);
-									Logger.Log($"Temperature: {response.Temperature}", Enums.LogLevels.Success);
-									Logger.Log($"Humidity: {response.Temperature}", Enums.LogLevels.Success);
-									Logger.Log($"Latitude: {response.Latitude}", Enums.LogLevels.Success);
-									Logger.Log($"Longitude: {response.Logitude}", Enums.LogLevels.Success);
-									Logger.Log($"Location name: {response.LocationName}", Enums.LogLevels.Success);
-									Logger.Log($"Preasure: {response.Pressure}", Enums.LogLevels.Success);
-									Logger.Log($"Wind speed: {response.WindDegree}", Enums.LogLevels.Success);
-								}
-								else {
-									Logger.Log("Failed to fetch wheather information, try again later!");
-								}
-							}
-						}
+					case Constants.ConsoleTestMethodExecutionKey:
+						Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);
+						Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Success);
 						return;
 
-					case Constants.ConsoleTestMethodExecutionKey: {
-							Logger.Log("Executing test methods/tasks", Enums.LogLevels.Warn);							
-							Logger.Log("Test method execution finished successfully!", Enums.LogLevels.Success);
-						}
+					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count > 0 && Config.EnableModules:
+						Logger.Log("Shutting down all modules...", Enums.LogLevels.Warn);
+						ModuleLoader.OnCoreShutdown();
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count > 0 && Config.EnableModules: {
-							Logger.Log("Shutting down all modules...", Enums.LogLevels.Warn);
-							ModuleLoader.OnCoreShutdown();
-						}
+					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count <= 0:
+						Logger.Log("There are no modules to shutdown...");
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count <= 0: {
-							Logger.Log("There are no modules to shutdown...");
+					default:
+						if (failedTriesCount > maxTries) {
+							Logger.Log($"Unknown key was pressed. ({maxTries - failedTriesCount} tries left)", Enums.LogLevels.Warn);
 						}
-						return;
 
-					default: {
-							if (failedTriesCount > maxTries) {
-								Logger.Log($"Unknown key was pressed. ({maxTries - failedTriesCount} tries left)", Enums.LogLevels.Warn);
-							}
-
-							failedTriesCount++;
-							continue;
-						}
+						failedTriesCount++;
+						continue;
 				}
 			}
 		}
@@ -712,47 +697,25 @@ namespace Assistant.AssistantCore {
 
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
+
 			if (ModuleLoader != null) {
 				await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantShutdown).ConfigureAwait(false);
 			}
 
-			if (TaskManager != null) {
-				TaskManager.OnCoreShutdownRequested();
-			}
-
-			if (Update != null) {
-				Update.StopUpdateTimer();
-				Logger.Log("Update timer disposed!", Enums.LogLevels.Trace);
-			}
-
-			if (RefreshConsoleTitleTimer != null) {
-				RefreshConsoleTitleTimer.Dispose();
-				Logger.Log("Console title refresh timer disposed!", Enums.LogLevels.Trace);
-			}
-
-			if (ConfigWatcher != null && ConfigWatcher.ConfigWatcherOnline) {
-				ConfigWatcher.StopConfigWatcher();
-			}
-
-			if (ModuleWatcher != null && ModuleWatcher.ModuleWatcherOnline) {
-				ModuleWatcher.StopModuleWatcher();
-			}
-
-			if (AssistantStatus != null) {
-				AssistantStatus.Dispose();
-			}
+			Controller?.InitGpioShutdownTasks();
+			TCPServer?.StopServer();
+			TaskManager?.OnCoreShutdownRequested();
+			Update?.StopUpdateTimer();
+			RefreshConsoleTitleTimer?.Dispose();
+			ConfigWatcher?.StopConfigWatcher();
+			ModuleWatcher?.StopModuleWatcher();
+			AssistantStatus?.Dispose();
 
 			if (KestrelServer.IsServerOnline) {
 				await KestrelServer.Stop().ConfigureAwait(false);
 			}
 
-			if (ModuleLoader != null) {
-				ModuleLoader.OnCoreShutdown();
-			}
-
-			if (Controller != null) {
-				Controller.InitGpioShutdownTasks();
-			}
+			ModuleLoader?.OnCoreShutdown();			
 
 			if (Config != null) {
 				Config.ProgramLastShutdown = DateTime.Now;
@@ -762,42 +725,12 @@ namespace Assistant.AssistantCore {
 			Logger.Log("Finished on exit tasks.", Enums.LogLevels.Trace);
 		}
 
-		public static void Exit(bool quickShutdown) {
-			if (quickShutdown) {
-				GracefullModuleShutdown = false;
-
-				if (Controller != null) {
-					Controller.InitGpioShutdownTasks();
-				}
-
-				if (TaskManager != null) {
-					TaskManager.OnCoreShutdownRequested();
-				}
-
-				if (Update != null) {
-					Update.StopUpdateTimer();
-					Logger.Log("Update timer disposed!", Enums.LogLevels.Trace);
-				}
-
-				if (RefreshConsoleTitleTimer != null) {
-					RefreshConsoleTitleTimer.Dispose();
-					Logger.Log("Console title refresh timer disposed!", Enums.LogLevels.Trace);
-				}
-
-				Logger.Log("Bye, Sorry to see you go so fast!");
-				Logging.LoggerOnShutdown();
-				Environment.Exit(0);
-			}
-		}
-
 		public static async Task Exit(int exitCode = 0) {
 			if (exitCode != 0) {
-				GracefullModuleShutdown = false;
 				Logger.Log("Exiting with nonzero error code...", Enums.LogLevels.Error);
 			}
 
 			if (exitCode == 0) {
-				GracefullModuleShutdown = true;
 				await OnExit().ConfigureAwait(false);
 			}
 
@@ -812,7 +745,7 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
-			Helpers.ScheduleTask(() => Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll", false), TimeSpan.FromSeconds(delay));
+			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);
 		}

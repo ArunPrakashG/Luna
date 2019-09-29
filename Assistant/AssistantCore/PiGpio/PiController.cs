@@ -72,14 +72,16 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		public SoundController PiSound { get; private set; }
 
-		public static bool IsProperlyInitialized { get; private set; }
+		public bool IsProperlyInitialized { get; private set; }
 		public static List<GpioPinConfig> PinConfigCollection { get; private set; } = new List<GpioPinConfig>(40);
 
 		public bool EnableExperimentalFunction = false;
 
+		//TODO: Specify the driver to use for initilizing the controller. eg: new GenericDriver() | new WiringPiDriver()
 		public PiController(bool withPolling) {
 			if (Core.DisablePiMethods || Core.RunningPlatform != OSPlatform.Linux) {
 				Logger.Log("Failed to start PiController.", Enums.LogLevels.Warn);
+				IsProperlyInitialized = false;
 				return;
 			}
 
@@ -238,8 +240,8 @@ namespace Assistant.AssistantCore.PiGpio {
 			return result;
 		}
 
-		public (int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) GetGpio(int pinNumber) =>
-			(pinNumber, Pi.Gpio[pinNumber].PinMode, Pi.Gpio[pinNumber].Read() ? GpioPinValue.High : GpioPinValue.Low);
+		public (int pin, GpioPinDriveMode driveMode, GpioPinValue pinValue) GetGpio(int pinNumber) => Core.CoreInitiationCompleted && !Core.DisablePiMethods ?
+			(pinNumber, Pi.Gpio[pinNumber].PinMode, Pi.Gpio[pinNumber].Read() ? GpioPinValue.High : GpioPinValue.Low) : (0, GpioPinDriveMode.Input, GpioPinValue.High);
 
 		public bool SetGpioWithTimeout(int pin, GpioPinDriveMode mode, GpioPinValue state, TimeSpan duration, bool delayedTask) {
 			if (pin <= 0) {
@@ -337,7 +339,7 @@ namespace Assistant.AssistantCore.PiGpio {
 				}
 			}
 
-			GpioPollingManager.ExitEventGenerator();
+			GpioPollingManager?.ExitEventGenerator();
 
 			if (Core.Config.CloseRelayOnShutdown) {
 				foreach (int pin in Core.Config.OutputModePins) {

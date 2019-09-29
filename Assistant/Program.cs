@@ -27,7 +27,6 @@
 //SOFTWARE.
 
 using Assistant.AssistantCore;
-using Assistant.Extensions;
 using Assistant.Log;
 using System;
 using System.IO;
@@ -128,13 +127,13 @@ namespace Assistant {
 			await Core.OnNetworkDisconnected().ConfigureAwait(false);
 		}
 
-		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {			
+		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
 			if (e.IsAvailable && !Core.IsNetworkAvailable) {
 				await NetworkReconnect().ConfigureAwait(false);
 				return;
 			}
 
-			if(!e.IsAvailable && Core.IsNetworkAvailable) {
+			if (!e.IsAvailable && Core.IsNetworkAvailable) {
 				await NetworkDisconnect().ConfigureAwait(false);
 				return;
 			}

@@ -60,6 +60,12 @@ namespace Assistant.Extensions {
 				return;
 			}
 
+			if (!Core.CoreInitiationCompleted) {
+				float identifer = GenerateTaskIdentifier(new Random());
+				InBackgroundThread(action, identifer.ToString());
+				return;
+			}
+
 			if (Core.DisablePiMethods) {
 				float identifer = GenerateTaskIdentifier(new Random());
 				InBackgroundThread(action, identifer.ToString());
@@ -167,6 +173,10 @@ namespace Assistant.Extensions {
 		}
 
 		public static bool IsSocketConnected(Socket s) {
+			if(s == null) {
+				return false;
+			}
+
 			bool part1 = s.Poll(1000, SelectMode.SelectRead);
 			bool part2 = s.Available == 0;
 			if (part1 && part2) {
@@ -201,6 +211,22 @@ namespace Assistant.Extensions {
 			}
 			
 			return result;
+		}
+
+		public static void LogInfo(this string msg) {
+			if (IsNullOrEmpty(msg)) {
+				return;
+			}
+
+			Core.Logger.Log(msg, LogLevels.Info);
+		}
+
+		public static void LogInfo(this string msg, Logger logger) {
+			if(IsNullOrEmpty(msg) || logger == null) {
+				return;
+			}
+
+			logger.Log(msg, LogLevels.Info);
 		}
 
 		public static void PlayNotification(Enums.NotificationContext context = Enums.NotificationContext.Normal, bool redirectOutput = false) {
