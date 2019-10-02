@@ -1,40 +1,11 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
 using Assistant.AssistantCore;
 using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
-using Assistant.Server.Authentication;
 using Assistant.Server.Responses;
-using Unosquare.RaspberryIO.Abstractions;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Server.Controllers {
 
@@ -57,8 +28,8 @@ namespace Assistant.Server.Controllers {
 
 			try {
 				List<GpioPinConfig> config = new List<GpioPinConfig>();
-				for(int i=0; i<=40; i++) {
-					config.Add(Core.Controller.GetPinConfig(i));
+				for (int i = 0; i <= 40; i++) {
+					config.Add(Core.PiController.PinController.GetGpioConfig(i));
 				}
 
 				return Ok(new GenericResponse<List<GpioPinConfig>>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
@@ -86,7 +57,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			try {
-				GpioPinConfig config = Core.Controller.GetPinConfig(pinNumber);
+				GpioPinConfig config = Core.PiController.PinController.GetGpioConfig(pinNumber);
 				return Ok(new GenericResponse<GpioPinConfig>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
@@ -110,7 +81,7 @@ namespace Assistant.Server.Controllers {
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
 			foreach (int pin in Core.Config.OutputModePins) {
-				resultConfig.Add(Core.Controller.GetPinConfig(pin));
+				resultConfig.Add(Core.PiController.PinController.GetGpioConfig(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -139,7 +110,7 @@ namespace Assistant.Server.Controllers {
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
 			foreach (int pin in Core.Config.InputModePins) {
-				resultConfig.Add(Core.Controller.GetPinConfig(pin));
+				resultConfig.Add(Core.PiController.PinController.GetGpioConfig(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -158,7 +129,7 @@ namespace Assistant.Server.Controllers {
 	public class AssistantGpioConfigController : Controller {
 
 		[HttpPost("pin")]
-		public ActionResult<GenericResponse<string>> SetPinStatus(string apiKey, int pinNumber, Enums.PinMode pinMode, bool isOn) {
+		public ActionResult<GenericResponse<string>> SetPinStatus(string apiKey, int pinNumber, GpioPinMode pinMode, bool isOn) {
 			if (pinNumber < 0 || pinNumber > 31) {
 				return NotFound(new GenericResponse<string>("The specified pin is either less than 0 or greater than 31.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
 			}
@@ -183,8 +154,7 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			bool result = Core.Controller.SetGpioValue(pinNumber, pinMode == Enums.PinMode.Output ? GpioPinDriveMode.Output : GpioPinDriveMode.Input,
-				isOn ? GpioPinValue.Low : GpioPinValue.High);
+			bool result = Core.PiController.PinController.SetGpioValue(pinNumber, pinMode, isOn ? Enums.GpioPinState.On : Enums.GpioPinState.Off);
 
 			if (result) {
 				return Ok(new GenericResponse<string>($"Successfully set {pinNumber} to {isOn} state. ({pinMode})",
@@ -196,7 +166,7 @@ namespace Assistant.Server.Controllers {
 		}
 
 		[HttpPost("relay")]
-		public ActionResult<GenericResponse<string>> RelayCycle(string apiKey, Enums.GPIOCycles cycleMode) {
+		public ActionResult<GenericResponse<string>> RelayCycle(string apiKey, Enums.GpioCycles cycleMode) {
 			if (Helpers.IsNullOrEmpty(apiKey)) {
 				return BadRequest(new GenericResponse<string>("Authentication code cannot be null, or empty.",
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
@@ -217,7 +187,7 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			Helpers.InBackgroundThread(async () => await Core.Controller.RelayTestService(cycleMode).ConfigureAwait(false), "Relay Cycle");
+			Helpers.InBackgroundThread(async () => await Core.PiController.PinController.RelayTestServiceAsync(cycleMode).ConfigureAwait(false), "Relay Cycle");
 			return Ok(new GenericResponse<string>(
 				$"Successfully started gpio relay test cycle. configured to {cycleMode.ToString()} cycle mode.", Enums.HttpStatusCodes.OK,
 				DateTime.Now));

@@ -98,7 +98,7 @@ namespace Assistant.Alarm {
 				return;
 			}
 
-			await Core.Controller.PiSound.SetPiVolume(90).ConfigureAwait(false);
+			await Core.PiController.PiSound.SetPiVolume(90).ConfigureAwait(false);
 			foreach (Alarm alarm in Alarms) {
 				if (alarm.AlarmGuid == guid) {
 					while (!alarm.Snooze) {

@@ -73,9 +73,23 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty]
 		public int[] InputModePins = new int[] {
+			26,20,16
+		};
+
+		[JsonProperty]
+		public int[] IRSensorPins = new int[] {
 			26,20
 		};
 
+		[JsonProperty]
+		public int[] SoundSensorPins = new int[] {
+			16
+		};
+
+		[JsonProperty]
+		public int[] RelayPins = new int[] {
+			2, 3, 4, 17, 27, 22, 10, 9
+		};
 		[JsonProperty] public bool DisplayStartupMenu { get; set; } = false;
 
 		[JsonProperty] public bool EnableGpioControl { get; set; } = true;

@@ -13,7 +13,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Unosquare.RaspberryIO.Abstractions;
 
 namespace Assistant.Server.SecureLine {
 	public class ConnectedClient {
@@ -193,8 +192,8 @@ namespace Assistant.Server.SecureLine {
 			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
 
 			int pinNumber;
-			GpioPinDriveMode mode;
-			GpioPinValue value;
+			Enums.GpioPinMode mode;
+			Enums.GpioPinState value;
 			string result = null;
 
 			switch (request.Command) {
@@ -204,15 +203,12 @@ namespace Assistant.Server.SecureLine {
 					}
 
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
-					mode = (GpioPinDriveMode) Convert.ToInt32(request.StringParameters[1].Trim());
-					value = (GpioPinValue) Convert.ToInt32(request.StringParameters[2].Trim());
+					mode = (Enums.GpioPinMode) Convert.ToInt32(request.StringParameters[1].Trim());
+					value = (Enums.GpioPinState) Convert.ToInt32(request.StringParameters[2].Trim());
 					int delay = Convert.ToInt32(request.StringParameters[3].Trim());
-					if (Core.Controller.SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay), true)) {
-						result = $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()} for {delay} minutes.";
-					}
-					else {
-						result = "Failed";
-					}
+					result = Core.PiController.PinController.SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay))
+						? $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()} for {delay} minutes."
+						: "Failed";
 					break;
 				case "SETGPIO" when request.StringParameters.Count == 3:
 					if (request.StringParameters == null) {
@@ -220,14 +216,11 @@ namespace Assistant.Server.SecureLine {
 					}
 
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
-					mode = (GpioPinDriveMode) Convert.ToInt32(request.StringParameters[1].Trim());
-					value = (GpioPinValue) Convert.ToInt32(request.StringParameters[2].Trim());
-					if (Core.Controller.SetGpioValue(pinNumber, mode, value)) {
-						result = $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()}";
-					}
-					else {
-						result = "Failed";
-					}
+					mode = (Enums.GpioPinMode) Convert.ToInt32(request.StringParameters[1].Trim());
+					value = (Enums.GpioPinState) Convert.ToInt32(request.StringParameters[2].Trim());
+					result = Core.PiController.PinController.SetGpioValue(pinNumber, mode, value)
+						? $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()}"
+						: "Failed";
 					break;
 
 				case "SETGPIO" when request.StringParameters.Count == 2:
@@ -236,14 +229,11 @@ namespace Assistant.Server.SecureLine {
 					}
 
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
-					mode = (GpioPinDriveMode) Convert.ToInt32(request.StringParameters[1].Trim());
+					mode = (Enums.GpioPinMode) Convert.ToInt32(request.StringParameters[1].Trim());
 
-					if (Core.Controller.SetGpioValue(pinNumber, mode, GpioPinValue.High)) {
-						result = $"Successfully set {pinNumber} pin to {mode.ToString()} mode.";
-					}
-					else {
-						result = "Failed";
-					}
+					result = Core.PiController.PinController.SetGpioValue(pinNumber, mode)
+						? $"Successfully set {pinNumber} pin to {mode.ToString()} mode."
+						: "Failed";
 					break;
 
 				case "GETGPIO" when request.StringParameters.Count == 1:
@@ -252,7 +242,7 @@ namespace Assistant.Server.SecureLine {
 					}
 
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
-					GpioPinConfig pinConfig = Core.Controller.GetPinConfig(pinNumber);
+					GpioPinConfig pinConfig = Core.PiController.PinController.GetGpioConfig(pinNumber);
 
 					GetGpioResponse response = new GetGpioResponse() {
 						DriveMode = pinConfig.Mode,

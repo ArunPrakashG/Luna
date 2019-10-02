@@ -1,6 +1,5 @@
 using Assistant.Extensions;
 using Assistant.Log;
-using Org.BouncyCastle.Math.EC.Rfc7748;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +8,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using static Assistant.AssistantCore.Enums;
 
-namespace Assistant.Server.TCPServer {	
+namespace Assistant.Server.TCPServer {
 	public class TCPServerCore {
 		private readonly Logger Logger = new Logger("TCP-SERVER");
 		private TcpListener Listener { get; set; }
@@ -48,7 +47,7 @@ namespace Assistant.Server.TCPServer {
 				}
 
 				Logger.Log("TCP Server stopped.");
-			}, "Server Thread #3", true);
+			}, "AlwaysOn Server thread", true);
 		}
 
 		public void StopServer() => IsStopRequested = true;

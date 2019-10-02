@@ -1,7 +1,8 @@
 {
-		"profiles": {
-				"HomeAssistant": {
-						"commandName": "Project"
-				}
-		}
+  "profiles": {
+    "HomeAssistant": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
 }

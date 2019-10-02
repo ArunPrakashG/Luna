@@ -10,12 +10,22 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/bin/Debug/netcoreapp2.1/Assistant.dll",
+            "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/Assistant.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
-            "stopAtEntry": false
+			"stopAtEntry": false,
+			"pipeTransport": {
+                "pipeCwd": "${workspaceRoot}",
+                "pipeProgram": "c:\\Program Files\\PuTTY\\plink.exe",
+                "pipeArgs": [
+                    "-i",
+                    "mysshkeyfile.ppk",
+                    "pi@10.10.10.10"
+                ],
+                "debuggerPath": "~/vsdbg/vsdbg"
+            }
         },
         {
             "name": ".NET Core Attach",

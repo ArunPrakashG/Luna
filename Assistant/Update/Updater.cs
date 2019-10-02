@@ -58,8 +58,6 @@ namespace Assistant.Update {
 			if (ElapasedTimeCalculator != null && ElapasedTimeCalculator.IsRunning) {
 				ElapasedTimeCalculator.Stop();
 			}
-
-			Logger.Log("Update timer disposed.", Enums.LogLevels.Trace);
 		}
 
 		public TimeSpan ElapsedUpdateTime() {

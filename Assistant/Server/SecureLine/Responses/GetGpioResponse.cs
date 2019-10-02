@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Assistant.AssistantCore;
 using Newtonsoft.Json;
-using Unosquare.RaspberryIO.Abstractions;
 
 namespace Assistant.Server.SecureLine.Responses {
 	public class GetGpioResponse {
@@ -10,9 +7,9 @@ namespace Assistant.Server.SecureLine.Responses {
 		public int PinNumber { get; set; }
 
 		[JsonProperty]
-		public GpioPinDriveMode DriveMode { get; set; }
+		public Enums.GpioPinMode DriveMode { get; set; }
 
 		[JsonProperty]
-		public GpioPinValue PinValue { get; set; }
+		public Enums.GpioPinState PinValue { get; set; }
 	}
 }
