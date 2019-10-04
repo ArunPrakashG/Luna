@@ -1,66 +1,49 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
-using Assistant.Schedulers;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace Assistant.Alarm {
-	public class Alarm {
-		[JsonProperty]
-		public string? AlarmMessage { get; set; }
-
-		[JsonProperty]
-		public DateTime AlarmAt { get; set; }
-
-		[JsonProperty]
-		public bool IsCompleted { get; set; }
-
-		[JsonProperty]
-		public string? AlarmGuid { get; set; }
-
-		[JsonProperty]
-		public bool ShouldRepeat { get; set; }
-
-		[JsonProperty]
-		public bool ShouldUseTTS { get; set; }
-
-		[JsonProperty]
-		public bool ShouldOverideSoundSetting { get; set; }
-
-		[JsonProperty]
-		public bool Snooze { get; set; }
-	}
-
 	public class AlarmManager {
-		public static List<Alarm> Alarms { get; set; } = new List<Alarm>();
+		public static Dictionary<AlarmConfig, SchedulerConfig> Alarms = new Dictionary<AlarmConfig, SchedulerConfig>();
 		private readonly Logger Logger = new Logger("ALARM");
 
-		public bool SetAlarm(int hoursFromNow, string alarmMessage, bool useTTS, bool repeat = false, int repeatHours = 0) {
+		public bool SetAlarm(int hoursFromNow, string alarmMessage, bool useTTS, TimeSpan repeatInterval, bool repeat = false) {
 			if (hoursFromNow <= 0 || Helpers.IsNullOrEmpty(alarmMessage)) {
 				return false;
 			}
 
 			string guid = Guid.NewGuid().ToString();
-			Core.Scheduler.ScheduledTimeReached += OnScheduledTimeReached;
 
-			Alarm alarm = new Alarm() {
+			AlarmConfig alarm = new AlarmConfig() {
 				AlarmAt = DateTime.Now.AddHours(hoursFromNow),
 				AlarmGuid = guid,
 				AlarmMessage = alarmMessage,
-				IsCompleted = false,
 				ShouldRepeat = repeat,
 				ShouldOverideSoundSetting = false,
 				ShouldUseTTS = useTTS
 			};
 
-			Core.Scheduler.ScheduleForTime(DateTime.Now.AddHours(hoursFromNow), repeatHours, guid);
-			Alarms.Add(alarm);
-			Logger.Log($"An alarm has been set at {hoursFromNow} hours from now.");
-			return true;
+			SchedulerConfig config = new SchedulerConfig() {
+				Guid = guid,
+				ScheduledSpan = TimeSpan.FromHours(hoursFromNow),
+				RepeatInterval = repeatInterval
+			};
+
+			config.SchedulerObjects.Add(alarm);
+
+			if (alarm.Scheduler != null && alarm.Scheduler.SetScheduler(config)) {
+				alarm.Scheduler.ScheduledTimeReached += OnScheduledTimeReached;
+				Alarms.TryAdd(alarm, config);
+				Logger.Log($"An alarm has been set at {hoursFromNow} hours from now.");
+				return true;
+			}
+
+			Logger.Log("Failed to set alarm.", Enums.LogLevels.Warn);
+			return false;
 		}
 
 		private void OnScheduledTimeReached(object sender, ScheduledTaskEventArgs e) {
@@ -68,28 +51,53 @@ namespace Assistant.Alarm {
 				return;
 			}
 
-			foreach (Alarm alarm in Alarms) {
-				if (alarm.AlarmGuid == e.Guid) {
-					Logger.Log($"ALARM >>> {alarm.AlarmMessage}");
-					if (alarm.ShouldUseTTS) {
-						Task.Run(async () => await TTSService.SpeakText($"Sir, {alarm.AlarmMessage}", true).ConfigureAwait(false));
+			if (sender == null || e == null) {
+				return;
+			}
+
+			AlarmConfig? configToRemove = new AlarmConfig();
+
+			foreach (KeyValuePair<AlarmConfig, SchedulerConfig> alarmConfig in Alarms) {
+				if (alarmConfig.Key == null || alarmConfig.Value == null) {
+					continue;
+				}
+
+				if (alarmConfig.Value.Guid != null && alarmConfig.Value.Guid.Equals(e.Guid)) {
+					Logger.Log($"ALARM >>> {alarmConfig.Key.AlarmMessage}");
+
+					if (alarmConfig.Key.ShouldUseTTS) {
+						Task.Run(async () => await TTSService.SpeakText($"Sir, {alarmConfig.Key.AlarmMessage}", true).ConfigureAwait(false));
 					}
 
-					Helpers.InBackgroundThread(async () => await PlayAlarmSound(alarm.AlarmGuid).ConfigureAwait(false));
-					alarm.IsCompleted = true;
+					if (alarmConfig.Key.AlarmGuid != null) {
+						Helpers.InBackgroundThread(async () => await PlayAlarmSound(alarmConfig.Key.AlarmGuid).ConfigureAwait(false));
+					}
 
-					if (!alarm.ShouldRepeat) {
-						foreach (SchedulerConfig task in Core.Scheduler.Configs) {
-							if (task.Guid == e.Guid) {
-								if (task.SchedulerTimer != null) {
-									task.SchedulerTimer.Dispose();
-								}
-							}
+					if (alarmConfig.Key.ShouldRepeat && !alarmConfig.Key.Snooze) {
+						alarmConfig.Key.Scheduler = null;
+						alarmConfig.Key.Scheduler = new Scheduler();
+						if (e.SchedulerConfig != null) {
+
+							SchedulerConfig config = new SchedulerConfig() {
+								Guid = e.Guid,
+								ScheduledSpan = e.SchedulerConfig.RepeatInterval,
+								RepeatInterval = e.SchedulerConfig.RepeatInterval
+							};
+
+							config.SchedulerObjects.Add(alarmConfig.Key);
+							alarmConfig.Key.Scheduler.SetScheduler(config);
+							alarmConfig.Key.Scheduler.ScheduledTimeReached += OnScheduledTimeReached;
+							Logger.Log($"Alarm will repeat exactly after {e.SchedulerConfig.RepeatInterval.Hours} from now.");
 						}
 					}
-
-					return;
+					else {
+						configToRemove = alarmConfig.Key;
+					}
 				}
+			}
+
+			if (configToRemove != null) {
+				Alarms.Remove(configToRemove);
 			}
 		}
 
@@ -98,16 +106,20 @@ namespace Assistant.Alarm {
 				return;
 			}
 
-			if(Core.PiController == null) {
+			if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized) {
 				return;
 			}
 
-			await Core.PiController.GetSoundController().SetPiVolume(90).ConfigureAwait(false);
-			foreach (Alarm alarm in Alarms) {
-				if (alarm.AlarmGuid == guid) {
-					while (!alarm.Snooze) {
+			foreach (KeyValuePair<AlarmConfig, SchedulerConfig> alarm in Alarms) {
+				if (alarm.Key.AlarmGuid == guid) {
+
+					if (alarm.Key.ShouldOverideSoundSetting) {
+						await Core.PiController.GetSoundController().SetPiVolume(90).ConfigureAwait(false);
+					}
+
+					while (!alarm.Key.Snooze) {
 						string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.AlarmFileName} -q".ExecuteBash(false);
-						await Task.Delay(1000).ConfigureAwait(false);
+						await Task.Delay(3000).ConfigureAwait(false);
 					}
 				}
 			}

@@ -7,7 +7,6 @@ using Assistant.Modules;
 using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.Remainders;
-using Assistant.Schedulers;
 using Assistant.Server;
 using Assistant.Server.SecureLine;
 using Assistant.Server.TCPServer;
@@ -65,7 +64,6 @@ namespace Assistant.AssistantCore {
 		public static MorseCore MorseCode { get; private set; } = new MorseCore();
 		public static SecureLineServer SecureLine { get; private set; } = new SecureLineServer();
 		public static RemainderManager RemainderManager { get; private set; } = new RemainderManager();
-		public static SchedulerService Scheduler { get; private set; } = new SchedulerService();
 		public static AlarmManager AlarmManager { get; private set; } = new AlarmManager();
 		public static TCPServerCore TCPServer { get; private set; } = new TCPServerCore();
 
@@ -114,7 +112,7 @@ namespace Assistant.AssistantCore {
 
 			SecureLine.InitSecureLine(IPAddress.Any, 7777);
 			SecureLine.StartSecureLine();
-			TCPServer.InitTCPServer(1111).StartServerCore();
+			TCPServer.InitTCPServer(5555).StartServerCore();
 			ParseStartupArguments(args);
 
 			if (!Helpers.IsRaspberryEnvironment()) {
@@ -176,7 +174,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		private static void SetConsoleTitle() {
-			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | http://*:9090/ | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
+			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
 			if (RefreshConsoleTitleTimer == null) {
 				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
@@ -197,12 +195,11 @@ namespace Assistant.AssistantCore {
 				}
 
 				Logger.Log($"{Constants.ConsoleMorseCodeKey} - Morse code generator for the specified text.", Enums.LogLevels.UserInput);
-
 			}
 
 			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run pre-configured test methods or tasks.", Enums.LogLevels.UserInput);
 			if (WeatherApi != null) {
-				Logger.Log($"{Constants.ConsoleWheatherInfoKey} - Get weather info of the specified location based on the pin code.", Enums.LogLevels.UserInput);
+				Logger.Log($"{Constants.ConsoleWeatherInfoKey} - Get weather info of the specified location based on the pin code.", Enums.LogLevels.UserInput);
 			}
 
 			Logger.Log($"-------------------------------------------------------------------", Enums.LogLevels.UserInput);
@@ -241,7 +238,7 @@ namespace Assistant.AssistantCore {
 						Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
 						return;
 
-					case Constants.ConsoleMorseCodeKey:
+					case Constants.ConsoleMorseCodeKey when !DisablePiMethods:
 						Logger.Log("Enter text to convert to morse: ");
 						string morseCycle = Console.ReadLine();
 						if (PiController == null) {
@@ -256,7 +253,7 @@ namespace Assistant.AssistantCore {
 						}
 						return;
 
-					case Constants.ConsoleWheatherInfoKey:
+					case Constants.ConsoleWeatherInfoKey:
 						Logger.Log("Please enter the pin code of the location: ");
 						int counter = 0;
 

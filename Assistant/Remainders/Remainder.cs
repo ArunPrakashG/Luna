@@ -4,10 +4,10 @@ using System;
 namespace Assistant.Remainders {
 	public class Remainder {
 		[JsonProperty]
-		public string UniqueId { get; set; } = string.Empty;
+		public string? UniqueId { get; set; }
 
 		[JsonProperty]
-		public string Message { get; set; } = string.Empty;
+		public string? Message { get; set; }
 
 		[JsonProperty]
 		public DateTime RemaindAt { get; set; }

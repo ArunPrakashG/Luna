@@ -42,6 +42,7 @@
 		<PackageReference Include="Discord.Net" Version="2.1.1" />
 		<PackageReference Include="Figgle" Version="0.3.0" />
 		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.2.0" />
+		<PackageReference Include="Hangfire" Version="1.7.6" />
 		<PackageReference Include="MailKit" Version="2.3.1.6" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.5">

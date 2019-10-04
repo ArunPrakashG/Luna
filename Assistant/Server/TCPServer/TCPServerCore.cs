@@ -44,6 +44,9 @@ namespace Assistant.Server.TCPServer {
 							}
 
 							client.Init();
+
+							client.OnMessageRecevied += OnClientMessageRecevied;
+							client.OnDisconnected += OnClientDisconnected;
 						}
 					}
 					await Task.Delay(1).ConfigureAwait(false);
@@ -51,6 +54,14 @@ namespace Assistant.Server.TCPServer {
 
 				Logger.Log("TCP Server stopped.");
 			}, "AlwaysOn Server thread", true);
+		}
+
+		private void OnClientDisconnected(object sender, ClientDisconnectedEventArgs e) {
+			Logger.Log(e.ClientIp + " " + e.DisconnectDelay);
+		}
+
+		private void OnClientMessageRecevied(object sender, ClientMessageEventArgs e) {
+			Logger.Log(e.Payload.RawMessage);
 		}
 
 		public void StopServer() => IsStopRequested = true;

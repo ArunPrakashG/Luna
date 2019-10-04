@@ -139,14 +139,17 @@ namespace Assistant.Server.SecureLine {
 				return "Alarm parameters are empty.";
 			}
 
-			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
-			if (Core.AlarmManager.SetAlarm(alarmRequest.HoursFromNow, alarmRequest.AlarmMessage, alarmRequest.UseTTS, alarmRequest.Repeat, alarmRequest.RepeatHours)) {
-				ProcessingSemaphore.Release();
-				return $"Successfully set an alarm at {alarmRequest.HoursFromNow} hours from now.";
-			}
+			try {
+				await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
+				if (Core.AlarmManager.SetAlarm(alarmRequest.HoursFromNow, alarmRequest.AlarmMessage, alarmRequest.UseTTS, TimeSpan.FromHours(alarmRequest.RepeatHours), alarmRequest.Repeat)) {
+					return $"Successfully set an alarm at {alarmRequest.HoursFromNow} hours from now.";
+				}
 
-			ProcessingSemaphore.Release();
-			return "Failed to set alarm.";
+				return "Failed to set alarm.";
+			}
+			finally {
+				ProcessingSemaphore.Release();
+			}
 		}
 
 		private async Task<string> OnRemainderRequestAsync(RemainderRequest remainderRequest) {
@@ -173,7 +176,7 @@ namespace Assistant.Server.SecureLine {
 				return "Could not parse the specified pin code.";
 			}
 
-			if(Core.Config.OpenWeatherApiKey == null || Core.Config.OpenWeatherApiKey.IsNull()) {
+			if (Core.Config.OpenWeatherApiKey == null || Core.Config.OpenWeatherApiKey.IsNull()) {
 				return "The api key is null";
 			}
 
@@ -210,7 +213,7 @@ namespace Assistant.Server.SecureLine {
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
 					mode = (Enums.GpioPinMode) Convert.ToInt32(request.StringParameters[1].Trim());
 					value = (Enums.GpioPinState) Convert.ToInt32(request.StringParameters[2].Trim());
-					int delay = Convert.ToInt32(request.StringParameters[3].Trim());					
+					int delay = Convert.ToInt32(request.StringParameters[3].Trim());
 					result = Core.PiController.GetPinController().SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay))
 						? $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()} for {delay} minutes."
 						: "Failed";
@@ -263,12 +266,12 @@ namespace Assistant.Server.SecureLine {
 		public static T ObjectFromString<T>(string obj) => JsonConvert.DeserializeObject<T>(obj);
 
 		private static bool IsNullForRange(IEnumerable<string> range) {
-			if(range == null || range.Count() <= 0) {
+			if (range == null || range.Count() <= 0) {
 				return true;
 			}
 
-			foreach(string s in range) {
-				if(s == null || s.IsNull() || Helpers.IsNullOrEmpty(s)) {
+			foreach (string s in range) {
+				if (s == null || s.IsNull() || Helpers.IsNullOrEmpty(s)) {
 					return true;
 				}
 			}

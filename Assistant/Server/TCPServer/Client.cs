@@ -1,6 +1,5 @@
 using Assistant.Extensions;
 using Assistant.Log;
-using Org.BouncyCastle.Utilities.Net;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -10,11 +9,6 @@ using System.Threading.Tasks;
 using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Server.TCPServer {
-	public class Payload {
-		public string Message { get; set; } = string.Empty;
-		public DateTime ReceviedTime { get; set; }
-	}
-
 	public class Client {
 		public string? UniqueId { get; private set; }
 		public string? IpAddress { get; set; }
@@ -24,17 +18,23 @@ namespace Assistant.Server.TCPServer {
 		private readonly Logger Logger = new Logger("CONN-CLIENT");
 		private (int?, Thread?) RecevieThread;
 
+		public delegate void OnClientMessageRecevied(object sender, ClientMessageEventArgs e);
+		public event OnClientMessageRecevied? OnMessageRecevied;
+
+		public delegate void OnClientDisconnected(object sender, ClientDisconnectedEventArgs e);
+		public event OnClientDisconnected? OnDisconnected;
+		private ClientPayload CachedPayload { get; set; } = new ClientPayload() {
+			RawMessage = string.Empty
+		};
+
 		public Client(Socket sock) {
 			ClientSocket = sock ?? throw new ArgumentNullException(nameof(sock), "Socket cannot be null!");
 			ClientEndPoint = ClientSocket.RemoteEndPoint;
 			IpAddress = ClientEndPoint?.ToString()?.Split(':')[0].Trim();
 
-			if(IpAddress != null && !IpAddress.IsNull()) {
-				UniqueId = GenerateUniqueId(IpAddress);
-			}
-			else {
-				UniqueId = GenerateUniqueId(ClientSocket.GetHashCode().ToString());
-			}
+			UniqueId = IpAddress != null && !IpAddress.IsNull()
+				? GenerateUniqueId(IpAddress)
+				: GenerateUniqueId(ClientSocket.GetHashCode().ToString());
 		}
 
 		public void Init() {
@@ -49,13 +49,19 @@ namespace Assistant.Server.TCPServer {
 				RecevieThread.Item2.Abort();
 			}
 
-			if (TCPServerCore.Clients.Contains(this)) {
-				TCPServerCore.Clients.Remove(this);
-				$"Disconnected and disposed client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
-				return;
+			if (IpAddress != null && UniqueId != null) {
+				OnDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(IpAddress, UniqueId, 5000));
 			}
 
-			$"Disconnected client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
+			Helpers.ScheduleTask(() => {
+				if (TCPServerCore.Clients.Contains(this)) {
+					TCPServerCore.Clients.Remove(this);
+					$"Disconnected and disposed client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
+					return;
+				}
+
+				$"Disconnected client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
+			}, TimeSpan.FromSeconds(5));
 		}
 
 		private void RecevieLoop() {
@@ -64,7 +70,7 @@ namespace Assistant.Server.TCPServer {
 				while (!DisconnectClient && ClientSocket.Connected) {
 					try {
 						int i = ClientSocket.Receive(receiveBuffer);
-						if (i == -1) {
+						if (i <= 0) {
 							break;
 						}
 
@@ -75,10 +81,18 @@ namespace Assistant.Server.TCPServer {
 							continue;
 						}
 
-						Payload payload = new Payload() {
-							Message = receviedMessage,
+						ClientPayload payload = new ClientPayload() {
+							RawMessage = receviedMessage,
+							ClientId = UniqueId,
+							ClientIp = IpAddress,
 							ReceviedTime = DateTime.Now
 						};
+
+						if(payload.RawMessage.Equals(CachedPayload.RawMessage, StringComparison.OrdinalIgnoreCase)) {
+							continue;
+						}
+
+						CachedPayload = payload;
 
 						OnRecevied(payload);
 						await Task.Delay(1).ConfigureAwait(false);
@@ -107,16 +121,16 @@ namespace Assistant.Server.TCPServer {
 			}, UniqueId ?? throw new ArgumentNullException("The unique id of the client cannot be null."), true);
 		}
 
-		private void OnRecevied(Payload payload) {
-			if (payload == null || Helpers.IsNullOrEmpty(payload.Message)) {
+		private void OnRecevied(ClientPayload payload) {
+			if (payload == null || payload.RawMessage == null || Helpers.IsNullOrEmpty(payload.RawMessage)) {
 				return;
 			}
 
-			$"Recevied message -> {UniqueId} -> {payload.Message}".LogInfo(Logger);
-
+			$"Recevied a message from -> {UniqueId} -> {payload.RawMessage}".LogInfo(Logger);
+			OnMessageRecevied?.Invoke(this, new ClientMessageEventArgs(payload));
 			//TODO process the message and send the reply
 			//TODO: just send the recevied message back for now
-			OnProcessedResult(payload.Message);
+			OnProcessedResult(payload.RawMessage);
 		}
 
 		private void OnProcessedResult(string response) {
@@ -130,7 +144,25 @@ namespace Assistant.Server.TCPServer {
 				return;
 			}
 
-			ClientSocket.Send(Encoding.ASCII.GetBytes(response));
+			if (response.Equals("DISCONNECT")) {
+				DisconnectConnection();
+			}
+
+			SendMessage(response);
+		}
+
+		private void SendMessage(string msg) {
+			if (msg == null || msg.IsNull()) {
+				return;
+			}
+
+			if (!Helpers.IsSocketConnected(ClientSocket)) {
+				Logger.Log("Failed to send response as client is disconnected.", LogLevels.Warn);
+				DisconnectConnection();
+				return;
+			}
+
+			ClientSocket.Send(Encoding.ASCII.GetBytes(msg));
 		}
 
 		public static string GenerateUniqueId(string ipAddress) {
