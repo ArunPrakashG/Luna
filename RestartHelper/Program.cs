@@ -9,36 +9,40 @@ namespace RestartHelper {
 
 	internal class Program {
 
-		private static string HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+		private static string? HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
 
 		private static async Task Main(string[] args) {
 			Console.WriteLine("Started restart helper...");
 			Console.WriteLine("Assistant Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
 
-			int Delay = 0;
+			int delay = 100;
 
 			if (args != null && args.Any()) {
-				Delay = Convert.ToInt32(args[0].Trim());
+				delay = Convert.ToInt32(args[0].Trim());
 			}
-			Console.WriteLine("Restarting in " + Delay + " ms...");
-			await Task.Delay(Delay).ConfigureAwait(false);
-			ExecuteBash("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet Assistant.dll");
+
+			Console.WriteLine("Restarting in " + delay + " ms...");
+			await Task.Delay(delay).ConfigureAwait(false);
+			ExecuteBash("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet Assistant.dll", true);
 			Console.WriteLine("Started Assistant...");
 			Console.WriteLine("Exiting restarter.");
+			await Task.Delay(1000).ConfigureAwait(false);
 			Environment.Exit(0);
 		}
 
-		public static string ExecuteBash(string cmd) {
-			if (cmd == null || string.IsNullOrEmpty(cmd) || string.IsNullOrWhiteSpace(cmd)) {
-				return null;
+		public static string ExecuteBash(string cmd, bool sudo) {
+			if (cmd == null || string.IsNullOrWhiteSpace(cmd) || string.IsNullOrEmpty(cmd)) {
+				return string.Empty;
 			}
 
 			string escapedArgs = cmd.Replace("\"", "\\\"");
+			string args = $"-c \"{escapedArgs}\"";
+			string argsWithSudo = $"-c \"sudo {escapedArgs}\"";
 
 			using Process process = new Process() {
 				StartInfo = new ProcessStartInfo {
 					FileName = "/bin/bash",
-					Arguments = $"-c \"{escapedArgs}\"",
+					Arguments = sudo ? argsWithSudo : args,
 					RedirectStandardOutput = true,
 					UseShellExecute = false,
 					CreateNoWindow = true,
