@@ -113,7 +113,7 @@
 		<SshDeployUsername>pi</SshDeployUsername>
 		<SshDeployPassword>miniprakash</SshDeployPassword>
 		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-		<LangVersion>latest</LangVersion>
+		<LangVersion>8.0</LangVersion>
 		<Authors>Arun Prakash (SynergyFTW)</Authors>
 		<Product>Home Assistant</Product>
 		<Description>Home automation and personal assistant running on raspberry pi using C# .NET Core Framework.</Description>
