@@ -11,7 +11,7 @@ using static Assistant.AssistantCore.Enums;
 namespace Assistant.Server.TCPServer {
 	public class TCPServerCore {
 		private readonly Logger Logger = new Logger("TCP-SERVER");
-		private TcpListener Listener { get; set; }
+		private TcpListener? Listener { get; set; }
 		private static int ServerPort { get; set; }
 		public static bool IsOnline { get; private set; }
 		private static bool IsStopRequested { get; set; }
@@ -19,7 +19,10 @@ namespace Assistant.Server.TCPServer {
 		public static List<Client> Clients { get; private set; } = new List<Client>();
 
 		[Obsolete("Testing only")]
-		public TCPServerCore(int port) => ServerPort = port;
+		public TCPServerCore InitTCPServer(int port) {
+			ServerPort = port;
+			return this;
+		}
 
 		public void StartServerCore() {
 			Logger.Log("Starting TCP Server...", LogLevels.Trace);

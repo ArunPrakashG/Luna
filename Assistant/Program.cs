@@ -51,14 +51,18 @@ namespace Assistant {
 			bool Init = await Core.InitCore(args).ConfigureAwait(false);
 		}
 
-		private static async void OnForceQuitAssistant(object sender, ConsoleCancelEventArgs e) => await Core.Exit(-1).ConfigureAwait(false);
+		private static async void OnForceQuitAssistant(object? sender, ConsoleCancelEventArgs e) => await Core.Exit(-1).ConfigureAwait(false);
 
-		public static void HandleTaskExceptions(object sender, UnobservedTaskExceptionEventArgs e) {
+		public static void HandleTaskExceptions(object? sender, UnobservedTaskExceptionEventArgs e) {
+			if(sender == null || e == null || e.Exception == null) {
+				return;
+			}
+
 			Logger.Log($"{e.Exception.ToString()}", Enums.LogLevels.Trace);
 		}
 
-		public static void HandleFirstChanceExceptions(object sender, FirstChanceExceptionEventArgs e) {
-			if (Core.Config != null && Core.Config.Debug) {
+		public static void HandleFirstChanceExceptions(object? sender, FirstChanceExceptionEventArgs e) {
+			if (Core.Config.Debug) {
 				if (Core.DisableFirstChanceLogWithDebug) {
 					return;
 				}
@@ -100,7 +104,7 @@ namespace Assistant {
 			}
 		}
 
-		private static void HandleUnhandledExceptions(object sender, UnhandledExceptionEventArgs e) {
+		private static void HandleUnhandledExceptions(object? sender, UnhandledExceptionEventArgs e) {
 			Logger.Log((Exception) e.ExceptionObject, Enums.LogLevels.Fatal);
 
 			if (e.IsTerminating) {
@@ -127,7 +131,7 @@ namespace Assistant {
 			await Core.OnNetworkDisconnected().ConfigureAwait(false);
 		}
 
-		private static async void AvailabilityChanged(object sender, NetworkAvailabilityEventArgs e) {
+		private static async void AvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e) {
 			if (e.IsAvailable && !Core.IsNetworkAvailable) {
 				await NetworkReconnect().ConfigureAwait(false);
 				return;
@@ -139,7 +143,7 @@ namespace Assistant {
 			}
 		}
 
-		private static void OnEnvironmentExit(object sender, EventArgs e) {
+		private static void OnEnvironmentExit(object? sender, EventArgs e) {
 		}
 	}
 }

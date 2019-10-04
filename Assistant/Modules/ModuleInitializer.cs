@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
@@ -45,9 +17,11 @@ using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Modules {
 	public class ModuleInfo<T> where T : IModuleBase {
-		public string ModuleIdentifier { get; set; }
+		public string ModuleIdentifier { get; set; } = string.Empty;
 		public ModuleType ModuleType { get; set; }
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 		public T Module { get; set; }
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 		public bool IsLoaded { get; set; }
 	}
 
@@ -58,6 +32,17 @@ namespace Assistant.Modules {
 		public List<IModuleBase> Modules { get; set; } = new List<IModuleBase>();
 
 		private List<ModuleInfo<IModuleBase>> ModulesCache = new List<ModuleInfo<IModuleBase>>();
+
+		private static ModuleInfo<T> GenerateDefault<T>() where T : IModuleBase {
+			return new ModuleInfo<T>() {
+				IsLoaded = false,
+#pragma warning disable CS8653 // A default expression introduces a null value for a type parameter.
+				Module = default,
+#pragma warning restore CS8653 // A default expression introduces a null value for a type parameter.
+				ModuleIdentifier = string.Empty,
+				ModuleType = ModuleType.Unknown
+			};
+		}
 
 		public async Task<bool> LoadAsync() {
 			if (!Core.Config.EnableModules) {
@@ -93,13 +78,13 @@ namespace Assistant.Modules {
 								ModuleIdentifier = bot.ModuleIdentifier,
 								ModuleType = ParseModuleType(bot.ModuleType)
 							};
-							
+
 							Logger.Log($"Successfully loaded module with id {bot.ModuleIdentifier} of type {data.ModuleType.ToString()}", LogLevels.Trace);
 
-							if(Modules.Count > 0 && !Modules.Contains(bot)) {
+							if (Modules.Count > 0 && !Modules.Contains(bot)) {
 								Modules.Add(bot);
 							}
-							
+
 							ModulesCache.Add(data);
 						}
 					}
@@ -192,13 +177,13 @@ namespace Assistant.Modules {
 				return false;
 			}
 
-			IModuleBase module = Modules.Find(x => x.IsLoaded && x.ModuleIdentifier == Id);
-			return module.InitModuleShutdown();
+			IModuleBase? module = Modules.Find(x => x.IsLoaded && x.ModuleIdentifier == Id);
+			return module?.InitModuleShutdown() ?? false;
 		}
 
 		public ModuleInfo<TType> FindModuleOfType<TType>(string identifier) where TType : IModuleBase {
 			if (Helpers.IsNullOrEmpty(identifier) || ModulesCache.Count <= 0 || !ModulesCache.OfType<TType>().Any()) {
-				return null;
+				return GenerateDefault<TType>();
 			}
 
 			foreach (ModuleInfo<IModuleBase> mod in ModulesCache) {
@@ -216,7 +201,7 @@ namespace Assistant.Modules {
 				}
 			}
 
-			return null;
+			return GenerateDefault<TType>();
 		}
 
 		private bool IsExisitingModule<TType>(TType module) where TType : IModuleBase {
@@ -246,7 +231,7 @@ namespace Assistant.Modules {
 			}
 
 			assemblyPath = Path.GetFullPath(assemblyPath);
-			IModuleBase module = Modules.Find(x => x.IsLoaded && x.ModulePath == assemblyPath);
+			IModuleBase? module = Modules.Find(x => x.IsLoaded && x.ModulePath == assemblyPath);
 
 			if (module == null) {
 				return false;
@@ -256,7 +241,11 @@ namespace Assistant.Modules {
 		}
 
 		private HashSet<Assembly> LoadAssemblies() {
-			HashSet<Assembly> assemblies = null;
+			HashSet<Assembly> assemblies = new HashSet<Assembly>();
+
+			if(Constants.HomeDirectory == null || Constants.HomeDirectory.IsNull()) {
+				return new HashSet<Assembly>();
+			}
 
 			string pluginsPath = Path.Combine(Constants.HomeDirectory, Constants.ModuleDirectory);
 
@@ -274,11 +263,11 @@ namespace Assistant.Modules {
 		private HashSet<Assembly> LoadAssembliesFromPath(string path) {
 			if (string.IsNullOrEmpty(path)) {
 				Logger.Log(nameof(path));
-				return null;
+				return new HashSet<Assembly>();
 			}
 
 			if (!Directory.Exists(path)) {
-				return null;
+				return new HashSet<Assembly>();
 			}
 
 			HashSet<Assembly> assemblies = new HashSet<Assembly>();
@@ -301,7 +290,7 @@ namespace Assistant.Modules {
 			}
 			catch (Exception e) {
 				Logger.Log(e);
-				return null;
+				return new HashSet<Assembly>();
 			}
 
 			return assemblies;
@@ -309,7 +298,7 @@ namespace Assistant.Modules {
 
 		public void OnCoreShutdown() => UnloadModulesOfType<IModuleBase>();
 
-		public async Task<bool> ExecuteAsyncEvent(Enums.AsyncModuleContext context, object fileEventSender = null, FileSystemEventArgs fileEventArgs = null) {
+		public async Task<bool> ExecuteAsyncEvent(Enums.AsyncModuleContext context, object? fileEventSender = null, FileSystemEventArgs? fileEventArgs = null) {
 			if (Modules.Count <= 0 || !Modules.OfType<IAsyncEventBase>().Any()) {
 				return false;
 			}

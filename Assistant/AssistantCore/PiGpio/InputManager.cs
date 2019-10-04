@@ -8,6 +8,6 @@ namespace Assistant.AssistantCore.PiGpio {
 	//Timed relay tasks based on sensor values etc
 	public class InputManager {
 		private Logger Logger { get; set; } = new Logger("INPUT-MANAGER");
-		private PiController Controller => Core.PiController;
+		private PiController? Controller => Core.PiController;
 	}
 }

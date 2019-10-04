@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.Extensions;
 using Assistant.Log;
 using Newtonsoft.Json;
@@ -51,8 +23,6 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
 
-		[JsonProperty] public string KestrelServerUrl { get; set; } = "http://localhost:9090";
-
 		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
 
 		[JsonProperty] public bool PushBulletLogging { get; set; } = true;
@@ -63,7 +33,7 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool GpioSafeMode { get; set; } = false;
 
-		[JsonProperty] public Dictionary<string, int> AuthenticatedTokens { get; set; }
+		[JsonProperty] public Dictionary<string, int> AuthenticatedTokens { get; set; } = new Dictionary<string, int>();
 
 		[JsonProperty]
 		public int[] OutputModePins = new int[]
@@ -96,11 +66,11 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool Debug { get; set; } = false;
 
-		[JsonProperty] public string ZomatoApiKey { get; set; }
+		[JsonProperty] public string? ZomatoApiKey { get; set; }
 
-		[JsonProperty] public string StatisticsServerIP { get; set; }
+		[JsonProperty] public string? StatisticsServerIP { get; set; }
 
-		[JsonProperty] public string OwnerEmailAddress { get; set; } = "arun.prakash.456789@gmail.com";
+		[JsonProperty] public string? OwnerEmailAddress { get; set; } = "arun.prakash.456789@gmail.com";
 
 		[JsonProperty] public bool EnableFirstChanceLog { get; set; } = false;
 
@@ -108,17 +78,15 @@ namespace Assistant.AssistantCore {
 
 		[JsonProperty] public bool MuteAssistant { get; set; } = false;
 
-		[JsonProperty] public string OpenWeatherApiKey { get; set; } = null;
+		[JsonProperty] public string? OpenWeatherApiKey { get; set; }
 
-		[JsonProperty] public string GitHubToken { get; set; }
+		[JsonProperty] public string? PushBulletApiKey { get; set; }
 
-		[JsonProperty] public string PushBulletApiKey { get; set; } = null;
+		[JsonProperty] public string? AssistantEmailId { get; set; }
 
-		[JsonProperty] public string AssistantEmailId { get; set; }
+		[JsonProperty] public string AssistantDisplayName { get; set; } = "Home Assistant";
 
-		[JsonProperty] public string AssistantDisplayName { get; set; } = "TESS";
-
-		[JsonProperty] public string AssistantEmailPassword { get; set; }
+		[JsonProperty] public string? AssistantEmailPassword { get; set; }
 
 		[JsonProperty(Required = Required.Default)] public DateTime ProgramLastStartup { get; set; }
 
@@ -237,7 +205,7 @@ namespace Assistant.AssistantCore {
 			return true;
 		}
 
-		public override bool Equals(object obj) {
+		public override bool Equals(object? obj) {
 			if (obj is null) {
 				return false;
 			}
@@ -280,7 +248,7 @@ namespace Assistant.AssistantCore {
 			}
 		}
 
-		public override string ToString() => base.ToString();
+		public override string? ToString() => base.ToString();
 
 		public bool Equals(CoreConfig other) {
 			if (ReferenceEquals(null, other)) {

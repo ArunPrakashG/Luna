@@ -1,46 +1,18 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 namespace Assistant.Weather {
 	public class ApiResponseStructure {
 
 		public class Rootobject {
-			public Coord coord { get; set; }
-			public Weather[] weather { get; set; }
-			public string _base { get; set; }
-			public Main main { get; set; }
-			public Wind wind { get; set; }
-			public Clouds clouds { get; set; }
+			public Coord? coord { get; set; }
+			public Weather[]? weather { get; set; }
+			public string _base { get; set; } = string.Empty;
+			public Main? main { get; set; }
+			public Wind? wind { get; set; }
+			public Clouds? clouds { get; set; }
 			public int dt { get; set; }
-			public Sys sys { get; set; }
+			public Sys? sys { get; set; }
 			public int timezone { get; set; }
 			public int id { get; set; }
-			public string name { get; set; }
+			public string name { get; set; } = string.Empty;
 			public int cod { get; set; }
 		}
 
@@ -70,16 +42,16 @@ namespace Assistant.Weather {
 
 		public class Sys {
 			public float message { get; set; }
-			public string country { get; set; }
+			public string country { get; set; } = string.Empty;
 			public int sunrise { get; set; }
 			public int sunset { get; set; }
 		}
 
 		public class Weather {
 			public int id { get; set; }
-			public string main { get; set; }
-			public string description { get; set; }
-			public string icon { get; set; }
+			public string main { get; set; } = string.Empty;
+			public string description { get; set; } = string.Empty;
+			public string icon { get; set; } = string.Empty;
 		}
 
 	}

@@ -8,6 +8,7 @@ using Assistant.Weather;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -16,31 +17,29 @@ using System.Threading.Tasks;
 
 namespace Assistant.Server.SecureLine {
 	public class ConnectedClient {
-		public string IPAddress { get; set; }
+		public string IPAddress { get; set; } = string.Empty;
 		public int ConnectedCount { get; set; }
 		public DateTime LastConnectedTime { get; set; }
 	}
 
 	public class SecureLineServer : IDisposable {
-		private TcpListener Listener { get; set; }
+		private TcpListener? Listener { get; set; }
 		private static int ServerPort { get; set; }
 		private static IPAddress ListerningAddress { get; set; } = IPAddress.Any;
-		private static IPEndPoint EndPoint { get; set; }
+		private static IPEndPoint? EndPoint { get; set; }
 		public static bool IsOnline { get; private set; }
 		public static bool StopServer { get; set; }
 		private readonly Logger Logger = new Logger("SECURE-LINE");
 
 		public static List<ConnectedClient> ConnectedClients = new List<ConnectedClient>();
 		private static readonly SemaphoreSlim ProcessingSemaphore = new SemaphoreSlim(1, 1);
+		private static readonly SemaphoreSlim ServerSemaphore = new SemaphoreSlim(1, 1);
 
-		public SecureLineServer(IPAddress address, int port) {
+		public SecureLineServer InitSecureLine(IPAddress address, int port = 1111) {
 			ListerningAddress = address ?? throw new ArgumentNullException(nameof(address));
 			ServerPort = port <= 0 ? throw new ArgumentNullException(nameof(port)) : port;
 			EndPoint = new IPEndPoint(ListerningAddress, ServerPort);
-		}
-
-		public SecureLineServer() {
-			throw new NotSupportedException("Initilize server with parameters!");
+			return this;
 		}
 
 		public bool StartSecureLine() {
@@ -52,12 +51,14 @@ namespace Assistant.Server.SecureLine {
 			Helpers.InBackgroundThread(async () => {
 				try {
 					while (!StopServer && Listener != null) {
+						await ServerSemaphore.WaitAsync().ConfigureAwait(false);
 						Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);
 						byte[] receiveBuffer = new byte[5024];
 						int b = socket.Receive(receiveBuffer);
 						EndPoint remoteEndpoint = socket.RemoteEndPoint;
+
 						ConnectedClient client = new ConnectedClient() {
-							IPAddress = remoteEndpoint.ToString().Split(':')[0].Trim(),
+							IPAddress = remoteEndpoint.ToString()?.Split(':')[0].Trim() ?? string.Empty,
 							ConnectedCount = 0,
 							LastConnectedTime = DateTime.Now
 						};
@@ -86,6 +87,7 @@ namespace Assistant.Server.SecureLine {
 						}
 
 						socket.Close();
+						ServerSemaphore.Release();
 					}
 				}
 				catch (Exception e) {
@@ -102,7 +104,7 @@ namespace Assistant.Server.SecureLine {
 
 		private async Task<string> OnReceviedAsync(string recevied) {
 			if (Helpers.IsNullOrEmpty(recevied)) {
-				return null;
+				return string.Empty;
 			}
 
 			Logger.Log(recevied, Enums.LogLevels.Trace);
@@ -111,11 +113,11 @@ namespace Assistant.Server.SecureLine {
 				baseRequest = ObjectFromString<BaseRequest>(recevied);
 			}
 			catch {
-				return null;
+				return string.Empty;
 			}
 
 			if (baseRequest == null || Helpers.IsNullOrEmpty(baseRequest.RequestType) || Helpers.IsNullOrEmpty(baseRequest.RequestObject)) {
-				return null;
+				return string.Empty;
 			}
 
 			switch (baseRequest.RequestType) {
@@ -128,7 +130,7 @@ namespace Assistant.Server.SecureLine {
 				case "AlarmRequest":
 					return await OnAlarmRequestAsync(ObjectFromString<AlarmRequest>(baseRequest.RequestObject)).ConfigureAwait(false);
 				default:
-					return null;
+					return string.Empty;
 			}
 		}
 
@@ -171,8 +173,11 @@ namespace Assistant.Server.SecureLine {
 				return "Could not parse the specified pin code.";
 			}
 
-			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
+			if(Core.Config.OpenWeatherApiKey == null || Core.Config.OpenWeatherApiKey.IsNull()) {
+				return "The api key is null";
+			}
 
+			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
 			(bool status, WeatherData response) = Core.WeatherApi.GetWeatherInfo(Core.Config.OpenWeatherApiKey, pinCode, request.CountryCode);
 
 			if (!status || response == null) {
@@ -186,7 +191,7 @@ namespace Assistant.Server.SecureLine {
 
 		private async Task<string> OnGpioRequestAsync(GpioRequest request) {
 			if (request == null || Helpers.IsNullOrEmpty(request.Command)) {
-				return null;
+				return string.Empty;
 			}
 
 			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
@@ -194,55 +199,43 @@ namespace Assistant.Server.SecureLine {
 			int pinNumber;
 			Enums.GpioPinMode mode;
 			Enums.GpioPinState value;
-			string result = null;
+			string result = string.Empty;
+
+			if (Core.PiController == null) {
+				return "The PiController is malfunctioning.";
+			}
 
 			switch (request.Command) {
 				case "SETGPIO" when request.StringParameters.Count == 4:
-					if (request.StringParameters == null) {
-						result = null;
-					}
-
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
 					mode = (Enums.GpioPinMode) Convert.ToInt32(request.StringParameters[1].Trim());
 					value = (Enums.GpioPinState) Convert.ToInt32(request.StringParameters[2].Trim());
-					int delay = Convert.ToInt32(request.StringParameters[3].Trim());
-					result = Core.PiController.PinController.SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay))
+					int delay = Convert.ToInt32(request.StringParameters[3].Trim());					
+					result = Core.PiController.GetPinController().SetGpioWithTimeout(pinNumber, mode, value, TimeSpan.FromMinutes(delay))
 						? $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()} for {delay} minutes."
 						: "Failed";
 					break;
 				case "SETGPIO" when request.StringParameters.Count == 3:
-					if (request.StringParameters == null) {
-						result = null;
-					}
-
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
 					mode = (Enums.GpioPinMode) Convert.ToInt32(request.StringParameters[1].Trim());
 					value = (Enums.GpioPinState) Convert.ToInt32(request.StringParameters[2].Trim());
-					result = Core.PiController.PinController.SetGpioValue(pinNumber, mode, value)
+					result = Core.PiController.GetPinController().SetGpioValue(pinNumber, mode, value)
 						? $"Successfully set {pinNumber} pin to {mode.ToString()} mode with value {value.ToString()}"
 						: "Failed";
 					break;
 
 				case "SETGPIO" when request.StringParameters.Count == 2:
-					if (request.StringParameters == null) {
-						result = null;
-					}
-
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
 					mode = (Enums.GpioPinMode) Convert.ToInt32(request.StringParameters[1].Trim());
 
-					result = Core.PiController.PinController.SetGpioValue(pinNumber, mode)
+					result = Core.PiController.GetPinController().SetGpioValue(pinNumber, mode)
 						? $"Successfully set {pinNumber} pin to {mode.ToString()} mode."
 						: "Failed";
 					break;
 
 				case "GETGPIO" when request.StringParameters.Count == 1:
-					if (request.StringParameters == null) {
-						result = null;
-					}
-
 					pinNumber = Convert.ToInt32(request.StringParameters[0].Trim());
-					GpioPinConfig pinConfig = Core.PiController.PinController.GetGpioConfig(pinNumber);
+					GpioPinConfig pinConfig = Core.PiController.GetPinController().GetGpioConfig(pinNumber);
 
 					GetGpioResponse response = new GetGpioResponse() {
 						DriveMode = pinConfig.Mode,
@@ -268,6 +261,20 @@ namespace Assistant.Server.SecureLine {
 		public static string ObjectToString<T>(T obj) => JsonConvert.SerializeObject(obj);
 
 		public static T ObjectFromString<T>(string obj) => JsonConvert.DeserializeObject<T>(obj);
+
+		private static bool IsNullForRange(IEnumerable<string> range) {
+			if(range == null || range.Count() <= 0) {
+				return true;
+			}
+
+			foreach(string s in range) {
+				if(s == null || s.IsNull() || Helpers.IsNullOrEmpty(s)) {
+					return true;
+				}
+			}
+
+			return false;
+		}
 	}
 }
 

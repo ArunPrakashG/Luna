@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Modules.Interfaces.LoggerInterfaces;
@@ -38,9 +10,9 @@ using static Assistant.AssistantCore.Enums;
 namespace Assistant.Log {
 
 	public class Logger : ILoggerBase {
-		private NLog.Logger LogModule;
+		private NLog.Logger? LogModule;
 
-		public string LogIdentifier { get; set; }
+		public string LogIdentifier { get; set; } = string.Empty;
 
 		public string ModuleIdentifier => nameof(Logger);
 
@@ -59,22 +31,22 @@ namespace Assistant.Log {
 			LogIdentifier = logId;
 		}
 
-		private void LogGenericDebug(string message, [CallerMemberName] string previousMethodName = null) {
+		private void LogGenericDebug(string message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
 			}
 
-			LogModule.Debug($"{previousMethodName}() {message}");
+			LogModule?.Debug($"{previousMethodName}() {message}");
 		}
 
-		private void LogGenericError(string message, [CallerMemberName] string previousMethodName = null) {
+		private void LogGenericError(string message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
 			}
 
-			LogModule.Error($"{previousMethodName}() {message}");
+			LogModule?.Error($"{previousMethodName}() {message}");
 
 			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
 				Core.PushBulletService.BroadcastMessage(new PushRequestContent() {
@@ -86,13 +58,13 @@ namespace Assistant.Log {
 			}
 		}
 
-		private void LogGenericException(Exception exception, [CallerMemberName] string previousMethodName = null) {
+		private void LogGenericException(Exception exception, [CallerMemberName] string? previousMethodName = null) {
 			if (exception == null) {
 				LogNullError(nameof(exception));
 				return;
 			}
 
-			LogModule.Error($"{previousMethodName}() {exception.GetBaseException().Message}/{exception.GetBaseException().HResult}/{exception.GetBaseException().StackTrace}");
+			LogModule?.Error($"{previousMethodName}() {exception.GetBaseException().Message}/{exception.GetBaseException().HResult}/{exception.GetBaseException().StackTrace}");
 
 			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
 				Core.PushBulletService.BroadcastMessage(new PushRequestContent() {
@@ -104,16 +76,16 @@ namespace Assistant.Log {
 			}
 		}
 
-		private void LogGenericInfo(string message, [CallerMemberName] string previousMethodName = null) {
+		private void LogGenericInfo(string message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
 			}
 
-			LogModule.Info($"{message}");
+			LogModule?.Info($"{message}");
 		}
 
-		private void LogGenericTrace(string message, [CallerMemberName] string previousMethodName = null) {
+		private void LogGenericTrace(string message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
@@ -123,17 +95,17 @@ namespace Assistant.Log {
 				LogGenericInfo($"{previousMethodName}() " + message, previousMethodName);
 			}
 			else {
-				LogModule.Trace($"{previousMethodName}() {message}");
+				LogModule?.Trace($"{previousMethodName}() {message}");
 			}
 		}
 
-		private void LogGenericWarning(string message, [CallerMemberName] string previousMethodName = null) {
+		private void LogGenericWarning(string message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
 			}
 
-			LogModule.Warn($"{previousMethodName}() {message}");
+			LogModule?.Warn($"{previousMethodName}() {message}");
 
 			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
 				Core.PushBulletService.BroadcastMessage(new PushRequestContent() {
@@ -145,7 +117,7 @@ namespace Assistant.Log {
 			}
 		}
 
-		private void LogNullError(string nullObjectName, [CallerMemberName] string previousMethodName = null) {
+		private void LogNullError(string nullObjectName, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(nullObjectName)) {
 				return;
 			}
@@ -153,11 +125,14 @@ namespace Assistant.Log {
 			LogGenericError($"{nullObjectName} | Object is null!", previousMethodName);
 		}
 
-		public void Log(Exception e, LogLevels level = LogLevels.Error, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+
+		public void Log(Exception e, LogLevels level = LogLevels.Error, [CallerMemberName] string? previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string? calledFilePath = null) {
+#pragma warning disable CS8604 // Possible null reference argument.
 			switch (level) {
 				case Enums.LogLevels.Error:
 					if (Core.Config.Debug) {
 						LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}", previousMethodName);
+
 					}
 					else {
 						LogGenericError($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.TargetSite}", previousMethodName);
@@ -178,9 +153,12 @@ namespace Assistant.Log {
 				default:
 					goto case Enums.LogLevels.Error;
 			}
+#pragma warning restore CS8604 // Possible null reference argument.
 		}
 
-		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string calledFilePath = null) {
+
+		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string? previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string? calledFilePath = null) {
+#pragma warning disable CS8604 // Possible null reference argument.
 			switch (level) {
 				case Enums.LogLevels.Trace:
 					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] {message}", previousMethodName);
@@ -236,6 +214,7 @@ namespace Assistant.Log {
 				default:
 					goto case Enums.LogLevels.Info;
 			}
+#pragma warning restore CS8604 // Possible null reference argument.
 		}
 
 		public void DiscordLogToChannel(string message) {

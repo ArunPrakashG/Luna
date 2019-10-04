@@ -1,5 +1,6 @@
 using Assistant.Extensions;
 using Assistant.Log;
+using Org.BouncyCastle.Utilities.Net;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -10,28 +11,34 @@ using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.Server.TCPServer {
 	public class Payload {
-		public string Message { get; set; }
+		public string Message { get; set; } = string.Empty;
 		public DateTime ReceviedTime { get; set; }
 	}
 
 	public class Client {
-		public string UniqueId { get; private set; }
-		public string IPAddress { get; set; }
+		public string? UniqueId { get; private set; }
+		public string? IpAddress { get; set; }
 		public Socket ClientSocket { get; set; }
 		public bool DisconnectClient { get; set; }
-		public EndPoint ClientEndPoint { get; set; }
+		public EndPoint? ClientEndPoint { get; set; }
 		private readonly Logger Logger = new Logger("CONN-CLIENT");
-		private (int, Thread) RecevieThread;
+		private (int?, Thread?) RecevieThread;
 
 		public Client(Socket sock) {
 			ClientSocket = sock ?? throw new ArgumentNullException(nameof(sock), "Socket cannot be null!");
 			ClientEndPoint = ClientSocket.RemoteEndPoint;
-			IPAddress = ClientEndPoint.ToString().Split(':')[0].Trim();
-			UniqueId = GenerateUniqueId(IPAddress);
+			IpAddress = ClientEndPoint?.ToString()?.Split(':')[0].Trim();
+
+			if(IpAddress != null && !IpAddress.IsNull()) {
+				UniqueId = GenerateUniqueId(IpAddress);
+			}
+			else {
+				UniqueId = GenerateUniqueId(ClientSocket.GetHashCode().ToString());
+			}
 		}
 
 		public void Init() {
-			Logger.Log($"Connected client IP => {IPAddress} / {UniqueId}", LogLevels.Info);
+			Logger.Log($"Connected client IP => {IpAddress} / {UniqueId}", LogLevels.Info);
 			RecevieLoop();
 		}
 
@@ -44,11 +51,11 @@ namespace Assistant.Server.TCPServer {
 
 			if (TCPServerCore.Clients.Contains(this)) {
 				TCPServerCore.Clients.Remove(this);
-				$"Disconnected and disposed client -> {UniqueId} / {IPAddress}".LogInfo(Logger);
+				$"Disconnected and disposed client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
 				return;
 			}
 
-			$"Disconnected client -> {UniqueId} / {IPAddress}".LogInfo(Logger);
+			$"Disconnected client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
 		}
 
 		private void RecevieLoop() {
@@ -97,7 +104,7 @@ namespace Assistant.Server.TCPServer {
 					ClientSocket.Dispose();
 				}
 
-			}, UniqueId, true);
+			}, UniqueId ?? throw new ArgumentNullException("The unique id of the client cannot be null."), true);
 		}
 
 		private void OnRecevied(Payload payload) {
@@ -128,7 +135,7 @@ namespace Assistant.Server.TCPServer {
 
 		public static string GenerateUniqueId(string ipAddress) {
 			if (Helpers.IsNullOrEmpty(ipAddress)) {
-				return null;
+				return string.Empty;
 			}
 
 			return ipAddress.ToLowerInvariant().Trim().GetHashCode().ToString();

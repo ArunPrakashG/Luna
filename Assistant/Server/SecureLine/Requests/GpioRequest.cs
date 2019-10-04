@@ -1,14 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Assistant.Server.SecureLine.Requests {
 	public class GpioRequest {
 		[JsonProperty]
-		public string Command { get; set; }
+		public string Command { get; set; } = string.Empty;
 
 		[JsonProperty]
-		public List<string> StringParameters { get; set; }
+		public List<string> StringParameters { get; set; } = new List<string>();
 	}
 }

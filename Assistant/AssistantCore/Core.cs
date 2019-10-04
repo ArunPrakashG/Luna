@@ -6,7 +6,6 @@ using Assistant.Log;
 using Assistant.Modules;
 using Assistant.MorseCode;
 using Assistant.PushBullet;
-using Assistant.PushBullet.ApiResponse;
 using Assistant.Remainders;
 using Assistant.Schedulers;
 using Assistant.Server;
@@ -50,25 +49,25 @@ namespace Assistant.AssistantCore {
 	public static class Core {
 		private const int SendIpDelay = 60;
 		public static Logger Logger { get; set; } = new Logger("ASSISTANT");
-		public static PiController PiController { get; private set; }
+		public static PiController? PiController { get; private set; } = new PiController();
 		public static Updater Update { get; private set; } = new Updater();
 		public static CoreConfig Config { get; set; } = new CoreConfig();
 		public static ConfigWatcher ConfigWatcher { get; private set; } = new ConfigWatcher();
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
 		public static TaskScheduler TaskManager { get; private set; } = new TaskScheduler();
-		public static ModuleInitializer ModuleLoader { get; private set; }
+		public static ModuleInitializer ModuleLoader { get; private set; } = new ModuleInitializer();
 		public static DateTime StartupTime { get; private set; }
-		private static Timer RefreshConsoleTitleTimer { get; set; }
+		private static Timer? RefreshConsoleTitleTimer { get; set; }
 		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
 		public static WeatherApi WeatherApi { get; private set; } = new WeatherApi();
 		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
-		public static PushBulletService PushBulletService { get; private set; }
+		public static PushBulletService PushBulletService { get; private set; } = new PushBulletService();
 		public static MorseCore MorseCode { get; private set; } = new MorseCore();
-		public static SecureLineServer SecureLine { get; private set; }
+		public static SecureLineServer SecureLine { get; private set; } = new SecureLineServer();
 		public static RemainderManager RemainderManager { get; private set; } = new RemainderManager();
 		public static SchedulerService Scheduler { get; private set; } = new SchedulerService();
 		public static AlarmManager AlarmManager { get; private set; } = new AlarmManager();
-		public static TCPServerCore TCPServer { get; private set; }
+		public static TCPServerCore TCPServer { get; private set; } = new TCPServerCore();
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
@@ -77,7 +76,7 @@ namespace Assistant.AssistantCore {
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
 		public static OSPlatform RunningPlatform { get; private set; }
 		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
-		public static string AssistantName { get; set; } = "TESS Assistant";
+		public static string AssistantName { get; set; } = "Tess Home Assistant";
 
 		/// <summary>
 		/// This method starts up the assistant core.
@@ -93,6 +92,10 @@ namespace Assistant.AssistantCore {
 
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
+			Helpers.SetFileSeperator();
+			Config = Config.LoadConfig();
+			AssistantName = Config.AssistantDisplayName;
+			Logger.LogIdentifier = AssistantName;
 
 			if (Helpers.CheckForInternetConnection()) {
 				IsNetworkAvailable = true;
@@ -103,67 +106,54 @@ namespace Assistant.AssistantCore {
 				IsNetworkAvailable = false;
 			}
 
-			Config = Config.LoadConfig();
 			RunningPlatform = Helpers.GetOsPlatform();
-			AssistantName = Config.AssistantDisplayName;
-			Logger.LogIdentifier = AssistantName;
 			Config.ProgramLastStartup = StartupTime;
+
 			Constants.LocalIP = Helpers.GetLocalIpAddress();
+			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
 
-			SecureLine = new SecureLineServer(IPAddress.Any, 7777);
+			SecureLine.InitSecureLine(IPAddress.Any, 7777);
 			SecureLine.StartSecureLine();
-			TCPServer = new TCPServerCore(1111);
-			TCPServer.StartServerCore();
-
-			SendLocalIp(!Helpers.IsNullOrEmpty(Constants.LocalIP));
-
-			Helpers.SetFileSeperator();
-
-			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
-			Constants.ExternelIP = Helpers.GetExternalIp();
-
-			File.WriteAllText("version.txt", Constants.Version.ToString());
-
-			if (Helpers.IsNullOrEmpty(Constants.ExternelIP)) {
-				Constants.ExternelIP = "Failed.";
-			}
-
-			Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater", true);
-			Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
-
-			ConfigWatcher.InitConfigWatcher();
+			TCPServer.InitTCPServer(1111).StartServerCore();
 			ParseStartupArguments(args);
-
-			if (!Helpers.IsNullOrEmpty(Config.PushBulletApiKey)) {
-				PushBulletService = new PushBulletService(Config.PushBulletApiKey);
-				(bool status, UserDeviceListResponse currentPushDevices) = PushBulletService.InitPushService();
-
-				if (status) {
-					Logger.Log("Push bullet service started.", Enums.LogLevels.Trace);
-				}
-			}
 
 			if (!Helpers.IsRaspberryEnvironment()) {
 				DisablePiMethods = true;
 				IsUnknownOs = true;
 			}
+			else {
+				SendLocalIp(!Helpers.IsNullOrEmpty(Constants.LocalIP));
+			}
+
+			Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater", true);
+			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
+			File.WriteAllText("version.txt", Constants.Version?.ToString());
+			Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
+
+			ConfigWatcher.InitConfigWatcher();
+
+			if (Config.PushBulletApiKey != null && !Config.PushBulletApiKey.IsNull()) {
+				Helpers.InBackground(() => {
+					if (PushBulletService.InitPushBulletService(Config.PushBulletApiKey).InitPushService()) {
+						Logger.Log("Push bullet service started.", Enums.LogLevels.Trace);
+					}
+				});
+			}
 
 			await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
-			if (Config.KestrelServer && !Helpers.IsNullOrEmpty(Config.KestrelServerUrl)) {
+			if (Config.KestrelServer) {
 				await KestrelServer.Start().ConfigureAwait(false);
 			}
 
-			ModuleLoader = new ModuleInitializer();
+			if (await ModuleLoader.LoadAsync().ConfigureAwait(false)) {
+				await ModuleLoader.InitServiceAsync().ConfigureAwait(false);
+				ModuleWatcher.InitModuleWatcher();
+			}
 
-			await ModuleLoader.LoadAsync().ConfigureAwait(false);
-			await ModuleLoader.InitServiceAsync().ConfigureAwait(false);
+			PiController?.InitController(Enums.EGpioDriver.RaspberryIODriver);
 
-			ModuleWatcher.InitModuleWatcher();
-			PiController = new PiController(Enums.EGpioDriver.RaspberryIODriver);
-			PiController.InitController();
-
-			if (!PiController.IsControllerProperlyInitialized) {
+			if (PiController != null && !PiController.IsControllerProperlyInitialized) {
 				PiController = null;
 			}
 
@@ -186,7 +176,7 @@ namespace Assistant.AssistantCore {
 		}
 
 		private static void SetConsoleTitle() {
-			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | {Config.KestrelServerUrl} | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
+			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | http://*:9090/ | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
 			if (RefreshConsoleTitleTimer == null) {
 				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
@@ -254,8 +244,12 @@ namespace Assistant.AssistantCore {
 					case Constants.ConsoleMorseCodeKey:
 						Logger.Log("Enter text to convert to morse: ");
 						string morseCycle = Console.ReadLine();
-						if (PiController.MorseTranslator.IsTranslatorOnline) {
-							await PiController.MorseTranslator.RelayMorseCycle(morseCycle, Config.OutputModePins[0]).ConfigureAwait(false);
+						if (PiController == null) {
+							return;
+						}
+
+						if (PiController.GetMorseTranslator().IsTranslatorOnline) {
+							await PiController.GetMorseTranslator().RelayMorseCycle(morseCycle, Config.OutputModePins[0]).ConfigureAwait(false);
 						}
 						else {
 							Logger.Log("Could not convert due to an unknown error.", Enums.LogLevels.Warn);
@@ -284,8 +278,9 @@ namespace Assistant.AssistantCore {
 							}
 						}
 
-						if (WeatherApi != null) {
+						if (Config.OpenWeatherApiKey != null && !Config.OpenWeatherApiKey.IsNull() && WeatherApi != null) {
 							(bool status, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, pinCode, "in");
+
 							if (status) {
 								Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", Enums.LogLevels.Success);
 								Logger.Log($"Temperature: {response.Temperature}", Enums.LogLevels.Success);
@@ -403,13 +398,17 @@ namespace Assistant.AssistantCore {
 			}
 
 			static void set(int pin) {
-				GpioPinConfig pinStatus = PiController.PinController.GetGpioConfig(pin);
+				if (PiController == null) {
+					return;
+				}
+
+				GpioPinConfig pinStatus = PiController.GetPinController().GetGpioConfig(pin);
 				if (pinStatus.IsPinOn) {
-					PiController.PinController.SetGpioValue(pin, Enums.GpioPinMode.Output, Enums.GpioPinState.Off);
+					PiController.GetPinController().SetGpioValue(pin, Enums.GpioPinMode.Output, Enums.GpioPinState.Off);
 					Logger.Log($"Sucessfully set {pin} pin to OFF.", Enums.LogLevels.Success);
 				}
 				else {
-					PiController.PinController.SetGpioValue(pin, Enums.GpioPinMode.Output, Enums.GpioPinState.On);
+					PiController.GetPinController().SetGpioValue(pin, Enums.GpioPinMode.Output, Enums.GpioPinState.On);
 					Logger.Log($"Sucessfully set {pin} pin to ON.", Enums.LogLevels.Success);
 				}
 			}
@@ -486,7 +485,11 @@ namespace Assistant.AssistantCore {
 						}
 					}
 
-					GpioPinConfig status = PiController.PinController.GetGpioConfig(pinNumber);
+					if (PiController == null) {
+						return;
+					}
+
+					GpioPinConfig status = PiController.GetPinController().GetGpioConfig(pinNumber);
 
 					if (status.IsPinOn && pinStatus.Equals(1)) {
 						Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
@@ -510,12 +513,12 @@ namespace Assistant.AssistantCore {
 
 					Helpers.ScheduleTask(() => {
 						if (status.IsPinOn && pinStatus.Equals(0)) {
-							PiController.PinController.SetGpioValue(pinNumber, Enums.GpioPinMode.Output, Enums.GpioPinState.Off);
+							PiController.GetPinController().SetGpioValue(pinNumber, Enums.GpioPinMode.Output, Enums.GpioPinState.Off);
 							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to OFF.", Enums.LogLevels.Success);
 						}
 
 						if (!status.IsPinOn && pinStatus.Equals(1)) {
-							PiController.PinController.SetGpioValue(pinNumber, Enums.GpioPinMode.Output, Enums.GpioPinState.On);
+							PiController.GetPinController().SetGpioValue(pinNumber, Enums.GpioPinMode.Output, Enums.GpioPinState.On);
 							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to ON.", Enums.LogLevels.Success);
 						}
 					}, TimeSpan.FromMinutes(delay));
@@ -555,10 +558,14 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
+			if (Core.PiController == null) {
+				return;
+			}
+
 			bool Configured;
 			switch (SelectedValue) {
 				case 1:
-					Configured = await PiController.PinController.RelayTestServiceAsync(Enums.GpioCycles.Cycle).ConfigureAwait(false);
+					Configured = await PiController.GetPinController().RelayTestServiceAsync(Enums.GpioCycles.Cycle).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", Enums.LogLevels.Warn);
@@ -567,7 +574,7 @@ namespace Assistant.AssistantCore {
 					break;
 
 				case 2:
-					Configured = await PiController.PinController.RelayTestServiceAsync(Enums.GpioCycles.OneMany).ConfigureAwait(false);
+					Configured = await PiController.GetPinController().RelayTestServiceAsync(Enums.GpioCycles.OneMany).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", Enums.LogLevels.Warn);
@@ -576,14 +583,14 @@ namespace Assistant.AssistantCore {
 					break;
 
 				case 3:
-					Configured = await PiController.PinController.RelayTestServiceAsync(Enums.GpioCycles.OneOne).ConfigureAwait(false);
+					Configured = await PiController.GetPinController().RelayTestServiceAsync(Enums.GpioCycles.OneOne).ConfigureAwait(false);
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", Enums.LogLevels.Warn);
 					}
 					break;
 
 				case 4:
-					Configured = await PiController.PinController.RelayTestServiceAsync(Enums.GpioCycles.OneTwo).ConfigureAwait(false);
+					Configured = await PiController.GetPinController().RelayTestServiceAsync(Enums.GpioCycles.OneTwo).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", Enums.LogLevels.Warn);
@@ -599,7 +606,7 @@ namespace Assistant.AssistantCore {
 						goto case 5;
 					}
 
-					Configured = await PiController.PinController.RelayTestServiceAsync(Enums.GpioCycles.Single, selectedsingleKey).ConfigureAwait(false);
+					Configured = await PiController.GetPinController().RelayTestServiceAsync(Enums.GpioCycles.Single, selectedsingleKey).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", Enums.LogLevels.Warn);
@@ -607,7 +614,7 @@ namespace Assistant.AssistantCore {
 					break;
 
 				case 6:
-					Configured = await PiController.PinController.RelayTestServiceAsync(Enums.GpioCycles.Default).ConfigureAwait(false);
+					Configured = await PiController.GetPinController().RelayTestServiceAsync(Enums.GpioCycles.Default).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", Enums.LogLevels.Warn);
@@ -654,7 +661,7 @@ namespace Assistant.AssistantCore {
 
 				if (Config.AutoUpdates && IsNetworkAvailable) {
 					Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
-					File.WriteAllText("version.txt", Constants.Version.ToString());
+					File.WriteAllText("version.txt", Constants.Version?.ToString());
 					await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
 				}
 			}
@@ -683,12 +690,8 @@ namespace Assistant.AssistantCore {
 			}
 
 			ModuleLoader?.OnCoreShutdown();
-
-			if (Config != null) {
-				Config.ProgramLastShutdown = DateTime.Now;
-				Config.SaveConfig(Config);
-			}
-
+			Config.ProgramLastShutdown = DateTime.Now;
+			Config.SaveConfig(Config);
 			Logger.Log("Finished on exit tasks.", Enums.LogLevels.Trace);
 		}
 
@@ -712,7 +715,7 @@ namespace Assistant.AssistantCore {
 				return;
 			}
 
-			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(), TimeSpan.FromSeconds(delay));
+			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(true), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);
 		}
@@ -768,7 +771,13 @@ namespace Assistant.AssistantCore {
 		/// </summary>
 		/// <param name="enableRecrussion">Specify if you want to execute this method in a loop every SendIpDelay minutes. (recommended)</param>
 		private static void SendLocalIp(bool enableRecrussion) {
-			Constants.LocalIP = Helpers.GetLocalIpAddress();
+			string? localIp = Helpers.GetLocalIpAddress();
+
+			if (localIp == null || Helpers.IsNullOrEmpty(localIp)) {
+				return;
+			}
+
+			Constants.LocalIP = localIp;
 			RestClient client = new RestClient($"http://{Config.StatisticsServerIP}/api/v1/assistant/ip?ip={Constants.LocalIP}");
 			RestRequest request = new RestRequest(Method.POST);
 			request.AddHeader("cache-control", "no-cache");

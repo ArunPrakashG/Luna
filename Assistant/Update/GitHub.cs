@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
@@ -35,35 +7,36 @@ using System;
 
 namespace Assistant.Update {
 	internal class GitHub {
+
 		[JsonProperty("url")]
-		public string ReleaseUrl { get; set; }
+		public string ReleaseUrl { get; set; } = string.Empty;
+
 		[JsonProperty("tag_name")]
+		public string ReleaseTagName { get; set; } = string.Empty;
 
-		public string ReleaseTagName { get; set; }
 		[JsonProperty("name")]
+		public string ReleaseFileName { get; set; } = string.Empty;
 
-		public string ReleaseFileName { get; set; }
 		[JsonProperty("published_at")]
-
 		public DateTime PublishedAt { get; set; }
-		[JsonProperty("assets")]
 
-		public Asset[] Assets { get; set; }
+		[JsonProperty("assets")]
+		public Asset[]? Assets { get; set; }
 
 		public class Asset {
 			[JsonProperty("id")]
 			public int AssetId { get; set; }
-			[JsonProperty("browser_download_url")]
 
-			public string AssetDownloadUrl { get; set; }
+			[JsonProperty("browser_download_url")]
+			public string AssetDownloadUrl { get; set; } = string.Empty;
 		}
 
 		private readonly Logger Logger = new Logger("GIT-HUB");
 
 		public GitHub FetchLatestAssest() {
-			string json = Helpers.GetUrlToString(Constants.GitHubReleaseURL, Method.GET, true);
+			string? json = Helpers.GetUrlToString(Constants.GitHubReleaseURL, Method.GET, true);
 
-			if (Helpers.IsNullOrEmpty(json)) {
+			if (json == null || Helpers.IsNullOrEmpty(json)) {
 				Logger.Log("Could not fetch the latest patch release. Try again later!", Enums.LogLevels.Warn);
 				return new GitHub();
 			}

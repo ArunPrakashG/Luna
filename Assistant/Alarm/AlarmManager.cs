@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace Assistant.Alarm {
 	public class Alarm {
 		[JsonProperty]
-		public string AlarmMessage { get; set; }
+		public string? AlarmMessage { get; set; }
 
 		[JsonProperty]
 		public DateTime AlarmAt { get; set; }
@@ -20,7 +20,7 @@ namespace Assistant.Alarm {
 		public bool IsCompleted { get; set; }
 
 		[JsonProperty]
-		public string AlarmGuid { get; set; }
+		public string? AlarmGuid { get; set; }
 
 		[JsonProperty]
 		public bool ShouldRepeat { get; set; }
@@ -87,7 +87,7 @@ namespace Assistant.Alarm {
 							}
 						}
 					}
-					
+
 					return;
 				}
 			}
@@ -98,11 +98,15 @@ namespace Assistant.Alarm {
 				return;
 			}
 
-			await Core.PiController.PiSound.SetPiVolume(90).ConfigureAwait(false);
+			if(Core.PiController == null) {
+				return;
+			}
+
+			await Core.PiController.GetSoundController().SetPiVolume(90).ConfigureAwait(false);
 			foreach (Alarm alarm in Alarms) {
 				if (alarm.AlarmGuid == guid) {
 					while (!alarm.Snooze) {
-						string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.AlarmFileName} -q".ExecuteBash();
+						string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.AlarmFileName} -q".ExecuteBash(false);
 						await Task.Delay(1000).ConfigureAwait(false);
 					}
 				}

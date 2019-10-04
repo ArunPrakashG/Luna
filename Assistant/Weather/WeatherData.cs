@@ -11,13 +11,13 @@ namespace Assistant.Weather {
 		public float Latitude { get; set; }
 
 		[JsonProperty]
-		public string WeatherMain { get; set; }
+		public string WeatherMain { get; set; } = string.Empty;
 
 		[JsonProperty]
-		public string WeatherDescription { get; set; }
+		public string WeatherDescription { get; set; } = string.Empty;
 
 		[JsonProperty]
-		public string WeatherIcon { get; set; }
+		public string WeatherIcon { get; set; } = string.Empty;
 
 		[JsonProperty]
 		public float Temperature { get; set; }
@@ -47,6 +47,6 @@ namespace Assistant.Weather {
 		public long TimeZone { get; set; }
 
 		[JsonProperty]
-		public string LocationName { get; set; }
+		public string LocationName { get; set; } = string.Empty;
 	}
 }

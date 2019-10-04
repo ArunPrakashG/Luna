@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
@@ -38,7 +10,7 @@ namespace Assistant.Weather {
 		public WeatherData WeatherResult { get; set; } = new WeatherData();
 		private Logger Logger { get; set; } = new Logger("WEATHER");
 
-		public static string GenerateWeatherUrl(string apiKey, int pinCode = 689653, string countryCode = "in") => Helpers.IsNullOrEmpty(apiKey) ? null : Helpers.GetUrlToString($"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}", RestSharp.Method.GET);
+		public static string? GenerateWeatherUrl(string apiKey, int pinCode = 689653, string countryCode = "in") => Helpers.IsNullOrEmpty(apiKey) ? null : Helpers.GetUrlToString($"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}", RestSharp.Method.GET);
 
 		public (bool status, WeatherData response) GetWeatherInfo(string apiKey, int pinCode = 689653, string countryCode = "in", bool withTTS = true) {
 			if (!Core.IsNetworkAvailable) {
@@ -55,6 +27,10 @@ namespace Assistant.Weather {
 			}
 
 			(bool status, ApiResponseStructure.Rootobject response) = FetchWeatherInfo(apiKey, pinCode, countryCode);
+
+			if(response == null || response.coord == null || response.main == null || response.weather == null || response.weather[0] == null|| response.wind == null || response.clouds == null) {
+				return (false, new WeatherData());
+			}
 
 			if (status) {
 				WeatherResult.Latitude = response.coord.lat;
@@ -84,7 +60,7 @@ namespace Assistant.Weather {
 						await TTSService.SpeakText($"and thats all sir!").ConfigureAwait(false);
 					});
 				}
-				
+
 				return (true, WeatherResult);
 			}
 			else {
@@ -102,15 +78,15 @@ namespace Assistant.Weather {
 				return (false, ApiResponse);
 			}
 
-			string JSON = GenerateWeatherUrl(apiKey, pinCode, countryCode);
+			string? JSON = GenerateWeatherUrl(apiKey, pinCode, countryCode);
 
-			if (Helpers.IsNullOrEmpty(JSON)) {
+			if (JSON == null || JSON.IsNull()) {
 				Logger.Log("Failed to fetch api response from api.openweathermap.org", LogLevels.Warn);
 				return (false, ApiResponse);
 			}
 
 			ApiResponse = JsonConvert.DeserializeObject<ApiResponseStructure.Rootobject>(JSON);
-			
+
 			Logger.Log("Fetched weather information successfully", LogLevels.Trace);
 			return (true, ApiResponse);
 		}

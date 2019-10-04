@@ -11,11 +11,11 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		private readonly Logger Logger = new Logger("PI-BLUETOOTH");
 
-		private PiController PiController => Core.PiController;
+		private PiController? PiController => Core.PiController;
 		public bool IsBluetoothControllerInitialized { get; private set; }
 
 		public BluetoothController InitBluetoothController() {
-			if(!Core.CoreInitiationCompleted || Core.DisablePiMethods) {
+			if(PiController == null || !Core.CoreInitiationCompleted || Core.DisablePiMethods) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}
@@ -24,7 +24,7 @@ namespace Assistant.AssistantCore.PiGpio {
 				return this;
 			}
 
-			if(PiController.PinController.CurrentGpioDriver != Enums.EGpioDriver.RaspberryIODriver) {
+			if(PiController.GetPinController().CurrentGpioDriver != Enums.EGpioDriver.RaspberryIODriver) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}

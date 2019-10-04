@@ -64,6 +64,11 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
+			if(Core.Config.OpenWeatherApiKey == null || Core.Config.OpenWeatherApiKey.IsNull()) {
+				return BadRequest(new GenericResponse<string>("Failed to fetch api info. the api key in the config is null.",
+					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
 			(bool status, WeatherData response) = Core.WeatherApi.GetWeatherInfo(Core.Config.OpenWeatherApiKey, pinCode, countryCode);
 
 			if (status) {

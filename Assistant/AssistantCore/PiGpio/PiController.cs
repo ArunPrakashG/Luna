@@ -9,22 +9,21 @@ using static Assistant.AssistantCore.Enums;
 namespace Assistant.AssistantCore.PiGpio {
 	public class PiController {
 		internal readonly Logger Logger = new Logger("PI-CONTROLLER");
-		public GpioEventManager GpioPollingManager { get; internal set; }
-		public GpioMorseTranslator MorseTranslator { get; private set; }
-		public BluetoothController PiBluetooth { get; private set; }
-		public InputManager InputManager { get; private set; }
-		public SoundController PiSound { get; private set; }
-		public GpioPinController PinController { get; private set; }
+		private GpioEventManager GpioPollingManager { get; set; } = new GpioEventManager();
+		private GpioMorseTranslator MorseTranslator { get; set; } = new GpioMorseTranslator();
+		private BluetoothController PiBluetooth { get; set; } = new BluetoothController();
+		private InputManager InputManager { get; set; } = new InputManager();
+		private SoundController PiSound { get; set; } = new SoundController();
+		private GpioPinController PinController { get; set; } = new GpioPinController();
 
 		public bool IsControllerProperlyInitialized { get; private set; } = false;
-		public bool EnableExperimentalFunction { get; private set; } = false;
-		public readonly EGpioDriver CurrentDriver;
+		public bool EnableExperimentalFunction { get; private set; } = true;
+		public static EGpioDriver CurrentDriver { get; private set; } = EGpioDriver.RaspberryIODriver;
 
 		public static List<GpioPinConfig> PinConfigCollection { get; private set; } = new List<GpioPinConfig>(40);
 
-		internal PiController(EGpioDriver driver) => CurrentDriver = driver;
-
-		internal PiController InitController() {
+		internal PiController InitController(EGpioDriver driver) {
+			CurrentDriver = driver;
 			//TODO: Add support for other drivers such as System.Device.Gpio and wiring pi command line etc
 			if (CurrentDriver != EGpioDriver.RaspberryIODriver) {
 				throw new PlatformNotSupportedException("Only GenericDriver (RaspberryIO Driver) is supported as of now.");
@@ -37,18 +36,16 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 
 			IsControllerProperlyInitialized = true;
-			PinController = new GpioPinController(CurrentDriver).InitGpioController();
-			
+			PinController.InitGpioController(CurrentDriver);
+
 			if (!PinController.IsDriverProperlyInitialized) {
 				Logger.Log("Failed to initialize the driver.", LogLevels.Warn);
 				IsControllerProperlyInitialized = false;
 				return this;
 			}
 
-			MorseTranslator = new GpioMorseTranslator().InitMorseTranslator();
-			PiBluetooth = new BluetoothController().InitBluetoothController();
-			PiSound = new SoundController();
-			InputManager = new InputManager();
+			MorseTranslator.InitMorseTranslator();
+			PiBluetooth.InitBluetoothController();
 			ControllerHelpers.DisplayPiInfo();
 			PinConfigCollection.Clear();
 
@@ -71,6 +68,26 @@ namespace Assistant.AssistantCore.PiGpio {
 
 			return true;
 		}
+
+		public GpioEventManager GetEventManager() => GpioPollingManager;
+
+		internal void SetEventManager(GpioEventManager manager) {
+			if(manager == null) {
+				return;
+			}
+
+			GpioPollingManager = manager;
+		}
+
+		public GpioMorseTranslator GetMorseTranslator() => MorseTranslator;
+
+		public BluetoothController GetBluetoothController() => PiBluetooth;
+
+		public InputManager GetInputManager() => InputManager;
+
+		public SoundController GetSoundController() => PiSound;
+
+		public GpioPinController GetPinController() => PinController;
 
 		public void InitGpioShutdownTasks() {
 			GpioPollingManager.ExitEventGenerator();
