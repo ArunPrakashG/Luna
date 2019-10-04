@@ -13,5 +13,9 @@ namespace Assistant.AssistantCore.PiGpio {
 			PinMode = _pinMode;
 			PinEventState = _pinEventState;
 		}
+
+		public GpioPinEventConfig() {
+
+		}
 	}
 }

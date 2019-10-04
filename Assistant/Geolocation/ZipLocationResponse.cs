@@ -1,53 +1,21 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Assistant.Geolocation {
 	public class ZipLocationResponse {
-		public string Message { get; set; }
-		public string Status { get; set; }
-		public Postoffice[] PostOffice { get; set; }
+		public string Message { get; set; } = string.Empty;
+		public string Status { get; set; } = string.Empty;
+		public Postoffice[]? PostOffice { get; set; }
 
 		public class Postoffice {
-			public string Name { get; set; }
-			public string Description { get; set; }
-			public string BranchType { get; set; }
-			public string DeliveryStatus { get; set; }
-			public string Taluk { get; set; }
-			public string Circle { get; set; }
-			public string District { get; set; }
-			public string Division { get; set; }
-			public string Region { get; set; }
-			public string State { get; set; }
-			public string Country { get; set; }
+			public string Name { get; set; } = string.Empty;
+			public string Description { get; set; } = string.Empty;
+			public string BranchType { get; set; } = string.Empty;
+			public string DeliveryStatus { get; set; } = string.Empty;
+			public string Taluk { get; set; } = string.Empty;
+			public string Circle { get; set; } = string.Empty;
+			public string District { get; set; } = string.Empty;
+			public string Division { get; set; } = string.Empty;
+			public string Region { get; set; } = string.Empty;
+			public string State { get; set; } = string.Empty;
+			public string Country { get; set; } = string.Empty;
 		}
 	}
 }

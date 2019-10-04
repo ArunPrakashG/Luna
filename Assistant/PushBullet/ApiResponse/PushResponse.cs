@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Newtonsoft.Json;
 
 namespace Assistant.PushBullet.ApiResponse {
@@ -33,34 +5,34 @@ namespace Assistant.PushBullet.ApiResponse {
 		[JsonProperty("active")]
 		public bool IsActive { get; set; }
 		[JsonProperty("iden")]
-		public string PushIdentifier { get; set; }
+		public string PushIdentifier { get; set; } = string.Empty;
 		[JsonProperty("created")]
 		public float CreatedAt { get; set; }
 		[JsonProperty("modified")]
 		public float ModifiedAt { get; set; }
 		[JsonProperty("type")]
-		public string PushType { get; set; }
+		public string PushType { get; set; } = string.Empty;
 		[JsonProperty("dismissed")]
 		public bool IsDismissed { get; set; }
 		[JsonProperty("direction")]
-		public string Direction { get; set; }
+		public string Direction { get; set; } = string.Empty;
 		[JsonProperty("sender_iden")]
-		public string SenderIdentifier { get; set; }
+		public string SenderIdentifier { get; set; } = string.Empty;
 		[JsonProperty("sender_email")]
-		public string SenderEmail { get; set; }
+		public string SenderEmail { get; set; } = string.Empty;
 		[JsonProperty("sender_email_normalized")]
-		public string SenderEmailNormalized { get; set; }
+		public string SenderEmailNormalized { get; set; } = string.Empty;
 		[JsonProperty("sender_name")]
-		public string SenderName { get; set; }
+		public string SenderName { get; set; } = string.Empty;
 		[JsonProperty("receiver_iden")]
-		public string ReceiverIdentifier { get; set; }
+		public string ReceiverIdentifier { get; set; } = string.Empty;
 		[JsonProperty("receiver_email")]
-		public string ReceiverEmail { get; set; }
+		public string ReceiverEmail { get; set; } = string.Empty;
 		[JsonProperty("receiver_email_normalized")]
-		public string ReceiverEmailNormalized { get; set; }
+		public string ReceiverEmailNormalized { get; set; } = string.Empty;
 		[JsonProperty("title")]
-		public string PushTitle { get; set; }
+		public string PushTitle { get; set; } = string.Empty;
 		[JsonProperty("body")]
-		public string PushBody { get; set; }
+		public string PushBody { get; set; } = string.Empty;
 	}
 }

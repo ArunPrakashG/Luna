@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
@@ -37,38 +9,40 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.PushBullet {
 	public class PushBulletClient {
 		private readonly Logger Logger = new Logger("PUSH-BULLET-CLIENT");
-		public string ClientAccessToken { get; set; }
+		public string? ClientAccessToken { get; set; }
 		public bool IsServiceLoaded { get; private set; }
 		public int ApiFailedCount { get; private set; }
 		public bool RequestInSleepMode { get; private set; }
 
-		public PushBulletClient(string apiKey) {
-			if (Helpers.IsNullOrEmpty(apiKey)) {
-				throw new IncorrectAccessTokenException(apiKey);
+		private static readonly SemaphoreSlim RequestSemaphore = new SemaphoreSlim(1, 1);
+
+		public PushBulletClient InitPushBulletClient(string? apiKey) {
+			if (apiKey == null || apiKey.IsNull()) {
+				if (Core.Config.PushBulletApiKey == null || Core.Config.PushBulletApiKey.IsNull()) {
+					throw new IncorrectAccessTokenException();
+				}
+
+				Logger.Log("Using default selection of api key as it is not specified.", LogLevels.Warn);
+				ClientAccessToken = Core.Config.PushBulletApiKey;
+				IsServiceLoaded = true;
+
+				return this;
 			}
 
 			ClientAccessToken = apiKey;
 			IsServiceLoaded = true;
+			return this;
 		}
 
-		public PushBulletClient() {
-			if (Helpers.IsNullOrEmpty(Core.Config.PushBulletApiKey)) {
-				throw new IncorrectAccessTokenException(Core.Config.PushBulletApiKey);
-			}
-
-			Logger.Log("Using default selection of api key as it is not specified.", LogLevels.Warn);
-			ClientAccessToken = Core.Config.PushBulletApiKey;
-			IsServiceLoaded = true;
-		}
-
-		public UserDeviceListResponse GetCurrentDevices() {
-			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
-				throw new IncorrectAccessTokenException(ClientAccessToken);
+		public UserDeviceListResponse? GetCurrentDevices() {
+			if (ClientAccessToken == null || Helpers.IsNullOrEmpty(ClientAccessToken)) {
+				throw new IncorrectAccessTokenException();
 			}
 
 			string requestUrl = "https://api.pushbullet.com/v2/devices";
@@ -90,18 +64,18 @@ namespace Assistant.PushBullet {
 			return DeserializeJsonObject<UserDeviceListResponse>(response);
 		}
 
-		public PushResponse SendPush(PushRequestContent pushRequestContent) {
+		public PushResponse? SendPush(PushRequestContent pushRequestContent) {
 			if (pushRequestContent == null) {
 				throw new ParameterValueIsNullException("pushMessageValues value is null.");
 			}
 
-			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
-				throw new IncorrectAccessTokenException(ClientAccessToken);
+			if (ClientAccessToken == null || Helpers.IsNullOrEmpty(ClientAccessToken)) {
+				throw new IncorrectAccessTokenException();
 			}
 
 			string requestUrl = "https://api.pushbullet.com/v2/pushes";
-			Dictionary<string, string> queryString = new Dictionary<string, string>();
-			Dictionary<string, string> bodyParams = new Dictionary<string, string>();
+			Dictionary<string, string>? queryString = new Dictionary<string, string>();
+			Dictionary<string, string>? bodyParams = new Dictionary<string, string>();
 
 			switch (pushRequestContent.PushTarget) {
 				case PushEnums.PushTarget.Device:
@@ -185,10 +159,6 @@ namespace Assistant.PushBullet {
 
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.POST, true, queryString, bodyParams);
 
-			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
-				return null;
-			}
-
 			if (!requestStatus) {
 				throw new RequestFailedException();
 			}
@@ -201,17 +171,13 @@ namespace Assistant.PushBullet {
 			return DeserializeJsonObject<PushResponse>(response);
 		}
 
-		public ListSubscriptionsResponse GetSubscriptions() {
-			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
-				throw new IncorrectAccessTokenException(ClientAccessToken);
+		public ListSubscriptionsResponse? GetSubscriptions() {
+			if (ClientAccessToken == null || Helpers.IsNullOrEmpty(ClientAccessToken)) {
+				throw new IncorrectAccessTokenException();
 			}
 
 			string requestUrl = "https://api.pushbullet.com/v2/subscriptions";
 			(bool requestStatus, string response) = FetchApiResponse(requestUrl, Method.GET);
-
-			if (!requestStatus && Helpers.IsNullOrEmpty(response)) {
-				return null;
-			}
 
 			if (!requestStatus) {
 				throw new RequestFailedException();
@@ -230,8 +196,8 @@ namespace Assistant.PushBullet {
 				throw new ParameterValueIsNullException("pushIdentifier");
 			}
 
-			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
-				throw new IncorrectAccessTokenException(ClientAccessToken);
+			if (ClientAccessToken == null || Helpers.IsNullOrEmpty(ClientAccessToken)) {
+				throw new IncorrectAccessTokenException();
 			}
 
 			string requestUrl = "https://api.pushbullet.com/v2/subscriptions";
@@ -253,6 +219,10 @@ namespace Assistant.PushBullet {
 
 			try {
 				DeletePushResponse pushResponse = JsonConvert.DeserializeObject<DeletePushResponse>(response);
+				if(pushResponse == null || pushResponse.ErrorCode == null || pushResponse.ErrorReason == null) {
+					return PushEnums.PushDeleteStatusCode.ObjectNotFound;
+				}
+
 				statusCode = pushResponse.ErrorReason.Message.Equals("Object not found", StringComparison.OrdinalIgnoreCase)
 					? PushEnums.PushDeleteStatusCode.ObjectNotFound
 					: PushEnums.PushDeleteStatusCode.Unknown;
@@ -265,13 +235,13 @@ namespace Assistant.PushBullet {
 			return statusCode;
 		}
 
-		public PushListResponse GetAllPushes(PushListRequestContent listPushParams) {
+		public PushListResponse? GetAllPushes(PushListRequestContent listPushParams) {
 			if (listPushParams == null) {
 				throw new ParameterValueIsNullException("listPushParams is null.");
 			}
 
-			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
-				throw new IncorrectAccessTokenException(ClientAccessToken);
+			if (ClientAccessToken == null || Helpers.IsNullOrEmpty(ClientAccessToken)) {
+				throw new IncorrectAccessTokenException();
 			}
 
 			string requestUrl = "https://api.pushbullet.com/v2/pushes";
@@ -311,9 +281,9 @@ namespace Assistant.PushBullet {
 			return DeserializeJsonObject<PushListResponse>(response);
 		}
 
-		public ChannelInfoResponse GetChannelInfo(string channelTag) {
-			if (Helpers.IsNullOrEmpty(ClientAccessToken)) {
-				throw new IncorrectAccessTokenException(ClientAccessToken);
+		public ChannelInfoResponse? GetChannelInfo(string channelTag) {
+			if (ClientAccessToken == null || Helpers.IsNullOrEmpty(ClientAccessToken)) {
+				throw new IncorrectAccessTokenException();
 			}
 
 			if (Helpers.IsNullOrEmpty(channelTag)) {
@@ -345,70 +315,75 @@ namespace Assistant.PushBullet {
 
 		private T DeserializeJsonObject<T>(string jsonObject) => Helpers.IsNullOrEmpty(jsonObject) ? throw new ResponseIsNullException() : JsonConvert.DeserializeObject<T>(jsonObject);
 
-		private (bool, string) FetchApiResponse(string requestUrl, Method executionMethod = Method.GET, bool contentTypeUrlEncoded = false, Dictionary<string, string> queryParams = null, Dictionary<string, string> bodyContents = null) {
+		private (bool, string) FetchApiResponse(string requestUrl, Method executionMethod = Method.GET, bool contentTypeUrlEncoded = false, Dictionary<string, string>? queryParams = null, Dictionary<string, string>? bodyContents = null) {
 			if (Helpers.IsNullOrEmpty(requestUrl)) {
 				Logger.Log("The specified request url is either null or empty.", LogLevels.Warn);
-				return (false, null);
+				return (false, string.Empty);
 			}
 
 			if (!Core.IsNetworkAvailable) {
 				throw new RequestFailedException("No internet connectivity");
 			}
+			try {
+				RequestSemaphore.Wait();
+				if (RequestInSleepMode) {
+					return (false, string.Empty);
+				}
 
-			if (RequestInSleepMode) {
-				return (false, null);
-			}
+				if (ApiFailedCount > 4) {
+					RequestInSleepMode = true;
+					Logger.Log("API requests have failed multiple times. Sleeping for 30 minutes...", LogLevels.Warn);
+					Helpers.ScheduleTask(() => {
+						RequestInSleepMode = false;
+						ApiFailedCount = 0;
+					}, TimeSpan.FromMinutes(30));
+					return (false, string.Empty);
+				}
 
-			if (ApiFailedCount > 4) {
-				RequestInSleepMode = true;
-				Logger.Log("API requests have failed multiple times. Sleeping for 30 minutes...", LogLevels.Warn);
-				Helpers.ScheduleTask(() => {
-					RequestInSleepMode = false;
-					ApiFailedCount = 0;
-				}, TimeSpan.FromMinutes(30));
-				return (false, null);
-			}
+				RestClient client = new RestClient(requestUrl);
+				RestRequest request = new RestRequest(executionMethod);
+				request.AddHeader("Access-Token", ClientAccessToken);
 
-			RestClient client = new RestClient(requestUrl);
-			RestRequest request = new RestRequest(executionMethod);
-			request.AddHeader("Access-Token", ClientAccessToken);
+				if (contentTypeUrlEncoded) {
+					request.AddHeader("content-type", "application/x-www-form-urlencoded");
+				}
 
-			if (contentTypeUrlEncoded) {
-				request.AddHeader("content-type", "application/x-www-form-urlencoded");
-			}
-
-			if (queryParams != null && queryParams?.Count > 0) {
-				foreach (KeyValuePair<string, string> param in queryParams) {
-					if (!Helpers.IsNullOrEmpty(param.Key) && !Helpers.IsNullOrEmpty(param.Value)) {
-						request.AddQueryParameter(param.Key, param.Value);
+				if (queryParams != null && queryParams?.Count > 0) {
+					foreach (KeyValuePair<string, string> param in queryParams) {
+						if (!Helpers.IsNullOrEmpty(param.Key) && !Helpers.IsNullOrEmpty(param.Value)) {
+							request.AddQueryParameter(param.Key, param.Value);
+						}
 					}
 				}
-			}
 
-			if (bodyContents != null && bodyContents?.Count > 0) {
-				foreach (KeyValuePair<string, string> body in bodyContents) {
-					if (!Helpers.IsNullOrEmpty(body.Key) && !Helpers.IsNullOrEmpty(body.Value)) {
-						request.AddParameter(body.Key, body.Value, ParameterType.GetOrPost);
+				if (bodyContents != null && bodyContents?.Count > 0) {
+					foreach (KeyValuePair<string, string> body in bodyContents) {
+						if (!Helpers.IsNullOrEmpty(body.Key) && !Helpers.IsNullOrEmpty(body.Value)) {
+							request.AddParameter(body.Key, body.Value, ParameterType.GetOrPost);
+						}
 					}
 				}
+
+				IRestResponse response = client.Execute(request);
+
+				if (response.StatusCode != HttpStatusCode.OK) {
+					Logger.Log("Failed to fetch. Status Code: " + response.StatusCode + "/" + response.ResponseStatus, LogLevels.Warn);
+					ApiFailedCount++;
+					return (false, response.Content);
+				}
+
+				string jsonResponse = response.Content;
+
+				if (!Helpers.IsNullOrEmpty(jsonResponse)) {
+					Logger.Log("Fetched json response.", LogLevels.Trace);
+					return (true, jsonResponse);
+				}
+
+				return (false, jsonResponse);
 			}
-
-			IRestResponse response = client.Execute(request);
-
-			if (response.StatusCode != HttpStatusCode.OK) {
-				Logger.Log("Failed to fetch. Status Code: " + response.StatusCode + "/" + response.ResponseStatus, LogLevels.Warn);
-				ApiFailedCount++;
-				return (false, response.Content);
+			finally {
+				RequestSemaphore.Release();
 			}
-
-			string jsonResponse = response.Content;
-
-			if (!Helpers.IsNullOrEmpty(jsonResponse)) {
-				Logger.Log("Fetched json response.", LogLevels.Trace);
-				return (true, jsonResponse);
-			}
-
-			return (false, jsonResponse);
 		}
 	}
 }

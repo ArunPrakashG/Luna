@@ -1,5 +1,6 @@
 using Assistant.Extensions;
 using Assistant.Log;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,11 +22,12 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 			Logger = GpioController.Logger;
 		}
 
+		[CanBeNull]
 		internal RaspberryIOController InitDriver() {
 			if (Core.DisablePiMethods || Core.RunningPlatform != OSPlatform.Linux || !Core.Config.EnableGpioControl) {
 				Logger.Log("Failed to initialize Gpio Controller Driver.", LogLevels.Warn);
 				IsDriverProperlyInitialized = false;
-				return null;
+				return this;
 			}
 
 			Pi.Init<BootstrapWiringPi>();
@@ -33,14 +35,15 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 			return this;
 		}
 
+		[CanBeNull]
 		public GpioPinConfig GetGpioConfig(int pinNumber) {
 			if (Core.DisablePiMethods || !IsDriverProperlyInitialized) {
-				return null;
+				return new GpioPinConfig();
 			}
 
 			if (!PiController.IsValidPin(pinNumber)) {
 				Logger.Log("The specified pin is invalid.");
-				return null;
+				return new GpioPinConfig();
 			}
 
 			GpioPin pin = (GpioPin) Pi.Gpio[pinNumber];
@@ -141,7 +144,12 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 		public void ShutdownDriver() {
 			if (Core.Config.CloseRelayOnShutdown) {
 				foreach (int pin in Core.Config.OutputModePins) {
-					GpioPinConfig pinStatus = GetGpioConfig(pin);
+					GpioPinConfig? pinStatus = GetGpioConfig(pin);
+
+					if (pinStatus == null) {
+						continue;
+					}
+
 					if (pinStatus.IsPinOn) {
 						SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
 						Logger.Log($"Closed pin {pin} as part of shutdown process.");
@@ -156,7 +164,11 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 			}
 
 			foreach (int pin in pins) {
-				GpioPinConfig pinConfig = GetGpioConfig(pin);
+				GpioPinConfig? pinConfig = GetGpioConfig(pin);
+
+				if (pinConfig == null) {
+					continue;
+				}
 
 				if (pinConfig.Mode != setMode) {
 					SetGpioValue(pin, setMode);

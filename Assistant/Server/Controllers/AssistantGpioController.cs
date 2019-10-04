@@ -27,12 +27,7 @@ namespace Assistant.Server.Controllers {
 			}
 
 			try {
-				List<GpioPinConfig> config = new List<GpioPinConfig>();
-				for (int i = 0; i <= 40; i++) {
-					config.Add(Core.PiController.PinController.GetGpioConfig(i));
-				}
-
-				return Ok(new GenericResponse<List<GpioPinConfig>>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
+				return Ok(new GenericResponse<List<GpioPinConfig>>(PiController.PinConfigCollection, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
 				return NotFound(new GenericResponse<string>($"Failed to fetch pin status, possibly {Core.AssistantName} isn't fully started yet.", Enums.HttpStatusCodes.NoContent, DateTime.Now));
@@ -57,7 +52,11 @@ namespace Assistant.Server.Controllers {
 			}
 
 			try {
-				GpioPinConfig config = Core.PiController.PinController.GetGpioConfig(pinNumber);
+				if(Core.PiController == null) {
+					return BadRequest(new GenericResponse<string>("Internal error. the pi controller malfunctioned.", HttpStatusCodes.BadRequest, DateTime.Now));
+				}
+
+				GpioPinConfig config = Core.PiController.GetPinController().GetGpioConfig(pinNumber);
 				return Ok(new GenericResponse<GpioPinConfig>(config, Enums.HttpStatusCodes.OK, DateTime.Now));
 			}
 			catch (NullReferenceException) {
@@ -80,8 +79,12 @@ namespace Assistant.Server.Controllers {
 
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
-			foreach (int pin in Core.Config.OutputModePins) {
-				resultConfig.Add(Core.PiController.PinController.GetGpioConfig(pin));
+			if (Core.PiController == null) {
+				return BadRequest(new GenericResponse<string>("Internal error. the pi controller malfunctioned.", HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			foreach (int pin in Core.Config.RelayPins) {
+				resultConfig.Add(Core.PiController.GetPinController().GetGpioConfig(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -109,8 +112,12 @@ namespace Assistant.Server.Controllers {
 
 			List<GpioPinConfig> resultConfig = new List<GpioPinConfig>();
 
-			foreach (int pin in Core.Config.InputModePins) {
-				resultConfig.Add(Core.PiController.PinController.GetGpioConfig(pin));
+			if (Core.PiController == null) {
+				return BadRequest(new GenericResponse<string>("Internal error. the pi controller malfunctioned.", HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			foreach (int pin in Core.Config.IRSensorPins) {
+				resultConfig.Add(Core.PiController.GetPinController().GetGpioConfig(pin));
 			}
 
 			if (resultConfig.Count > 0) {
@@ -154,7 +161,11 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			bool result = Core.PiController.PinController.SetGpioValue(pinNumber, pinMode, isOn ? Enums.GpioPinState.On : Enums.GpioPinState.Off);
+			if (Core.PiController == null) {
+				return BadRequest(new GenericResponse<string>("Internal error. the pi controller malfunctioned.", HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			bool result = Core.PiController.GetPinController().SetGpioValue(pinNumber, pinMode, isOn ? Enums.GpioPinState.On : Enums.GpioPinState.Off);
 
 			if (result) {
 				return Ok(new GenericResponse<string>($"Successfully set {pinNumber} to {isOn} state. ({pinMode})",
@@ -187,7 +198,11 @@ namespace Assistant.Server.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			Helpers.InBackgroundThread(async () => await Core.PiController.PinController.RelayTestServiceAsync(cycleMode).ConfigureAwait(false), "Relay Cycle");
+			if (Core.PiController == null) {
+				return BadRequest(new GenericResponse<string>("Internal error. the pi controller malfunctioned.", HttpStatusCodes.BadRequest, DateTime.Now));
+			}
+
+			Helpers.InBackgroundThread(async () => await Core.PiController.GetPinController().RelayTestServiceAsync(cycleMode).ConfigureAwait(false), "Relay Cycle");
 			return Ok(new GenericResponse<string>(
 				$"Successfully started gpio relay test cycle. configured to {cycleMode.ToString()} cycle mode.", Enums.HttpStatusCodes.OK,
 				DateTime.Now));

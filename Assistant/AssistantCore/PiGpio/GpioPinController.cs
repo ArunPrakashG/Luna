@@ -9,19 +9,37 @@ namespace Assistant.AssistantCore.PiGpio {
 	public class GpioPinController : IGpioControllerDriver {
 		internal readonly Logger Logger = new Logger("GPIO-CONTROLLER");
 		public EGpioDriver CurrentGpioDriver { get; private set; }
-		private IGpioControllerDriver GpioControllerDriver { get; set; }
-		private GpioEventManager GpioPollingManager => Core.PiController.GpioPollingManager;
+		private IGpioControllerDriver GpioControllerDriver { get; set; } = new NullDriver();
+		private GpioEventManager? GpioPollingManager => Core.PiController?.GetEventManager();
 
-		public GpioPinController(EGpioDriver driver) => CurrentGpioDriver = driver;
+		public GpioPinController InitGpioController(EGpioDriver driver) {
+			CurrentGpioDriver = driver;
 
-		public GpioPinController InitGpioController() {
-			GpioControllerDriver = new RaspberryIOController(this).InitDriver();
-			Core.PiController.GpioPollingManager = new GpioEventManager();
-			Logger.Log($"Gpio Controller initiated with {CurrentGpioDriver.ToString()} driver.");
-			return this;
+			switch (CurrentGpioDriver) {
+				case EGpioDriver.RaspberryIODriver:
+					GpioControllerDriver = new RaspberryIOController(this).InitDriver();
+
+					if(Core.PiController == null) {
+						Logger.Log("Cannot set the event manager due to a malfunction.", LogLevels.Warn);
+						return this;
+					}
+
+					Core.PiController.SetEventManager(new GpioEventManager());
+					Logger.Log($"Gpio Controller initiated with {CurrentGpioDriver.ToString()} driver.");
+					return this;
+				case EGpioDriver.GpioDevicesDriver:
+				case EGpioDriver.WiringPiDriver:
+				default:
+					return this;
+			}
 		}
 
 		public void StartInternalPinPolling() {
+			if(GpioPollingManager == null) {
+				Logger.Log("Internal polling failed as polling manager is malfunctioning.", LogLevels.Warn);
+				return;
+			}
+
 			if (Core.Config.RelayPins.Count() > 0) {
 				foreach (int pin in Core.Config.RelayPins) {
 					GpioPinEventConfig config = new GpioPinEventConfig(pin, GpioPinMode.Output, GpioPinEventStates.ALL);
@@ -64,6 +82,11 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		private void OnIrSensorValueChanged(object sender, GpioPinValueChangedEventArgs e) {
 			if (e == null || sender == null) {
+				return;
+			}
+
+			if (Core.PiController == null) {
+				Logger.Log("IR Sensor event execution failed. Malfunctioned Controller.", LogLevels.Warn);
 				return;
 			}
 
@@ -154,7 +177,7 @@ namespace Assistant.AssistantCore.PiGpio {
 					throw new InvalidOperationException("Internal error with the drivers.");
 			}
 
-			return GpioControllerDriver;
+			return GpioControllerDriver ?? new NullDriver();
 		}
 
 		public GpioPinConfig GetGpioConfig(int pinNumber) => GetDriver().GetGpioConfig(pinNumber);

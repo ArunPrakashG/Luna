@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Newtonsoft.Json;
 
 namespace Assistant.Server.SecureLine.Responses {
@@ -8,6 +5,6 @@ namespace Assistant.Server.SecureLine.Responses {
 		[JsonProperty]
 		public int ResponseCode { get; set; }
 		[JsonProperty]
-		public string FailReason { get; set; }
+		public string FailReason { get; set; } = string.Empty;
 	}
 }

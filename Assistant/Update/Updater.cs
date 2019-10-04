@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Log;
@@ -44,7 +16,7 @@ namespace Assistant.Update {
 		private readonly Logger Logger = new Logger("UPDATER");
 		private GitHub Git = new GitHub();
 		public bool UpdateAvailable = false;
-		private Timer AutoUpdateTimer;
+		private Timer? AutoUpdateTimer;
 		private readonly Stopwatch ElapasedTimeCalculator = new Stopwatch();
 		private DateTime UpdateTimerStartTime;
 		private static readonly SemaphoreSlim UpdateSemaphore = new SemaphoreSlim(1, 1);
@@ -90,7 +62,7 @@ namespace Assistant.Update {
 			}
 		}
 
-		public async Task<(bool, Version)> CheckAndUpdateAsync(bool withTimer) {
+		public async Task<(bool, Version?)> CheckAndUpdateAsync(bool withTimer) {
 			if (!Core.IsNetworkAvailable) {
 				return (false, Constants.Version);
 			}
@@ -119,7 +91,7 @@ namespace Assistant.Update {
 				return (false, Constants.Version);
 			}
 
-			if (!Version.TryParse(GitVersion, out Version LatestVersion)) {
+			if (!Version.TryParse(GitVersion, out Version? LatestVersion)) {
 				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", Enums.LogLevels.Warn);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
@@ -148,7 +120,7 @@ namespace Assistant.Update {
 		}
 
 		public async Task<bool> InitUpdate() {
-			if (Git == null) {
+			if (Git == null || Git.Assets == null || Git.Assets.Length <= 0 ||Git.Assets[0] == null) {
 				return false;
 			}
 
@@ -196,6 +168,10 @@ namespace Assistant.Update {
 			}
 
 			if (OS.IsUnix) {
+				if(Constants.HomeDirectory == null || Constants.HomeDirectory.IsNull()) {
+					return false;
+				}
+
 				string executable = Path.Combine(Constants.HomeDirectory, Constants.GitHubProjectName);
 
 				if (File.Exists(executable)) {
@@ -207,8 +183,9 @@ namespace Assistant.Update {
 			UpdateSemaphore.Release();
 			await Task.Delay(1000).ConfigureAwait(false);
 			await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateStarted).ConfigureAwait(false);
-			Helpers.ExecuteCommand("cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll", true);
-			return await Helpers.RestartOrExit().ConfigureAwait(false);
+			"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll".ExecuteBash(true);
+			await Core.Restart(5).ConfigureAwait(false);
+			return true;
 		}
 	}
 }

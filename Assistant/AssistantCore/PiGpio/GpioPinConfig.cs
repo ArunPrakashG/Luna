@@ -30,18 +30,16 @@ namespace Assistant.AssistantCore.PiGpio {
 		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 		private static readonly Logger Logger = new Logger("GPIO-CONFIG");
 
-		public override bool Equals(object obj) {
+		public override bool Equals(object? obj) {
 			if (obj == null) {
 				return false;
 			}
 
-			GpioPinConfig config = obj as GpioPinConfig;
+			GpioPinConfig config = (GpioPinConfig) obj;
 			return config.Pin == Pin;
 		}
 
-		public override int GetHashCode() {
-			return base.GetHashCode();
-		}
+		public override int GetHashCode() => base.GetHashCode();
 
 		public override string ToString() {
 			StringBuilder s = new StringBuilder();
@@ -54,6 +52,10 @@ namespace Assistant.AssistantCore.PiGpio {
 			s.AppendLine($"Is pin on -> {IsPinOn}");
 			s.AppendLine("---------------------------");
 			return s.ToString();
+		}
+
+		public GpioPinConfig() {
+
 		}
 
 		public GpioPinConfig(int _pin, GpioPinState _pinValue, GpioPinMode _mode, bool _isDelayedTaskSet, int _taskSetAfterMinutes) {

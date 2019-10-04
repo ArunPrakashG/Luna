@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Newtonsoft.Json;
 
 namespace Assistant.Server.SecureLine.Requests {
@@ -9,7 +6,7 @@ namespace Assistant.Server.SecureLine.Requests {
 		public int HoursFromNow { get; set; }
 
 		[JsonProperty]
-		public string AlarmMessage { get; set; }
+		public string AlarmMessage { get; set; } = string.Empty;
 
 		[JsonProperty]
 		public bool UseTTS { get; set; }

@@ -1,34 +1,7 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.AssistantCore;
 using Assistant.Log;
 using Figgle;
+using JetBrains.Annotations;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -122,12 +95,14 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		public static ProcessThread FetchThreadById(int id) {
+		public static ProcessThread? FetchThreadById(int id) {
 			ProcessThreadCollection currentThreads = Process.GetCurrentProcess().Threads;
 
-			foreach (ProcessThread thread in currentThreads) {
-				if (thread.Id.Equals(id)) {
-					return thread;
+			if (currentThreads != null && currentThreads.Count > 0) {
+				foreach (ProcessThread? thread in currentThreads) {
+					if (thread != null && thread.Id == id) {
+						return thread;
+					}
 				}
 			}
 
@@ -140,7 +115,7 @@ namespace Assistant.Extensions {
 				return;
 			}
 
-			Timer TaskSchedulerTimer = null;
+			Timer? TaskSchedulerTimer = null;
 
 			TaskSchedulerTimer = new Timer(e => {
 				InBackground(() => structure.Task, longrunning);
@@ -149,16 +124,18 @@ namespace Assistant.Extensions {
 					TaskSchedulerTimer.Dispose();
 					TaskSchedulerTimer = null;
 				}
+
 			}, null, delay, delay);
 		}
 
-		public static Timer ScheduleTask(Action action, TimeSpan delay) {
+		[CanBeNull]
+		public static Timer? ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
 				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return null;
 			}
 
-			Timer TaskSchedulerTimer = null;
+			Timer? TaskSchedulerTimer = null;
 
 			TaskSchedulerTimer = new Timer(e => {
 				InBackgroundThread(action, "Task Scheduler");
@@ -173,7 +150,7 @@ namespace Assistant.Extensions {
 		}
 
 		public static bool IsSocketConnected(Socket s) {
-			if(s == null) {
+			if (s == null) {
 				return false;
 			}
 
@@ -186,17 +163,20 @@ namespace Assistant.Extensions {
 			return true;
 		}
 
-		public static string ExecuteBash(this string cmd) {
-			if (IsNullOrEmpty(cmd)) {
-				return null;
+		[CanBeNull]
+		public static string ExecuteBash(this string cmd, bool sudo) {
+			if (cmd.IsNull()) {
+				return string.Empty;
 			}
 
 			string escapedArgs = cmd.Replace("\"", "\\\"");
+			string args = $"-c \"{escapedArgs}\"";
+			string argsWithSudo = $"-c \"sudo {escapedArgs}\"";
 
-			Process process = new Process() {
+			using Process process = new Process() {
 				StartInfo = new ProcessStartInfo {
 					FileName = "/bin/bash",
-					Arguments = $"-c \"{escapedArgs}\"",
+					Arguments = sudo ? argsWithSudo : args,
 					RedirectStandardOutput = true,
 					UseShellExecute = false,
 					CreateNoWindow = true,
@@ -209,7 +189,7 @@ namespace Assistant.Extensions {
 				result = process.StandardOutput.ReadToEnd();
 				process.WaitForExit(TimeSpan.FromMinutes(4).Milliseconds);
 			}
-			
+
 			return result;
 		}
 
@@ -222,7 +202,7 @@ namespace Assistant.Extensions {
 		}
 
 		public static void LogInfo(this string msg, Logger logger) {
-			if(IsNullOrEmpty(msg) || logger == null) {
+			if (IsNullOrEmpty(msg) || logger == null) {
 				return;
 			}
 
@@ -274,11 +254,14 @@ namespace Assistant.Extensions {
 		}
 
 		public static string GetLocalIpAddress() {
-			string localIP;
+			string localIP = string.Empty;
+
 			using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0)) {
 				socket.Connect("8.8.8.8", 65530);
-				IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
-				localIP = endPoint.Address.ToString();
+				IPEndPoint? endPoint = socket.LocalEndPoint as IPEndPoint;
+				if (endPoint != null) {
+					localIP = endPoint.Address.ToString();
+				}
 			}
 
 			return localIP;
@@ -299,13 +282,13 @@ namespace Assistant.Extensions {
 		}
 
 		public static string GetExternalIp() {
-			if (Core.IsNetworkAvailable) {
-				string result = new WebClient().DownloadString("https://api.ipify.org/").Trim('\n');
-				return result;
+			if (!Core.IsNetworkAvailable) {
+				return string.Empty;
 			}
 
-			Logger.Log("No internet connection.", Enums.LogLevels.Error);
-			return null;
+			using WebClient client = new WebClient();
+			string result = client.DownloadString("https://api.ipify.org/").Trim('\n');
+			return result;
 		}
 
 		internal static string TimeRan() {
@@ -327,7 +310,11 @@ namespace Assistant.Extensions {
 			Logger.Log(FiggleFonts.Ogre.Render(text), Enums.LogLevels.Ascii);
 		}
 
-		public static string FetchVariable(int arrayLine, bool returnParsed = false, string varName = null) {
+		public static string? FetchVariable(int arrayLine, bool returnParsed = false, string? varName = null) {
+			if (arrayLine < 0 || varName == null) {
+				return null;
+			}
+
 			if (!File.Exists(Constants.VariablesPath)) {
 				Logger.Log("Variables file doesnt exist! aborting...", Enums.LogLevels.Error);
 				return null;
@@ -343,11 +330,11 @@ namespace Assistant.Extensions {
 				return variables[arrayLine];
 			}
 
-			Logger.Log("Line is empty.", Enums.LogLevels.Error);
+			Logger.Log("Line is empty.", LogLevels.Error);
 			return null;
 		}
 
-		private static string ParseVariable(string variableRaw, string variableName, char seperator = '=') {
+		private static string? ParseVariable(string variableRaw, string variableName, char seperator = '=') {
 			if (string.IsNullOrEmpty(variableRaw) || string.IsNullOrWhiteSpace(variableRaw)) {
 				Logger.Log("Variable is empty.", Enums.LogLevels.Error);
 				return null;
@@ -368,7 +355,7 @@ namespace Assistant.Extensions {
 			return null;
 		}
 
-		public static string GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);
+		public static string? GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);
 
 		public static bool SetEnvironmentVariable(string variableName, string variableValue, EnvironmentVariableTarget target) {
 			try {
@@ -379,37 +366,6 @@ namespace Assistant.Extensions {
 				Logger.Log(e);
 				return false;
 			}
-		}
-
-		public static string GetUrlToString(string url, string Method = "GET", bool withuserAgent = true) {
-			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
-				return null;
-			}
-
-			string Response = null;
-
-			try {
-				Uri address = new Uri(url);
-				HttpWebRequest request = WebRequest.Create(address) as HttpWebRequest;
-				request.Method = Method;
-
-				if (withuserAgent) {
-					request.UserAgent = Constants.GitHubUserID;
-				}
-
-				request.ContentType = "text/xml";
-				using (HttpWebResponse response = request.GetResponse() as HttpWebResponse) {
-					StreamReader reader = new StreamReader(response.GetResponseStream());
-					Response = reader.ReadToEnd();
-				}
-			}
-			catch (Exception e) {
-				Logger.Log(e);
-				return null;
-			}
-
-			return Response;
 		}
 
 		public static DateTime ConvertTo24Hours(DateTime source) =>
@@ -432,43 +388,59 @@ namespace Assistant.Extensions {
 			return output;
 		}
 
-		public static string GetUrlToString(string url, Method method, bool withuseragent = true) {
+		public static string? GetUrlToString(string url, Method method, bool withuseragent = true) {
 			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
+				Logger.Log("Network is unavailable.", LogLevels.Warn);
 				return null;
 			}
 
-			if (url == null) {
-				throw new ArgumentNullException(nameof(url));
-			}
-
-			try {
-				RestClient client = new RestClient(url);
-				RestRequest request = new RestRequest(method);
-
-				if (withuseragent) {
-					client.UserAgent = Constants.GitHubProjectName;
-				}
-
-				request.AddHeader("cache-control", "no-cache");
-				IRestResponse response = client.Execute(request);
-
-				if (response.StatusCode != HttpStatusCode.OK) {
-					Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
-					return null;
-				}
-
-				return response.Content;
-			}
-			catch (PlatformNotSupportedException) {
-				Logger.Log("Platform not supported exception during rest request.", Enums.LogLevels.Trace);
+			if (url.IsNull()) {
 				return null;
 			}
+
+			RestClient client = new RestClient(url);
+			RestRequest request = new RestRequest(method);
+
+			if (withuseragent) {
+				client.UserAgent = Constants.GitHubProjectName;
+			}
+
+			request.AddHeader("cache-control", "no-cache");
+			IRestResponse response = client.Execute(request);
+
+			if (response.StatusCode != HttpStatusCode.OK) {
+				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+				return null;
+			}
+
+			return response.Content;
 		}
 
-		public static byte[] GetUrlToBytes(string url, Method method, string userAgent, string headerName = null, string headerValue = null) {
+		public static string? GetUrlToString(this string url) {
 			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
+				Logger.Log("Network is unavailable.", LogLevels.Warn);
+				return null;
+			}
+
+			if (url.IsNull()) {
+				return null;
+			}
+
+			RestClient client = new RestClient(url);
+			RestRequest request = new RestRequest(Method.GET);
+			IRestResponse response = client.Execute(request);
+
+			if (response.StatusCode != HttpStatusCode.OK) {
+				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+				return null;
+			}
+
+			return response.Content;
+		}
+
+		public static byte[]? GetUrlToBytes(string url, Method method, string userAgent, string? headerName = null, string? headerValue = null) {
+			if (!Core.IsNetworkAvailable) {
+				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
 				return new byte[0];
 			}
 
@@ -497,24 +469,15 @@ namespace Assistant.Extensions {
 			return response.RawBytes;
 		}
 
-		public static async Task<bool> RestartOrExit(bool Restart = false) {
-			if (Restart) {
-				Logger.Log("Restarting...");
-				await Task.Delay(5000).ConfigureAwait(false);
-				await Core.Restart().ConfigureAwait(false);
-				return true;
-			}
-
-			Logger.Log("Exiting...");
-			await Task.Delay(5000).ConfigureAwait(false);
-			await Core.Exit().ConfigureAwait(false);
-			return true;
-		}
-
 		public static string GetFileName(string path) {
-			if (GetOsPlatform().Equals(OSPlatform.Windows)) {
-				return Path.GetFileName(path);
+			if(path == null || path.IsNull()) {
+				return string.Empty;
 			}
+
+			if (GetOsPlatform().Equals(OSPlatform.Windows)) {
+				return Path.GetFileName(path) ?? string.Empty;
+			}
+
 			return path.Substring(path.LastIndexOf(FileSeperator, StringComparison.Ordinal) + 1);
 		}
 
@@ -555,7 +518,7 @@ namespace Assistant.Extensions {
 			File.WriteAllBytes(filePath, bytesToWrite);
 		}
 
-		public static (int, Thread) InBackgroundThread(Action action, string threadName, bool longRunning = false) {
+		public static (int?, Thread?) InBackgroundThread(Action action, string threadName, bool longRunning = false) {
 			if (action == null) {
 				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return (0, null);
@@ -614,7 +577,10 @@ namespace Assistant.Extensions {
 
 				if (redirectOutput) {
 					while (!proc.StandardOutput.EndOfStream) {
-						Logger.Log(proc.StandardOutput.ReadLine(), Enums.LogLevels.Trace);
+						string? output = proc.StandardOutput.ReadLine();
+						if (output != null) {
+							Logger.Log(output, LogLevels.Trace);
+						}
 					}
 				}
 			}
@@ -647,7 +613,7 @@ namespace Assistant.Extensions {
 			Task.Factory.StartNew(function, CancellationToken.None, options, TaskScheduler.Default);
 		}
 
-		public static async Task<IList<T>> InParallel<T>(IEnumerable<Task<T>> tasks) {
+		public static async Task<IList<T>?> InParallel<T>(IEnumerable<Task<T>> tasks) {
 			if (tasks == null) {
 				Logger.Log(nameof(tasks), Enums.LogLevels.Warn);
 				return null;
@@ -725,6 +691,8 @@ namespace Assistant.Extensions {
 		}
 
 		public static bool IsNullOrEmpty(string value) => string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value);
+
+		public static bool IsNull(this string value) => string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value) || value == null;
 
 		public static void CheckMultipleProcess() {
 			string RunningProcess = Process.GetCurrentProcess().ProcessName;

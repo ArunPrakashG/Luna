@@ -1,31 +1,3 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 using Assistant.Extensions;
 using Assistant.Log;
 using RestSharp;
@@ -38,19 +10,16 @@ using System.Threading.Tasks;
 
 namespace Assistant.AssistantCore {
 	public class SpeechServiceCache {
-		public string SpeechText { get; set; }
+		public string? SpeechText { get; set; }
 		public bool IsCompleted { get; set; }
-		public string SpeechFileName { get; set; }
+		public string? SpeechFileName { get; set; }
 	}
 
 	public class TTSService {
-		private static readonly Logger Logger = new Logger("GOOGLE-SPEECH");
+		private static readonly Logger Logger = new Logger("TTS");
 		private static readonly SemaphoreSlim SpeechSemaphore = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim SpeechDownloadSemaphore = new SemaphoreSlim(1, 1);
 		private static List<SpeechServiceCache> SpeechCache { get; set; } = new List<SpeechServiceCache>();
-
-		public TTSService() {
-		}
 
 		public static async Task<bool> SpeakText(string text, bool enableAlert = false) {
 			if (Core.Config.MuteAssistant || !Helpers.IsRaspberryEnvironment()) {
@@ -62,54 +31,56 @@ namespace Assistant.AssistantCore {
 				return false;
 			}
 
-			await SpeechSemaphore.WaitAsync().ConfigureAwait(false);
-			SpeechServiceCache Cache = new SpeechServiceCache();
+			try {
+				await SpeechSemaphore.WaitAsync().ConfigureAwait(false);
+				SpeechServiceCache Cache = new SpeechServiceCache();
 
-			if (!Directory.Exists(Constants.TextToSpeechDirectory)) {
-				Directory.CreateDirectory(Constants.TextToSpeechDirectory);
-			}
-
-			if (File.Exists(Constants.TTSAlertFilePath) && enableAlert) {
-				string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q".ExecuteBash();
-				Logger.Log(executeResult, Enums.LogLevels.Trace);
-				await Task.Delay(200).ConfigureAwait(false);
-			}
-
-			string fileName = string.Empty;
-
-			if (SpeechCache.Count > 0) {
-				SpeechServiceCache cache = SpeechCache.Find(x => x.SpeechText.Equals(text, StringComparison.OrdinalIgnoreCase));
-
-				if (cache != null) {
-					fileName = cache.SpeechFileName;
-					Logger.Log("Using cached speech as a speech file with the specified text already exists!", Enums.LogLevels.Trace);
-					goto PlaySound;
+				if (!Directory.Exists(Constants.TextToSpeechDirectory)) {
+					Directory.CreateDirectory(Constants.TextToSpeechDirectory);
 				}
-				else {
+
+				if (File.Exists(Constants.TTSAlertFilePath) && enableAlert) {
+					string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q".ExecuteBash(false);
+					Logger.Log(executeResult, Enums.LogLevels.Trace);
+					await Task.Delay(200).ConfigureAwait(false);
+				}
+
+				string fileName = string.Empty;
+
+				if (SpeechCache.Count > 0) {
+					SpeechServiceCache? cache = SpeechCache.Find(x => x.SpeechText != null && x.SpeechText.Equals(text, StringComparison.OrdinalIgnoreCase));
+
+					if(cache != null && cache.SpeechFileName != null) {
+						fileName = cache.SpeechFileName;
+						Logger.Log("Using cached speech as a speech file with the specified text already exists!", Enums.LogLevels.Trace);
+						goto PlaySound;
+					}
+					else {
+						fileName = GetSpeechFile(text);
+					}
+				}
+				else {					
 					fileName = GetSpeechFile(text);
 				}
-			}
-			else {
-				fileName = GetSpeechFile(text);
-			}
 
-			if (Helpers.IsNullOrEmpty(fileName)) {
+				if (Helpers.IsNullOrEmpty(fileName)) {
+					return false;
+				}
+
+				Cache.SpeechFileName = fileName;
+				Cache.SpeechText = text;
+				Cache.IsCompleted = true;
+				SpeechCache.Add(Cache);
+
+			PlaySound:
+				string playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {fileName} -q".ExecuteBash(false);
+				Logger.Log(playingResult, Enums.LogLevels.Trace);
+				await Task.Delay(500).ConfigureAwait(false);
+				return true;
+			}
+			finally {
 				SpeechSemaphore.Release();
-				return false;
 			}
-
-			Cache.SpeechFileName = fileName;
-			Cache.SpeechText = text;
-			Cache.IsCompleted = true;
-			SpeechCache.Add(Cache);
-
-		PlaySound:
-			string playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {fileName} -q".ExecuteBash();
-						
-			Logger.Log(playingResult, Enums.LogLevels.Trace);
-			await Task.Delay(500).ConfigureAwait(false);
-			SpeechSemaphore.Release();
-			return true;
 		}
 
 		public static async Task AssistantVoice(Enums.SpeechContext context) {
@@ -126,7 +97,7 @@ namespace Assistant.AssistantCore {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q".ExecuteBash();
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q".ExecuteBash(false);
 					Logger.Log(playingResult, Enums.LogLevels.Trace);
 					break;
 				case Enums.SpeechContext.AssistantShutdown:
@@ -136,7 +107,7 @@ namespace Assistant.AssistantCore {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.ShutdownFileName} -q".ExecuteBash();
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.ShutdownFileName} -q".ExecuteBash(false);
 					Logger.Log(playingResult, Enums.LogLevels.Trace);
 					break;
 				case Enums.SpeechContext.NewEmaiNotification:
@@ -146,7 +117,7 @@ namespace Assistant.AssistantCore {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.NewMailFileName} -q".ExecuteBash();
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.TextToSpeechDirectory} && play {Constants.NewMailFileName} -q".ExecuteBash(false);
 					Logger.Log(playingResult, Enums.LogLevels.Trace);
 					break;
 				default:
@@ -182,7 +153,7 @@ namespace Assistant.AssistantCore {
 				Helpers.ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q", false);
 			}
 
-			byte[] result;
+			byte[]? result;
 			switch (context) {
 				case Enums.SpeechContext.AssistantStartup:
 					if (!File.Exists(Constants.StartupSpeechFilePath)) {
@@ -191,7 +162,7 @@ namespace Assistant.AssistantCore {
 						result = Helpers.GetUrlToBytes($"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={text}&tl=En-us", Method.GET, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
 						Logger.Log("Fetched voice file bytes.", Enums.LogLevels.Trace);
 
-						if (result.Length <= 0 || result == null) {
+						if (result == null || result.Length <= 0 ) {
 							Logger.Log("result returned as null!", Enums.LogLevels.Error);
 							return;
 						}
@@ -217,7 +188,7 @@ namespace Assistant.AssistantCore {
 						result = Helpers.GetUrlToBytes($"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={text}&tl=En-us", Method.GET, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
 						Logger.Log("Fetched voice file bytes.", Enums.LogLevels.Trace);
 
-						if (result.Length <= 0 || result == null) {
+						if (result == null || result.Length <= 0) {
 							Logger.Log("result returned as null!", Enums.LogLevels.Error);
 							return;
 						}
@@ -239,7 +210,7 @@ namespace Assistant.AssistantCore {
 					result = Helpers.GetUrlToBytes($"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={text}&tl=En-us", Method.GET, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
 					Logger.Log("Fetched voice file bytes.", Enums.LogLevels.Trace);
 
-					if (result.Length <= 0 || result == null) {
+					if (result == null || result.Length <= 0) {
 						Logger.Log("result returned as null!", Enums.LogLevels.Error);
 						return;
 					}
@@ -263,46 +234,47 @@ namespace Assistant.AssistantCore {
 
 		private static string GetSpeechFile(string text) {
 			if (Helpers.IsNullOrEmpty(text)) {
-				return null;
+				return string.Empty;
 			}
 
 			if (!Core.IsNetworkAvailable) {
-				return null;
+				return string.Empty;
 			}
 
-			SpeechDownloadSemaphore.Wait();
-			string requestUrl = "https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&textlen=32&client=tw-ob&q=" + text + "&tl=en-us";
-			RestClient client = new RestClient(requestUrl);
-			RestRequest request = new RestRequest(Method.GET);
-			client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36";
-			byte[] result;
-			IRestResponse response = client.Execute(request);
+			try {
+				SpeechDownloadSemaphore.Wait();
+				string requestUrl = "https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&textlen=32&client=tw-ob&q=" + text + "&tl=en-us";
+				RestClient client = new RestClient(requestUrl);
+				RestRequest request = new RestRequest(Method.GET);
+				client.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36";
+				byte[] result;
+				IRestResponse response = client.Execute(request);
 
-			if (response.StatusCode != HttpStatusCode.OK) {
-				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+				if (response.StatusCode != HttpStatusCode.OK) {
+					Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+					return string.Empty;
+				}
+
+				result = response.RawBytes;
+
+				if (result.Length <= 0 || result == null) {
+					Logger.Log("result returned as null!", Enums.LogLevels.Error);
+					return string.Empty;
+				}
+
+				string fileName = $"{DateTime.Now.Ticks}.mp3";
+
+				Helpers.WriteBytesToFile(result, Constants.TextToSpeechDirectory + "/" + fileName);
+				if (!File.Exists(Constants.TextToSpeechDirectory + "/" + fileName)) {
+					Logger.Log("An error occured.", Enums.LogLevels.Warn);
+					return string.Empty;
+				}
+
+				return fileName;
+			}
+			finally {
 				SpeechDownloadSemaphore.Release();
-				return null;
 			}
-
-			result = response.RawBytes;
-
-			if (result.Length <= 0 || result == null) {
-				Logger.Log("result returned as null!", Enums.LogLevels.Error);
-				SpeechDownloadSemaphore.Release();
-				return null;
-			}
-
-			string fileName = $"{DateTime.Now.Ticks}.mp3";
-
-			Helpers.WriteBytesToFile(result, Constants.TextToSpeechDirectory + "/" + fileName);
-			if (!File.Exists(Constants.TextToSpeechDirectory + "/" + fileName)) {
-				Logger.Log("An error occured.", Enums.LogLevels.Warn);
-				SpeechDownloadSemaphore.Release();
-				return null;
-			}
-			
-			SpeechDownloadSemaphore.Release();
-			return fileName;
 		}
 	}
 }

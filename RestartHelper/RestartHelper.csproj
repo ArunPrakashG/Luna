@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     <Version>1.0.0.0</Version>
@@ -15,12 +15,19 @@
     <SshDeployUsername>pi</SshDeployUsername>
     <SshDeployPassword>miniprakash</SshDeployPassword>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
 
   <Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
 	  <Exec Command="cd $(ProjectDir)" Condition="'$(Configuration)' == 'Release' " />
 	  <Exec Command="dotnet-sshdeploy push" Condition="'$(Configuration)' == 'Release' " />
   </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
 </Project>

@@ -1,14 +1,47 @@
+using Assistant.Log;
+using JetBrains.Annotations;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Device.Gpio;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 	internal class SystemDeviceDriver : IGpioControllerDriver {
-		public bool IsDriverProperlyInitialized => throw new NotImplementedException();
+		private readonly GpioPinController GpioController;
+		private readonly Logger Logger;
+		private GpioController? Controller { get; set; }
 
+		public bool IsDriverProperlyInitialized { get; private set; }
+
+		internal SystemDeviceDriver(GpioPinController gpioController) {
+			GpioController = gpioController ?? throw new ArgumentNullException(nameof(gpioController), "The Gpio Controller cannot be null!");
+			Logger = GpioController.Logger;
+		}
+
+		[CanBeNull]
+		internal SystemDeviceDriver? InitDriver(PinNumberingScheme numberingScheme) {
+			if (Core.DisablePiMethods || Core.RunningPlatform != OSPlatform.Linux || !Core.Config.EnableGpioControl) {
+				Logger.Log("Failed to initialize Gpio Controller Driver.", LogLevels.Warn);
+				IsDriverProperlyInitialized = false;
+				return null;
+			}
+
+			Controller = new GpioController(numberingScheme);
+			IsDriverProperlyInitialized = true;
+			return this;
+		}
+
+		[CanBeNull]
 		public GpioPinConfig GetGpioConfig(int pinNumber) {
-			throw new NotImplementedException();
+			if (!PiController.IsValidPin(pinNumber) || Controller == null) {
+				return new GpioPinConfig();
+			}
+
+			PinValue value = Controller.Read(pinNumber);
+			PinMode mode = Controller.GetPinMode(pinNumber);
+			GpioPinConfig config = new GpioPinConfig(pinNumber, value == PinValue.High ? GpioPinState.Off : GpioPinState.On, mode == PinMode.Input ? GpioPinMode.Input : GpioPinMode.Output, false, 0);
+			return config;
 		}
 
 		public bool GpioDigitalRead(int pin) {

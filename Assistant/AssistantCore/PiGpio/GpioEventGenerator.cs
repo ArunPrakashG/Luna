@@ -7,22 +7,22 @@ using static Assistant.AssistantCore.Enums;
 
 namespace Assistant.AssistantCore.PiGpio {
 	public sealed class GpioEventGenerator {
-		private PiController PiController { get; set; }
-		private GpioPinController Controller => PiController.PinController;
+		private PiController? PiController => Core.PiController;
+		private GpioPinController? Controller => PiController?.GetPinController();
 		private readonly Logger Logger;
 
 		private GpioEventManager EventManager { get; set; }
 		private bool OverrideEventWatcher { get; set; }
-		public GpioPinEventConfig EventPinConfig { get; private set; }
+		public GpioPinEventConfig EventPinConfig { get; private set; } = new GpioPinEventConfig();
 		public bool IsEventRegistered { get; private set; } = false;
 
-		public (int, Thread) PollingThreadInfo { get; private set; }
+		public (int?, Thread?) PollingThreadInfo { get; private set; }
 
 		public (object sender, GpioPinValueChangedEventArgs e) _GpioPinValueChanged { get; private set; }
 
 		public delegate void GpioPinValueChangedEventHandler(object sender, GpioPinValueChangedEventArgs e);
 
-		public event GpioPinValueChangedEventHandler GpioPinValueChanged;
+		public event GpioPinValueChangedEventHandler? GpioPinValueChanged;
 
 		private (object sender, GpioPinValueChangedEventArgs e) _GpioPinValue {
 			get => _GpioPinValueChanged;
@@ -38,8 +38,11 @@ namespace Assistant.AssistantCore.PiGpio {
 		}
 
 		public GpioEventGenerator InitEventGenerator() {
-			PiController = Core.PiController;
-			if (!PiController.PinController.IsDriverProperlyInitialized) {
+			if(PiController == null) {
+				throw new InvalidOperationException("The pin controller is proably malfunctioning.");
+			}
+
+			if (!PiController.GetPinController().IsDriverProperlyInitialized) {
 				throw new InvalidOperationException("The pin controller isn't properly initialized.");
 			}
 
@@ -49,6 +52,16 @@ namespace Assistant.AssistantCore.PiGpio {
 		public void OverridePinPolling() => OverrideEventWatcher = true;
 
 		private void StartPolling() {
+			if(PiController == null) {
+				Logger.Log("PiController is null. Polling failed.", LogLevels.Warn);
+				return;
+			}
+
+			if (Controller == null) {
+				Logger.Log("Controller is null. Polling failed.", LogLevels.Warn);
+				return;
+			}
+
 			if (IsEventRegistered) {
 				Logger.Log("There already seems to have an event registered on this instance.", LogLevels.Warn);
 				return;
@@ -59,7 +72,7 @@ namespace Assistant.AssistantCore.PiGpio {
 				return;
 			}
 
-			if (!PiController.PinController.SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
+			if (!PiController.GetPinController().SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
 				throw new InvalidOperationException("Internal error occured. Check if the pin specified is correct.");
 			}
 
@@ -67,7 +80,7 @@ namespace Assistant.AssistantCore.PiGpio {
 				case GpioPinMode.Input:
 					break;
 				case GpioPinMode.Output:
-					if (!PiController.PinController.SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
+					if (!PiController.GetPinController().SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
 						throw new InvalidOperationException("Internal error occured. Check if the pin specified is correct.");
 					}
 					break;
@@ -131,7 +144,12 @@ namespace Assistant.AssistantCore.PiGpio {
 				return false;
 			}
 
-			if (!PiController.IsControllerProperlyInitialized || !PiController.PinController.IsDriverProperlyInitialized) {
+			if (PiController == null) {
+				Logger.Log("PiController is null. Polling failed.", LogLevels.Warn);
+				return false;
+			}
+
+			if (!PiController.IsControllerProperlyInitialized || !PiController.GetPinController().IsDriverProperlyInitialized) {
 				return false;
 			}
 

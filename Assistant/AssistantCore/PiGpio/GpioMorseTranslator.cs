@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Assistant.AssistantCore.PiGpio {
 	public class GpioMorseTranslator {
 		private MorseCore MorseCore => Core.MorseCode;
-		private GpioPinController Controller => Core.PiController.PinController;
+		private GpioPinController? Controller => Core.PiController?.GetPinController();
 		private readonly Logger Logger = new Logger("GPIO-MORSE");
 		public bool IsTranslatorOnline { get; private set; }
 
@@ -25,6 +25,11 @@ namespace Assistant.AssistantCore.PiGpio {
 		public async Task<bool> RelayMorseCycle(string textToConvert, int relayPin) {
 			if (Helpers.IsNullOrEmpty(textToConvert)) {
 				Logger.Log("The specified text is either null or empty.", Enums.LogLevels.Warn);
+				return false;
+			}
+
+			if(Controller == null) {
+				Logger.Log("Malfunctioning PinController.", Enums.LogLevels.Warn);
 				return false;
 			}
 

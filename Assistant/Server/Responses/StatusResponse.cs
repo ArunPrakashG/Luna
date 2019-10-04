@@ -10,16 +10,16 @@ namespace Assistant.Server.Responses {
 
 	public class StatusResponse {
 		[JsonProperty]
-		public List<GpioPinConfig> GpioStatus { get; set; }
+		public List<GpioPinConfig> GpioStatus { get; set; } = new List<GpioPinConfig>();
 
 		[JsonProperty]
 		public DateTime AssistantCurrentDateTime { get; set; }
 
 		[JsonProperty]
-		public string RaspberryPiUptime { get; set; }
+		public string RaspberryPiUptime { get; set; } = string.Empty;
 
 		[JsonProperty]
-		private string OsPlatform { get; set; }
+		private string OsPlatform { get; set; } = string.Empty;
 
 
 		public StatusResponse GetResponse() {
@@ -30,7 +30,11 @@ namespace Assistant.Server.Responses {
 					break;
 				}
 
-				GpioStatus.Add(Core.PiController.PinController.GetGpioConfig(i));
+				if (Core.PiController == null) {
+					continue;
+				}
+
+				GpioStatus.Add(Core.PiController.GetPinController().GetGpioConfig(i));
 			}
 
 			AssistantCurrentDateTime = DateTime.Now;

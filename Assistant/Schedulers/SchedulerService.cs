@@ -1,4 +1,3 @@
-using Assistant.Extensions;
 using Assistant.Log;
 using System;
 using System.Collections.Generic;
@@ -8,23 +7,23 @@ namespace Assistant.Schedulers {
 	public class SchedulerConfig {
 		public DateTime ScheduleTime { get; set; }
 		public TimeSpan Interval { get; set; }
-		public Action ScheduledAction { get; set; }
-		public string Guid { get; set; }
-		public Timer SchedulerTimer { get; set; }
+		public Action? ScheduledAction { get; set; }
+		public string Guid { get; set; } = string.Empty;
+		public Timer? SchedulerTimer { get; set; }
 	}
 
 	public class ScheduledTaskEventArgs {
 		public DateTime ScheduledTime { get; set; }
 		public DateTime InitialTime { get; set; }
-		public Timer SchedulerTimer { get; set; }
-		public string Guid { get; set; }
+		public Timer? SchedulerTimer { get; set; }
+		public string Guid { get; set; } = string.Empty;
 	}
 
 	public class SchedulerService {
 		public readonly List<SchedulerConfig> Configs = new List<SchedulerConfig>();
 		private readonly Logger Logger = new Logger("SCHEDULER");
 		public delegate void OnScheduledTimeReached(object sender, ScheduledTaskEventArgs e);
-		public event OnScheduledTimeReached ScheduledTimeReached;
+		public event OnScheduledTimeReached? ScheduledTimeReached;
 
 		public SchedulerService() { }
 
@@ -62,7 +61,7 @@ namespace Assistant.Schedulers {
 			Configs.Add(config);
 		}
 
-		private Timer ScheduleTask(DateTime dateTime, double intervalInHour, Action task) {
+		private Timer? ScheduleTask(DateTime dateTime, double intervalInHour, Action task) {
 			if (intervalInHour < 0 || task == null) {
 				return null;
 			}
@@ -78,11 +77,11 @@ namespace Assistant.Schedulers {
 				timeToGo = TimeSpan.Zero;
 			}
 
-			Timer scheduleTimer = null;
+			Timer? scheduleTimer = null;
 			scheduleTimer = new Timer(x => {
 				task.Invoke();
 				if (intervalInHour == 0) {
-					scheduleTimer.Dispose();
+					scheduleTimer?.Dispose();
 				}
 			}, null, timeToGo, intervalInHour > 0 ? TimeSpan.FromHours(intervalInHour) : timeToGo);
 
@@ -136,7 +135,7 @@ namespace Assistant.Schedulers {
 
 		public void ScheduleForTime(DateTime targetTime, double intervalinHours, string guid) {
 			DateTime initialTime = DateTime.Now;
-			Timer timer = null;
+			Timer? timer = null;
 			timer = ScheduleTask(targetTime, intervalinHours, action);
 
 			void action() {
