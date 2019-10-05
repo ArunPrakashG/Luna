@@ -4,6 +4,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.AssistantCore.Enums;
@@ -13,11 +14,10 @@ namespace Assistant.Server.TCPServer {
 		public string? UniqueId { get; private set; }
 		public string? IpAddress { get; set; }
 		public Socket ClientSocket { get; set; }
-		public bool DisconnectClient { get; set; }
+		public bool DisconnectConnection { get; set; }
 		public EndPoint? ClientEndPoint { get; set; }
-		private readonly Logger Logger = new Logger("CONN-CLIENT");
-		private (int?, Thread?) RecevieThread;
-
+		private readonly Logger Logger = new Logger("CLIENT");
+		internal (int?, Thread?) ThreadInfo;
 		public delegate void OnClientMessageRecevied(object sender, ClientMessageEventArgs e);
 		public event OnClientMessageRecevied? OnMessageRecevied;
 
@@ -37,128 +37,142 @@ namespace Assistant.Server.TCPServer {
 				: GenerateUniqueId(ClientSocket.GetHashCode().ToString());
 		}
 
-		public void Init() {
+		public async Task Init() {
 			Logger.Log($"Connected client IP => {IpAddress} / {UniqueId}", LogLevels.Info);
-			RecevieLoop();
+			TCPServerCore.AddClient(this);
+			await RecevieAsync().ConfigureAwait(false);
 		}
 
-		public void DisconnectConnection() {
-			DisconnectClient = true;
+		public async Task DisconnectClientAsync(bool dispose = false) {
+			DisconnectConnection = true;
 
-			if (RecevieThread.Item2 != null && RecevieThread.Item2.ThreadState != ThreadState.Stopped) {
-				RecevieThread.Item2.Abort();
+			if (ClientSocket != null) {
+				ClientSocket.Disconnect(true);
 			}
 
+			if (ClientSocket != null) {
+				while (ClientSocket.Connected) {
+					Logger.Log("Waiting for client to disconnect...");
+					await Task.Delay(5).ConfigureAwait(false);
+				}
+			}
+
+			$"Disconnected client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
 			if (IpAddress != null && UniqueId != null) {
 				OnDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(IpAddress, UniqueId, 5000));
 			}
 
-			Helpers.ScheduleTask(() => {
-				if (TCPServerCore.Clients.Contains(this)) {
-					TCPServerCore.Clients.Remove(this);
-					$"Disconnected and disposed client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
-					return;
-				}
-
-				$"Disconnected client -> {UniqueId} / {IpAddress}".LogInfo(Logger);
-			}, TimeSpan.FromSeconds(5));
-		}
-
-		private void RecevieLoop() {
-			byte[] receiveBuffer = new byte[5024];
-			RecevieThread = Helpers.InBackgroundThread(async () => {
-				while (!DisconnectClient && ClientSocket.Connected) {
-					try {
-						int i = ClientSocket.Receive(receiveBuffer);
-						if (i <= 0) {
-							break;
-						}
-
-						string receviedMessage = Encoding.ASCII.GetString(receiveBuffer);
-
-						if (Helpers.IsNullOrEmpty(receviedMessage)) {
-							await Task.Delay(1).ConfigureAwait(false);
-							continue;
-						}
-
-						ClientPayload payload = new ClientPayload() {
-							RawMessage = receviedMessage,
-							ClientId = UniqueId,
-							ClientIp = IpAddress,
-							ReceviedTime = DateTime.Now
-						};
-
-						if(payload.RawMessage.Equals(CachedPayload.RawMessage, StringComparison.OrdinalIgnoreCase)) {
-							continue;
-						}
-
-						CachedPayload = payload;
-
-						OnRecevied(payload);
-						await Task.Delay(1).ConfigureAwait(false);
-					}
-					catch (SocketException se) {
-						Logger.Log(se);
-						//this means client was forcefully disconnected from the remote endpoint. so process it here and disconnect the client and dispose
-						DisconnectConnection();
-						break;
-					}
-					catch (ThreadAbortException) {
-						//This means the client is disconnected and the threat is aborted.
-						break;
-					}
-					catch (Exception e) {
-						Logger.Log(e);
-						continue;
-					}
-				}
-
+			if (dispose) {
 				if (ClientSocket != null) {
 					ClientSocket.Close();
 					ClientSocket.Dispose();
 				}
 
-			}, UniqueId ?? throw new ArgumentNullException("The unique id of the client cannot be null."), true);
+				Helpers.ScheduleTask(() => {
+					TCPServerCore.RemoveClient(this);
+				}, TimeSpan.FromSeconds(5));
+			}
 		}
 
-		private void OnRecevied(ClientPayload payload) {
+		private async Task RecevieAsync() {
+			while (!DisconnectConnection) {
+				try {
+					if (ClientSocket.Available <= 0) {
+						await Task.Delay(2).ConfigureAwait(false);
+						continue;
+					}
+
+					if (!ClientSocket.Connected) {
+						await DisconnectClientAsync(true).ConfigureAwait(false);
+					}
+
+					byte[] buffer = new byte[5024];
+					int i = ClientSocket.Receive(buffer);
+
+					if (i <= 0) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					string receviedMessage = Encoding.ASCII.GetString(buffer);					
+					if (Helpers.IsNullOrEmpty(receviedMessage)) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					receviedMessage = Regex.Replace(receviedMessage, "\\0", string.Empty);
+
+					ClientPayload payload = new ClientPayload() {
+						RawMessage = receviedMessage,
+						ClientId = UniqueId,
+						ClientIp = IpAddress,
+						ReceviedTime = DateTime.Now
+					};
+
+					if (payload.RawMessage.Equals(CachedPayload.RawMessage, StringComparison.OrdinalIgnoreCase)) {
+						continue;
+					}
+
+					await OnRecevied(payload).ConfigureAwait(false);
+					CachedPayload = payload;
+					await Task.Delay(1).ConfigureAwait(false);
+				}
+				catch (SocketException) {
+					//this means client was forcefully disconnected from the remote endpoint. so process it here and disconnect the client and dispose
+					await DisconnectClientAsync().ConfigureAwait(false);
+					break;
+				}
+				catch (ThreadAbortException) {
+					//This means the client is disconnected and the threat is aborted.
+					break;
+				}
+				catch (Exception e) {
+					Logger.Log(e);
+					continue;
+				}
+			}
+		}
+
+		private async Task OnRecevied(ClientPayload payload) {
 			if (payload == null || payload.RawMessage == null || Helpers.IsNullOrEmpty(payload.RawMessage)) {
 				return;
 			}
 
 			$"Recevied a message from -> {UniqueId} -> {payload.RawMessage}".LogInfo(Logger);
 			OnMessageRecevied?.Invoke(this, new ClientMessageEventArgs(payload));
+
+			if (payload.RawMessage.Equals("DISCONNECT", StringComparison.OrdinalIgnoreCase)) {
+				await DisconnectClientAsync(true).ConfigureAwait(false);
+				return;
+			}
+
 			//TODO process the message and send the reply
 			//TODO: just send the recevied message back for now
-			OnProcessedResult(payload.RawMessage);
+			await OnProcessedResult(payload.RawMessage).ConfigureAwait(false);
 		}
 
-		private void OnProcessedResult(string response) {
+		private async Task OnProcessedResult(string response) {
 			if (Helpers.IsNullOrEmpty(response)) {
 				return;
 			}
 
 			if (!Helpers.IsSocketConnected(ClientSocket)) {
 				Logger.Log("Failed to send response as client is disconnected.", LogLevels.Warn);
-				DisconnectConnection();
+				await DisconnectClientAsync().ConfigureAwait(false);
 				return;
 			}
 
-			if (response.Equals("DISCONNECT")) {
-				DisconnectConnection();
-			}
-
-			SendMessage(response);
+			await SendResponseAsync(response).ConfigureAwait(false);
 		}
 
-		private void SendMessage(string msg) {
+		private async Task SendResponseAsync(string msg) {
 			if (msg == null || msg.IsNull()) {
 				return;
 			}
 
 			if (!Helpers.IsSocketConnected(ClientSocket)) {
 				Logger.Log("Failed to send response as client is disconnected.", LogLevels.Warn);
-				DisconnectConnection();
+				await DisconnectClientAsync().ConfigureAwait(false);
 				return;
 			}
 
