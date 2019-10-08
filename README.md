@@ -42,6 +42,8 @@ NOTE - The module projects have been seperated from main project [this] and they
 - Discord bot - allows to control tess using discord bot commands from home assistant discord channel.
 - Youtube - download video only or sound only or both from a youtube link.
 
+### Assistant roadmap -> [Roadmap](https://github.com/SynergYFTW/HomeAssistant/projects/1)
+
 ### Assistant Folder Heirarchy
 Each foldername has its own value, use this diagram to know which folders can be renamed.
 ![Diagram](Assistant/Resources/AssistantFolderHierarchy.jpeg)
