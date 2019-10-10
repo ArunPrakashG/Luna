@@ -41,6 +41,14 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		public override int GetHashCode() => base.GetHashCode();
 
+		public static string AsJson(GpioPinConfig? config) {
+			if(config == null) {
+				return string.Empty;
+			}
+
+			return JsonConvert.SerializeObject(config);
+		}
+
 		public override string ToString() {
 			StringBuilder s = new StringBuilder();
 			s.AppendLine("---------------------------");

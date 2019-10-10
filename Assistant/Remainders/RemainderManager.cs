@@ -11,7 +11,7 @@ namespace Assistant.Remainders {
 		private Logger Logger = new Logger("REMAINDER");
 
 		public bool Remind(string msgToRemind, int minsUntilReminding) {
-			if (Helpers.IsNullOrEmpty(msgToRemind) || minsUntilReminding <= 0) {
+			if (string.IsNullOrEmpty(msgToRemind) || minsUntilReminding <= 0) {
 				return false;
 			}
 
