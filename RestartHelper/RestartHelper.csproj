@@ -15,7 +15,7 @@
     <SshDeployClean />    
     <SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Helpers/Restarter</SshDeployTargetPath>
     <SshDeployUsername>pi</SshDeployUsername>
-    <SshDeployPassword>miniprakash</SshDeployPassword>
+    <SshDeployPassword>3033</SshDeployPassword>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>

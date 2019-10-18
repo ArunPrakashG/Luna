@@ -1,5 +1,6 @@
 using Assistant.Extensions;
 using Assistant.Log;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,7 @@ namespace Assistant.AssistantCore.PiGpio {
 		public bool EnableExperimentalFunction { get; private set; } = true;
 		public static EGpioDriver CurrentDriver { get; private set; } = EGpioDriver.RaspberryIODriver;
 
+		[JsonProperty]
 		public static List<GpioPinConfig> PinConfigCollection { get; private set; } = new List<GpioPinConfig>(40);
 
 		internal PiController InitController(EGpioDriver driver) {

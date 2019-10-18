@@ -1,4 +1,4 @@
-namespace Assistant.Server.TCPServer {
+namespace Assistant.Server.TCPServer.Events {
 	public class ClientDisconnectedEventArgs {
 		public string? ClientIp { get; set; }
 		public string? UniqueId { get; set; }

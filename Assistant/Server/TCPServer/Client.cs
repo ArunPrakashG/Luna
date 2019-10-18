@@ -2,6 +2,10 @@ using Assistant.AssistantCore;
 using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
 using Assistant.Log;
+using Assistant.Server.TCPServer.Commands;
+using Assistant.Server.TCPServer.Events;
+using Assistant.Server.TCPServer.Responses;
+using Newtonsoft.Json;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -14,13 +18,14 @@ using static Assistant.Server.TCPServer.CommandEnums;
 
 namespace Assistant.Server.TCPServer {
 	public class Client {
+		private readonly Logger Logger = new Logger("CLIENT");
+		private CommandObject? PreviousCommand;
+		internal (int?, Thread?) ThreadInfo;
 		public string? UniqueId { get; private set; }
 		public string? IpAddress { get; set; }
 		public Socket ClientSocket { get; set; }
 		public bool DisconnectConnection { get; set; }
 		public EndPoint? ClientEndPoint { get; set; }
-		private readonly Logger Logger = new Logger("CLIENT");
-		internal (int?, Thread?) ThreadInfo;
 
 		public delegate void OnClientMessageRecevied(object sender, ClientMessageEventArgs e);
 		public delegate void OnClientDisconnected(object sender, ClientDisconnectedEventArgs e);
@@ -28,9 +33,6 @@ namespace Assistant.Server.TCPServer {
 		public event OnClientMessageRecevied? OnMessageRecevied;
 		public event OnClientDisconnected? OnDisconnected;
 		public event OnClientCommandRecevied? OnCommandRecevied;
-		private ClientPayload CachedPayload { get; set; } = new ClientPayload() {
-			RawMessage = string.Empty
-		};
 
 		public Client(Socket sock) {
 			ClientSocket = sock ?? throw new ArgumentNullException(nameof(sock), "Socket cannot be null!");
@@ -100,27 +102,23 @@ namespace Assistant.Server.TCPServer {
 					}
 
 					string receviedMessage = Encoding.ASCII.GetString(buffer);
+					receviedMessage = Regex.Replace(receviedMessage, "\\0", string.Empty);
 
 					if (string.IsNullOrEmpty(receviedMessage)) {
 						await Task.Delay(1).ConfigureAwait(false);
 						continue;
 					}
 
-					receviedMessage = Regex.Replace(receviedMessage, "\\0", string.Empty);
+					OnMessageRecevied?.Invoke(this, new ClientMessageEventArgs(receviedMessage));
 
-					ClientPayload payload = new ClientPayload() {
-						RawMessage = receviedMessage,
-						ClientId = UniqueId,
-						ClientIp = IpAddress,
-						ReceviedTime = DateTime.Now
-					};
+					CommandObject cmdObject = new CommandObject(receviedMessage, DateTime.Now);
 
-					if (payload.RawMessage.Equals(CachedPayload.RawMessage, StringComparison.OrdinalIgnoreCase)) {
+					if (PreviousCommand != null && cmdObject.Equals(PreviousCommand)) {
 						continue;
 					}
 
-					await OnRecevied(payload).ConfigureAwait(false);
-					CachedPayload = payload;
+					await OnRecevied(cmdObject).ConfigureAwait(false);
+					PreviousCommand = cmdObject;
 					await Task.Delay(1).ConfigureAwait(false);
 				}
 				catch (SocketException) {
@@ -139,17 +137,16 @@ namespace Assistant.Server.TCPServer {
 			}
 		}
 
-		private async Task OnRecevied(ClientPayload payload) {
-			if (payload == null || payload.RawMessage == null || Helpers.IsNullOrEmpty(payload.RawMessage)) {
+		private async Task OnRecevied(CommandObject cmdObject) {
+			if (cmdObject == null || string.IsNullOrEmpty(cmdObject.ReceviedMessageObject)) {
 				return;
 			}
 
-			OnMessageRecevied?.Invoke(this, new ClientMessageEventArgs(payload));
-			await ProcessMessage(payload).ConfigureAwait(false);
+			await ProcessMessage(cmdObject).ConfigureAwait(false);
 		}
 
-		private async Task ProcessMessage(ClientPayload payload) {
-			if (payload == null) {
+		private async Task ProcessMessage(CommandObject cmdObject) {
+			if (cmdObject == null) {
 				return;
 			}
 
@@ -159,157 +156,179 @@ namespace Assistant.Server.TCPServer {
 				return;
 			}
 
-			if (string.IsNullOrEmpty(payload.RawMessage) || string.IsNullOrEmpty(payload.ClientIp) || string.IsNullOrEmpty(payload.ClientId)) {
+			CommandBase cmdBase = JsonConvert.DeserializeObject<CommandBase>(cmdObject.ReceviedMessageObject);
+
+			if (cmdBase == null) {
 				return;
 			}
 
-			CommandStructure? command = ParseCommand(payload.RawMessage);
+			OnCommandRecevied?.Invoke(this, new ClientCommandReceviedEventArgs(cmdBase.CommandTime, cmdBase));
 
-			if (command == null) {
-				Logger.Log("Command parsing failed.", LogLevels.Warn);
-				return;
-			}
-
-			OnCommandRecevied?.Invoke(this, new ClientCommandReceviedEventArgs(command.CommandType, command.Command, command.CommandArguments));
-			string? response = command.CommandType switch
+			string? response = cmdBase.CommandType switch
 			{
-				CommandType.Gpio => OnGpioCommandType(command),
-				CommandType.Remainder => OnRemainderCommandType(command),
-				CommandType.Alarm => OnAlarmCommandType(command),
-				CommandType.Weather => OnWeatherCommandType(command),
-				CommandType.Client => OnClientCommandType(command),
-				_ => "Invalid Command!",
+				CommandType.Gpio => OnGpioCommandType(cmdBase),
+				CommandType.Remainder => OnRemainderCommandType(cmdBase),
+				CommandType.Alarm => OnAlarmCommandType(cmdBase),
+				CommandType.Weather => OnWeatherCommandType(cmdBase),
+				CommandType.Client => OnClientCommandType(cmdBase),
+				_ => FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command!"),
 			};
 
 			if (string.IsNullOrEmpty(response)) {
-				await SendResponseAsync("The response is null!").ConfigureAwait(false);
+				await SendResponseAsync(FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse,  "Invalid Command!")).ConfigureAwait(false);
 				return;
 			}
 
 			await SendResponseAsync(response).ConfigureAwait(false);
 		}
 
-		private string? OnClientCommandType(CommandStructure? command) {
+		private string? OnClientCommandType(CommandBase command) {
 			if (command == null) {
 				return null;
 			}
 
 			if (command.Command == Command.InvalidCommand) {
-				return FormatResponse(CommandResponseCode.INVALID);
+				return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command!");
 			}
 
 			switch (command.Command) {
 				case Command.Disconnect:
 					Helpers.ScheduleTask(async () => await DisconnectClientAsync(true).ConfigureAwait(false), TimeSpan.FromSeconds(2));
-					return FormatResponse(CommandResponseCode.OK, "Disconnecting in 2 seconds...");
+					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.NoResponse, "Disconnecting in 2 seconds...");
+				case Command.Initiate:
+					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.NoResponse, "Successfully connected!");
+				default:
+					return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command!");
 			}
-
-			return FormatResponse(CommandResponseCode.INVALID);
 		}
 
-		private string? OnGpioCommandType(CommandStructure? command) {
+		private string? OnGpioCommandType(CommandBase command) {
 			if (command == null) {
 				return null;
 			}
 
-			if (command.CommandArguments == null || command.CommandArguments.Length <= 0) {
-				return FormatResponse(CommandResponseCode.INVALID, "The arguments are invalid");
-			}
-
 			if (command.Command == Command.InvalidCommand) {
-				return FormatResponse(CommandResponseCode.INVALID);
+				return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse);
 			}
-
-			int pin = 0;
-			GpioPinMode pinMode;
-			GpioPinState pinState;
 
 			switch (command.Command) {
-				case Command.GetGpio when command.CommandArguments.Length <= 0:
-					return FormatResponse(CommandResponseCode.INVALID);
+				case Command.GetInputPins:
+					if (Core.Config.InputModePins.Length <= 0) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "No input pins found.");
+					}
 
-				case Command.GetGpio when command.CommandArguments.Length == 1:
-					int pinNumber = Convert.ToInt32(command.CommandArguments[0].Trim());
-					GpioPinConfig? pinConfig = Core.PiController?.GetPinController().GetGpioConfig(pinNumber);
+					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PiController.GetPinController() == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Cannot access gpio pins at the moment.");
+					}
+
+					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.GetGpioAll, "Success!", JsonConvert.SerializeObject(Core.PiController));
+
+				case Command.GetOutputPins:
+					if (Core.Config.OutputModePins.Length <= 0) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "No output pins found.");
+					}
+
+					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PiController.GetPinController() == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Cannot access gpio pins at the moment.");
+					}
+
+					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.GetGpioAll, "Success!", JsonConvert.SerializeObject(Core.PiController));
+
+				case Command.GetGpio:
+					if (command.CommandParametersObject == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
+					}
+
+					GetGpio getRequest = (GetGpio) command.CommandParametersObject;
+
+					if (getRequest == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
+					}
+
+					GpioPinConfig? pinConfig = Core.PiController?.GetPinController().GetGpioConfig(getRequest.PinNumber);
 
 					if (pinConfig == null) {
-						return FormatResponse(CommandResponseCode.FAIL, "Failed to fetch pin configuration");
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to fetch pin configuration");
 					}
 
 					string result = GpioPinConfig.AsJson(pinConfig);
 
 					if (string.IsNullOrEmpty(result)) {
-						return FormatResponse(CommandResponseCode.FAIL, "Failed to produce output result.");
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to produce output result.");
 					}
 
-					return result;
+					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.GetGpio, "Success!", result);
 
-				case Command.SetGpioGeneral when command.CommandArguments.Length < 3:
-					return FormatResponse(CommandResponseCode.INVALID);
+				case Command.SetGpioGeneral:
+					if (command.CommandParametersObject == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
+					}
 
-				case Command.SetGpioGeneral when command.CommandArguments.Length == 3:
-					pinMode = (GpioPinMode) Convert.ToInt32(command.CommandArguments[1].Trim());
-					pinState = (GpioPinState) Convert.ToInt32(command.CommandArguments[2].Trim());
-					bool? success = Core.PiController?.GetPinController().SetGpioValue(pin, pinMode, pinState);
+					SetGpio setRequest = (SetGpio) command.CommandParametersObject;
+
+					if (setRequest == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
+					}
+
+					bool? success = Core.PiController?.GetPinController().SetGpioValue(setRequest.PinNumber, setRequest.PinMode, setRequest.PinState);
+
 					if (success.HasValue && success.Value) {
-						return FormatResponse(CommandResponseCode.OK);
-					}
-					else {
-						return FormatResponse(CommandResponseCode.FAIL);
+						return FormatResponse(CommandResponseCode.OK, ResponseObjectType.NoResponse, "Successfully set the pin configuration.");
 					}
 
-				case Command.SetGpioDelayed when command.CommandArguments.Length < 4:
-					return FormatResponse(CommandResponseCode.INVALID);
+					return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to set pin configuration.");
 
-				case Command.SetGpioDelayed when command.CommandArguments.Length == 4:
-					pinMode = (GpioPinMode) Convert.ToInt32(command.CommandArguments[1].Trim());
-					pinState = (GpioPinState) Convert.ToInt32(command.CommandArguments[2].Trim());
-					int timeDelay = Convert.ToInt32(command.CommandArguments[3].Trim());
-					bool? isSuccess = Core.PiController?.GetPinController().SetGpioWithTimeout(pin, pinMode, pinState, TimeSpan.FromMinutes(timeDelay));
+				case Command.SetGpioDelayed:
+					if (command.CommandParametersObject == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
+					}
+
+					SetGpioDelayed setDelayedRequest = (SetGpioDelayed) command.CommandParametersObject;
+
+					if (setDelayedRequest == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
+					}
+
+					bool? isSuccess = Core.PiController?.GetPinController().SetGpioWithTimeout(setDelayedRequest.PinNumber, setDelayedRequest.PinMode, setDelayedRequest.PinState, TimeSpan.FromMinutes(setDelayedRequest.Delay));
+
 					if (isSuccess.HasValue && isSuccess.Value) {
-						return FormatResponse(CommandResponseCode.OK, $"Successfully configured the pin with delay of {timeDelay} minutes.");
+						return FormatResponse(CommandResponseCode.OK, ResponseObjectType.NoResponse, $"Successfully configured the pin with delay of {setDelayedRequest.Delay} minutes.");
 					}
-					else {
-						return FormatResponse(CommandResponseCode.FAIL);
-					}
-			}
 
-			return FormatResponse(CommandResponseCode.FATAL);
+					return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to set pin configuration with delay.");
+
+				default:
+					return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command");
+			}
 		}
 
-		private string? OnRemainderCommandType(CommandStructure? command) {
+		private string? OnRemainderCommandType(CommandBase command) {
 			if (command == null) {
 				return null;
-			}
-
-			if (command.CommandArguments == null || command.CommandArguments.Length <= 0) {
-				return FormatResponse(CommandResponseCode.INVALID, "The arguments are invalid");
 			}
 
 			if (command.Command == Command.InvalidCommand) {
-				return FormatResponse(CommandResponseCode.INVALID);
+				return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse);
 			}
-
-			string? remainderMessage = null;
-			int remainderDelay;
 
 			switch (command.Command) {
-				case Command.SetRemainder when command.CommandArguments.Length < 2:
-					return FormatResponse(CommandResponseCode.INVALID);
+				case Command.SetRemainder:
+					if (command.CommandParametersObject == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
+					}
 
-				case Command.SetRemainder when command.CommandArguments.Length == 2:
-					remainderMessage = command.CommandArguments[0].Trim();
-					remainderDelay = Convert.ToInt32(command.CommandArguments[1]);
+					SetRemainder remainderRequest = (SetRemainder) command.CommandParametersObject;
 
-					return Core.RemainderManager.Remind(remainderMessage, remainderDelay) ?
-						FormatResponse(CommandResponseCode.OK) :
-						FormatResponse(CommandResponseCode.FAIL);
+					return Core.RemainderManager.Remind(remainderRequest.RemainderMessage, remainderRequest.RemainderDelay) ?
+						FormatResponse(CommandResponseCode.OK, ResponseObjectType.NoResponse, "Successfully set remainder.") :
+						FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to set remainder.");
+				default:
+					return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command");
 			}
-
-			return FormatResponse(CommandResponseCode.INVALID);
 		}
 
-		private string? OnAlarmCommandType(CommandStructure? command) {
+		//TODO: Alarm command
+		private string? OnAlarmCommandType(CommandBase command) {
 			if (command == null) {
 				return null;
 			}
@@ -317,55 +336,13 @@ namespace Assistant.Server.TCPServer {
 			return null;
 		}
 
-		private string? OnWeatherCommandType(CommandStructure? command) {
+		//TODO: Weather command
+		private string? OnWeatherCommandType(CommandBase command) {
 			if (command == null) {
 				return null;
 			}
 
 			return null;
-		}
-
-		private CommandStructure? ParseCommand(string? rawMessage) {
-			if (string.IsNullOrEmpty(rawMessage)) {
-				return null;
-			}
-
-			CommandStructure structure = new CommandStructure();
-
-			string[]? splitted = rawMessage.Split('|');
-
-			if (splitted == null || splitted.Length <= 0) {
-				return null;
-			}
-
-			if (string.IsNullOrEmpty(splitted[0])) {
-				Logger.Log("Command type isn't specified.", LogLevels.Warn);
-				return null;
-			}
-
-			if (string.IsNullOrEmpty(splitted[1])) {
-				Logger.Log("Command isn't specified.", LogLevels.Warn);
-				return null;
-			}
-
-			//COMMAND_TYPE|COMMAND|ARGS1~ARGS2~ARGS3~ARGS4 ....
-
-			int? commandType = Convert.ToInt32(splitted[0].Trim());
-			int? command = Convert.ToInt32(splitted[1].Trim());
-
-			if (splitted[2] != null && !string.IsNullOrEmpty(splitted[2])) {
-				structure.CommandArguments = splitted[2].Contains('~') ? splitted[2].Split('~') : (new string[] { splitted[2] });
-			}
-
-			structure.CommandType = (CommandType) commandType;
-			structure.Command = (Command) command;
-
-			if (structure.CommandType == CommandType.InvalidType || structure.Command == Command.InvalidCommand) {
-				Logger.Log("Invalid command recevied.", LogLevels.Warn);
-				return null;
-			}
-
-			return structure;
 		}
 
 		public async Task SendResponseAsync(string response) {
@@ -390,12 +367,9 @@ namespace Assistant.Server.TCPServer {
 			return ipAddress.ToLowerInvariant().Trim().GetHashCode().ToString();
 		}
 
-		private string FormatResponse(CommandResponseCode responseCode, string? msg = null) {
-			if (string.IsNullOrEmpty(msg)) {
-				return $"{(int) responseCode}|{responseCode.ToString()}";
-			}
-
-			return $"{(int) responseCode}|{msg}";
+		private static string FormatResponse(CommandResponseCode responseCode, ResponseObjectType respType, string? msg = null, string? json = null) {
+			ResponseBase response = new ResponseBase(responseCode, respType, msg, json);
+			return response.AsJson();
 		}
 	}
 }

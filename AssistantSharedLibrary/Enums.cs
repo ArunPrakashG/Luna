@@ -1,5 +1,5 @@
-namespace Assistant.Server.TCPServer {
-	public class CommandEnums {
+namespace AssistantSharedLibrary {
+	public class Enums {
 		public enum CommandType {
 			InvalidType = 0,
 			Gpio = 1,
@@ -9,23 +9,11 @@ namespace Assistant.Server.TCPServer {
 			Client = 5
 		}
 
-		public enum ResponseObjectType {
-			SetGpio,
-			GetGpioAll,
-			SetGpioDelayed,
-			SetRemainder,
-			SetAlarm,
-			GetGpio,
-			GetWeather,
-			Invalid,
-			NoResponse
-		}
-
 		public enum Command {
 			InvalidCommand = 0,
 			SetGpioGeneral = 1,
 			SetGpioDelayed = 2,
-			GetGpio = 3,			
+			GetGpio = 3,
 			GetWeather = 4,
 			SetRemainder = 5,
 			SetAlarm = 6,
@@ -40,6 +28,18 @@ namespace Assistant.Server.TCPServer {
 			FAIL,
 			INVALID,
 			FATAL
+		}
+
+		public enum GpioPinMode {
+			Input = 0,
+			Output = 1,
+			Alt01 = 4,
+			Alt02 = 5
+		}
+
+		public enum GpioPinState {
+			On = 0,
+			Off = 1
 		}
 	}
 }

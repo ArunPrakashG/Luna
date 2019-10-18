@@ -2,6 +2,7 @@ using Assistant.Extensions;
 using Assistant.Log;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -19,7 +20,6 @@ namespace Assistant.Server.TCPServer {
 		private static readonly SemaphoreSlim ListSemaphore = new SemaphoreSlim(1, 1);
 		public static List<Client> Clients { get; private set; } = new List<Client>();
 
-		[Obsolete("Testing only")]
 		public TCPServerCore InitTCPServer(int port) {
 			ServerPort = port;
 			return this;
@@ -72,6 +72,11 @@ namespace Assistant.Server.TCPServer {
 
 			try {
 				ListSemaphore.Wait();
+
+				if(Clients.Any(x => x.UniqueId != null && x.UniqueId.Equals(client.UniqueId))) {
+					return;
+				}
+
 				if (!Clients.Contains(client)) {
 					Clients.Add(client);
 					Logger.Log("Added to client collection");
@@ -89,6 +94,10 @@ namespace Assistant.Server.TCPServer {
 
 			try {
 				ListSemaphore.Wait();
+				if (!Clients.Any(x => x.UniqueId != null && x.UniqueId.Equals(client.UniqueId))) {
+					return;
+				}
+
 				if (Clients.Contains(client)) {
 					Clients.Remove(client);
 					Logger.Log("Removed from client collection");
@@ -99,6 +108,9 @@ namespace Assistant.Server.TCPServer {
 			}
 		}
 
-		public void StopServer() => IsStopRequested = true;
+		public void StopServer() {
+			IsStopRequested = true;
+			DisposeServer();
+		}
 	}
 }

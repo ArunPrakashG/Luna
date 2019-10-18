@@ -23,13 +23,11 @@
 	<ItemGroup>
 	  <Compile Remove="AssistantCore\PiGpio\GpioConfigHandler.cs" />
 	  <Compile Remove="Server\SecureLine\TCPServer.cs" />
-	  <Compile Remove="Server\SignalR\Hubs\ChatHub.cs" />
 	  <Compile Remove="Server\TCPServer.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <None Include="AssistantCore\PiGpio\GpioConfigHandler.cs" />
-	  <None Include="Server\SignalR\Hubs\ChatHub.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -43,14 +41,14 @@
 		<PackageReference Include="Figgle" Version="0.3.0" />
 		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.2.0" />
 		<PackageReference Include="Hangfire" Version="1.7.6" />
-		<PackageReference Include="MailKit" Version="2.3.1.6" />
+		<PackageReference Include="MailKit" Version="2.3.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.5">
+		<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.6">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.6.0" />
-		<PackageReference Include="NLog.Web.AspNetCore" Version="4.8.5" />
+		<PackageReference Include="NLog.Web.AspNetCore" Version="4.9.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
 		<PackageReference Include="NLog" Version="4.6.7" />
 		<PackageReference Include="JetBrains.Annotations" Version="2019.1.3" />
@@ -63,7 +61,7 @@
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
 		<PackageReference Include="Unosquare.Raspberry.Abstractions" Version="0.4.0" />
-		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.26.0" />
+		<PackageReference Include="Unosquare.Raspberry.IO" Version="0.27.0" />
 		<PackageReference Include="Unosquare.RaspberryIO.Peripherals" Version="0.5.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc2" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.0.0-rc2" />
@@ -117,7 +115,7 @@
 		<SshDeployClean />
 		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
 		<SshDeployUsername>pi</SshDeployUsername>
-		<SshDeployPassword>miniprakash</SshDeployPassword>
+		<SshDeployPassword>3033</SshDeployPassword>
 		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
 		<LangVersion>8.0</LangVersion>
 		<Authors>Arun Prakash (SynergyFTW)</Authors>

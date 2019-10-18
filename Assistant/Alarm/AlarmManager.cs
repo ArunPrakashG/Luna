@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Assistant.Alarm {
 	public class AlarmManager {
-		public static Dictionary<AlarmConfig, SchedulerConfig> Alarms = new Dictionary<AlarmConfig, SchedulerConfig>();
+		public static Dictionary<AlarmConfig, SchedulerConfig> Alarms { get; private set; } = new Dictionary<AlarmConfig, SchedulerConfig>();
 		private readonly Logger Logger = new Logger("ALARM");
 
 		public bool SetAlarm(int hoursFromNow, string alarmMessage, bool useTTS, TimeSpan repeatInterval, bool repeat = false) {
