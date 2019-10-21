@@ -26,6 +26,10 @@ namespace Assistant.AssistantCore {
 				return false;
 			}
 
+			if (!Core.IsNetworkAvailable) {
+				return false;
+			}
+
 			if (Helpers.IsNullOrEmpty(text)) {
 				Logger.Log("The text is empty or null!", Enums.LogLevels.Error);
 				return false;

@@ -1,6 +1,5 @@
 using Assistant.Extensions;
 using Assistant.Log;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -14,18 +13,18 @@ namespace Assistant.Server.TCPServer {
 		private static readonly Logger Logger = new Logger("TCP-SERVER");
 		private TcpListener? Listener { get; set; }
 		private static int ServerPort { get; set; }
-		public static bool IsOnline { get; private set; }
 		private static bool IsStopRequested { get; set; }
-
 		private static readonly SemaphoreSlim ListSemaphore = new SemaphoreSlim(1, 1);
+
 		public static List<Client> Clients { get; private set; } = new List<Client>();
+		public static bool IsOnline { get; private set; }
 
 		public TCPServerCore InitTCPServer(int port) {
 			ServerPort = port;
 			return this;
 		}
 
-		public void StartServerCore() {
+		public TCPServerCore StartServerCore() {
 			Logger.Log("Starting TCP Server...", LogLevels.Trace);
 			Listener = new TcpListener(new IPEndPoint(IPAddress.Any, ServerPort));
 			Listener.Start(10);
@@ -36,31 +35,31 @@ namespace Assistant.Server.TCPServer {
 				while (!IsStopRequested && Listener != null) {
 					if (Listener.Pending()) {
 						Socket socket = await Listener.AcceptSocketAsync().ConfigureAwait(false);
-						if (socket != null) {
-							Client client = new Client(socket);
-							client.ThreadInfo = Helpers.InBackgroundThread(async () => await client.Init().ConfigureAwait(false), client.GetHashCode().ToString(), true);
-						}
+						Client client = new Client(socket);
+						client.ThreadInfo = Helpers.InBackgroundThread(async () => await client.Init().ConfigureAwait(false), client.GetHashCode().ToString(), true);
 					}
+
 					await Task.Delay(1).ConfigureAwait(false);
 				}
-
-				DisposeServer();
 			}, "AlwaysOn Server thread", true);
+
+			return this;
 		}
 
-		private void DisposeServer() {
+		private async Task DisposeServer() {
 			if (Clients != null && Clients.Count > 0) {
 				foreach (Client client in Clients) {
 					if (client == null) {
 						continue;
 					}
 
-					client.DisconnectClientAsync(true).ConfigureAwait(false);
+					await client.DisconnectClientAsync(true).ConfigureAwait(false);
 				}
 			}
 
 			if (Listener != null) {
 				Listener.Stop();
+				Listener = null;
 				Logger.Log("TCP Server stopped.");
 			}
 		}
@@ -73,7 +72,7 @@ namespace Assistant.Server.TCPServer {
 			try {
 				ListSemaphore.Wait();
 
-				if(Clients.Any(x => x.UniqueId != null && x.UniqueId.Equals(client.UniqueId))) {
+				if (Clients.Any(x => x.UniqueId != null && x.UniqueId.Equals(client.UniqueId))) {
 					return;
 				}
 
@@ -110,7 +109,7 @@ namespace Assistant.Server.TCPServer {
 
 		public void StopServer() {
 			IsStopRequested = true;
-			DisposeServer();
+			Helpers.InBackground(DisposeServer);
 		}
 	}
 }

@@ -31,8 +31,7 @@ namespace Assistant.Server.TCPServer {
 			SetAlarm = 6,
 			Disconnect = 7,
 			Initiate = 8,
-			GetOutputPins = 9,
-			GetInputPins = 10
+			GetGpioAll = 9
 		}
 
 		public enum CommandResponseCode {

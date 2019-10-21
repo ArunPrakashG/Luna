@@ -130,7 +130,7 @@ namespace Assistant.AssistantCore {
 
 			ConfigWatcher.InitConfigWatcher();
 
-			if (Config.PushBulletApiKey != null && !Config.PushBulletApiKey.IsNull()) {
+			if (!string.IsNullOrEmpty(Config.PushBulletApiKey)) {
 				Helpers.InBackground(() => {
 					if (PushBulletService.InitPushBulletService(Config.PushBulletApiKey).InitPushService()) {
 						Logger.Log("Push bullet service started.", Enums.LogLevels.Trace);

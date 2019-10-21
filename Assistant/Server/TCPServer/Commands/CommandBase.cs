@@ -40,9 +40,7 @@ namespace Assistant.Server.TCPServer.Commands {
 					break;
 				case CommandEnums.Command.Initiate:
 					break;
-				case CommandEnums.Command.GetOutputPins:
-					break;
-				case CommandEnums.Command.GetInputPins:
+				case CommandEnums.Command.GetGpioAll:
 					break;
 				default:
 					return null;

@@ -53,27 +53,28 @@ namespace Assistant.Server.TCPServer {
 		public async Task DisconnectClientAsync(bool dispose = false) {
 			DisconnectConnection = true;
 
-			if (ClientSocket != null) {
+			if (ClientSocket == null) {
+				return;
+			}
+
+			if (ClientSocket.Connected) {
 				ClientSocket.Disconnect(true);
 			}
 
-			if (ClientSocket != null) {
-				while (ClientSocket.Connected) {
-					Logger.Log("Waiting for client to disconnect...");
-					await Task.Delay(5).ConfigureAwait(false);
-				}
+			while (ClientSocket.Connected) {
+				Logger.Log("Waiting for client to disconnect...");
+				await Task.Delay(5).ConfigureAwait(false);
 			}
 
 			Logger.Log($"Disconnected client -> {UniqueId} / {IpAddress}");
+
 			if (IpAddress != null && UniqueId != null) {
 				OnDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(IpAddress, UniqueId, 5000));
 			}
 
 			if (dispose) {
-				if (ClientSocket != null) {
-					ClientSocket.Close();
-					ClientSocket.Dispose();
-				}
+				ClientSocket?.Close();
+				ClientSocket?.Dispose();
 
 				Helpers.ScheduleTask(() => {
 					TCPServerCore.RemoveClient(this);
@@ -85,7 +86,7 @@ namespace Assistant.Server.TCPServer {
 			while (!DisconnectConnection) {
 				try {
 					if (ClientSocket.Available <= 0) {
-						await Task.Delay(2).ConfigureAwait(false);
+						await Task.Delay(1).ConfigureAwait(false);
 						continue;
 					}
 
@@ -109,13 +110,13 @@ namespace Assistant.Server.TCPServer {
 						continue;
 					}
 
-					OnMessageRecevied?.Invoke(this, new ClientMessageEventArgs(receviedMessage));
-
 					CommandObject cmdObject = new CommandObject(receviedMessage, DateTime.Now);
 
 					if (PreviousCommand != null && cmdObject.Equals(PreviousCommand)) {
 						continue;
 					}
+
+					OnMessageRecevied?.Invoke(this, new ClientMessageEventArgs(receviedMessage));
 
 					await OnRecevied(cmdObject).ConfigureAwait(false);
 					PreviousCommand = cmdObject;
@@ -175,7 +176,7 @@ namespace Assistant.Server.TCPServer {
 			};
 
 			if (string.IsNullOrEmpty(response)) {
-				await SendResponseAsync(FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse,  "Invalid Command!")).ConfigureAwait(false);
+				await SendResponseAsync(FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command!")).ConfigureAwait(false);
 				return;
 			}
 
@@ -188,9 +189,10 @@ namespace Assistant.Server.TCPServer {
 			}
 
 			if (command.Command == Command.InvalidCommand) {
-				return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command!");
+				return null;
 			}
 
+			Logger.Log("Client command recevied!");
 			switch (command.Command) {
 				case Command.Disconnect:
 					Helpers.ScheduleTask(async () => await DisconnectClientAsync(true).ConfigureAwait(false), TimeSpan.FromSeconds(2));
@@ -198,7 +200,7 @@ namespace Assistant.Server.TCPServer {
 				case Command.Initiate:
 					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.NoResponse, "Successfully connected!");
 				default:
-					return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command!");
+					return null;
 			}
 		}
 
@@ -208,38 +210,23 @@ namespace Assistant.Server.TCPServer {
 			}
 
 			if (command.Command == Command.InvalidCommand) {
-				return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse);
+				return null;
 			}
 
+			Logger.Log("Gpio command recevied!");
 			switch (command.Command) {
-				case Command.GetInputPins:
-					if (Core.Config.InputModePins.Length <= 0) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "No input pins found.");
+				case Command.GetGpioAll:
+					GetPins getPins = new GetPins();
+					string? pinsConfig = getPins.GetJson();
+
+					if (string.IsNullOrEmpty(pinsConfig)) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to fetch pin configuration");
 					}
 
-					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PiController.GetPinController() == null) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Cannot access gpio pins at the moment.");
-					}
+					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.GetGpioAll, "Success!", pinsConfig);
 
-					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.GetGpioAll, "Success!", JsonConvert.SerializeObject(Core.PiController));
-
-				case Command.GetOutputPins:
-					if (Core.Config.OutputModePins.Length <= 0) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "No output pins found.");
-					}
-
-					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PiController.GetPinController() == null) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Cannot access gpio pins at the moment.");
-					}
-
-					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.GetGpioAll, "Success!", JsonConvert.SerializeObject(Core.PiController));
-
-				case Command.GetGpio:
-					if (command.CommandParametersObject == null) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
-					}
-
-					GetGpio getRequest = (GetGpio) command.CommandParametersObject;
+				case Command.GetGpio when !string.IsNullOrEmpty(command.CommandParametersJson) && command.CommandParametersObject != null:
+					GetGpio? getRequest = command.CommandParametersObject as GetGpio;
 
 					if (getRequest == null) {
 						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
@@ -259,12 +246,8 @@ namespace Assistant.Server.TCPServer {
 
 					return FormatResponse(CommandResponseCode.OK, ResponseObjectType.GetGpio, "Success!", result);
 
-				case Command.SetGpioGeneral:
-					if (command.CommandParametersObject == null) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
-					}
-
-					SetGpio setRequest = (SetGpio) command.CommandParametersObject;
+				case Command.SetGpioGeneral when !string.IsNullOrEmpty(command.CommandParametersJson) && command.CommandParametersObject != null:
+					SetGpio? setRequest = command.CommandParametersObject as SetGpio;
 
 					if (setRequest == null) {
 						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
@@ -278,12 +261,9 @@ namespace Assistant.Server.TCPServer {
 
 					return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to set pin configuration.");
 
-				case Command.SetGpioDelayed:
-					if (command.CommandParametersObject == null) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
-					}
+				case Command.SetGpioDelayed when !string.IsNullOrEmpty(command.CommandParametersJson) && command.CommandParametersObject != null:
 
-					SetGpioDelayed setDelayedRequest = (SetGpioDelayed) command.CommandParametersObject;
+					SetGpioDelayed? setDelayedRequest = command.CommandParametersObject as SetGpioDelayed;
 
 					if (setDelayedRequest == null) {
 						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
@@ -298,7 +278,7 @@ namespace Assistant.Server.TCPServer {
 					return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to set pin configuration with delay.");
 
 				default:
-					return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command");
+					return null;
 			}
 		}
 
@@ -308,22 +288,23 @@ namespace Assistant.Server.TCPServer {
 			}
 
 			if (command.Command == Command.InvalidCommand) {
-				return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse);
+				return null;
 			}
 
+			Logger.Log("Remainder command recevied!");
 			switch (command.Command) {
-				case Command.SetRemainder:
-					if (command.CommandParametersObject == null) {
-						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse);
-					}
+				case Command.SetRemainder when !string.IsNullOrEmpty(command.CommandParametersJson) && command.CommandParametersObject != null:
+					SetRemainder? remainderRequest = command.CommandParametersObject as SetRemainder;
 
-					SetRemainder remainderRequest = (SetRemainder) command.CommandParametersObject;
+					if (remainderRequest == null) {
+						return FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to set remainder.");
+					}
 
 					return Core.RemainderManager.Remind(remainderRequest.RemainderMessage, remainderRequest.RemainderDelay) ?
 						FormatResponse(CommandResponseCode.OK, ResponseObjectType.NoResponse, "Successfully set remainder.") :
 						FormatResponse(CommandResponseCode.FAIL, ResponseObjectType.NoResponse, "Failed to set remainder.");
 				default:
-					return FormatResponse(CommandResponseCode.INVALID, ResponseObjectType.NoResponse, "Invalid Command");
+					return null;
 			}
 		}
 
@@ -345,7 +326,7 @@ namespace Assistant.Server.TCPServer {
 			return null;
 		}
 
-		public async Task SendResponseAsync(string response) {
+		public async Task SendResponseAsync(string? response) {
 			if (string.IsNullOrEmpty(response)) {
 				return;
 			}
