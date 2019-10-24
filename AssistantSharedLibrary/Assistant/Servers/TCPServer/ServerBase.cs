@@ -1,4 +1,6 @@
+using AssistantSharedLibrary.Assistant.Servers.TCPServer.EventArgs;
 using AssistantSharedLibrary.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -10,9 +12,11 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 		private TcpListener Server { get; set; }
 		private int ServerPort { get; set; }
 		private bool ExitRequested { get; set; }
-		private static readonly SemaphoreSlim ServerSemaphore = new SemaphoreSlim(1, 1);
+		private bool _isListernerEventFired = false;
+		private readonly SemaphoreSlim ServerSemaphore = new SemaphoreSlim(1, 1);
 		public bool IsServerListerning { get; private set; }
-		internal readonly ConcurrentDictionary<string, Connection> ConnectedClients = new ConcurrentDictionary<string, Connection>();
+		public static readonly ConcurrentDictionary<string, Connection> ConnectedClients = new ConcurrentDictionary<string, Connection>();
+		public static int ConnectedClientsCount => ConnectedClients.Count;
 
 		public delegate void OnClientConnected(object sender, OnClientConnectedEventArgs e);
 		public event OnClientConnected ClientConnected;
@@ -41,10 +45,16 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 					while (!ExitRequested && Server != null) {
 						IsServerListerning = true;
 
+						if (!_isListernerEventFired) {
+							ServerStarted?.Invoke(this, new OnServerStartedListerningEventArgs(IPAddress.Any, ServerPort, DateTime.Now));
+							_isListernerEventFired = true;
+						}
+
 						if (Server.Pending()) {
 							TcpClient client = await Server.AcceptTcpClientAsync().ConfigureAwait(false);
 							Connection clientConnection = new Connection(client, this);
-							Helpers.InBackgroundThread(async () => await clientConnection.Init().ConfigureAwait(false), client.GetHashCode().ToString(), true);
+							ClientConnected?.Invoke(this, new OnClientConnectedEventArgs(clientConnection.ClientIpAddress, DateTime.Now, clientConnection.ClientUniqueId));
+							await clientConnection.Init().ConfigureAwait(false);
 						}
 
 						await Task.Delay(1).ConfigureAwait(false);
@@ -79,6 +89,7 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 				Server = null;
 			}
 
+			ServerShutdown?.Invoke(this, new OnServerShutdownEventArgs(DateTime.Now, ExitRequested));
 			return true;
 		}
 	}

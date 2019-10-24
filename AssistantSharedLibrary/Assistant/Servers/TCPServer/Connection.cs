@@ -16,7 +16,7 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 		public string ClientUniqueId { get; private set; }
 		public string ClientIpAddress { get; private set; }
 		private BaseRequest PreviousRequest;
-		private static SemaphoreSlim SendSemaphore = new SemaphoreSlim(1, 1);
+		private SemaphoreSlim SendSemaphore = new SemaphoreSlim(1, 1);
 		public bool IsDisposed { get; private set; }
 
 		public delegate void OnDisconnected(object sender, OnDisconnectedEventArgs e);
@@ -41,8 +41,10 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 		public async Task<Connection> Init() {
 			EventLogger.LogInfo($"Client connected with address -> {ClientIpAddress} / {ClientUniqueId}");
 
-			if (!Server.ConnectedClients.ContainsKey(ClientUniqueId)) {
-				Server.ConnectedClients.TryAdd(ClientUniqueId, this);
+			lock (ServerBase.ConnectedClients) {
+				if (!ServerBase.ConnectedClients.ContainsKey(ClientUniqueId)) {
+					ServerBase.ConnectedClients.TryAdd(ClientUniqueId, this);
+				}
 			}
 
 			Connected?.Invoke(this, new OnConnectedEventArgs(ClientIpAddress, DateTime.Now, ClientUniqueId));
@@ -220,6 +222,11 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 			}
 
 			tokenSource.Dispose();
+			lock (ServerBase.ConnectedClients) {
+				if (ServerBase.ConnectedClients.ContainsKey(ClientUniqueId)) {
+					ServerBase.ConnectedClients.TryRemove(ClientUniqueId, out _);
+				}
+			}
 			Disconnected?.Invoke(this, new OnDisconnectedEventArgs(ClientUniqueId, DateTime.Now, reconnect));
 			return true;
 		}
