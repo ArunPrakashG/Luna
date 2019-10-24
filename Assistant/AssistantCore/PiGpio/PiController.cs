@@ -48,7 +48,6 @@ namespace Assistant.AssistantCore.PiGpio {
 
 			MorseTranslator.InitMorseTranslator();
 			PiBluetooth.InitBluetoothController();
-			ControllerHelpers.DisplayPiInfo();
 			PinConfigCollection.Clear();
 
 			for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {

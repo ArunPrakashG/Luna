@@ -1,7 +1,7 @@
+using Assistant.Servers.Kestrel;
 using System;
 using System.IO;
 using System.Reflection;
-using Assistant.Server;
 
 namespace Assistant.Extensions {
 

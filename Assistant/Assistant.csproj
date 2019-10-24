@@ -22,8 +22,8 @@
 
 	<ItemGroup>
 	  <Compile Remove="AssistantCore\PiGpio\GpioConfigHandler.cs" />
-	  <Compile Remove="Server\SecureLine\TCPServer.cs" />
-	  <Compile Remove="Server\TCPServer.cs" />
+	  <Compile Remove="Servers\SecureLine\TCPServer.cs" />
+	  <Compile Remove="Servers\TCPServer.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -39,8 +39,8 @@
 		</PackageReference>
 		<PackageReference Include="Discord.Net" Version="2.1.1" />
 		<PackageReference Include="Figgle" Version="0.3.0" />
+		<PackageReference Include="FluentScheduler" Version="5.3.0" />
 		<PackageReference Include="Google.Cloud.Speech.V1" Version="1.2.0" />
-		<PackageReference Include="Hangfire" Version="1.7.6" />
 		<PackageReference Include="MailKit" Version="2.3.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.6">
@@ -107,7 +107,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Include="Server\SecureLine\TCPServer.cs" />
+	  <None Include="Servers\SecureLine\TCPServer.cs" />
 	</ItemGroup>
 
 	<PropertyGroup>

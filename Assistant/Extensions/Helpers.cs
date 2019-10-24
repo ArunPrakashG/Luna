@@ -34,13 +34,13 @@ namespace Assistant.Extensions {
 			}
 
 			if (!Core.CoreInitiationCompleted) {
-				float identifer = GenerateTaskIdentifier(new Random());
+				float identifer = GenerateUniqueIdentifier(new Random());
 				InBackgroundThread(action, identifer.ToString());
 				return;
 			}
 
 			if (Core.DisablePiMethods) {
-				float identifer = GenerateTaskIdentifier(new Random());
+				float identifer = GenerateUniqueIdentifier(new Random());
 				InBackgroundThread(action, identifer.ToString());
 			}
 			else {
@@ -81,7 +81,7 @@ namespace Assistant.Extensions {
 			return OSPlatform.Linux;
 		}
 
-		public static float GenerateTaskIdentifier(Random prng) {
+		public static float GenerateUniqueIdentifier(Random prng) {
 			int sign = prng.Next(2);
 			int exponent = prng.Next((1 << 8) - 1);
 			int mantissa = prng.Next(1 << 23);
