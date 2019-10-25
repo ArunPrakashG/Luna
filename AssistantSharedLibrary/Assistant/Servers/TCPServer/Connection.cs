@@ -135,9 +135,10 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 				NetworkStream stream = Client.GetStream();
 				byte[] writeBuffer = Encoding.ASCII.GetBytes(jsonResponse);
 				stream.Write(writeBuffer, 0, writeBuffer.Length);
+				stream.Dispose();
 				return true;
 			}
-			finally {
+			finally {				
 				SendSemaphore.Release();
 			}
 		}
@@ -151,56 +152,62 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 				token = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 			}
 
-			if (!await SendAsync(response).ConfigureAwait(false)) {
-				return (false, null);
+			try {
+				if (!await SendAsync(response).ConfigureAwait(false)) {
+					return (false, null);
+				}
+
+				while (!token.Token.IsCancellationRequested) {
+					if (Client == null || !Client.Connected || !Helpers.IsSocketConnected(Client.Client)) {
+						break;
+					}
+
+					if (Client.Available <= 0) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					NetworkStream stream = Client.GetStream();
+
+					if (!stream.DataAvailable) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					byte[] buffer = new byte[8000];
+
+					if (stream.Read(buffer, 0, buffer.Length) <= 0) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					string receviedMessage = Encoding.ASCII.GetString(buffer);
+					if (string.IsNullOrEmpty(receviedMessage)) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					receviedMessage = Regex.Replace(receviedMessage, "\\0", string.Empty);
+
+					if (string.IsNullOrEmpty(receviedMessage)) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					BaseRequest request = new BaseRequest(receviedMessage);
+
+					if (PreviousRequest != null && PreviousRequest.Identifier == request.Identifier) {
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					PreviousRequest = request;
+					return (true, request);
+				}
 			}
-
-			while (!token.Token.IsCancellationRequested) {
-				if (Client == null || !Client.Connected || !Helpers.IsSocketConnected(Client.Client)) {
-					break;
-				}
-
-				if (Client.Available <= 0) {
-					await Task.Delay(1).ConfigureAwait(false);
-					continue;
-				}
-
-				NetworkStream stream = Client.GetStream();
-
-				if (!stream.DataAvailable) {
-					await Task.Delay(1).ConfigureAwait(false);
-					continue;
-				}
-
-				byte[] buffer = new byte[8000];
-
-				if (stream.Read(buffer, 0, buffer.Length) <= 0) {
-					await Task.Delay(1).ConfigureAwait(false);
-					continue;
-				}
-
-				string receviedMessage = Encoding.ASCII.GetString(buffer);
-				if (string.IsNullOrEmpty(receviedMessage)) {
-					await Task.Delay(1).ConfigureAwait(false);
-					continue;
-				}
-
-				receviedMessage = Regex.Replace(receviedMessage, "\\0", string.Empty);
-
-				if (string.IsNullOrEmpty(receviedMessage)) {
-					await Task.Delay(1).ConfigureAwait(false);
-					continue;
-				}
-
-				BaseRequest request = new BaseRequest(receviedMessage);
-
-				if (PreviousRequest != null && PreviousRequest.Identifier == request.Identifier) {
-					await Task.Delay(1).ConfigureAwait(false);
-					continue;
-				}
-
-				return (true, request);
-			}
+			finally {
+				token.Dispose();
+			}		
 
 			return (false, null);
 		}

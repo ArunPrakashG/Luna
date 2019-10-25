@@ -23,10 +23,16 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer.Requests {
 				return;
 			}
 
-			BaseRequest baseRequest = JsonConvert.DeserializeObject<BaseRequest>(requestJson);
+			BaseRequest baseRequest = DeserializeRequest<BaseRequest>(requestJson);
 			RequestTime = baseRequest.RequestTime;
 			TypeCode = baseRequest.TypeCode;
 			RequestObject = baseRequest.RequestObject;
+		}
+
+		public BaseRequest(DateTime reqTime, TYPE_CODE tCode, string reqObj) {
+			RequestTime = reqTime;
+			TypeCode = tCode;
+			RequestObject = reqObj;
 		}
 
 		public static string SerializeRequest<TType>(TType type) where TType : class => JsonConvert.SerializeObject(type);

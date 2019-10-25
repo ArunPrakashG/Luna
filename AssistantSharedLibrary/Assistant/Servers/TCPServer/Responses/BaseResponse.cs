@@ -43,7 +43,7 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer.Responses {
 
 			BaseResponse request = (BaseResponse) obj;
 
-			if (request.Identifier == Identifier) {
+			if (request.Identifier == Identifier || (!string.IsNullOrEmpty(request.ResponseObject) && request.ResponseObject.Equals(ResponseObject, StringComparison.OrdinalIgnoreCase))) {
 				return true;
 			}
 

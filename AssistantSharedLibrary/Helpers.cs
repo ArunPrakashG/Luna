@@ -28,6 +28,23 @@ namespace AssistantSharedLibrary {
 			return OSPlatform.Linux;
 		}
 
+		public static bool IsServerOnline(string ip) {
+			if (string.IsNullOrEmpty(ip)) {
+				return false;
+			}
+
+			using (Ping ping = new Ping()) {
+				PingReply pingReply = ping.Send(ip, 10);
+
+				if (pingReply.Status == IPStatus.Success) {
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+		}
+
 		public static Timer ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
 				EventLogger.LogWarning("Action is null! " + nameof(action));
