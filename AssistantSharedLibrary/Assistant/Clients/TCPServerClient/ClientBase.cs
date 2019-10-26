@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 	public class ClientBase : IDisposable {
 		private TcpClient Connector;
+		public const int MAX_CONNECTION_RETRY_COUNT = 6;
 		private readonly SemaphoreSlim ClientSemaphore = new SemaphoreSlim(1, 1);
 		private readonly SemaphoreSlim ClientReceivingSemaphore = new SemaphoreSlim(1, 1);
 		private BaseResponse PreviousResponse { get; set; }
@@ -18,8 +19,8 @@ namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 		public delegate void OnDisconnected(object sender, OnDisconnectedEventArgs e);
 		public event OnDisconnected Disconnected;
 
-		public delegate void OnCommandReceived(object sender, OnCommandReceivedEventArgs e);
-		public event OnCommandReceived CommandReceived;
+		public delegate void OnResponseReceived(object sender, OnResponseReceivedEventArgs e);
+		public event OnResponseReceived ResponseReceived;
 
 		public delegate void OnConnected(object sender, OnConnectedEventArgs e);
 		public event OnConnected Connected;
@@ -45,25 +46,58 @@ namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 		/// The ClientBase startup method.
 		/// </summary>
 		/// <returns></returns>
-		public async Task<ClientBase> Start() {
+		public async Task<ClientBase> StartAsync() {
 			if (string.IsNullOrEmpty(ServerIP) || ServerPort <= 0) {
 				EventLogger.LogError("Cannot start as either server ip or port is invalid.");
 				return this;
 			}
 
 			if (IsConnected) {
+				EventLogger.LogError("Client is already connected with the server.");
 				return this;
 			}
+
+			int connTries = 0;
 
 			try {
 				await ClientSemaphore.WaitAsync().ConfigureAwait(false);
 
-				if (!Helpers.IsServerOnline(ServerIP)) {
-					EventLogger.LogError("Server is offline.");
+				while (connTries < MAX_CONNECTION_RETRY_COUNT) {
+					if (!Helpers.IsServerOnline(ServerIP)) {
+						EventLogger.LogError($"Server is offline. RETRY_COUNT -> {connTries}");
+						connTries++;
+						continue;
+					}
+
+					try {
+						Connector = new TcpClient(ServerIP, ServerPort);
+					}
+					catch (SocketException) {
+						connTries++;
+						continue;
+					}
+					catch (Exception e) {
+						EventLogger.LogException(e);
+						break;
+					}
+
+					if (IsConnected) {
+						break;
+					}
+
+					connTries++;
+				}
+
+				if (connTries >= MAX_CONNECTION_RETRY_COUNT && !IsConnected) {
+					EventLogger.LogError($"Could not connect with server even after {connTries} retry count.");
 					return this;
 				}
 
-				Connector = new TcpClient(ServerIP, ServerPort);
+				if (!IsConnected) {
+					EventLogger.LogError($"Could not connect with server. Server might be offline or unreachable!");
+					return this;
+				}
+
 				EventLogger.LogInfo("Connected to server.");
 				Connected?.Invoke(this, new OnConnectedEventArgs(DateTime.Now, ServerIP, ServerPort));
 
@@ -102,7 +136,7 @@ namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 								continue;
 							}
 
-							CommandReceived?.Invoke(this, new OnCommandReceivedEventArgs(DateTime.Now, receivedObj, received));
+							ResponseReceived?.Invoke(this, new OnResponseReceivedEventArgs(DateTime.Now, receivedObj, received));
 							PreviousResponse = receivedObj;
 						}
 						catch (SocketException s) {
@@ -111,7 +145,7 @@ namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 						}
 						catch (Exception e) {
 							EventLogger.LogError($"EXCEPTION -> {e.Message}");
-							break;
+							continue;
 						}
 					}
 
@@ -128,7 +162,7 @@ namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 			}
 		}
 
-		public async Task<bool> Stop() {
+		public async Task<bool> StopAsync() {
 			if (Connector == null || !Connector.Connected) {
 				return true;
 			}
@@ -146,13 +180,27 @@ namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 			return true;
 		}
 
+		public async Task<bool> TryReconnect() {
+			if(await StopAsync().ConfigureAwait(false)) {
+				await StartAsync().ConfigureAwait(false);
+
+				if (IsConnected) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		public async Task<bool> SendAsync(BaseRequest request) {
 			if (request == null || Connector == null) {
 				return false;
 			}
 
 			if (!IsConnected || !Helpers.IsSocketConnected(Connector.Client)) {
-				return false;
+				if(!await TryReconnect().ConfigureAwait(false)) {
+					return false;
+				}
 			}
 
 			try {
@@ -240,6 +288,20 @@ namespace AssistantSharedLibrary.Assistant.Clients.TCPServerClient {
 			}
 
 			return (false, null);
+		}
+
+		public void Dispose() {
+			_ = StopAsync().Result;
+			Connector?.Dispose();
+			PreviousResponse = null;
+			Disconnected = null;
+			Connected = null;
+			ResponseReceived = null;
+			IsReceiving = false;
+			ClientSemaphore.Release();
+			ClientSemaphore.Dispose();
+			ClientReceivingSemaphore.Release();
+			ClientReceivingSemaphore.Dispose();
 		}
 	}
 }

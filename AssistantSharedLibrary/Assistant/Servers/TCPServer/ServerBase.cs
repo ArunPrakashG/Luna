@@ -14,6 +14,7 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 		private bool ExitRequested { get; set; }
 		private bool _isListernerEventFired = false;
 		private readonly SemaphoreSlim ServerSemaphore = new SemaphoreSlim(1, 1);
+		private readonly SemaphoreSlim ServerListerningSemaphore = new SemaphoreSlim(1, 1);
 		public bool IsServerListerning { get; private set; }
 		public static readonly ConcurrentDictionary<string, Connection> ConnectedClients = new ConcurrentDictionary<string, Connection>();
 		public static int ConnectedClientsCount => ConnectedClients.Count;
@@ -27,6 +28,12 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 		public delegate void OnServerShutdown(object sender, OnServerShutdownEventArgs e);
 		public event OnServerShutdown ServerShutdown;
 
+		/// <summary>
+		/// Server base startup method.
+		/// </summary>
+		/// <param name="port"></param>
+		/// <param name="backlog"></param>
+		/// <returns></returns>
 		public async Task<ServerBase> Start(int port, int backlog = 10) {
 			if (port <= 0 || IsServerListerning) {
 				return this;
@@ -42,25 +49,32 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 				EventLogger.LogInfo($"Server waiting for connections at port -> {ServerPort}");
 
 				Helpers.InBackgroundThread(async () => {
-					while (!ExitRequested && Server != null) {
-						IsServerListerning = true;
+					try {
+						await ServerListerningSemaphore.WaitAsync().ConfigureAwait(false);
 
-						if (!_isListernerEventFired) {
-							ServerStarted?.Invoke(this, new OnServerStartedListerningEventArgs(IPAddress.Any, ServerPort, DateTime.Now));
-							_isListernerEventFired = true;
+						while (!ExitRequested && Server != null) {
+							IsServerListerning = true;
+
+							if (!_isListernerEventFired) {
+								ServerStarted?.Invoke(this, new OnServerStartedListerningEventArgs(IPAddress.Any, ServerPort, DateTime.Now));
+								_isListernerEventFired = true;
+							}
+
+							if (Server.Pending()) {
+								TcpClient client = await Server.AcceptTcpClientAsync().ConfigureAwait(false);
+								Connection clientConnection = new Connection(client, this);
+								ClientConnected?.Invoke(this, new OnClientConnectedEventArgs(clientConnection.ClientIpAddress, DateTime.Now, clientConnection.ClientUniqueId));
+								await clientConnection.Init().ConfigureAwait(false);
+							}
+
+							await Task.Delay(1).ConfigureAwait(false);
 						}
 
-						if (Server.Pending()) {
-							TcpClient client = await Server.AcceptTcpClientAsync().ConfigureAwait(false);
-							Connection clientConnection = new Connection(client, this);
-							ClientConnected?.Invoke(this, new OnClientConnectedEventArgs(clientConnection.ClientIpAddress, DateTime.Now, clientConnection.ClientUniqueId));
-							await clientConnection.Init().ConfigureAwait(false);
-						}
-
-						await Task.Delay(1).ConfigureAwait(false);
+						IsServerListerning = false;
 					}
-
-					IsServerListerning = false;
+					finally {
+						ServerListerningSemaphore.Release();
+					}					
 				}, this.GetHashCode().ToString(), true);
 
 				while (!IsServerListerning) {
