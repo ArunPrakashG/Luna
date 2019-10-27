@@ -13,6 +13,7 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 	public class Connection : IDisposable {
 		private TcpClient Client;
 		private ServerBase Server;
+		private bool IsAlreadyInitialized;
 		public string ClientUniqueId { get; private set; }
 		public string ClientIpAddress { get; private set; }
 		private BaseRequest PreviousRequest;
@@ -39,6 +40,10 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 		}
 
 		public async Task<Connection> Init() {
+			if (IsAlreadyInitialized) {
+				return this;
+			}
+
 			EventLogger.LogInfo($"Client connected with address -> {ClientIpAddress} / {ClientUniqueId}");
 
 			lock (ServerBase.ConnectedClients) {
@@ -50,6 +55,7 @@ namespace AssistantSharedLibrary.Assistant.Servers.TCPServer {
 			Connected?.Invoke(this, new OnConnectedEventArgs(ClientIpAddress, DateTime.Now, ClientUniqueId));
 			Receive();
 			await Task.Delay(800).ConfigureAwait(false);
+			IsAlreadyInitialized = true;
 			return this;
 		}
 

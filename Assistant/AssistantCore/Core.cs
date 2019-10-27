@@ -8,13 +8,16 @@ using Assistant.MorseCode;
 using Assistant.PushBullet;
 using Assistant.Remainders;
 using Assistant.Servers.Kestrel;
-using Assistant.Servers.SecureLine;
-using Assistant.Servers.TCPServer;
 using Assistant.Update;
 using Assistant.Weather;
+using AssistantSharedLibrary.Assistant.Servers.TCPServer;
+using AssistantSharedLibrary.Assistant.Servers.TCPServer.EventArgs;
+using AssistantSharedLibrary.Logging;
+using AssistantSharedLibrary.Logging.EventArgs;
 using CommandLine;
 using RestSharp;
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -55,6 +58,7 @@ namespace Assistant.AssistantCore {
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
 		public static TaskScheduler TaskManager { get; private set; } = new TaskScheduler();
 		public static ModuleInitializer ModuleLoader { get; private set; } = new ModuleInitializer();
+		public static ServerBase TcpServerBase { get; private set; } = new ServerBase();
 		public static DateTime StartupTime { get; private set; }
 		private static Timer? RefreshConsoleTitleTimer { get; set; }
 		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
@@ -62,10 +66,9 @@ namespace Assistant.AssistantCore {
 		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
 		public static PushBulletService PushBulletService { get; private set; } = new PushBulletService();
 		public static MorseCore MorseCode { get; private set; } = new MorseCore();
-		public static SecureLineServer SecureLine { get; private set; } = new SecureLineServer();
 		public static RemainderManager RemainderManager { get; private set; } = new RemainderManager();
 		public static AlarmManager AlarmManager { get; private set; } = new AlarmManager();
-		public static TCPServerCore TCPServer { get; private set; } = new TCPServerCore();
+		public static readonly ConcurrentDictionary<string, TcpServerClientManager> ClientManagers = new ConcurrentDictionary<string, TcpServerClientManager>();
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool DisablePiMethods { get; private set; }
@@ -87,6 +90,11 @@ namespace Assistant.AssistantCore {
 			if (File.Exists(Constants.TraceLogPath)) {
 				File.Delete(Constants.TraceLogPath);
 			}
+
+			EventLogger.LogMessageReceived += EventLogger_LogMessageReceived;
+			TcpServerBase.ServerShutdown += TcpServerBase_ServerShutdown;
+			TcpServerBase.ServerStarted += TcpServerBase_ServerStarted;
+			TcpServerBase.ClientConnected += TcpServerBase_ClientConnected;
 
 			Helpers.CheckMultipleProcess();
 			StartupTime = DateTime.Now;
@@ -110,9 +118,8 @@ namespace Assistant.AssistantCore {
 			Constants.LocalIP = Helpers.GetLocalIpAddress();
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
 
-			SecureLine.InitSecureLine(IPAddress.Any, 7777);
-			SecureLine.StartSecureLine();
-			TCPServer.InitTCPServer(5555).StartServerCore();
+			await TcpServerBase.Start(5555, 15).ConfigureAwait(false);
+
 			ParseStartupArguments(args);
 
 			if (!Helpers.IsRaspberryEnvironment()) {
@@ -159,6 +166,47 @@ namespace Assistant.AssistantCore {
 
 			await PostInitTasks().ConfigureAwait(false);
 			return true;
+		}
+
+		private static void TcpServerBase_ClientConnected(object sender, OnClientConnectedEventArgs e) {
+			lock (ClientManagers) {
+				ClientManagers.TryAdd(e.ClientUid, new TcpServerClientManager(e.ClientUid, TcpServerBase));
+			}
+		}
+
+		private static void TcpServerBase_ServerStarted(object sender, OnServerStartedListerningEventArgs e) => Logger.Log($"Tcp Server listerning at {e.ListerningAddress} / {e.ServerPort}");
+
+		private static void TcpServerBase_ServerShutdown(object sender, OnServerShutdownEventArgs e) => Logger.Log($"Tcp shutting down.");
+
+		private static void EventLogger_LogMessageReceived(object sender, LogMessageEventArgs e) {
+			switch (e.LogLevel) {
+				case LogEnums.LogLevel.DEBUG:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Debug, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				case LogEnums.LogLevel.TRACE:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Debug, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				case LogEnums.LogLevel.INFO:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Info, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				case LogEnums.LogLevel.WARN:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Warn, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				case LogEnums.LogLevel.ERROR:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Error, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				case LogEnums.LogLevel.EXCEPTION:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Error, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				case LogEnums.LogLevel.FATAL:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Fatal, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				case LogEnums.LogLevel.CUSTOM:
+					Logger.Log(e.LogMessage, Enums.LogLevels.Custom, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
+					return;
+				default:
+					goto case LogEnums.LogLevel.INFO;
+			}
 		}
 
 		private static async Task PostInitTasks() {
@@ -674,13 +722,16 @@ namespace Assistant.AssistantCore {
 				await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantShutdown).ConfigureAwait(false);
 			}
 
-			PiController?.InitGpioShutdownTasks();
-			TCPServer?.StopServer();
+			PiController?.InitGpioShutdownTasks();			
 			TaskManager?.OnCoreShutdownRequested();
 			Update?.StopUpdateTimer();
 			RefreshConsoleTitleTimer?.Dispose();
 			ConfigWatcher?.StopConfigWatcher();
 			ModuleWatcher?.StopModuleWatcher();
+
+			if (TcpServerBase.IsServerListerning) {
+				await TcpServerBase.Shutdown().ConfigureAwait(false);
+			}
 
 			if (KestrelServer.IsServerOnline) {
 				await KestrelServer.Stop().ConfigureAwait(false);

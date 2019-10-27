@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -67,6 +67,11 @@
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="5.0.0-rc2" />
 		<PackageReference Include="Unosquare.WiringPi" Version="0.5.0" />
 		<PackageReference Include="VideoLibrary" Version="2.0.3" />
+
+		<Reference Include="AssistantSharedLibrary">
+			<HintPath>Externals\AssistantSharedLibrary.dll</HintPath>
+		</Reference>
+		
 	</ItemGroup>
 
 	<ItemGroup>
@@ -81,6 +86,9 @@
 		</None>
 		<None Update="Config\Assistant.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Externals\AssistantSharedLibrary.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="Modules\">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
