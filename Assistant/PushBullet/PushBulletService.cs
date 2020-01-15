@@ -50,7 +50,7 @@ namespace Assistant.PushBullet {
 			}
 
 			if (CachedPushDevices == null) {
-				Logger.Log("Failed to load PushBullet serivce.", LogLevels.Warn);
+				Logger.Log("Failed to load PushBullet service.", LogLevels.Warn);
 				return false;
 			}
 

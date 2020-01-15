@@ -707,28 +707,25 @@ namespace Assistant.Extensions {
 					char input = Console.ReadKey().KeyChar;
 
 					switch (input) {
-						case 'y': {
-								int procCounter = 0;
-								foreach (Process proc in processes) {
-									if (proc.Id != Process.GetCurrentProcess().Id) {
-										proc.Kill();
-										procCounter++;
-										Logger.Log($"Killed {procCounter} processes.", LogLevels.Warn);
-									}
+						case 'y':
+							int procCounter = 0;
+							foreach (Process proc in processes) {
+								if (proc.Id != Process.GetCurrentProcess().Id) {
+									proc.Kill();
+									procCounter++;
+									Logger.Log($"Killed {procCounter} processes.", LogLevels.Warn);
 								}
-								return;
 							}
+							return;
 
-						case 'n': {
-								Logger.Log("Exiting current process as another instance of same application is running...");
-								Process.GetCurrentProcess().Kill();
-								return;
-							}
+						case 'n':
+							Logger.Log("Exiting current process as another instance of same application is running...");
+							Process.GetCurrentProcess().Kill();
+							return;
 
-						default: {
-								Logger.Log("Unknown key pressed... try again!", LogLevels.Warn);
-								continue;
-							}
+						default:
+							Logger.Log("Unknown key pressed... try again!", LogLevels.Warn);
+							continue;
 					}
 				}
 			}

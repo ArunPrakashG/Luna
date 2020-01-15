@@ -50,14 +50,14 @@ namespace Assistant.Weather {
 				WeatherResult.LocationName = response.name;
 				if (withTTS) {
 					Helpers.InBackgroundThread(async () => {
-						await TTSService.SpeakText($"Sir, The weather at {pinCode} is...", true).ConfigureAwait(false);
-						await TTSService.SpeakText($"Temperature is {WeatherResult.Temperature}").ConfigureAwait(false);
-						await TTSService.SpeakText($"Humidity is {WeatherResult.Humidity}").ConfigureAwait(false);
-						await TTSService.SpeakText($"Pressure is {WeatherResult.Pressure}").ConfigureAwait(false);
-						await TTSService.SpeakText($"Sea Level is {WeatherResult.SeaLevel}").ConfigureAwait(false);
-						await TTSService.SpeakText($"Wind Speed is {WeatherResult.WindSpeed}").ConfigureAwait(false);
-						await TTSService.SpeakText($"And the location name is {WeatherResult.LocationName}").ConfigureAwait(false);
-						await TTSService.SpeakText($"and thats all sir!").ConfigureAwait(false);
+						await TTS.SpeakText($"Sir, The weather at {pinCode} is...", true).ConfigureAwait(false);
+						await TTS.SpeakText($"Temperature is {WeatherResult.Temperature}").ConfigureAwait(false);
+						await TTS.SpeakText($"Humidity is {WeatherResult.Humidity}").ConfigureAwait(false);
+						await TTS.SpeakText($"Pressure is {WeatherResult.Pressure}").ConfigureAwait(false);
+						await TTS.SpeakText($"Sea Level is {WeatherResult.SeaLevel}").ConfigureAwait(false);
+						await TTS.SpeakText($"Wind Speed is {WeatherResult.WindSpeed}").ConfigureAwait(false);
+						await TTS.SpeakText($"And the location name is {WeatherResult.LocationName}").ConfigureAwait(false);
+						await TTS.SpeakText($"and thats all sir!").ConfigureAwait(false);
 					});
 				}
 

@@ -15,7 +15,7 @@ namespace Assistant.AssistantCore {
 		public string? SpeechFileName { get; set; }
 	}
 
-	public class TTSService {
+	public class TTS {
 		private static readonly Logger Logger = new Logger("TTS");
 		private static readonly SemaphoreSlim SpeechSemaphore = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim SpeechDownloadSemaphore = new SemaphoreSlim(1, 1);

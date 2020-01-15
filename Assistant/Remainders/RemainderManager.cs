@@ -40,9 +40,9 @@ namespace Assistant.Remainders {
 
 			Timer? timer = Helpers.ScheduleTask(async () => {
 				Logger.Log($"REMAINDER >>> {remainderData.Item1.Message}", Enums.LogLevels.Success);
-				await TTSService.SpeakText("Sir, You have a remainder!", true).ConfigureAwait(false);
+				await TTS.SpeakText("Sir, You have a remainder!", true).ConfigureAwait(false);
 				if (remainderData.Item1.Message != null && !remainderData.Item1.Message.IsNull()) {
-					await TTSService.SpeakText(remainderData.Item1.Message, false).ConfigureAwait(false);
+					await TTS.SpeakText(remainderData.Item1.Message, false).ConfigureAwait(false);
 				}
 
 			}, TimeSpan.FromMinutes((remainderData.Item1.RemaindAt - DateTime.Now).TotalMinutes));

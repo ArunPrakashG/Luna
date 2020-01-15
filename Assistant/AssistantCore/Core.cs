@@ -35,7 +35,7 @@ namespace Assistant.AssistantCore {
 		[Option('d', "debug", Required = false, HelpText = "Displays all Trace level messages to console. (for debugging)")]
 		public bool Debug { get; set; }
 
-		[Option('s', "safe", Required = false, HelpText = "Enables safe mode so that only pre configured pins can be modified.")]
+		[Option('s', "safe", Required = false, HelpText = "Enables safe mode so that only preconfigured pins can be modified.")]
 		public bool Safe { get; set; }
 
 		[Option('f', "firstchance", Required = false, HelpText = "Enables logging of first chance exceptions to console.")]
@@ -48,7 +48,7 @@ namespace Assistant.AssistantCore {
 		public bool DisableFirstChance { get; set; }
 	}
 
-	public static class Core {
+	public class Core {
 		private const int SendIpDelay = 60;
 		public static Logger Logger { get; set; } = new Logger("ASSISTANT");
 		public static PiController? PiController { get; private set; } = new PiController();
@@ -78,50 +78,83 @@ namespace Assistant.AssistantCore {
 		public static OSPlatform RunningPlatform { get; private set; }
 		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
 		public static string AssistantName { get; set; } = "Tess Home Assistant";
+		public static CancellationTokenSource KeepAliveToken { get; private set; } = new CancellationTokenSource(TimeSpan.MaxValue);
 
 		/// <summary>
-		/// This method starts up the assistant core.
-		/// After registration of very important events on Program.cs, control moves to here.
-		/// This is basically the entry point of the application.
+		/// Thread blocking method to startup the post init tasks.
 		/// </summary>
-		/// <param name="args">The startup arguments. (if any)</param>
-		/// <returns></returns>
-		public static async Task<bool> InitCore(string[] args) {
-			if (File.Exists(Constants.TraceLogPath)) {
-				File.Delete(Constants.TraceLogPath);
+		/// <returns>Boolean, when the endless thread block has been interrupted, such as, on exit.</returns>
+		public static async Task PostInitTasks() {
+			Logger.Log("Running post-initiation tasks...", Enums.LogLevels.Trace);
+			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantStartup).ConfigureAwait(false);
+
+			if (Config.DisplayStartupMenu) {
+				await DisplayRelayCycleMenu().ConfigureAwait(false);
 			}
 
+			await TTS.AssistantVoice(Enums.SpeechContext.AssistantStartup).ConfigureAwait(false);
+			await KeepAlive().ConfigureAwait(false);
+		}
+
+		public Core VerifyStartupArgs(string[] args) {
+			ParseStartupArguments(args);
+			return this;
+		}
+
+		public Core RegisterEvents() {
 			EventLogger.LogMessageReceived += EventLogger_LogMessageReceived;
 			TcpServerBase.ServerShutdown += TcpServerBase_ServerShutdown;
 			TcpServerBase.ServerStarted += TcpServerBase_ServerStarted;
 			TcpServerBase.ClientConnected += TcpServerBase_ClientConnected;
+			return this;
+		}
 
-			Helpers.CheckMultipleProcess();
-			StartupTime = DateTime.Now;
+		public Core PreInitTasks() {
+			if (File.Exists(Constants.TraceLogPath)) {
+				File.Delete(Constants.TraceLogPath);
+			}
+
 			Helpers.SetFileSeperator();
+			Helpers.CheckMultipleProcess();
+			IsNetworkAvailable = Helpers.CheckForInternetConnection();
+
+			if (!IsNetworkAvailable) {
+				Logger.Log("No Internet connection.", Enums.LogLevels.Warn);
+				Logger.Log($"Starting {AssistantName} in offline mode...");
+			}
+
+			return this;
+		}
+
+		public Core LoadConfiguration() {
 			Config = Config.LoadConfig();
+			return this;
+		}
+
+		public Core VariableAssignation() {
+			StartupTime = DateTime.Now;
 			AssistantName = Config.AssistantDisplayName;
 			Logger.LogIdentifier = AssistantName;
-
-			if (Helpers.CheckForInternetConnection()) {
-				IsNetworkAvailable = true;
-			}
-			else {
-				Logger.Log("No internet connection.", Enums.LogLevels.Warn);
-				Logger.Log($"Starting {AssistantName} in offline mode...");
-				IsNetworkAvailable = false;
-			}
-
 			RunningPlatform = Helpers.GetOsPlatform();
 			Config.ProgramLastStartup = StartupTime;
-
 			Constants.LocalIP = Helpers.GetLocalIpAddress();
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
+			return this;
+		}
 
-			await TcpServerBase.Start(5555, 15).ConfigureAwait(false);
+		public Core StartTcpServer(int port, int backlog) {
+			_ = TcpServerBase.Start(port, backlog).Result;
 
-			ParseStartupArguments(args);
+			return this;
+		}
 
+		public Core StartTcpServer() {
+			_ = TcpServerBase.Start(5555, 15).Result;
+
+			return this;
+		}
+
+		public Core VerifyEnvironment() {
 			if (!Helpers.IsRaspberryEnvironment()) {
 				DisablePiMethods = true;
 				IsUnknownOs = true;
@@ -130,13 +163,39 @@ namespace Assistant.AssistantCore {
 				SendLocalIp(!Helpers.IsNullOrEmpty(Constants.LocalIP));
 			}
 
+			return this;
+		}
+
+		public Core StartConsoleTitleUpdater() {
 			Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater", true);
+			return this;
+		}
+
+		public Core DisplayASCIILogo() {
 			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
+			return this;
+		}
+
+		public Core DisplayASCIILogo(string text) {
+			if (!string.IsNullOrEmpty(text)) {
+				Helpers.GenerateAsciiFromText(text);
+			}
+			return this;
+		}
+
+		public Core Misc() {
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 			Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", Enums.LogLevels.Ascii);
 
-			ConfigWatcher.InitConfigWatcher();
+			return this;
+		}
 
+		public Core StartConfigWatcher() {
+			ConfigWatcher.InitConfigWatcher();
+			return this;
+		}
+
+		public Core StartPushBulletService() {
 			if (!string.IsNullOrEmpty(Config.PushBulletApiKey)) {
 				Helpers.InBackground(() => {
 					if (PushBulletService.InitPushBulletService(Config.PushBulletApiKey).InitPushService()) {
@@ -145,38 +204,59 @@ namespace Assistant.AssistantCore {
 				});
 			}
 
-			await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
+			return this;
+		}
 
+		public Core CheckAndUpdate() {
+			Helpers.InBackground(async () => await Update.CheckAndUpdateAsync(true).ConfigureAwait(false));
+			return this;
+		}
+
+		public Core StartKestrel() {
 			if (Config.KestrelServer) {
-				await KestrelServer.Start().ConfigureAwait(false);
+				Helpers.InBackground(async () => await KestrelServer.Start().ConfigureAwait(false));
 			}
 
-			if (await ModuleLoader.LoadAsync().ConfigureAwait(false)) {
-				await ModuleLoader.InitServiceAsync().ConfigureAwait(false);
-				ModuleWatcher.InitModuleWatcher();
+			return this;
+		}
+
+		public Core StartModules() {
+			if (Config.EnableModules) {
+				Helpers.InBackground(async () => {
+					if (await ModuleLoader.LoadAsync().ConfigureAwait(false)) {
+						await ModuleLoader.InitServiceAsync().ConfigureAwait(false);
+						ModuleWatcher.InitModuleWatcher();
+					}
+				});
 			}
 
+			return this;
+		}
+
+		public Core StartPinController() {
 			PiController?.InitController(Enums.EGpioDriver.RaspberryIODriver);
 
 			if (PiController != null && !PiController.IsControllerProperlyInitialized) {
 				PiController = null;
 			}
 
-			CoreInitiationCompleted = true;
+			return this;
+		}
 
-			await PostInitTasks().ConfigureAwait(false);
-			return true;
+		public Core MarkInitializationCompletion() {
+			CoreInitiationCompleted = true;
+			return this;
 		}
 
 		private static void TcpServerBase_ClientConnected(object sender, OnClientConnectedEventArgs e) {
 			lock (ClientManagers) {
-				ClientManagers.TryAdd(e.ClientUid, new TcpServerClientManager(e.ClientUid, TcpServerBase));
+				ClientManagers.TryAdd(e.ClientUid, new TcpServerClientManager(e.ClientUid));
 			}
 		}
 
-		private static void TcpServerBase_ServerStarted(object sender, OnServerStartedListerningEventArgs e) => Logger.Log($"Tcp Server listerning at {e.ListerningAddress} / {e.ServerPort}");
+		private static void TcpServerBase_ServerStarted(object sender, OnServerStartedListerningEventArgs e) => Logger.Log($"TCP Server listening at {e.ListerningAddress} / {e.ServerPort}");
 
-		private static void TcpServerBase_ServerShutdown(object sender, OnServerShutdownEventArgs e) => Logger.Log($"Tcp shutting down.");
+		private static void TcpServerBase_ServerShutdown(object sender, OnServerShutdownEventArgs e) => Logger.Log($"TCP shutting down.");
 
 		private static void EventLogger_LogMessageReceived(object sender, LogMessageEventArgs e) {
 			switch (e.LogLevel) {
@@ -208,19 +288,7 @@ namespace Assistant.AssistantCore {
 					goto case LogEnums.LogLevel.INFO;
 			}
 		}
-
-		private static async Task PostInitTasks() {
-			Logger.Log("Running post-initiation tasks...", Enums.LogLevels.Trace);
-			await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantStartup).ConfigureAwait(false);
-
-			if (Config.DisplayStartupMenu) {
-				await DisplayRelayCycleMenu().ConfigureAwait(false);
-			}
-
-			await TTSService.AssistantVoice(Enums.SpeechContext.AssistantStartup).ConfigureAwait(false);
-			await KeepAlive().ConfigureAwait(false);
-		}
-
+		
 		private static void SetConsoleTitle() {
 			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
@@ -245,7 +313,7 @@ namespace Assistant.AssistantCore {
 				Logger.Log($"{Constants.ConsoleMorseCodeKey} - Morse code generator for the specified text.", Enums.LogLevels.UserInput);
 			}
 
-			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run pre-configured test methods or tasks.", Enums.LogLevels.UserInput);
+			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run preconfigured test methods or tasks.", Enums.LogLevels.UserInput);
 			if (WeatherApi != null) {
 				Logger.Log($"{Constants.ConsoleWeatherInfoKey} - Get weather info of the specified location based on the pin code.", Enums.LogLevels.UserInput);
 			}
@@ -283,11 +351,11 @@ namespace Assistant.AssistantCore {
 
 					case Constants.ConsoleRelayCommandMenuKey when DisablePiMethods:
 					case Constants.ConsoleRelayCycleMenuKey when DisablePiMethods:
-						Logger.Log("Assistant is running in an Operating system/Device which doesnt support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
+						Logger.Log("Assistant is running in an Operating system/Device which doesn't support GPIO pin controlling functionality.", Enums.LogLevels.Warn);
 						return;
 
 					case Constants.ConsoleMorseCodeKey when !DisablePiMethods:
-						Logger.Log("Enter text to convert to morse: ");
+						Logger.Log("Enter text to convert to Morse: ");
 						string morseCycle = Console.ReadLine();
 						if (PiController == null) {
 							return;
@@ -333,11 +401,11 @@ namespace Assistant.AssistantCore {
 								Logger.Log($"Latitude: {response.Latitude}", Enums.LogLevels.Success);
 								Logger.Log($"Longitude: {response.Logitude}", Enums.LogLevels.Success);
 								Logger.Log($"Location name: {response.LocationName}", Enums.LogLevels.Success);
-								Logger.Log($"Preasure: {response.Pressure}", Enums.LogLevels.Success);
+								Logger.Log($"Pressure: {response.Pressure}", Enums.LogLevels.Success);
 								Logger.Log($"Wind speed: {response.WindDegree}", Enums.LogLevels.Success);
 							}
 							else {
-								Logger.Log("Failed to fetch wheather information, try again later!");
+								Logger.Log("Failed to fetch weather information, try again later!");
 							}
 						}
 
@@ -371,7 +439,7 @@ namespace Assistant.AssistantCore {
 		private static async Task KeepAlive() {
 			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", Enums.LogLevels.Success);
 
-			while (true) {
+			while (!KeepAliveToken.Token.IsCancellationRequested) {
 				char pressedKey = Console.ReadKey().KeyChar;
 
 				switch (pressedKey) {
@@ -398,7 +466,7 @@ namespace Assistant.AssistantCore {
 				}
 
 				if (x.Safe) {
-					Logger.Log("Safe mode enabled. Only pre-configured gpio pins are allowed to be modified.", Enums.LogLevels.Warn);
+					Logger.Log("Safe mode enabled. Only preconfigured gpio pins are allowed to be modified.", Enums.LogLevels.Warn);
 					Config.GpioSafeMode = true;
 				}
 
@@ -450,11 +518,11 @@ namespace Assistant.AssistantCore {
 				GpioPinConfig pinStatus = PiController.GetPinController().GetGpioConfig(pin);
 				if (pinStatus.IsPinOn) {
 					PiController.GetPinController().SetGpioValue(pin, Enums.GpioPinMode.Output, Enums.GpioPinState.Off);
-					Logger.Log($"Sucessfully set {pin} pin to OFF.", Enums.LogLevels.Success);
+					Logger.Log($"Successfully set {pin} pin to OFF.", Enums.LogLevels.Success);
 				}
 				else {
 					PiController.GetPinController().SetGpioValue(pin, Enums.GpioPinMode.Output, Enums.GpioPinState.On);
-					Logger.Log($"Sucessfully set {pin} pin to ON.", Enums.LogLevels.Success);
+					Logger.Log($"Successfully set {pin} pin to ON.", Enums.LogLevels.Success);
 				}
 			}
 
@@ -547,24 +615,24 @@ namespace Assistant.AssistantCore {
 					}
 
 					if (Config.IRSensorPins.Count() > 0 && Config.IRSensorPins.Contains(pinNumber)) {
-						Logger.Log("Sorry, the specified pin is pre-configured for IR Sensor. cannot modify!");
+						Logger.Log("Sorry, the specified pin is preconfigured for IR Sensor. cannot modify!");
 						return;
 					}
 
 					if (!Config.RelayPins.Contains(pinNumber)) {
-						Logger.Log("Sorry, the specified pin doesn't exist in the relay pin catagory.");
+						Logger.Log("Sorry, the specified pin doesn't exist in the relay pin category.");
 						return;
 					}
 
 					Helpers.ScheduleTask(() => {
 						if (status.IsPinOn && pinStatus.Equals(0)) {
 							PiController.GetPinController().SetGpioValue(pinNumber, Enums.GpioPinMode.Output, Enums.GpioPinState.Off);
-							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to OFF.", Enums.LogLevels.Success);
+							Logger.Log($"Successfully finished execution of the task: {pinNumber} pin set to OFF.", Enums.LogLevels.Success);
 						}
 
 						if (!status.IsPinOn && pinStatus.Equals(1)) {
 							PiController.GetPinController().SetGpioValue(pinNumber, Enums.GpioPinMode.Output, Enums.GpioPinState.On);
-							Logger.Log($"Sucessfully finished execution of the task: {pinNumber} pin set to ON.", Enums.LogLevels.Success);
+							Logger.Log($"Successfully finished execution of the task: {pinNumber} pin set to ON.", Enums.LogLevels.Success);
 						}
 					}, TimeSpan.FromMinutes(delay));
 
@@ -647,7 +715,7 @@ namespace Assistant.AssistantCore {
 					string singleKey = Console.ReadLine();
 
 					if (!int.TryParse(singleKey, out int selectedsingleKey)) {
-						Logger.Log("Could not prase the input key. please try again!", Enums.LogLevels.Error);
+						Logger.Log("Could not parse the input key. please try again!", Enums.LogLevels.Error);
 						goto case 5;
 					}
 
@@ -674,7 +742,7 @@ namespace Assistant.AssistantCore {
 					goto case 0;
 			}
 
-			Logger.Log(Configured ? "Test sucessfull!" : "Test Failed!");
+			Logger.Log(Configured ? "Test successful!" : "Test Failed!");
 
 			Logger.Log("Relay menu closed.");
 			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} to display command menu.");
@@ -722,7 +790,7 @@ namespace Assistant.AssistantCore {
 				await ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.AssistantShutdown).ConfigureAwait(false);
 			}
 
-			PiController?.InitGpioShutdownTasks();			
+			PiController?.InitGpioShutdownTasks();
 			TaskManager?.OnCoreShutdownRequested();
 			Update?.StopUpdateTimer();
 			RefreshConsoleTitleTimer?.Dispose();
@@ -754,6 +822,7 @@ namespace Assistant.AssistantCore {
 
 			Logger.Log("Bye, have a good day sir!");
 			Logging.LoggerOnShutdown();
+			KeepAliveToken.Cancel();
 			Environment.Exit(exitCode);
 		}
 

@@ -66,7 +66,7 @@ namespace Assistant.Alarm {
 					Logger.Log($"ALARM >>> {alarmConfig.Key.AlarmMessage}");
 
 					if (alarmConfig.Key.ShouldUseTTS) {
-						Task.Run(async () => await TTSService.SpeakText($"Sir, {alarmConfig.Key.AlarmMessage}", true).ConfigureAwait(false));
+						Task.Run(async () => await TTS.SpeakText($"Sir, {alarmConfig.Key.AlarmMessage}", true).ConfigureAwait(false));
 					}
 
 					if (alarmConfig.Key.AlarmGuid != null) {

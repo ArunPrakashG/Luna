@@ -126,7 +126,11 @@ namespace Assistant.Log {
 		}
 
 
-		public void Log(Exception e, LogLevels level = LogLevels.Error, [CallerMemberName] string? previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string? calledFilePath = null) {
+		public void Log(Exception? e, LogLevels level = LogLevels.Error, [CallerMemberName] string? previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string? calledFilePath = null) {
+			if(e == null) {
+				return;
+			}
+
 #pragma warning disable CS8604 // Possible null reference argument.
 			switch (level) {
 				case Enums.LogLevels.Error:
