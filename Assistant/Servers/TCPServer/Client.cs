@@ -128,7 +128,7 @@ namespace Assistant.Servers.TCPServer {
 					break;
 				}
 				catch (ThreadAbortException) {
-					//This means the client is disconnected and the threat is aborted.
+					//This means the client is disconnected and the thread is aborted.
 					break;
 				}
 				catch (Exception e) {

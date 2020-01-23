@@ -22,7 +22,7 @@ namespace Assistant.Log {
 
 		public Logger(string loggerIdentifier) => RegisterLogger(loggerIdentifier);
 
-		private void RegisterLogger(string logId) {
+		private void RegisterLogger(string? logId) {
 			if (string.IsNullOrEmpty(logId)) {
 				throw new ArgumentNullException(nameof(logId));
 			}
@@ -31,7 +31,7 @@ namespace Assistant.Log {
 			LogIdentifier = logId;
 		}
 
-		private void LogGenericDebug(string message, [CallerMemberName] string? previousMethodName = null) {
+		private void LogGenericDebug(string? message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
@@ -40,7 +40,7 @@ namespace Assistant.Log {
 			LogModule?.Debug($"{previousMethodName}() {message}");
 		}
 
-		private void LogGenericError(string message, [CallerMemberName] string? previousMethodName = null) {
+		private void LogGenericError(string? message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
@@ -58,9 +58,8 @@ namespace Assistant.Log {
 			}
 		}
 
-		private void LogGenericException(Exception exception, [CallerMemberName] string? previousMethodName = null) {
+		private void LogGenericException(Exception? exception, [CallerMemberName] string? previousMethodName = null) {
 			if (exception == null) {
-				LogNullError(nameof(exception));
 				return;
 			}
 
@@ -76,7 +75,7 @@ namespace Assistant.Log {
 			}
 		}
 
-		private void LogGenericInfo(string message, [CallerMemberName] string? previousMethodName = null) {
+		private void LogGenericInfo(string? message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
@@ -85,7 +84,7 @@ namespace Assistant.Log {
 			LogModule?.Info($"{message}");
 		}
 
-		private void LogGenericTrace(string message, [CallerMemberName] string? previousMethodName = null) {
+		private void LogGenericTrace(string? message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
@@ -99,7 +98,7 @@ namespace Assistant.Log {
 			}
 		}
 
-		private void LogGenericWarning(string message, [CallerMemberName] string? previousMethodName = null) {
+		private void LogGenericWarning(string? message, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(message)) {
 				LogNullError(nameof(message));
 				return;
@@ -117,7 +116,7 @@ namespace Assistant.Log {
 			}
 		}
 
-		private void LogNullError(string nullObjectName, [CallerMemberName] string? previousMethodName = null) {
+		private void LogNullError(string? nullObjectName, [CallerMemberName] string? previousMethodName = null) {
 			if (string.IsNullOrEmpty(nullObjectName)) {
 				return;
 			}
@@ -127,11 +126,10 @@ namespace Assistant.Log {
 
 
 		public void Log(Exception? e, LogLevels level = LogLevels.Error, [CallerMemberName] string? previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string? calledFilePath = null) {
-			if(e == null) {
+			if (e == null) {
 				return;
 			}
 
-#pragma warning disable CS8604 // Possible null reference argument.
 			switch (level) {
 				case Enums.LogLevels.Error:
 					if (Core.Config.Debug) {
@@ -157,12 +155,10 @@ namespace Assistant.Log {
 				default:
 					goto case Enums.LogLevels.Error;
 			}
-#pragma warning restore CS8604 // Possible null reference argument.
 		}
 
 
-		public void Log(string message, LogLevels level = LogLevels.Info, [CallerMemberName] string? previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string? calledFilePath = null) {
-#pragma warning disable CS8604 // Possible null reference argument.
+		public void Log(string? message, LogLevels level = LogLevels.Info, [CallerMemberName] string? previousMethodName = null, [CallerLineNumber] int callermemberlineNo = 0, [CallerFilePath] string? calledFilePath = null) {
 			switch (level) {
 				case Enums.LogLevels.Trace:
 					LogGenericTrace($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] {message}", previousMethodName);

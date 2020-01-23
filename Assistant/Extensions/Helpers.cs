@@ -469,8 +469,8 @@ namespace Assistant.Extensions {
 			return response.RawBytes;
 		}
 
-		public static string GetFileName(string path) {
-			if(path == null || path.IsNull()) {
+		public static string GetFileName(string? path) {
+			if(string.IsNullOrEmpty(path)) {
 				return string.Empty;
 			}
 

@@ -10,12 +10,12 @@ using Assistant.Remainders;
 using Assistant.Servers.Kestrel;
 using Assistant.Update;
 using Assistant.Weather;
-using AssistantSharedLibrary.Assistant.Servers.TCPServer;
-using AssistantSharedLibrary.Assistant.Servers.TCPServer.EventArgs;
-using AssistantSharedLibrary.Logging;
-using AssistantSharedLibrary.Logging.EventArgs;
 using CommandLine;
 using RestSharp;
+using SharedLibrary.Logging;
+using SharedLibrary.Logging.EventArgs;
+using SharedLibrary.TCPServer;
+using SharedLibrary.TCPServer.EventArgs;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -58,7 +58,7 @@ namespace Assistant.AssistantCore {
 		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
 		public static TaskScheduler TaskManager { get; private set; } = new TaskScheduler();
 		public static ModuleInitializer ModuleLoader { get; private set; } = new ModuleInitializer();
-		public static ServerBase TcpServerBase { get; private set; } = new ServerBase();
+		public static ServerCore TcpServerBase { get; private set; } = new ServerCore();
 		public static DateTime StartupTime { get; private set; }
 		private static Timer? RefreshConsoleTitleTimer { get; set; }
 		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
@@ -288,7 +288,7 @@ namespace Assistant.AssistantCore {
 					goto case LogEnums.LogLevel.INFO;
 			}
 		}
-		
+
 		private static void SetConsoleTitle() {
 			Helpers.SetConsoleTitle($"{Helpers.TimeRan()} | http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
 
@@ -798,7 +798,7 @@ namespace Assistant.AssistantCore {
 			ModuleWatcher?.StopModuleWatcher();
 
 			if (TcpServerBase.IsServerListerning) {
-				await TcpServerBase.Shutdown().ConfigureAwait(false);
+				await TcpServerBase.TryShutdown().ConfigureAwait(false);
 			}
 
 			if (KestrelServer.IsServerOnline) {

@@ -1,13 +1,11 @@
 using Assistant.AssistantCore.PiGpio;
 using Assistant.Log;
-using AssistantSharedLibrary.Assistant.Servers.TCPServer;
-using AssistantSharedLibrary.Assistant.Servers.TCPServer.EventArgs;
-using AssistantSharedLibrary.Assistant.Servers.TCPServer.Requests;
-using AssistantSharedLibrary.Assistant.Servers.TCPServer.Responses;
+using SharedLibrary.TCPServer;
+using SharedLibrary.TCPServer.EventArgs;
+using SharedLibrary.TCPServer.Requests;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static AssistantSharedLibrary.Assistant.Enums;
 
 namespace Assistant.AssistantCore {
 	public class TcpServerClientManager : IDisposable {
@@ -47,11 +45,11 @@ namespace Assistant.AssistantCore {
 		}
 
 		private async void ClientOnRecevied(object sender, OnReceivedEventArgs e) {
-			if (e == null || e.BaseRequest == null || string.IsNullOrEmpty(e.ReceivedRaw)) {
+			if (e == null || e.ReceivedObject == null || string.IsNullOrEmpty(e.ReceivedObject)) {
 				return;
 			}
 
-			Logger.Log($"Recived command from -> {e.ReceivedFromAddress} ({e.BaseRequest.TypeCode.ToString()})");
+			Logger.Log($"Received command from -> {e.ReceivedFromAddress} ({e.BaseRequest.TypeCode.ToString()})");
 
 			await ProcessOnReceived(e.BaseRequest).ConfigureAwait(false);
 		}
@@ -84,7 +82,7 @@ namespace Assistant.AssistantCore {
 
 					if (Core.PiController.GetPinController().SetGpioValue(setGpioRequest.PinNumber, (Enums.GpioPinMode) setGpioRequest.PinMode, (Enums.GpioPinState) setGpioRequest.PinState)) {
 						GpioPinConfig config = Core.PiController.GetPinController().GetGpioConfig(setGpioRequest.PinNumber);
-						if(await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO, "Success!", GpioPinConfig.AsJson(config))).ConfigureAwait(false)) {
+						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO, "Success!", GpioPinConfig.AsJson(config))).ConfigureAwait(false)) {
 							Logger.Log($"{request.TypeCode.ToString()} response send!", Enums.LogLevels.Trace);
 							return;
 						}

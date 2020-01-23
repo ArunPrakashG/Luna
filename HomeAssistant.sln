@@ -5,12 +5,12 @@ VisualStudioVersion = 16.0.28917.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant", "Assistant\Assistant.csproj", "{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UpdateHelper", "UpdateHelper\UpdateHelper.csproj", "{271C066A-F852-4AD5-921A-48C0AB4DF1CB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Updater", "UpdateHelper\Assistant.Updater.csproj", "{271C066A-F852-4AD5-921A-48C0AB4DF1CB}"
 	ProjectSection(ProjectDependencies) = postProject
 		{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76} = {83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestartHelper", "RestartHelper\RestartHelper.csproj", "{AF331F5B-62CB-4593-9CBB-F5C6583A714C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Restarter", "RestartHelper\Assistant.Restarter.csproj", "{AF331F5B-62CB-4593-9CBB-F5C6583A714C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76} = {83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}
 	EndProjectSection
@@ -20,7 +20,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssistantSharedLibrary", "AssistantSharedLibrary\AssistantSharedLibrary.csproj", "{8DA01CCB-455E-4566-A21D-E3C1C19DA4D3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AssistantSharedLibrary", "AssistantSharedLibrary\AssistantSharedLibrary.csproj", "{8DA01CCB-455E-4566-A21D-E3C1C19DA4D3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.PushBullet", "Assistant.PushBullet\Assistant.PushBullet.csproj", "{DD6B9B00-0378-4981-B90F-A24380055204}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Security", "Assistant.Security\Assistant.Security.csproj", "{2CB11DDF-E6AB-482C-9251-A6F11C83C85A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Weather", "Assistant.Weather\Assistant.Weather.csproj", "{DD019348-5DC1-46D2-8BB6-61D4471ED48E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Modules", "Assistant.Modules\Assistant.Modules.csproj", "{B9AF41A3-839F-42F4-8629-0F9380008B63}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +52,22 @@ Global
 		{8DA01CCB-455E-4566-A21D-E3C1C19DA4D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8DA01CCB-455E-4566-A21D-E3C1C19DA4D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DA01CCB-455E-4566-A21D-E3C1C19DA4D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD6B9B00-0378-4981-B90F-A24380055204}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD6B9B00-0378-4981-B90F-A24380055204}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD6B9B00-0378-4981-B90F-A24380055204}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD6B9B00-0378-4981-B90F-A24380055204}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CB11DDF-E6AB-482C-9251-A6F11C83C85A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CB11DDF-E6AB-482C-9251-A6F11C83C85A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CB11DDF-E6AB-482C-9251-A6F11C83C85A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CB11DDF-E6AB-482C-9251-A6F11C83C85A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD019348-5DC1-46D2-8BB6-61D4471ED48E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD019348-5DC1-46D2-8BB6-61D4471ED48E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD019348-5DC1-46D2-8BB6-61D4471ED48E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD019348-5DC1-46D2-8BB6-61D4471ED48E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9AF41A3-839F-42F4-8629-0F9380008B63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9AF41A3-839F-42F4-8629-0F9380008B63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9AF41A3-839F-42F4-8629-0F9380008B63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9AF41A3-839F-42F4-8629-0F9380008B63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
