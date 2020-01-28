@@ -4,8 +4,4 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
-  </ItemGroup>
-
 </Project>

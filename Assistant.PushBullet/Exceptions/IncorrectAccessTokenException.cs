@@ -28,7 +28,7 @@
 
 using System;
 
-namespace Assistant.PushBullet.Exceptions {
+namespace Assistant.Pushbullet.Exceptions {
 	public class IncorrectAccessTokenException : Exception {
 		public IncorrectAccessTokenException() : base("Empty or Incorrect api key specified.") {
 		}

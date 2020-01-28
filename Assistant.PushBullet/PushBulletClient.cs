@@ -1,10 +1,11 @@
-using Assistant.PushBullet.Exceptions;
-using Assistant.PushBullet.Logging;
-using Assistant.PushBullet.Parameters;
-using Assistant.PushBullet.Responses;
-using Assistant.PushBullet.Responses.Devices;
-using Assistant.PushBullet.Responses.Pushes;
-using Assistant.PushBullet.Responses.Subscriptions;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
+using Assistant.Pushbullet.Exceptions;
+using Assistant.Pushbullet.Parameters;
+using Assistant.Pushbullet.Responses;
+using Assistant.Pushbullet.Responses.Devices;
+using Assistant.Pushbullet.Responses.Pushes;
+using Assistant.Pushbullet.Responses.Subscriptions;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
@@ -12,10 +13,11 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.PushBullet.PushEnums;
+using static Assistant.Logging.Enums;
+using static Assistant.Pushbullet.PushEnums;
 
-namespace Assistant.PushBullet {
-	public class PushBulletClient {
+namespace Assistant.Pushbullet {
+	public class PushbulletClient {
 		private const int RATE_LIMITED_DELAY = 10; // In minutes
 		private const string API_BASE_URL_NO_VERSION = "https://api.pushbullet.com/";
 		private const string API_BASE_VERSION = "v2/";
@@ -23,6 +25,7 @@ namespace Assistant.PushBullet {
 		private const int MAX_REQUEST_FAILED_COUNT = 3;
 
 		private static RestClient? RestClient = new RestClient();
+		internal static readonly ILogger Logger = new Logger("PUSH-BULLET");
 		public string? ClientAccessToken { get; set; }
 		public bool IsServiceLoaded { get; private set; }
 		private static int RequestFailedCount = 0;
@@ -31,9 +34,9 @@ namespace Assistant.PushBullet {
 
 		private static readonly SemaphoreSlim RequestSemaphore = new SemaphoreSlim(1, 1);
 
-		public PushBulletClient InitPushBulletClient(string? apiKey) {
+		public PushbulletClient InitPushBulletClient(string? apiKey) {
 			if (string.IsNullOrEmpty(apiKey)) {
-				EventLogger.LogWarning("No api key specified or the specified api key is invalid.");
+				Logger.Log("No api key specified or the specified api key is invalid.", LEVEL.ERROR);
 				IsServiceLoaded = false;
 				throw new IncorrectAccessTokenException();
 			}
@@ -56,7 +59,7 @@ namespace Assistant.PushBullet {
 				throw new RequestFailedException();
 			}
 
-			EventLogger.LogInfo(nameof(GetDevicesAsync) + " Successful.");
+			Logger.Log(nameof(GetDevicesAsync) + " Successful.", LEVEL.TRACE);
 			return response.Devices;
 		}
 
@@ -77,37 +80,37 @@ namespace Assistant.PushBullet {
 			List<(string paramName, object paramValue, ParameterType paramType)> parameters = new List<(string paramName, object paramValue, ParameterType paramType)>();
 
 			switch (pushRequestContent.PushTarget) {
-				case PushEnums.PushTarget.Device:
+				case PushTarget.Device:
 					if (!string.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
 						parameters.Add(("device_iden", pushRequestContent.PushTargetValue, ParameterType.QueryString));
 					}
 
 					break;
-				case PushEnums.PushTarget.Client:
+				case PushTarget.Client:
 					if (!string.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
 						parameters.Add(("client_iden", pushRequestContent.PushTargetValue, ParameterType.QueryString));
 					}
 
 					break;
-				case PushEnums.PushTarget.Email:
+				case PushTarget.Email:
 					if (!string.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
 						parameters.Add(("email", pushRequestContent.PushTargetValue, ParameterType.QueryString));
 					}
 
 					break;
-				case PushEnums.PushTarget.Channel:
+				case PushTarget.Channel:
 					if (!string.IsNullOrEmpty(pushRequestContent.PushTargetValue)) {
 						parameters.Add(("channel_tag", pushRequestContent.PushTargetValue, ParameterType.QueryString));
 					}
 
 					break;
-				case PushEnums.PushTarget.All:
+				case PushTarget.All:
 					parameters = null;
 					break;
 			}
 
 			switch (pushRequestContent.PushType) {
-				case PushEnums.PushType.Note:
+				case PushType.Note:
 					parameters?.Add(("type", "note", ParameterType.RequestBody));
 
 					if (!string.IsNullOrEmpty(pushRequestContent.PushTitle)) {
@@ -119,7 +122,7 @@ namespace Assistant.PushBullet {
 					}
 
 					break;
-				case PushEnums.PushType.Link:
+				case PushType.Link:
 					parameters?.Add(("type", "link", ParameterType.RequestBody));
 
 					if (!string.IsNullOrEmpty(pushRequestContent.PushTitle)) {
@@ -166,7 +169,7 @@ namespace Assistant.PushBullet {
 				throw new RequestFailedException();
 			}
 
-			EventLogger.LogTrace(nameof(Push) + " successful.");
+			Logger.Log(nameof(Push) + " successful.", LEVEL.TRACE);
 			return response.Pushes;
 		}
 
@@ -182,7 +185,7 @@ namespace Assistant.PushBullet {
 				throw new RequestFailedException();
 			}
 
-			EventLogger.LogTrace(nameof(GetSubscriptions) + " successful.");
+			Logger.Log(nameof(GetSubscriptions) + " successful.", LEVEL.TRACE);
 			return response.Subscriptions;
 		}
 
@@ -239,10 +242,10 @@ namespace Assistant.PushBullet {
 				throw new RequestFailedException();
 			}
 
-			EventLogger.LogTrace(nameof(GetAllPushes) + " successful.");
+			Logger.Log(nameof(GetAllPushes) + " successful.", LEVEL.TRACE);
 			return response.Pushes;
 		}
-	
+
 		public async Task<ChannelInfoBase?> GetChannelInfo(string channelTag, bool dontRecentPushes = false) {
 			if (ClientAccessToken == null || string.IsNullOrEmpty(ClientAccessToken)) {
 				throw new IncorrectAccessTokenException();
@@ -264,13 +267,18 @@ namespace Assistant.PushBullet {
 				throw new RequestFailedException();
 			}
 
-			EventLogger.LogTrace(nameof(GetChannelInfo) + " successful.");
+			Logger.Log(nameof(GetChannelInfo) + " successful.", LEVEL.TRACE);
 			return response;
 		}
 
-		private async Task<TType> GetResponseAsync<TType>(string requestUrl, Method reqMethod, List<(string headerName, string headerValue)>? headers = null, List<(string paramName, object paramValue, ParameterType paramType)>? parameters = null) {
+		private async Task<TType> GetResponseAsync<TType>(
+			string requestUrl,
+			Method reqMethod,
+			List<(string headerName, string headerValue)>? headers = null,
+			List<(string paramName, object paramValue, ParameterType paramType)>? parameters = null
+			) {
 			if (string.IsNullOrEmpty(requestUrl)) {
-				EventLogger.LogWarning("Request url cannot be empty.");
+				Logger.Log("Request url cannot be empty.", LEVEL.WARN);
 				return default;
 			}
 
@@ -290,13 +298,13 @@ namespace Assistant.PushBullet {
 				}
 
 				while (RequestInSleepMode) {
-					EventLogger.LogTrace("Request is in sleep mode. waiting...");
+					Logger.Log("Request is in sleep mode. waiting...", LEVEL.TRACE);
 					await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 				}
 
 				if (RequestFailedCount > MAX_REQUEST_FAILED_COUNT) {
 					RequestInSleepMode = true;
-					EventLogger.LogWarning($"Requests have failed multiple times... Sleeping for {RATE_LIMITED_DELAY} minute(s).");
+					Logger.Log($"Requests have failed multiple times... Sleeping for {RATE_LIMITED_DELAY} minute(s).", LEVEL.WARN);
 					Helpers.ScheduleTask(() => {
 						RequestFailedCount = 0;
 						RequestInSleepMode = false;
@@ -312,18 +320,18 @@ namespace Assistant.PushBullet {
 					response = await Request<IRestResponse>(async () => await RestClient.ExecuteAsync(request).ConfigureAwait(false));
 
 					if (response == null || string.IsNullOrEmpty(response.Content)) {
-						EventLogger.LogError($"Unknown error has occurred during request. Request Count -> {currentCount}");
+						Logger.Log($"Unknown error has occurred during request. Request Count -> {currentCount}", LEVEL.ERROR);
 						currentCount++;
 						continue;
 					}
 
 					if (response.StatusCode != HttpStatusCode.OK) {
-						EventLogger.LogWarning($"Request Failed. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+						Logger.Log($"Request Failed. Status Code: " + response.StatusCode + "/" + response.ResponseStatus, LEVEL.ERROR);
 						break;
 					}
 
 					if (response.IsSuccessful) {
-						EventLogger.LogInfo("Request success.");
+						Logger.Log("Request success.");
 						break;
 					}
 				}
@@ -338,24 +346,24 @@ namespace Assistant.PushBullet {
 					objectType = JsonConvert.DeserializeObject<TType>(response.Content);
 				}
 				catch (Exception) {
-					EventLogger.LogError("Could not parse response as json of the requested type. Parsing as InvalidResponse...");
+					Logger.Log("Could not parse response as json of the requested type. Parsing as InvalidResponse...", LEVEL.ERROR);
 					InvalidResponse errorResponse = JsonConvert.DeserializeObject<InvalidResponse>(response.Content);
 
 					if (errorResponse != null && errorResponse.ErrorObject != null) {
-						EventLogger.LogError($"--------------------> API ERROR INFO <--------------------");
+						Logger.Log($"--------------------> API ERROR INFO <--------------------", LEVEL.ERROR);
 						if (!string.IsNullOrEmpty(errorResponse.ErrorObject.Message)) {
-							EventLogger.LogError($"Message -> {errorResponse.ErrorObject.Message}");
+							Logger.Log($"Message -> {errorResponse.ErrorObject.Message}", LEVEL.ERROR);
 						}
 
 						if (!string.IsNullOrEmpty(errorResponse.ErrorObject.Type)) {
-							EventLogger.LogError($"Type -> {errorResponse.ErrorObject.Type}");
+							Logger.Log($"Type -> {errorResponse.ErrorObject.Type}", LEVEL.ERROR);
 						}
 
 						if (!string.IsNullOrEmpty(errorResponse.ErrorObject.Cat)) {
-							EventLogger.LogError($"Type -> {errorResponse.ErrorObject.Cat}");
+							Logger.Log($"Type -> {errorResponse.ErrorObject.Cat}", LEVEL.ERROR);
 						}
 
-						EventLogger.LogError($"-------------------- <-> --------------------");
+						Logger.Log($"-------------------- <-> --------------------", LEVEL.ERROR);
 					}
 
 					return default;
@@ -364,7 +372,7 @@ namespace Assistant.PushBullet {
 				return objectType;
 			}
 			catch (Exception e) {
-				EventLogger.LogException(e);
+				Logger.Log(e);
 				return default;
 			}
 			finally {
@@ -374,7 +382,7 @@ namespace Assistant.PushBullet {
 
 		private async Task<ResponseBase?> GetResponseAsync(string requestUrl, Method reqMethod, List<(string headerName, string headerValue)>? headers = null, List<(string paramName, object paramValue, ParameterType paramType)>? parameters = null) {
 			if (string.IsNullOrEmpty(requestUrl)) {
-				EventLogger.LogWarning("Request url cannot be empty.");
+				Logger.Log("Request url cannot be empty.", LEVEL.WARN);
 				return default;
 			}
 
@@ -394,13 +402,13 @@ namespace Assistant.PushBullet {
 				}
 
 				while (RequestInSleepMode) {
-					EventLogger.LogTrace("Request is in sleep mode. waiting...");
+					Logger.Log("Request is in sleep mode. Waiting...", LEVEL.TRACE);
 					await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 				}
 
 				if (RequestFailedCount > MAX_REQUEST_FAILED_COUNT) {
 					RequestInSleepMode = true;
-					EventLogger.LogWarning($"Requests have failed multiple times... Sleeping for {RATE_LIMITED_DELAY} minute(s).");
+					Logger.Log($"Requests have failed multiple times... Sleeping for {RATE_LIMITED_DELAY} minute(s).", LEVEL.WARN);
 					Helpers.ScheduleTask(() => {
 						RequestFailedCount = 0;
 						RequestInSleepMode = false;
@@ -416,18 +424,18 @@ namespace Assistant.PushBullet {
 					response = await Request<IRestResponse>(async () => await RestClient.ExecuteAsync(request).ConfigureAwait(false));
 
 					if (response == null || string.IsNullOrEmpty(response.Content)) {
-						EventLogger.LogError($"Unknown error has occurred during request. Request Count -> {currentCount}");
+						Logger.Log($"Unknown error has occurred during request. Request Count -> {currentCount}", LEVEL.ERROR);
 						currentCount++;
 						continue;
 					}
 
 					if (response.StatusCode != HttpStatusCode.OK) {
-						EventLogger.LogWarning($"Request Failed. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+						Logger.Log($"Request Failed. Status Code: " + response.StatusCode + "/" + response.ResponseStatus, LEVEL.WARN);
 						break;
 					}
 
 					if (response.IsSuccessful) {
-						EventLogger.LogInfo("Request success.");
+						Logger.Log("Request success.", LEVEL.INFO);
 						break;
 					}
 				}
@@ -449,24 +457,24 @@ namespace Assistant.PushBullet {
 					objectType = JsonConvert.DeserializeObject<ResponseBase>(response.Content);
 				}
 				catch (Exception) {
-					EventLogger.LogError("Could not parse response as json of the requested type. Parsing as InvalidResponse...");
+					Logger.Log("Could not parse response as json of the requested type. Parsing as InvalidResponse...", LEVEL.ERROR);
 					InvalidResponse errorResponse = JsonConvert.DeserializeObject<InvalidResponse>(response.Content);
 
 					if (errorResponse != null && errorResponse.ErrorObject != null) {
-						EventLogger.LogError($"--------------------> API ERROR INFO <--------------------");
+						Logger.Log($"--------------------> API ERROR INFO <--------------------", LEVEL.ERROR);
 						if (!string.IsNullOrEmpty(errorResponse.ErrorObject.Message)) {
-							EventLogger.LogError($"Message -> {errorResponse.ErrorObject.Message}");
+							Logger.Log($"Message -> {errorResponse.ErrorObject.Message}", LEVEL.ERROR);
 						}
 
 						if (!string.IsNullOrEmpty(errorResponse.ErrorObject.Type)) {
-							EventLogger.LogError($"Type -> {errorResponse.ErrorObject.Type}");
+							Logger.Log($"Type -> {errorResponse.ErrorObject.Type}", LEVEL.ERROR);
 						}
 
 						if (!string.IsNullOrEmpty(errorResponse.ErrorObject.Cat)) {
-							EventLogger.LogError($"Type -> {errorResponse.ErrorObject.Cat}");
+							Logger.Log($"Type -> {errorResponse.ErrorObject.Cat}", LEVEL.ERROR);
 						}
 
-						EventLogger.LogError($"-------------------- <-> --------------------");
+						Logger.Log($"-------------------- <-> --------------------", LEVEL.ERROR);
 					}
 
 					return default;
@@ -475,7 +483,7 @@ namespace Assistant.PushBullet {
 				return objectType;
 			}
 			catch (Exception e) {
-				EventLogger.LogException(e);
+				Logger.Log(e);
 				return default;
 			}
 			finally {
@@ -483,31 +491,26 @@ namespace Assistant.PushBullet {
 			}
 		}
 
-		private static void SetClient() {
+		private void SetClient() {
 			if (RestClient != null) {
 				RestClient = null;
 			}
 
 			RestClient = new RestClient(API_BASE_URL);
+			Logger.Log("RestClient has been set.", LEVEL.TRACE);
 		}
 
 		private string GetRoute(EPUSH_ROUTES route) {
-			switch (route) {
-				case EPUSH_ROUTES.GET_ALL_PUSHES:
-					return "pushes/";
-				case EPUSH_ROUTES.GET_CHANNEL_INFO:
-					return "channel-info/";
-				case EPUSH_ROUTES.GET_DEVICES:
-					return "devices/";
-				case EPUSH_ROUTES.GET_SUBSCRIPTIONS:
-					return "subscriptions/";
-				case EPUSH_ROUTES.PUSH:
-					return "pushes/";
-				case EPUSH_ROUTES.DELETE_PUSH:
-					return "pushes/";
-				default:
-					return "pushes/";
-			}
+			return route switch
+			{
+				EPUSH_ROUTES.GET_ALL_PUSHES => "pushes/",
+				EPUSH_ROUTES.GET_CHANNEL_INFO => "channel-info/",
+				EPUSH_ROUTES.GET_DEVICES => "devices/",
+				EPUSH_ROUTES.GET_SUBSCRIPTIONS => "subscriptions/",
+				EPUSH_ROUTES.PUSH => "pushes/",
+				EPUSH_ROUTES.DELETE_PUSH => "pushes/",
+				_ => "pushes/",
+			};
 		}
 
 		private RestRequest GenerateRequest(Method reqMethod, List<(string headerName, string headerValue)>? headers, List<(string paramName, object paramValue, ParameterType paramType)>? parameter) {
@@ -518,7 +521,7 @@ namespace Assistant.PushBullet {
 			if (headers != null && headers.Count > 0) {
 				foreach ((string headerName, string headerValue) in headers) {
 					request.AddHeader(headerName, headerValue);
-					EventLogger.LogTrace($"Added header -> {headerName}");
+					Logger.Log($"Added header -> {headerName}", LEVEL.TRACE);
 				}
 			}
 
@@ -526,7 +529,7 @@ namespace Assistant.PushBullet {
 				foreach ((string paramName, object paramValue, ParameterType paramType) in parameter) {
 					if (!string.IsNullOrEmpty(paramName) && paramValue != null) {
 						request.AddParameter(paramName, paramValue, paramType);
-						EventLogger.LogTrace($"Added param -> {paramName}");
+						Logger.Log($"Added param -> {paramName}", LEVEL.TRACE);
 					}
 				}
 			}
@@ -536,7 +539,7 @@ namespace Assistant.PushBullet {
 			return request;
 		}
 
-		private static async Task<T> Request<T>(Func<Task<T>> function) {
+		private async Task<T> Request<T>(Func<Task<T>> function) {
 			try {
 				await RequestSemaphore.WaitAsync().ConfigureAwait(false);
 
@@ -548,7 +551,7 @@ namespace Assistant.PushBullet {
 				return await function().ConfigureAwait(false);
 			}
 			catch (Exception e) {
-				EventLogger.LogWarning($"Request Exception -> {e.Message}");
+				Logger.Log($"Request Exception -> {e.Message}", LEVEL.WARN);
 				Console.WriteLine(e.Message);
 				return default;
 			}
@@ -557,7 +560,7 @@ namespace Assistant.PushBullet {
 			}
 		}
 
-		private static T Request<T>(Func<T> function) {
+		private T Request<T>(Func<T> function) {
 			try {
 				RequestSemaphore.Wait();
 
@@ -569,7 +572,7 @@ namespace Assistant.PushBullet {
 				return function();
 			}
 			catch (Exception e) {
-				EventLogger.LogWarning($"Request Exception -> {e.Message}");
+				Logger.Log($"Request Exception -> {e.Message}", LEVEL.WARN);
 				return default;
 			}
 			finally {

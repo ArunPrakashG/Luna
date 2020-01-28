@@ -1,22 +1,22 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.PushBullet.Logging.EventArgs {
+namespace Assistant.Logging.EventArgs {
 	public class EventArgsBase {
 		[JsonProperty]
-		public DateTime LogTime { get; set; }
+		public DateTime LogTime { get; private set; }
 
 		[JsonProperty]
-		public string? LogMessage { get; set; }
+		public string? LogMessage { get; private set; }
 
 		[JsonProperty]
-		public string? CallerMemberName { get; set; }
+		public string? CallerMemberName { get; private set; }
 
 		[JsonProperty]
-		public int CallerLineNumber { get; set; }
+		public int CallerLineNumber { get; private set; }
 
 		[JsonProperty]
-		public string? CallerFilePath { get; set; }
+		public string? CallerFilePath { get; private set; }
 
 		public EventArgsBase(DateTime dt, string? msg, string? callerName, int callerLine, string? callerFile) {
 			LogTime = dt;

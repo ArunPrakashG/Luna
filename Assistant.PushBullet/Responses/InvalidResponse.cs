@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBullet.Responses {
+namespace Assistant.Pushbullet.Responses {
 	[Serializable]
 	public class InvalidResponse {
 

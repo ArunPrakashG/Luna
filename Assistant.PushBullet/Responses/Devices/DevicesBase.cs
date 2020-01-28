@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.PushBullet.Responses.Devices {
+namespace Assistant.Pushbullet.Responses.Devices {
 	[Serializable]
 	public class DevicesBase {
 		[JsonProperty("active")]

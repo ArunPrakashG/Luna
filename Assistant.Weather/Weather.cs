@@ -1,8 +1,85 @@
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
+using Newtonsoft.Json;
 using System;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Assistant.Weather
-{
-	public class Weather
-	{
+namespace Assistant.Weather {
+	public class Weather {
+		private const int MAX_RETRY_COUNT = 3;
+		public WeatherResponse Response { get; private set; } = new WeatherResponse();
+		private readonly ILogger Logger = new Logger("WEATHER");
+		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+
+		private string? GenerateRequestUrl(string apiKey, int pinCode, string countryCode = "in") {
+			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
+				return null;
+			}
+
+			return $"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}";
+		}
+
+		public async Task<WeatherResponse?> GetWeather(string? apiKey, int pinCode, string? countryCode = "in") {
+			//TODO: Check if network connection exist.
+
+			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
+				return null;
+			}
+
+			//TODO: check if should speak the values out using TextToSpeech Module
+			//Helpers.InBackgroundThread(async () => {
+			//	await TTS.SpeakText($"Sir, The weather at {pinCode} is...", true).ConfigureAwait(false);
+			//	await TTS.SpeakText($"Temperature is {WeatherResult.Temperature}").ConfigureAwait(false);
+			//	await TTS.SpeakText($"Humidity is {WeatherResult.Humidity}").ConfigureAwait(false);
+			//	await TTS.SpeakText($"Pressure is {WeatherResult.Pressure}").ConfigureAwait(false);
+			//	await TTS.SpeakText($"Sea Level is {WeatherResult.SeaLevel}").ConfigureAwait(false);
+			//	await TTS.SpeakText($"Wind Speed is {WeatherResult.WindSpeed}").ConfigureAwait(false);
+			//	await TTS.SpeakText($"And the location name is {WeatherResult.LocationName}").ConfigureAwait(false);
+			//	await TTS.SpeakText($"and thats all sir!").ConfigureAwait(false);
+			//});
+
+			return await Request(apiKey, pinCode, countryCode).ConfigureAwait(false);
+		}
+
+		private async Task<WeatherResponse?> Request(string apiKey, int pinCode = 689653, string countryCode = "in") {
+			//TODO: Check if network connection exist.
+
+			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
+				return null;
+			}
+
+			await Sync.WaitAsync().ConfigureAwait(false);
+			WeatherResponse? response = default;
+			try {
+				int requestCount = 0;
+				while (requestCount < MAX_RETRY_COUNT) {
+					string? responseJson = new WebClient().DownloadString(GenerateRequestUrl(apiKey, pinCode, countryCode)).Trim();
+
+					if (string.IsNullOrEmpty(responseJson)) {
+						requestCount++;
+						continue;
+					}
+
+					response = JsonConvert.DeserializeObject<WeatherResponse>(responseJson);
+				}
+
+				if (response != null) {
+					Logger.Log("Weather data request success!");
+					return response;
+				}
+
+				Logger.Log("Weather data request failed! Try checking if api key is still valid.");
+				return null;
+			}
+			catch (Exception e) {
+				Logger.Log(e);
+				return null;
+			}
+			finally {
+				Sync.Release();
+			}
+		}
 	}
 }

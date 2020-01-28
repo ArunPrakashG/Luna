@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.PushBullet.Responses.User {
+namespace Assistant.Pushbullet.Responses.User {
 	public class UserBase {
 		[JsonProperty("created")]
 		public float Created { get; set; }

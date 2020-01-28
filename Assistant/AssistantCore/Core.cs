@@ -5,7 +5,7 @@ using Assistant.Geolocation;
 using Assistant.Log;
 using Assistant.Modules;
 using Assistant.MorseCode;
-using Assistant.PushBullet;
+using Assistant.Pushbullet;
 using Assistant.Remainders;
 using Assistant.Servers.Kestrel;
 using Assistant.Update;

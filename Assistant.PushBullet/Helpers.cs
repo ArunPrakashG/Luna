@@ -1,9 +1,9 @@
-using Assistant.PushBullet.Logging;
+using Assistant.Logging.Interfaces;
 using System;
 using System.Net.NetworkInformation;
 using System.Threading;
 
-namespace Assistant.PushBullet {
+namespace Assistant.Pushbullet {
 	public static class Helpers {
 		public static bool CheckForInternetConnection() {
 			try {
@@ -16,14 +16,14 @@ namespace Assistant.PushBullet {
 				return reply != null && reply.Status == IPStatus.Success;
 			}
 			catch (Exception e) {
-				EventLogger.LogException(e);
+				PushbulletClient.Logger.Log(e);
 				return false;
 			}
 		}
 
 		public static Timer? ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
-				EventLogger.LogWarning("Action is null! " + nameof(action));
+				PushbulletClient.Logger.Log("Action is null! " + nameof(action), Logging.Enums.LEVEL.WARN);
 				return null;
 			}
 
@@ -40,7 +40,7 @@ namespace Assistant.PushBullet {
 
 		public static Thread? InBackgroundThread(Action action, string threadName, bool longRunning = false) {
 			if (action == null) {
-				EventLogger.LogWarning("Action is null! " + nameof(action));
+				PushbulletClient.Logger.Log("Action is null! " + nameof(action), Logging.Enums.LEVEL.WARN);
 				return null;
 			}
 

@@ -1,11 +1,11 @@
-using Assistant.PushBullet.Responses.Chats;
-using Assistant.PushBullet.Responses.Devices;
-using Assistant.PushBullet.Responses.Pushes;
-using Assistant.PushBullet.Responses.Subscriptions;
+using Assistant.Pushbullet.Responses.Chats;
+using Assistant.Pushbullet.Responses.Devices;
+using Assistant.Pushbullet.Responses.Pushes;
+using Assistant.Pushbullet.Responses.Subscriptions;
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.PushBullet.Responses {
+namespace Assistant.Pushbullet.Responses {
 	[Serializable]
 	public class ResponseBase {
 		[JsonIgnore]

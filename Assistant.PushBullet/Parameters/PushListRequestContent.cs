@@ -1,4 +1,4 @@
-namespace Assistant.PushBullet.Parameters {
+namespace Assistant.Pushbullet.Parameters {
 	public class PushListRequestContent {
 		public string ModifiedAfter { get; set; } = string.Empty;
 		public bool ActiveOnly { get; set; } = false;

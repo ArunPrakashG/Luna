@@ -1,6 +1,6 @@
-using static Assistant.PushBullet.PushEnums;
+using static Assistant.Pushbullet.PushEnums;
 
-namespace Assistant.PushBullet.Parameters {
+namespace Assistant.Pushbullet.Parameters {
 	public class PushRequestContent {
 		public PushTarget PushTarget { get; set; }
 		public PushType PushType { get; set; }

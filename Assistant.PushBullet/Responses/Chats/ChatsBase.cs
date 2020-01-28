@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.PushBullet.Responses.Chats {
+namespace Assistant.Pushbullet.Responses.Chats {
 	[Serializable]
 	public class ChatsBase {
 		[JsonProperty("active")]

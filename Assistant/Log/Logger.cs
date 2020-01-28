@@ -1,8 +1,6 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
 using Assistant.Modules.Interfaces.LoggerInterfaces;
-using Assistant.PushBullet;
-using Assistant.PushBullet.Parameters;
 using System;
 using System.Runtime.CompilerServices;
 using static Assistant.AssistantCore.Enums;

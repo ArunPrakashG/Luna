@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.PushBullet.Responses.Subscriptions {
+namespace Assistant.Pushbullet.Responses.Subscriptions {
 	[Serializable]
 	public class SubscriptionsBase {
 		[JsonProperty("active")]
