@@ -3,14 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28917.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant", "Assistant\Assistant.csproj", "{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Core", "Assistant\Assistant.Core.csproj", "{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Updater", "UpdateHelper\Assistant.Updater.csproj", "{271C066A-F852-4AD5-921A-48C0AB4DF1CB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Updater", "Assistant.Updater\Assistant.Updater.csproj", "{271C066A-F852-4AD5-921A-48C0AB4DF1CB}"
 	ProjectSection(ProjectDependencies) = postProject
 		{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76} = {83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Restarter", "RestartHelper\Assistant.Restarter.csproj", "{AF331F5B-62CB-4593-9CBB-F5C6583A714C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Restarter", "Assistant.Restarter\Assistant.Restarter.csproj", "{AF331F5B-62CB-4593-9CBB-F5C6583A714C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76} = {83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}
 	EndProjectSection
@@ -32,7 +32,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Modules", "Assist
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Logging", "Assistant.Logging\Assistant.Logging.csproj", "{71F06950-0B8D-4380-A625-373AA2CF6DEF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Sound", "TextToSpeech\Assistant.Sound.csproj", "{448393B0-1B9E-4F4A-86FE-C79BAD35F464}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Sound", "Assistant.Sound\Assistant.Sound.csproj", "{448393B0-1B9E-4F4A-86FE-C79BAD35F464}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Gpio", "Assistant.Gpio\Assistant.Gpio.csproj", "{BAD1303B-81AC-4F3C-87C1-29ED942BF71D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Extensions", "Assistant.Extensions\Assistant.Extensions.csproj", "{D7E352FA-1162-46F9-8C17-11C0ACCC5FD1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Server", "Assistant.Server\Assistant.Server.csproj", "{8E592686-028E-4DE5-A52D-C9172B0F9D8E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -80,6 +86,18 @@ Global
 		{448393B0-1B9E-4F4A-86FE-C79BAD35F464}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{448393B0-1B9E-4F4A-86FE-C79BAD35F464}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{448393B0-1B9E-4F4A-86FE-C79BAD35F464}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAD1303B-81AC-4F3C-87C1-29ED942BF71D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAD1303B-81AC-4F3C-87C1-29ED942BF71D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAD1303B-81AC-4F3C-87C1-29ED942BF71D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAD1303B-81AC-4F3C-87C1-29ED942BF71D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7E352FA-1162-46F9-8C17-11C0ACCC5FD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7E352FA-1162-46F9-8C17-11C0ACCC5FD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7E352FA-1162-46F9-8C17-11C0ACCC5FD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7E352FA-1162-46F9-8C17-11C0ACCC5FD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E592686-028E-4DE5-A52D-C9172B0F9D8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E592686-028E-4DE5-A52D-C9172B0F9D8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E592686-028E-4DE5-A52D-C9172B0F9D8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E592686-028E-4DE5-A52D-C9172B0F9D8E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

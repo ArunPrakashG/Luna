@@ -87,9 +87,6 @@
 		<None Update="Config\Assistant.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Update="Externals\AssistantSharedLibrary.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
 		<None Update="Modules\">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
@@ -116,6 +113,17 @@
 
 	<ItemGroup>
 	  <None Include="Servers\SecureLine\TCPServer.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
+	  <ProjectReference Include="..\Assistant.Gpio\Assistant.Gpio.csproj" />
+	  <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
+	  <ProjectReference Include="..\Assistant.Modules\Assistant.Modules.csproj" />
+	  <ProjectReference Include="..\Assistant.PushBullet\Assistant.Pushbullet.csproj" />
+	  <ProjectReference Include="..\Assistant.Security\Assistant.Security.csproj" />
+	  <ProjectReference Include="..\Assistant.Sound\Assistant.Sound.csproj" />
+	  <ProjectReference Include="..\Assistant.Weather\Assistant.Weather.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup>

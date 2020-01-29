@@ -34,7 +34,7 @@ namespace Assistant.Pushbullet {
 
 		private static readonly SemaphoreSlim RequestSemaphore = new SemaphoreSlim(1, 1);
 
-		public PushbulletClient InitPushBulletClient(string? apiKey) {
+		public PushbulletClient InitPushbulletClient(string? apiKey) {
 			if (string.IsNullOrEmpty(apiKey)) {
 				Logger.Log("No api key specified or the specified api key is invalid.", LEVEL.ERROR);
 				IsServiceLoaded = false;

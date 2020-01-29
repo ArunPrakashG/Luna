@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assistant.Weather {
-	public class Weather {
+	public class WeatherClient {
 		private const int MAX_RETRY_COUNT = 3;
 		public WeatherResponse Response { get; private set; } = new WeatherResponse();
 		private readonly ILogger Logger = new Logger("WEATHER");

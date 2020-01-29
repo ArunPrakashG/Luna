@@ -12,10 +12,6 @@ using Assistant.Update;
 using Assistant.Weather;
 using CommandLine;
 using RestSharp;
-using SharedLibrary.Logging;
-using SharedLibrary.Logging.EventArgs;
-using SharedLibrary.TCPServer;
-using SharedLibrary.TCPServer.EventArgs;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -26,7 +22,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
-using Logging = Assistant.Log.Logging;
 
 namespace Assistant.AssistantCore {
 
@@ -62,9 +57,9 @@ namespace Assistant.AssistantCore {
 		public static DateTime StartupTime { get; private set; }
 		private static Timer? RefreshConsoleTitleTimer { get; set; }
 		public static DynamicWatcher DynamicWatcher { get; set; } = new DynamicWatcher();
-		public static WeatherApi WeatherApi { get; private set; } = new WeatherApi();
+		public static WeatherClient WeatherClient { get; private set; } = new WeatherClient();
 		public static ZipCodeLocater ZipCodeLocater { get; private set; } = new ZipCodeLocater();
-		public static PushBulletService PushBulletService { get; private set; } = new PushBulletService();
+		public static PushbulletClient PushbulletClient { get; private set; } = new PushbulletClient();
 		public static MorseCore MorseCode { get; private set; } = new MorseCore();
 		public static RemainderManager RemainderManager { get; private set; } = new RemainderManager();
 		public static AlarmManager AlarmManager { get; private set; } = new AlarmManager();
@@ -113,7 +108,7 @@ namespace Assistant.AssistantCore {
 			if (File.Exists(Constants.TraceLogPath)) {
 				File.Delete(Constants.TraceLogPath);
 			}
-
+			
 			Helpers.SetFileSeperator();
 			Helpers.CheckMultipleProcess();
 			IsNetworkAvailable = Helpers.CheckForInternetConnection();
@@ -155,15 +150,13 @@ namespace Assistant.AssistantCore {
 		}
 
 		public Core VerifyEnvironment() {
-			if (!Helpers.IsRaspberryEnvironment()) {
+			if (Helpers.GetOsPlatform() != OSPlatform.Linux) {
 				DisablePiMethods = true;
 				IsUnknownOs = true;
-			}
-			else {
-				SendLocalIp(!Helpers.IsNullOrEmpty(Constants.LocalIP));
+				return this;
 			}
 
-			return this;
+			SendLocalIp(!string.IsNullOrEmpty(Constants.LocalIP));
 		}
 
 		public Core StartConsoleTitleUpdater() {
@@ -198,7 +191,7 @@ namespace Assistant.AssistantCore {
 		public Core StartPushBulletService() {
 			if (!string.IsNullOrEmpty(Config.PushBulletApiKey)) {
 				Helpers.InBackground(() => {
-					if (PushBulletService.InitPushBulletService(Config.PushBulletApiKey).InitPushService()) {
+					if (PushbulletClient.InitPushbulletClient(Config.PushBulletApiKey) != null) {
 						Logger.Log("Push bullet service started.", Enums.LogLevels.Trace);
 					}
 				});
@@ -314,7 +307,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run preconfigured test methods or tasks.", Enums.LogLevels.UserInput);
-			if (WeatherApi != null) {
+			if (WeatherClient != null) {
 				Logger.Log($"{Constants.ConsoleWeatherInfoKey} - Get weather info of the specified location based on the pin code.", Enums.LogLevels.UserInput);
 			}
 
@@ -391,8 +384,8 @@ namespace Assistant.AssistantCore {
 							}
 						}
 
-						if (Config.OpenWeatherApiKey != null && !Config.OpenWeatherApiKey.IsNull() && WeatherApi != null) {
-							(bool status, WeatherData response) = WeatherApi.GetWeatherInfo(Config.OpenWeatherApiKey, pinCode, "in");
+						if (Config.OpenWeatherApiKey != null && !Config.OpenWeatherApiKey.IsNull() && WeatherClient != null) {
+							(bool status, WeatherData response) = WeatherClient.GetWeatherInfo(Config.OpenWeatherApiKey, pinCode, "in");
 
 							if (status) {
 								Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", Enums.LogLevels.Success);

@@ -41,7 +41,7 @@ namespace Assistant.Servers.Kestrel.Controllers {
 					Enums.HttpStatusCodes.BadRequest, DateTime.Now));
 			}
 
-			(bool status, WeatherData response) = Core.WeatherApi.GetWeatherInfo(Core.Config.OpenWeatherApiKey, pinCode, countryCode);
+			(bool status, WeatherData response) = Core.WeatherClient.GetWeatherInfo(Core.Config.OpenWeatherApiKey, pinCode, countryCode);
 
 			if (status) {
 				return Ok(new GenericResponse<WeatherData>(response, Enums.HttpStatusCodes.OK, DateTime.Now));

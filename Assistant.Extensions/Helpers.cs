@@ -1,7 +1,6 @@
-using Assistant.AssistantCore;
-using Assistant.Log;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using Figgle;
-using JetBrains.Annotations;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -15,53 +14,29 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Unosquare.RaspberryIO;
-using static Assistant.AssistantCore.Enums;
-using ProcessThread = System.Diagnostics.ProcessThread;
-using TaskScheduler = System.Threading.Tasks.TaskScheduler;
 
-namespace Assistant.Extensions {
-
-	public static class Helpers {
-		private static readonly Logger Logger = new Logger("HELPERS");
+namespace Assistant.Extensions
+{
+	public static class Helpers
+	{
+		private static readonly ILogger Logger = new Logger("HELPERS");
 
 		private static string FileSeperator { get; set; } = @"\";
-
-		public static void InBackgroundThread(Action action) {
-			if (action == null) {
-				Logger.Log("Action is null.", Enums.LogLevels.Warn);
-				return;
-			}
-
-			if (!Core.CoreInitiationCompleted) {
-				float identifer = GenerateUniqueIdentifier(new Random());
-				InBackgroundThread(action, identifer.ToString());
-				return;
-			}
-
-			if (Core.DisablePiMethods) {
-				float identifer = GenerateUniqueIdentifier(new Random());
-				InBackgroundThread(action, identifer.ToString());
-			}
-			else {
-				Pi.Threading.StartThread(action);
-			}
-		}
 
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				FileSeperator = "//";
-				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
+				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, Enums.LEVEL.TRACE);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 				FileSeperator = "\\";
-				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
+				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, Enums.LEVEL.TRACE);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 				FileSeperator = "//";
-				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
+				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, Enums.LEVEL.TRACE);
 			}
 		}
 
@@ -94,44 +69,10 @@ namespace Assistant.Extensions {
 				return *(float*) &bits;
 			}
 		}
-
-		public static ProcessThread? FetchThreadById(int id) {
-			ProcessThreadCollection currentThreads = Process.GetCurrentProcess().Threads;
-
-			if (currentThreads != null && currentThreads.Count > 0) {
-				foreach (ProcessThread? thread in currentThreads) {
-					if (thread != null && thread.Id == id) {
-						return thread;
-					}
-				}
-			}
-
-			return null;
-		}
-
-		public static void ScheduleTask(TaskStructure structure, TimeSpan delay, bool longrunning) {
-			if (structure == null) {
-				Logger.Log("Action is null! " + nameof(structure), Enums.LogLevels.Error);
-				return;
-			}
-
-			Timer? TaskSchedulerTimer = null;
-
-			TaskSchedulerTimer = new Timer(e => {
-				InBackground(() => structure.Task, longrunning);
-
-				if (TaskSchedulerTimer != null) {
-					TaskSchedulerTimer.Dispose();
-					TaskSchedulerTimer = null;
-				}
-
-			}, null, delay, delay);
-		}
-
-		[CanBeNull]
+		
 		public static Timer? ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
 				return null;
 			}
 
@@ -162,11 +103,15 @@ namespace Assistant.Extensions {
 
 			return true;
 		}
+		
+		public static string? ExecuteBash(this string cmd, bool sudo) {
+			if(GetOsPlatform() != OSPlatform.Linux) {
+				Logger.Log("Current OS environment isn't Linux.", Enums.LEVEL.ERROR);
+				return null;
+			}
 
-		[CanBeNull]
-		public static string ExecuteBash(this string cmd, bool sudo) {
-			if (cmd.IsNull()) {
-				return string.Empty;
+			if (string.IsNullOrEmpty(cmd)) {
+				return null;
 			}
 
 			string escapedArgs = cmd.Replace("\"", "\\\"");
@@ -192,79 +137,17 @@ namespace Assistant.Extensions {
 
 			return result;
 		}
-
-		public static void LogInfo(this string msg) {
-			if (IsNullOrEmpty(msg)) {
-				return;
-			}
-
-			Core.Logger.Log(msg, LogLevels.Info);
-		}
-
-		public static void LogInfo(this string msg, Logger logger) {
-			if (IsNullOrEmpty(msg) || logger == null) {
-				return;
-			}
-
-			logger.Log(msg, LogLevels.Info);
-		}
-
-		public static void PlayNotification(Enums.NotificationContext context = Enums.NotificationContext.Normal, bool redirectOutput = false) {
-			if (Core.IsUnknownOs) {
-				Logger.Log("Cannot proceed as the running operating system is unknown.", Enums.LogLevels.Error);
-				return;
-			}
-
-			if (Core.Config.MuteAssistant) {
-				Logger.Log("Notifications are muted in config.", Enums.LogLevels.Trace);
-				return;
-			}
-
-			if (!Directory.Exists(Constants.ResourcesDirectory)) {
-				Logger.Log("Resources directory doesn't exist!", Enums.LogLevels.Warn);
-				return;
-			}
-
-			switch (context) {
-				case Enums.NotificationContext.Imap:
-					if (!File.Exists(Constants.IMAPPushNotificationFilePath)) {
-						Logger.Log("IMAP notification music file doesn't exist!", Enums.LogLevels.Warn);
-						return;
-					}
-
-					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPPushFileName} -q", Core.Config.Debug || redirectOutput);
-					Logger.Log("Notification command processed sucessfully!", Enums.LogLevels.Trace);
-					break;
-
-				case Enums.NotificationContext.EmailSend:
-					break;
-
-				case Enums.NotificationContext.EmailSendFailed:
-					break;
-
-				case Enums.NotificationContext.FatalError:
-					break;
-
-				case Enums.NotificationContext.Normal:
-					if (!Core.IsNetworkAvailable) {
-						Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
-					}
-					break;
-			}
-		}
-
-		public static string GetLocalIpAddress() {
-			string localIP = string.Empty;
-
+		
+		public static string? GetLocalIpAddress() {
 			using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0)) {
 				socket.Connect("8.8.8.8", 65530);
 				IPEndPoint? endPoint = socket.LocalEndPoint as IPEndPoint;
 				if (endPoint != null) {
-					localIP = endPoint.Address.ToString();
+					return endPoint.Address.ToString();
 				}
 			}
 
-			return localIP;
+			return null;
 		}
 
 		public static ConsoleKeyInfo? FetchUserInputSingleChar(TimeSpan delay) {
@@ -273,86 +156,32 @@ namespace Assistant.Extensions {
 			return result;
 		}
 
-		public static void SetConsoleTitle(string text) => Console.Title = $"{Core.AssistantName} V{Constants.Version} | {text}";
+		public static void SetConsoleTitle(string text) => Console.Title = text;
 
-		public static DateTime UnixTimeStampToDateTime(double unixTimeStamp) {
-			DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-			dtDateTime = dtDateTime.AddSeconds(unixTimeStamp).ToLocalTime();
-			return dtDateTime;
-		}
+		public static DateTime UnixTimeStampToDateTime(double unixTimeStamp) => new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddSeconds(unixTimeStamp).ToLocalTime();
 
-		public static string GetExternalIp() {
-			if (!Core.IsNetworkAvailable) {
-				return string.Empty;
+		public static string? GetExternalIp() {
+			if (!IsNetworkAvailable()) {
+				return null;
 			}
 
-			using WebClient client = new WebClient();
-			string result = client.DownloadString("https://api.ipify.org/").Trim('\n');
-			return result;
-		}
-
-		internal static string TimeRan() {
-			DateTime StartTime = Core.StartupTime;
-			TimeSpan dt = DateTime.Now - StartTime;
-			string Duration = "Online for: ";
-			Duration += Math.Round(dt.TotalDays, 0) + " days, ";
-			Duration += Math.Round(dt.TotalHours, 0) + " hours, ";
-			Duration += Math.Round(dt.TotalMinutes, 0) + " minutes.";
-			return Duration;
+			try {
+				using WebClient client = new WebClient();
+				string result = client.DownloadString("https://api.ipify.org/").Trim('\n');
+				return result;
+			}
+			catch {
+				return null;
+			}
 		}
 
 		public static void GenerateAsciiFromText(string text) {
-			if (IsNullOrEmpty(text)) {
-				Logger.Log("The specified text is empty or null", Enums.LogLevels.Warn);
+			if (string.IsNullOrEmpty(text)) {
+				Logger.Log("The specified text is empty or null", Enums.LEVEL.WARN);
 				return;
 			}
 
-			Logger.Log(FiggleFonts.Ogre.Render(text), Enums.LogLevels.Ascii);
-		}
-
-		public static string? FetchVariable(int arrayLine, bool returnParsed = false, string? varName = null) {
-			if (arrayLine < 0 || varName == null) {
-				return null;
-			}
-
-			if (!File.Exists(Constants.VariablesPath)) {
-				Logger.Log("Variables file doesnt exist! aborting...", Enums.LogLevels.Error);
-				return null;
-			}
-
-			string[] variables = File.ReadAllLines(Constants.VariablesPath);
-
-			if (!string.IsNullOrEmpty(variables[arrayLine]) || !string.IsNullOrWhiteSpace(variables[arrayLine])) {
-				if (returnParsed) {
-					return ParseVariable(variables[arrayLine], varName);
-				}
-
-				return variables[arrayLine];
-			}
-
-			Logger.Log("Line is empty.", LogLevels.Error);
-			return null;
-		}
-
-		private static string? ParseVariable(string variableRaw, string variableName, char seperator = '=') {
-			if (string.IsNullOrEmpty(variableRaw) || string.IsNullOrWhiteSpace(variableRaw)) {
-				Logger.Log("Variable is empty.", Enums.LogLevels.Error);
-				return null;
-			}
-
-			if (string.IsNullOrEmpty(variableName) || string.IsNullOrWhiteSpace(variableName)) {
-				Logger.Log("Variable name is empty.", Enums.LogLevels.Error);
-				return null;
-			}
-
-			string[] raw = variableRaw.Split(seperator);
-
-			if (raw[0].Equals(variableName, StringComparison.OrdinalIgnoreCase)) {
-				return raw[1];
-			}
-
-			Logger.Log("Failed to parse variable.", Enums.LogLevels.Error);
-			return null;
+			Logger.Log(FiggleFonts.Ogre.Render(text), Enums.LEVEL.GREEN);
 		}
 
 		public static string? GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);
@@ -388,23 +217,18 @@ namespace Assistant.Extensions {
 			return output;
 		}
 
-		public static string? GetUrlToString(string url, Method method, bool withuseragent = true) {
-			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Network is unavailable.", LogLevels.Warn);
+		public static string? GetUrlToString(string url, Method method) {
+			if (!IsNetworkAvailable()) {
+				Logger.Log("Network is unavailable.", Enums.LEVEL.WARN);
 				return null;
 			}
 
-			if (url.IsNull()) {
+			if (string.IsNullOrEmpty(url)) {
 				return null;
 			}
 
 			RestClient client = new RestClient(url);
 			RestRequest request = new RestRequest(method);
-
-			if (withuseragent) {
-				client.UserAgent = Constants.GitHubProjectName;
-			}
-
 			request.AddHeader("cache-control", "no-cache");
 			IRestResponse response = client.Execute(request);
 
@@ -417,18 +241,16 @@ namespace Assistant.Extensions {
 		}
 
 		public static string? GetUrlToString(this string url) {
-			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Network is unavailable.", LogLevels.Warn);
+			if (!IsNetworkAvailable()) {
+				Logger.Log("Network is unavailable.", Enums.LEVEL.WARN);
 				return null;
 			}
 
-			if (url.IsNull()) {
+			if (string.IsNullOrEmpty(url)) {
 				return null;
 			}
 
-			RestClient client = new RestClient(url);
-			RestRequest request = new RestRequest(Method.GET);
-			IRestResponse response = client.Execute(request);
+			IRestResponse response = new RestClient(url).Execute(new RestRequest(Method.GET));
 
 			if (response.StatusCode != HttpStatusCode.OK) {
 				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
@@ -439,8 +261,8 @@ namespace Assistant.Extensions {
 		}
 
 		public static byte[]? GetUrlToBytes(string url, Method method, string userAgent, string? headerName = null, string? headerValue = null) {
-			if (!Core.IsNetworkAvailable) {
-				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
+			if (!IsNetworkAvailable()) {
+				Logger.Log("Cannot process, network is unavailable.", Enums.LEVEL.WARN);
 				return new byte[0];
 			}
 
@@ -457,7 +279,7 @@ namespace Assistant.Extensions {
 				request.AddHeader(headerName, headerValue);
 			}
 
-			Logger.Log("Downloading bytes...", Enums.LogLevels.Trace);
+			Logger.Log("Downloading bytes...", Enums.LEVEL.TRACE);
 			IRestResponse response = client.Execute(request);
 
 			if (response.StatusCode != HttpStatusCode.OK) {
@@ -465,12 +287,12 @@ namespace Assistant.Extensions {
 				return null;
 			}
 
-			Logger.Log("Successfully downloaded", Enums.LogLevels.Trace);
+			Logger.Log("Successfully downloaded", Enums.LEVEL.TRACE);
 			return response.RawBytes;
 		}
 
 		public static string GetFileName(string? path) {
-			if(string.IsNullOrEmpty(path)) {
+			if (string.IsNullOrEmpty(path)) {
 				return string.Empty;
 			}
 
@@ -518,10 +340,10 @@ namespace Assistant.Extensions {
 			File.WriteAllBytes(filePath, bytesToWrite);
 		}
 
-		public static (int?, Thread?) InBackgroundThread(Action action, string threadName, bool longRunning = false) {
+		public static Thread? InBackgroundThread(Action action, string threadName, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
-				return (0, null);
+				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
+				return null;
 			}
 
 			ThreadStart threadStart = new ThreadStart(action);
@@ -534,12 +356,12 @@ namespace Assistant.Extensions {
 			BackgroundThread.Name = threadName;
 			BackgroundThread.Priority = ThreadPriority.Normal;
 			BackgroundThread.Start();
-			return (BackgroundThread.ManagedThreadId, BackgroundThread);
+			return BackgroundThread;
 		}
 
 		public static void InBackground(Action action, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
+				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
 				return;
 			}
 
@@ -553,8 +375,8 @@ namespace Assistant.Extensions {
 		}
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
-			if (Core.RunningPlatform != OSPlatform.Linux && fileName == "/bin/bash") {
-				Logger.Log($"{Core.AssistantName} is running on unknown OS. command cannot be executed.", Enums.LogLevels.Error);
+			if (GetOsPlatform() != OSPlatform.Linux && fileName == "/bin/bash") {
+				Logger.Log($"Current OS environment isn't Linux.", Enums.LEVEL.ERROR);
 				return;
 			}
 
@@ -579,28 +401,28 @@ namespace Assistant.Extensions {
 					while (!proc.StandardOutput.EndOfStream) {
 						string? output = proc.StandardOutput.ReadLine();
 						if (output != null) {
-							Logger.Log(output, LogLevels.Trace);
+							Logger.Log(output, Enums.LEVEL.TRACE);
 						}
 					}
 				}
 			}
 			catch (PlatformNotSupportedException) {
-				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", Enums.LogLevels.Warn);
+				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", Enums.LEVEL.WARN);
 			}
 			catch (Win32Exception) {
-				Logger.Log("System cannot find the specified file.", Enums.LogLevels.Error);
+				Logger.Log("System cannot find the specified file.", Enums.LEVEL.ERROR);
 			}
 			catch (ObjectDisposedException) {
-				Logger.Log("Object has been disposed already.", Enums.LogLevels.Error);
+				Logger.Log("Object has been disposed already.", Enums.LEVEL.ERROR);
 			}
 			catch (InvalidOperationException) {
-				Logger.Log("Invalid operation exception, internal error.", Enums.LogLevels.Error);
+				Logger.Log("Invalid operation exception, internal error.", Enums.LEVEL.ERROR);
 			}
 		}
 
 		public static void InBackground<T>(Func<T> function, bool longRunning = false) {
 			if (function == null) {
-				Logger.Log("Function is null! " + nameof(function), Enums.LogLevels.Error);
+				Logger.Log("Function is null! " + nameof(function), Enums.LEVEL.ERROR);
 				return;
 			}
 
@@ -615,7 +437,7 @@ namespace Assistant.Extensions {
 
 		public static async Task<IList<T>?> InParallel<T>(IEnumerable<Task<T>> tasks) {
 			if (tasks == null) {
-				Logger.Log(nameof(tasks), Enums.LogLevels.Warn);
+				Logger.Log(nameof(tasks), Enums.LEVEL.WARN);
 				return null;
 			}
 
@@ -623,31 +445,16 @@ namespace Assistant.Extensions {
 			return results;
 		}
 
-		public static bool IsRaspberryEnvironment() {
-			try {
-				if (GetOsPlatform() == OSPlatform.Linux
-					&& Pi.Info.RaspberryPiVersion.ToString().Equals("Pi3ModelBEmbest", StringComparison.OrdinalIgnoreCase)) {
-					return true;
-				}
-			}
-			catch {
-				return false;
-			}
-
-			return false;
-		}
-
 		public static async Task InParallel(IEnumerable<Task> tasks) {
 			if (tasks == null) {
-				Logger.Log(nameof(tasks), Enums.LogLevels.Warn);
+				Logger.Log(nameof(tasks), Enums.LEVEL.WARN);
 				return;
 			}
 
 			await Task.WhenAll(tasks).ConfigureAwait(false);
 		}
 
-		public static bool CheckForInternetConnection() {
-			Logger.Log("Checking internet connectivity...", LogLevels.Trace);
+		public static bool IsNetworkAvailable() {
 			try {
 				Ping myPing = new Ping();
 				string host = "8.8.8.8";
@@ -655,7 +462,6 @@ namespace Assistant.Extensions {
 				int timeout = 1000;
 				PingOptions pingOptions = new PingOptions();
 				PingReply reply = myPing.Send(host, timeout, buffer, pingOptions);
-				Logger.Log("Connection verified!", LogLevels.Trace);
 				return reply != null && reply.Status == IPStatus.Success;
 			}
 			catch (Exception e) {
@@ -664,12 +470,11 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		public static bool CheckForInternetConnection(bool usingWebClient) {
+		public static bool IsNetworkAvailable(bool usingWebClient) {
 			try {
-				using (WebClient client = new WebClient())
-				using (Stream stream = client.OpenRead("http://www.google.com")) {
-					return true;
-				}
+				using WebClient client = new WebClient();
+				using Stream stream = client.OpenRead("http://www.google.com");
+				return true;
 			}
 			catch (Exception) {
 				return false;
@@ -690,17 +495,13 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		public static bool IsNullOrEmpty(string value) => string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value);
-
-		public static bool IsNull(this string value) => string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value) || value == null;
-
 		public static void CheckMultipleProcess() {
 			string RunningProcess = Process.GetCurrentProcess().ProcessName;
 			Process[] processes = Process.GetProcessesByName(RunningProcess);
 
 			if (processes.Length > 1) {
 				while (true) {
-					Logger.Log("There are multiple instance of current program running.", LogLevels.Warn);
+					Logger.Log("There are multiple instance of current program running.", Enums.LEVEL.WARN);
 					Logger.Log("> Press Y to close them and continue executing current process.");
 					Logger.Log("> Press N to close current process and continue with the others.");
 
@@ -713,7 +514,7 @@ namespace Assistant.Extensions {
 								if (proc.Id != Process.GetCurrentProcess().Id) {
 									proc.Kill();
 									procCounter++;
-									Logger.Log($"Killed {procCounter} processes.", LogLevels.Warn);
+									Logger.Log($"Killed {procCounter} processes.", Enums.LEVEL.WARN);
 								}
 							}
 							return;
@@ -724,7 +525,7 @@ namespace Assistant.Extensions {
 							return;
 
 						default:
-							Logger.Log("Unknown key pressed... try again!", LogLevels.Warn);
+							Logger.Log("Unknown key pressed... try again!", Enums.LEVEL.WARN);
 							continue;
 					}
 				}

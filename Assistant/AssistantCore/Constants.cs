@@ -3,7 +3,7 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace Assistant.Extensions {
+namespace Assistant.AssistantCore {
 
 	public static class Constants {
 		public const string TraceLogPath = @"TraceLog.txt";
@@ -61,7 +61,7 @@ namespace Assistant.Extensions {
 
 		public static string ExternelIP { get; set; } = string.Empty;
 
-		public static string LocalIP { get; set; } = string.Empty;
+		public static string? LocalIP { get; set; }
 		public const string GitHubReleaseURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";
 		public const string GitHubAssetDownloadURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/assets/";
 

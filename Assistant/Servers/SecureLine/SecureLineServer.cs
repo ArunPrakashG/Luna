@@ -181,7 +181,7 @@ namespace Assistant.Servers.SecureLine {
 			}
 
 			await ProcessingSemaphore.WaitAsync().ConfigureAwait(false);
-			(bool status, WeatherData response) = Core.WeatherApi.GetWeatherInfo(Core.Config.OpenWeatherApiKey, pinCode, request.CountryCode);
+			(bool status, WeatherData response) = Core.WeatherClient.GetWeatherInfo(Core.Config.OpenWeatherApiKey, pinCode, request.CountryCode);
 
 			if (!status || response == null) {
 				ProcessingSemaphore.Release();

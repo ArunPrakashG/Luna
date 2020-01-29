@@ -46,8 +46,8 @@ namespace Assistant.Log {
 
 			LogModule?.Error($"{previousMethodName}() {message}");
 
-			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
-				Core.PushBulletService.BroadcastMessage(new PushRequestContent() {
+			if (Core.Config.PushBulletLogging && Core.PushbulletClient != null && Core.PushbulletClient.IsBroadcastServiceOnline) {
+				Core.PushbulletClient.BroadcastMessage(new PushRequestContent() {
 					PushTarget = PushEnums.PushTarget.All,
 					PushTitle = $"{Core.AssistantName} [ERROR] LOG",
 					PushType = PushEnums.PushType.Note,
@@ -63,8 +63,8 @@ namespace Assistant.Log {
 
 			LogModule?.Error($"{previousMethodName}() {exception.GetBaseException().Message}/{exception.GetBaseException().HResult}/{exception.GetBaseException().StackTrace}");
 
-			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
-				Core.PushBulletService.BroadcastMessage(new PushRequestContent() {
+			if (Core.Config.PushBulletLogging && Core.PushbulletClient != null && Core.PushbulletClient.IsBroadcastServiceOnline) {
+				Core.PushbulletClient.BroadcastMessage(new PushRequestContent() {
 					PushTarget = PushEnums.PushTarget.All,
 					PushTitle = $"{Core.AssistantName} [EXCEPTION] LOG",
 					PushType = PushEnums.PushType.Note,
@@ -104,8 +104,8 @@ namespace Assistant.Log {
 
 			LogModule?.Warn($"{previousMethodName}() {message}");
 
-			if (Core.Config.PushBulletLogging && Core.PushBulletService != null && Core.PushBulletService.IsBroadcastServiceOnline) {
-				Core.PushBulletService.BroadcastMessage(new PushRequestContent() {
+			if (Core.Config.PushBulletLogging && Core.PushbulletClient != null && Core.PushbulletClient.IsBroadcastServiceOnline) {
+				Core.PushbulletClient.BroadcastMessage(new PushRequestContent() {
 					PushTarget = PushEnums.PushTarget.All,
 					PushTitle = $"{Core.AssistantName} [WARNING] LOG",
 					PushType = PushEnums.PushType.Note,
