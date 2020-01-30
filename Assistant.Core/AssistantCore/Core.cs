@@ -111,7 +111,7 @@ namespace Assistant.AssistantCore {
 			
 			Helpers.SetFileSeperator();
 			Helpers.CheckMultipleProcess();
-			IsNetworkAvailable = Helpers.CheckForInternetConnection();
+			IsNetworkAvailable = Helpers.IsNetworkAvailable();
 
 			if (!IsNetworkAvailable) {
 				Logger.Log("No Internet connection.", Enums.LogLevels.Warn);
@@ -157,6 +157,7 @@ namespace Assistant.AssistantCore {
 			}
 
 			SendLocalIp(!string.IsNullOrEmpty(Constants.LocalIP));
+			return this;
 		}
 
 		public Core StartConsoleTitleUpdater() {
@@ -883,7 +884,7 @@ namespace Assistant.AssistantCore {
 		private static void SendLocalIp(bool enableRecrussion) {
 			string? localIp = Helpers.GetLocalIpAddress();
 
-			if (localIp == null || Helpers.IsNullOrEmpty(localIp)) {
+			if (localIp == null || string.IsNullOrEmpty(localIp)) {
 				return;
 			}
 

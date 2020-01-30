@@ -359,6 +359,25 @@ namespace Assistant.Extensions
 			return BackgroundThread;
 		}
 
+		public static Thread? InBackgroundThread(Action action, bool longRunning = false) {
+			if (action == null) {
+				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
+				return null;
+			}
+
+			ThreadStart threadStart = new ThreadStart(action);
+			Thread BackgroundThread = new Thread(threadStart);
+
+			if (longRunning) {
+				BackgroundThread.IsBackground = true;
+			}
+
+			BackgroundThread.Name = action.GetHashCode().ToString();
+			BackgroundThread.Priority = ThreadPriority.Normal;
+			BackgroundThread.Start();
+			return BackgroundThread;
+		}
+
 		public static void InBackground(Action action, bool longRunning = false) {
 			if (action == null) {
 				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);

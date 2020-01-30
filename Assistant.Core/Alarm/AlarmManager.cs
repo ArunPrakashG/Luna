@@ -12,7 +12,7 @@ namespace Assistant.Alarm {
 		private readonly Logger Logger = new Logger("ALARM");
 
 		public bool SetAlarm(int hoursFromNow, string alarmMessage, bool useTTS, TimeSpan repeatInterval, bool repeat = false) {
-			if (hoursFromNow <= 0 || Helpers.IsNullOrEmpty(alarmMessage)) {
+			if (hoursFromNow <= 0 || string.IsNullOrEmpty(alarmMessage)) {
 				return false;
 			}
 
