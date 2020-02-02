@@ -1,15 +1,17 @@
 using Assistant.Log;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 
 	/// <summary>
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)
 	/// </summary>
 	public class BluetoothController {
 
-		private readonly Logger Logger = new Logger("PI-BLUETOOTH");
+		private readonly ILogger Logger = new Logger("PI-BLUETOOTH");
 
 		private PiController? PiController => Core.PiController;
 		public bool IsBluetoothControllerInitialized { get; private set; }

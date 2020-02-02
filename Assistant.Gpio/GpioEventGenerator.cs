@@ -1,15 +1,13 @@
-using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.Logging.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.AssistantCore.Enums;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 	public sealed class GpioEventGenerator {
-		private PiController? PiController => Core.PiController;
-		private GpioPinController? Controller => PiController?.GetPinController();
-		private readonly Logger Logger;
+		private readonly PiController PiController;
+		private readonly GpioPinController Controller;
+		private readonly ILogger Logger;
 
 		private GpioEventManager EventManager { get; set; }
 		private bool OverrideEventWatcher { get; set; }
@@ -32,14 +30,16 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 		}
 
-		public GpioEventGenerator(GpioEventManager manager) {
-			EventManager = manager ?? throw new ArgumentNullException(nameof(manager), "The event manager class instance cannot be null!");
+		public GpioEventGenerator(PiController piController, GpioPinController controller, GpioEventManager manager) {
+			PiController = piController ?? throw new ArgumentNullException(nameof(manager), "The pi controller instance cannot be null!");
+			Controller = controller ?? throw new ArgumentNullException(nameof(manager), "The controller instance cannot be null!");
+			EventManager = manager ?? throw new ArgumentNullException(nameof(manager), "The event manager instance cannot be null!");
 			Logger = EventManager.Logger;
 		}
 
 		public GpioEventGenerator InitEventGenerator() {
-			if(PiController == null) {
-				throw new InvalidOperationException("The pin controller is proably malfunctioning.");
+			if (PiController == null) {
+				throw new InvalidOperationException("The pin controller is probably malfunctioning.");
 			}
 
 			if (!PiController.GetPinController().IsDriverProperlyInitialized) {
@@ -52,7 +52,7 @@ namespace Assistant.AssistantCore.PiGpio {
 		public void OverridePinPolling() => OverrideEventWatcher = true;
 
 		private void StartPolling() {
-			if(PiController == null) {
+			if (PiController == null) {
 				Logger.Log("PiController is null. Polling failed.", LogLevels.Warn);
 				return;
 			}
@@ -102,7 +102,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			GpioPinState previousPinState = initialPinState;
 			bool previousPinValue = initialValue;
 
-			PollingThreadInfo = Helpers.InBackgroundThread(async () => {
+			PollingThreadInfo = Extensions.Helpers.InBackgroundThread(async () => {
 				while (!OverrideEventWatcher) {
 					bool currentPinValue = Controller.GpioDigitalRead(EventPinConfig.GpioPin);
 					GpioPinState currentPinState = currentPinValue ? GpioPinState.Off : GpioPinState.On;

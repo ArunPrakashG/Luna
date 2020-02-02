@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 
 	public class TaskStructure {
 

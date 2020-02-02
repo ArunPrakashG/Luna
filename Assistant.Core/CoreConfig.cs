@@ -7,7 +7,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 
 	public class CoreConfig : IEquatable<CoreConfig> {
 

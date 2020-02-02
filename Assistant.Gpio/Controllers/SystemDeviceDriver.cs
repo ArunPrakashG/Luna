@@ -1,12 +1,8 @@
-using Assistant.Log;
-using JetBrains.Annotations;
 using System;
-using System.Device.Gpio;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using static Assistant.AssistantCore.Enums;
 
-namespace Assistant.AssistantCore.PiGpio.GpioControllers {
+namespace Assistant.Gpio.Controllers {
 	internal class SystemDeviceDriver : IGpioControllerDriver {
 		private readonly GpioPinController GpioController;
 		private readonly Logger Logger;

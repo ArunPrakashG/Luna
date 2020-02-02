@@ -23,7 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 
 	public class Options {
 

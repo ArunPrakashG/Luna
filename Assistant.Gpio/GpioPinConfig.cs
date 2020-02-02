@@ -1,13 +1,14 @@
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Text;
 using System.Threading;
-using static Assistant.AssistantCore.Enums;
+using static Assistant.Gpio.PiController;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 	public class GpioPinConfig {
 		[JsonProperty]
 		public int Pin { get; set; } = 0;
@@ -28,7 +29,7 @@ namespace Assistant.AssistantCore.PiGpio {
 		public bool IsPinOn => PinValue == GpioPinState.On;
 
 		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
-		private static readonly Logger Logger = new Logger("GPIO-CONFIG");
+		private static readonly ILogger Logger = new Logger("GPIO-CONFIG");
 
 		public override bool Equals(object? obj) {
 			if (obj == null) {
@@ -36,13 +37,13 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 
 			GpioPinConfig config = (GpioPinConfig) obj;
-			return config.Pin == Pin;
+			return config.Pin == this.Pin;
 		}
 
 		public override int GetHashCode() => base.GetHashCode();
 
 		public static string AsJson(GpioPinConfig? config) {
-			if(config == null) {
+			if (config == null) {
 				return string.Empty;
 			}
 
@@ -52,9 +53,9 @@ namespace Assistant.AssistantCore.PiGpio {
 		public override string ToString() {
 			StringBuilder s = new StringBuilder();
 			s.AppendLine("---------------------------");
-			s.AppendLine($"Pin -> {Pin}");
+			s.AppendLine($"Pin -> {this.Pin}");
 			s.AppendLine($"Pin Value -> {PinValue.ToString()}");
-			s.AppendLine($"Pin Mode -> {Mode.ToString()}");
+			s.AppendLine($"Pin Mode -> {this.Mode.ToString()}");
 			s.AppendLine($"Is Tasked -> {IsDelayedTaskSet}");
 			s.AppendLine($"Task set after minutes -> {TaskSetAfterMinutes}");
 			s.AppendLine($"Is pin on -> {IsPinOn}");
@@ -67,9 +68,9 @@ namespace Assistant.AssistantCore.PiGpio {
 		}
 
 		public GpioPinConfig(int _pin, GpioPinState _pinValue, GpioPinMode _mode, bool _isDelayedTaskSet, int _taskSetAfterMinutes) {
-			Pin = _pin;
+			this.Pin = _pin;
 			PinValue = _pinValue;
-			Mode = _mode;
+			this.Mode = _mode;
 			IsDelayedTaskSet = _isDelayedTaskSet;
 			TaskSetAfterMinutes = _taskSetAfterMinutes;
 		}
@@ -87,17 +88,13 @@ namespace Assistant.AssistantCore.PiGpio {
 
 			string json = JsonConvert.SerializeObject(config, Formatting.Indented);
 
-			if (Helpers.IsNullOrEmpty(json)) {
+			if (string.IsNullOrEmpty(json)) {
 				return;
 			}
 
 			string fileName = config.Pin + ".json";
 			string filePath = Constants.GpioConfigDirectory + "/" + fileName;
 			string newFilePath = filePath + ".new";
-
-			if (Core.ConfigWatcher.FileSystemWatcher != null) {
-				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = false;
-			}
 
 			try {
 				File.WriteAllText(newFilePath, json);
@@ -114,10 +111,6 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 			finally {
 				ConfigSemaphore.Release();
-
-				if (Core.ConfigWatcher.FileSystemWatcher != null) {
-					Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
-				}
 			}
 		}
 	}

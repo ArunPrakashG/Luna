@@ -1,6 +1,6 @@
-using static Assistant.AssistantCore.Enums;
+using static Assistant.Gpio.PiController;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 	public sealed class GpioPinEventConfig {
 		public int GpioPin { get; set; } = 2;
 

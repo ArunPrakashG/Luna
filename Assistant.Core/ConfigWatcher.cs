@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Gpio {
 
 	public class ConfigWatcher {
 		private readonly Logger Logger = new Logger("CONFIG-WATCHER");

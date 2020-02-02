@@ -1,67 +1,49 @@
-using Assistant.AssistantCore.PiGpio.GpioControllers;
-using Assistant.Log;
+using Assistant.Gpio.Controllers;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
-using static Assistant.AssistantCore.Enums;
+using static Assistant.Gpio.PiController;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 	public class GpioPinController : IGpioControllerDriver {
-		internal readonly Logger Logger = new Logger("GPIO-CONTROLLER");
-		public EGpioDriver CurrentGpioDriver { get; private set; }
+		internal readonly ILogger Logger = new Logger("GPIO-CONTROLLER");
+		public EGPIO_DRIVERS CurrentGpioDriver { get; private set; }
 		private IGpioControllerDriver GpioControllerDriver { get; set; } = new NullDriver();
-		private GpioEventManager? GpioPollingManager => Core.PiController?.GetEventManager();
+		private GpioEventManager GpioPollingManager => GetEventManager();
 
-		public GpioPinController InitGpioController(EGpioDriver driver) {
+		public GpioPinController InitGpioController(EGPIO_DRIVERS driver) {
 			CurrentGpioDriver = driver;
 
 			switch (CurrentGpioDriver) {
-				case EGpioDriver.RaspberryIODriver:
+				case EGPIO_DRIVERS.RaspberryIODriver:
 					GpioControllerDriver = new RaspberryIOController(this).InitDriver();
-
-					if(Core.PiController == null) {
-						Logger.Log("Cannot set the event manager due to a malfunction.", LogLevels.Warn);
-						return this;
-					}
-
-					Core.PiController.SetEventManager(new GpioEventManager());
+					SetEventManager(new GpioEventManager());
 					Logger.Log($"Gpio Controller initiated with {CurrentGpioDriver.ToString()} driver.");
 					return this;
-				case EGpioDriver.GpioDevicesDriver:
-				case EGpioDriver.WiringPiDriver:
+				case EGPIO_DRIVERS.GpioDevicesDriver:
+				case EGPIO_DRIVERS.WiringPiDriver:
 				default:
+					Logger.Info("Currently, only RaspberryIO Driver is supported.");
 					return this;
 			}
 		}
 
-		public void StartInternalPinPolling() {
-			if(GpioPollingManager == null) {
-				Logger.Log("Internal polling failed as polling manager is malfunctioning.", LogLevels.Warn);
+		public void StartInternalPinPolling(int[] outputPins) {
+			if (GpioPollingManager == null) {
+				Logger.Warning("Internal polling failed as polling manager is malfunctioning.");
 				return;
 			}
 
-			if (Core.Config.RelayPins.Count() > 0) {
-				foreach (int pin in Core.Config.RelayPins) {
-					GpioPinEventConfig config = new GpioPinEventConfig(pin, GpioPinMode.Output, GpioPinEventStates.ALL);
-					GpioPollingManager.RegisterGpioEvent(config);
-					RegisterEventDelegate(pin, OnRelayPinValueChanged);
-				}
+			if (outputPins.Length <= 0) {
+				Logger.Warning("Pin array is empty!");
+				return;
 			}
 
-			if (Core.Config.IRSensorPins.Count() > 0) {
-				foreach (int pin in Core.Config.IRSensorPins) {
-					GpioPinEventConfig config = new GpioPinEventConfig(pin, GpioPinMode.Input, GpioPinEventStates.ALL);
-					GpioPollingManager.RegisterGpioEvent(config);
-					RegisterEventDelegate(pin, OnIrSensorValueChanged);
-				}
-			}
-
-			if (Core.Config.SoundSensorPins.Count() > 0) {
-				foreach (int pin in Core.Config.SoundSensorPins) {
-					GpioPinEventConfig config = new GpioPinEventConfig(pin, GpioPinMode.Input, GpioPinEventStates.ALL);
-					GpioPollingManager.RegisterGpioEvent(config);
-					RegisterEventDelegate(pin, OnSoundSensorValueChanged);
-				}
+			foreach (int pin in outputPins) {
+				GpioPinEventConfig config = new GpioPinEventConfig(pin, GpioPinMode.Output, GpioPinEventStates.ALL);
+				GpioPollingManager.RegisterGpioEvent(config);
+				RegisterEventDelegate(pin, OnRelayPinValueChanged);
 			}
 		}
 
@@ -85,34 +67,13 @@ namespace Assistant.AssistantCore.PiGpio {
 				return;
 			}
 
-			if (Core.PiController == null) {
-				Logger.Log("IR Sensor event execution failed. Malfunctioned Controller.", LogLevels.Warn);
-				return;
-			}
-
-			if (!Core.Config.IRSensorPins.Contains(e.PinNumber)) {
-				return;
-			}
-
 			switch (e.PinState) {
 				case GpioPinState.On:
 					Logger.Log($"An Object is in front of the sensor! Pin -> {e.PinNumber}");
-
-					if (Core.PiController.EnableExperimentalFunction && Core.Config.RelayPins[0] != 0) {
-						SetGpioValue(Core.Config.RelayPins[0], GpioPinMode.Output, GpioPinState.On);
-					}
-
 					break;
-
 				case GpioPinState.Off:
 					Logger.Log($"No objects detected! Pin -> {e.PinNumber}");
-
-					if (Core.PiController.EnableExperimentalFunction && Core.Config.RelayPins[0] != 0) {
-						SetGpioValue(Core.Config.RelayPins[0], GpioPinMode.Output, GpioPinState.Off);
-					}
-
 					break;
-
 				default:
 					break;
 			}
@@ -123,17 +84,13 @@ namespace Assistant.AssistantCore.PiGpio {
 				return;
 			}
 
-			if (!Core.Config.RelayPins.Contains(e.PinNumber)) {
-				return;
-			}
-
 			switch (e.PinState) {
 				case GpioPinState.On:
-					Logger.Log($"Relay module connected to {e.PinNumber} gpio pin set to ON state. (OFF)", Enums.LogLevels.Info);
+					Logger.Info($"Relay module connected to {e.PinNumber} gpio pin set to ON state. (OFF)");
 					break;
 
 				case GpioPinState.Off:
-					Logger.Log($"Relay module connected to {e.PinNumber} gpio pin set to OFF state. (ON)", Enums.LogLevels.Info);
+					Logger.Log($"Relay module connected to {e.PinNumber} gpio pin set to OFF state. (ON)");
 					break;
 
 				default:
@@ -146,17 +103,13 @@ namespace Assistant.AssistantCore.PiGpio {
 				return;
 			}
 
-			if (!Core.Config.SoundSensorPins.Contains(e.PinNumber)) {
-				return;
-			}
-
 			switch (e.PinState) {
 				case GpioPinState.On:
-					Logger.Log($"Sound dectected! Pin -> {e.PinNumber}");
+					Logger.Log($"Sound detected! Pin -> {e.PinNumber}");
 					break;
 
 				case GpioPinState.Off:
-					Logger.Log($"No sound. Pin -> {e.PinNumber}", LogLevels.Trace);
+					Logger.Trace($"No sound. Pin -> {e.PinNumber}");
 					break;
 
 				default:
@@ -168,7 +121,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 		private IGpioControllerDriver GetDriver() {
 			switch (CurrentGpioDriver) {
-				case EGpioDriver.RaspberryIODriver:
+				case EGPIO_DRIVERS.RaspberryIODriver:
 					if (GpioControllerDriver != null && GpioControllerDriver.IsDriverProperlyInitialized) {
 						return GpioControllerDriver;
 					}

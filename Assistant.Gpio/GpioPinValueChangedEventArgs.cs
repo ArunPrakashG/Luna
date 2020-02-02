@@ -1,6 +1,6 @@
-using static Assistant.AssistantCore.Enums;
+using static Assistant.Gpio.PiController;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 	public class GpioPinValueChangedEventArgs {
 		public int PinNumber { get; set; }
 

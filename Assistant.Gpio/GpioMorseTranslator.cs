@@ -1,11 +1,8 @@
-using Assistant.Extensions;
-using Assistant.Log;
-using Assistant.MorseCode;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 	public class GpioMorseTranslator {
 		private MorseCore MorseCore => Core.MorseCode;
 		private GpioPinController? Controller => Core.PiController?.GetPinController();
@@ -28,7 +25,7 @@ namespace Assistant.AssistantCore.PiGpio {
 				return false;
 			}
 
-			if(Controller == null) {
+			if (Controller == null) {
 				Logger.Log("Malfunctioning PinController.", Enums.LogLevels.Warn);
 				return false;
 			}

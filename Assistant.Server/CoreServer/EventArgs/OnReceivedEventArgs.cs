@@ -1,7 +1,5 @@
-using AssistantSharedLibrary.Assistant.Servers.TCPServer.Requests;
+using Assistant.Server.CoreServer.Requests;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Assistant.Server.CoreServer.EventArgs {
 	public class OnReceivedEventArgs {

@@ -22,7 +22,7 @@ namespace Assistant.Logging {
 		public delegate void OnExceptionMessageRecevied(object sender, OnExceptionMessageEventArgs e);
 		public static event OnExceptionMessageRecevied? OnExceptionReceived;
 
-		private void Debug(string? message,
+		public void Debug(string? message,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -33,7 +33,7 @@ namespace Assistant.Logging {
 			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.DEBUG, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
-		private void Error(string? message,
+		public void Error(string? message,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -45,7 +45,7 @@ namespace Assistant.Logging {
 			OnErrorReceived?.Invoke(this, new EventArgsBase(DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
-		private void Exception(Exception? exception,
+		public void Exception(Exception? exception,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -58,7 +58,7 @@ namespace Assistant.Logging {
 			OnExceptionReceived?.Invoke(this, new OnExceptionMessageEventArgs(exception, DateTime.Now, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
-		private void Info(string? message,
+		public void Info(string? message,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -70,7 +70,7 @@ namespace Assistant.Logging {
 			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.INFO, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
-		private void Trace(string? message,
+		public void Trace(string? message,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -81,7 +81,7 @@ namespace Assistant.Logging {
 			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.TRACE, previousMethodName, callermemberlineNo, calledFilePath));			
 		}
 
-		private void Warning(string? message,
+		public void Warning(string? message,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -93,7 +93,7 @@ namespace Assistant.Logging {
 			OnWarningReceived?.Invoke(this, new EventArgsBase(DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
-		private void WithColor(string? message, ConsoleColor color = ConsoleColor.Cyan,
+		public void WithColor(string? message, ConsoleColor color = ConsoleColor.Cyan,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -103,7 +103,7 @@ namespace Assistant.Logging {
 			Trace(message, previousMethodName, callermemberlineNo, calledFilePath);
 		}
 
-		private void Input(string? message,
+		public void Input(string? message,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {

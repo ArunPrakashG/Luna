@@ -3,7 +3,7 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 
 	public static class Constants {
 		public const string TraceLogPath = @"TraceLog.txt";

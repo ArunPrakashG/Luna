@@ -1,10 +1,18 @@
-using Assistant.Log;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using System.Collections.Generic;
 
-namespace Assistant.AssistantCore.PiGpio {
+namespace Assistant.Gpio {
 	public class GpioEventManager {
-		internal readonly Logger Logger = new Logger("GPIO-EVENTS");
+		internal readonly ILogger Logger = new Logger("GPIO-EVENTS");
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();
+		private readonly PiController PiController;
+		private readonly GpioPinController PinController;
+
+		public GpioEventManager(PiController piController, GpioPinController pinController) {
+			PiController = piController;
+			PinController = pinController;
+		}
 
 		public bool RegisterGpioEvent(GpioPinEventConfig pinData) {
 			if (pinData == null) {
@@ -12,11 +20,11 @@ namespace Assistant.AssistantCore.PiGpio {
 			}
 
 			if (!PiController.IsValidPin(pinData.GpioPin)) {
-				Logger.Log("The specified pin is invalid.", Enums.LogLevels.Warn);
+				Logger.Warning("The specified pin is invalid.");
 				return false;
 			}
 
-			GpioEventGenerator Generator = new GpioEventGenerator(this).InitEventGenerator();
+			GpioEventGenerator Generator = new GpioEventGenerator(PiController, PinController, this).InitEventGenerator();
 			if (Generator.StartPinPolling(pinData)) {
 				GpioPinEventGenerators.Add(Generator);
 				return true;
@@ -32,7 +40,7 @@ namespace Assistant.AssistantCore.PiGpio {
 
 			foreach (GpioPinEventConfig pin in pinDataList) {
 				if (!PiController.IsValidPin(pin.GpioPin)) {
-					Logger.Log("Invalid pin in the pin list.", Enums.LogLevels.Warn);
+					Logger.Warning("Invalid pin in the pin list.");
 					return false;
 				}
 			}
@@ -66,7 +74,7 @@ namespace Assistant.AssistantCore.PiGpio {
 			foreach (GpioEventGenerator gen in GpioPinEventGenerators) {
 				if (gen.EventPinConfig.GpioPin == pin) {
 					gen.OverridePinPolling();
-					Logger.Log($"Stopping pin polling for {gen.EventPinConfig.GpioPin} ...", Enums.LogLevels.Trace);
+					Logger.Trace($"Stopping pin polling for {gen.EventPinConfig.GpioPin} ...");
 				}
 			}
 		}

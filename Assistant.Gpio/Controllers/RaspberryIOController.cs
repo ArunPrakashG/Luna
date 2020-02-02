@@ -1,20 +1,18 @@
-using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.Logging.Interfaces;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Abstractions;
 using Unosquare.WiringPi;
-using static Assistant.AssistantCore.Enums;
+using static Assistant.Gpio.PiController;
 
-namespace Assistant.AssistantCore.PiGpio.GpioControllers {
+namespace Assistant.Gpio.Controllers {
 	internal class RaspberryIOController : IGpioControllerDriver {
 		private readonly GpioPinController GpioController;
-		private readonly Logger Logger;
+		private readonly ILogger Logger;
 		public bool IsDriverProperlyInitialized { get; private set; }
 
 		internal RaspberryIOController(GpioPinController gpioController) {
@@ -24,8 +22,8 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 
 		[CanBeNull]
 		internal RaspberryIOController InitDriver() {
-			if (Core.DisablePiMethods || Core.RunningPlatform != OSPlatform.Linux || !Core.Config.EnableGpioControl) {
-				Logger.Log("Failed to initialize Gpio Controller Driver.", LogLevels.Warn);
+			if (!PiController.IsAllowedToExecute) {
+				Logger.Warning("Failed to initialize Gpio Controller Driver. (Driver isn't allowed to execute.)");
 				IsDriverProperlyInitialized = false;
 				return this;
 			}
@@ -37,7 +35,7 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 
 		[CanBeNull]
 		public GpioPinConfig GetGpioConfig(int pinNumber) {
-			if (Core.DisablePiMethods || !IsDriverProperlyInitialized) {
+			if (!PiController.IsAllowedToExecute || !IsDriverProperlyInitialized) {
 				return new GpioPinConfig();
 			}
 
@@ -63,7 +61,7 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 			if (SetGpioValue(pin, mode, state)) {
 				UpdatePinConfig(pin, mode, state, duration);
 
-				Helpers.ScheduleTask(() => {
+				Extensions.Helpers.ScheduleTask(() => {
 					if (SetGpioValue(pin, mode, GpioPinState.Off)) {
 						UpdatePinConfig(pin, mode, GpioPinState.Off, TimeSpan.Zero);
 					}
@@ -103,7 +101,7 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 
 			GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
 			GpioPin.PinMode = (GpioPinDriveMode) mode;
-			Logger.Log($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.", LogLevels.Trace);
+			Logger.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
 			return true;
 		}
 
@@ -116,7 +114,7 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 
 			if (GpioPin.PinMode == GpioPinDriveMode.Output) {
 				GpioPin.Write((GpioPinValue) state);
-				Logger.Log($"Configured ({pin}) gpio pin to ({state.ToString()}) state.", LogLevels.Trace);
+				Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state.");
 				return true;
 			}
 
@@ -133,17 +131,17 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 
 			if (mode == GpioPinMode.Output) {
 				GpioPin.Write((GpioPinValue) state);
-				Logger.Log($"Configured ({pin}) gpio pin to ({state.ToString()}) state with ({mode.ToString()}) mode.", LogLevels.Trace);
+				Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state with ({mode.ToString()}) mode.");
 				return true;
 			}
 
-			Logger.Log($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.", LogLevels.Trace);
+			Logger.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
 			return true;
 		}
 
 		public void ShutdownDriver() {
-			if (Core.Config.CloseRelayOnShutdown) {
-				foreach (int pin in Core.Config.OutputModePins) {
+			if (PiController.GracefullShutdown) {
+				foreach (int pin in PiController.GetPins().output) {
 					GpioPinConfig? pinStatus = GetGpioConfig(pin);
 
 					if (pinStatus == null) {
@@ -184,21 +182,28 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 			return true;
 		}
 
-		public async Task<bool> RelayTestServiceAsync(GpioCycles selectedCycle, int singleChannelValue = 0) {
+		public async Task<bool> RelayTestServiceAsync(IEnumerable<int> relayPins, GpioCycles selectedCycle, int singleChannelValue = 0) {
+			if (relayPins.Count() <= 0) {
+				Logger.Warning("No pins specified.");
+				return false;
+			}
+
 			Logger.Log("Relay test service started!");
 
 			switch (selectedCycle) {
 				case GpioCycles.OneTwo:
-					return await RelayOneTwo().ConfigureAwait(false);
+					return await RelayOneTwo(relayPins).ConfigureAwait(false);
 
 				case GpioCycles.OneOne:
-					return await RelayOneOne().ConfigureAwait(false);
+					return await RelayOneOne(relayPins).ConfigureAwait(false);
 
 				case GpioCycles.OneMany:
-					return await RelayOneMany().ConfigureAwait(false);
+					return await RelayOneMany(relayPins).ConfigureAwait(false);
 
 				case GpioCycles.Cycle:
-					return await RelayOneTwo().ConfigureAwait(false) && await RelayOneOne().ConfigureAwait(false) && await RelayOneMany().ConfigureAwait(false);
+					return await RelayOneTwo(relayPins).ConfigureAwait(false) &&
+						await RelayOneOne(relayPins).ConfigureAwait(false) &&
+						await RelayOneMany(relayPins).ConfigureAwait(false);
 
 				case GpioCycles.Single:
 					return await RelaySingle(singleChannelValue, 8000).ConfigureAwait(false);
@@ -211,12 +216,12 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 					break;
 			}
 
-			Logger.Log("One or more tests failed.", LogLevels.Warn);
+			Logger.Warning("One or more tests failed.");
 			return false;
 		}
 
 		protected async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
-			if (!Core.Config.RelayPins.Contains(pin)) {
+			if (!GetPins().output.Contains(pin)) {
 				return false;
 			}
 
@@ -225,31 +230,41 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 			await Task.Delay(delayInMs).ConfigureAwait(false);
 			SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
 			Logger.Log("Relay closed!");
-			"Relay single test passed!".LogInfo(Logger);
+			Logger.Info("Relay single test passed!");
 			return true;
 		}
 
-		protected async Task<bool> RelayOneTwo() {
-			//make sure all relay is off
-			await ExecuteOnEachPin(Core.Config.RelayPins, GpioPinMode.Output, GpioPinState.Off, 30);
+		protected async Task<bool> RelayOneTwo(IEnumerable<int> relayPins) {
+			if (relayPins.Count() <= 0) {
+				Logger.Warning("No pins specified.");
+				return false;
+			}
 
-			await ExecuteOnEachPin(Core.Config.RelayPins, GpioPinMode.Output, GpioPinState.On, 400);
+			//make sure all relay is off
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 30);
+
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.On, 400);
 			await Task.Delay(500).ConfigureAwait(false);
 
-			await ExecuteOnEachPin(Core.Config.RelayPins, GpioPinMode.Output, GpioPinState.Off, 150);
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 150);
 			await Task.Delay(700).ConfigureAwait(false);
 
-			await ExecuteOnEachPin(Core.Config.RelayPins, GpioPinMode.Output, GpioPinState.On, 200);
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.On, 200);
 			await Task.Delay(500).ConfigureAwait(false);
 
-			return await ExecuteOnEachPin(Core.Config.RelayPins, GpioPinMode.Output, GpioPinState.Off, 120);
+			return await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 120);
 		}
 
-		protected async Task<bool> RelayOneOne() {
-			//make sure all relay is off
-			await ExecuteOnEachPin(Core.Config.RelayPins, GpioPinMode.Output, GpioPinState.Off, 50);
+		protected async Task<bool> RelayOneOne(IEnumerable<int> relayPins) {
+			if (relayPins.Count() <= 0) {
+				Logger.Warning("No pins specified.");
+				return false;
+			}
 
-			foreach (int pin in Core.Config.RelayPins) {
+			//make sure all relay is off
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 50);
+
+			foreach (int pin in relayPins) {
 				SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
 				await Task.Delay(500).ConfigureAwait(false);
 				SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
@@ -259,11 +274,16 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 			return true;
 		}
 
-		protected async Task<bool> RelayOneMany() {
-			//make sure all relay is off
-			await ExecuteOnEachPin(Core.Config.RelayPins, GpioPinMode.Output, GpioPinState.Off, 50);
+		protected async Task<bool> RelayOneMany(IEnumerable<int> relayPins) {
+			if (relayPins.Count() <= 0) {
+				Logger.Warning("No pins specified.");
+				return false;
+			}
 
-			foreach (int pin in Core.Config.RelayPins) {
+			//make sure all relay is off
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 50);
+
+			foreach (int pin in relayPins) {
 				SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
 
 				for (int i = 0; i <= 5; i++) {
@@ -280,7 +300,7 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 		}
 
 		public GpioPinState GpioPinStateRead(int pin) {
-			if (!PiController.IsValidPin(pin)) {
+			if (!IsValidPin(pin)) {
 				Logger.Log("The specified pin is invalid.");
 				return GpioPinState.Off;
 			}
@@ -290,7 +310,7 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 		}
 
 		public bool GpioDigitalRead(int pin) {
-			if (!PiController.IsValidPin(pin)) {
+			if (!IsValidPin(pin)) {
 				Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -300,7 +320,7 @@ namespace Assistant.AssistantCore.PiGpio.GpioControllers {
 		}
 
 		public int GpioPhysicalPinNumber(int bcmPin) {
-			if (!PiController.IsValidPin(bcmPin)) {
+			if (!IsValidPin(bcmPin)) {
 				Logger.Log("The specified pin is invalid.");
 				return 0;
 			}

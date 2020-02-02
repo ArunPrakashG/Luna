@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 
 	public class ModuleWatcher {
 		private readonly Logger Logger = new Logger("MODULE-WATCHER");

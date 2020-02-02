@@ -8,7 +8,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 	public class SpeechServiceCache {
 		public string? SpeechText { get; set; }
 		public bool IsCompleted { get; set; }

@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 	public class TcpServerClientManager : IDisposable {
 		private readonly Logger Logger;
 		public Connection? Client { get; private set; }

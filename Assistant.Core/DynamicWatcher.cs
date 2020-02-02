@@ -4,7 +4,7 @@ using Assistant.Modules.Interfaces.LoggerInterfaces;
 using System;
 using System.IO;
 
-namespace Assistant.AssistantCore {
+namespace Assistant.Core {
 
 	public class DynamicWatcher : IDynamicWatcher {
 

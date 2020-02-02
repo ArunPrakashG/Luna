@@ -1,5 +1,9 @@
+using Assistant.Extensions;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using Assistant.Server.CoreServer.EventArgs;
 using Assistant.Server.CoreServer.Requests;
+using Assistant.Server.CoreServer.Responses;
 using System;
 using System.Net.Sockets;
 using System.Text;
@@ -9,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace Assistant.Server.CoreServer {
 	public class Connection : IDisposable {
+		private readonly ILogger Logger = new Logger("CONNECTION");
 		private TcpClient Client;
 		private CoreServerBase Server;
 		private bool IsAlreadyInitialized;
@@ -42,7 +47,7 @@ namespace Assistant.Server.CoreServer {
 				return this;
 			}
 
-			Logger.LogInfo($"Client connected with address -> {ClientIpAddress} / {ClientUniqueId}");
+			Logger.Info($"Client connected with address -> {ClientIpAddress} / {ClientUniqueId}");
 
 			lock (CoreServerBase.ConnectedClients) {
 				if (!CoreServerBase.ConnectedClients.ContainsKey(ClientUniqueId)) {
@@ -108,7 +113,7 @@ namespace Assistant.Server.CoreServer {
 						break;
 					}
 					catch (Exception e) {
-						EventLogger.LogException(e);
+						Logger.Exception(e);
 						continue;
 					}
 				}
