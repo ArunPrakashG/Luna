@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
     <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
+    <ProjectReference Include="..\Assistant.Morse\Assistant.Morse.csproj" />
   </ItemGroup>
 
 </Project>

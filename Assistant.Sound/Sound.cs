@@ -1,51 +1,58 @@
-using System;
+using Assistant.Extensions;
+using Assistant.Extensions.Interfaces;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
+using System.IO;
+using System.Runtime.InteropServices;
+using static Assistant.Logging.Enums;
 
-namespace Assistant.Sound
-{
-	public class Sound
-	{
-		public static void PlayNotification(Enums.NotificationContext context = Enums.NotificationContext.Normal, bool redirectOutput = false) {
-			if (Core.IsUnknownOs) {
+namespace Assistant.Sound {
+	public class Sound : IExternal {
+		private static ILogger Logger = new Logger("SOUND");
+		public bool IsGloballyMuted = false;
+
+		public Sound(bool isMuted) {
+			IsGloballyMuted = isMuted;
+		}
+
+		public void PlayNotification(ENOTIFICATION_CONTEXT context = ENOTIFICATION_CONTEXT.NORMAL, bool redirectOutput = false) {
+			if (Helpers.GetOsPlatform() != OSPlatform.Linux) {
 				Logger.Log("Cannot proceed as the running operating system is unknown.", Enums.LogLevels.Error);
 				return;
 			}
 
-			if (Core.Config.MuteAssistant) {
-				Logger.Log("Notifications are muted in config.", Enums.LogLevels.Trace);
+			if (IsGloballyMuted) {
+				Logger.Trace("Notifications are muted globally.");
 				return;
 			}
 
 			if (!Directory.Exists(Constants.ResourcesDirectory)) {
-				Logger.Log("Resources directory doesn't exist!", Enums.LogLevels.Warn);
+				Logger.Warning("Resources directory doesn't exist!");
 				return;
 			}
 
 			switch (context) {
-				case Enums.NotificationContext.Imap:
-					if (!File.Exists(Constants.IMAPPushNotificationFilePath)) {
-						Logger.Log("IMAP notification music file doesn't exist!", Enums.LogLevels.Warn);
+				case ENOTIFICATION_CONTEXT.NORMAL:
+					break;
+				case ENOTIFICATION_CONTEXT.ALERT:
+					if (!File.Exists(Constants.ALERT_SOUND_PATH)) {
+						Logger.Warning("Alert sound file doesn't exist!");
 						return;
 					}
 
-					ExecuteCommand($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.IMAPPushFileName} -q", Core.Config.Debug || redirectOutput);
-					Logger.Log("Notification command processed sucessfully!", Enums.LogLevels.Trace);
+					Logger.Log($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(true), LogLevels.Blue);
 					break;
-
-				case Enums.NotificationContext.EmailSend:
-					break;
-
-				case Enums.NotificationContext.EmailSendFailed:
-					break;
-
-				case Enums.NotificationContext.FatalError:
-					break;
-
-				case Enums.NotificationContext.Normal:
-					if (!Core.IsNetworkAvailable) {
-						Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
-					}
+				case ENOTIFICATION_CONTEXT.ERROR:
 					break;
 			}
+		}
+
+		public void RegisterLoggerEvent(object eventHandler) => LoggerExtensions.RegisterLoggerEvent(eventHandler);
+
+		public enum ENOTIFICATION_CONTEXT : byte {
+			NORMAL,
+			ERROR,
+			ALERT
 		}
 	}
 }

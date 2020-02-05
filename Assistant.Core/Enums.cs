@@ -1,18 +1,6 @@
 namespace Assistant.Core {
 
 	public static class Enums {
-		public enum AsyncModuleContext {
-			AssistantStartup,
-			AssistantShutdown,
-			UpdateAvailable,
-			UpdateStarted,
-			NetworkDisconnected,
-			NetworkReconnected,
-			SystemShutdown,
-			SystemRestart,
-			ConfigWatcherEvent,
-			ModuleWatcherEvent
-		}
 
 		public enum SteamUserInputType {
 			DeviceID,
@@ -37,42 +25,10 @@ namespace Assistant.Core {
 			Custom
 		}
 
-		public enum ModuleType {
-			Discord,
-			Email,
-			Steam,
-			Youtube,
-			Events,
-			Unknown
-		}
-
 		public enum KeywordType {
 			Subject,
 			MessageBody,
 			From
-		}
-
-		public enum NotificationContext : byte {
-			Imap,
-			EmailSend,
-			EmailSendFailed,
-			FatalError,
-			Normal
-		}
-
-		public enum LogLevels {
-			Trace,
-			Debug,
-			Info,
-			Warn,
-			Error,
-			Fatal,
-			DebugException,
-			Ascii,
-			UserInput,
-			ServerResult,
-			Custom,
-			Success
 		}
 
 		//TODO Global Error code system

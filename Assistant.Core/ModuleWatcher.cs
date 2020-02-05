@@ -1,13 +1,15 @@
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
 
 	public class ModuleWatcher {
-		private readonly Logger Logger = new Logger("MODULE-WATCHER");
+		private readonly ILogger Logger = new Logger("MODULE-WATCHER");
 		private FileSystemWatcher? FileSystemWatcher;
 		private DateTime LastRead = DateTime.MinValue;
 		public bool ModuleWatcherOnline = false;
@@ -24,9 +26,9 @@ namespace Assistant.Core {
 		}
 
 		public void InitModuleWatcher() {
-			Logger.Log("Starting module watcher...", Enums.LogLevels.Trace);
+			Logger.Log("Starting module watcher...", LogLevels.Trace);
 			if (!Core.Config.EnableModuleWatcher && !Core.Config.EnableModules) {
-				Logger.Log("Module watcher is disabled.", Enums.LogLevels.Trace);
+				Logger.Log("Module watcher is disabled.", LogLevels.Trace);
 				return;
 			}
 
@@ -43,14 +45,14 @@ namespace Assistant.Core {
 			FileSystemWatcher.IncludeSubdirectories = true;
 			FileSystemWatcher.EnableRaisingEvents = true;
 			ModuleWatcherOnline = true;
-			Logger.Log("Module watcher started sucessfully!");
+			Logger.Log("Module watcher started successfully!");
 		}
 
 		private void FileSystemWatcherOnError(object sender, ErrorEventArgs e) => Logger.Log(e.GetException());
 
 		public void StopModuleWatcher() {
 			if (FileSystemWatcher != null) {
-				Logger.Log("Stopping module watcher...", Enums.LogLevels.Trace);
+				Logger.Log("Stopping module watcher...", LogLevels.Trace);
 				ModuleWatcherOnline = false;
 				FileSystemWatcher.EnableRaisingEvents = false;
 				FileSystemWatcher.Dispose();
@@ -60,7 +62,7 @@ namespace Assistant.Core {
 		}
 
 		private void OnModuleDeleted(string filePath) {
-			if (Helpers.IsNullOrEmpty(filePath)) {
+			if (string.IsNullOrEmpty(filePath)) {
 				return;
 			}
 
@@ -69,7 +71,7 @@ namespace Assistant.Core {
 
 		private void OnFileEventRaised(object sender, FileSystemEventArgs e) {
 			if ((sender == null) || (e == null)) {
-				Logger.Log(nameof(sender) + " || " + nameof(e), Enums.LogLevels.Error);
+				Logger.Log(nameof(sender) + " || " + nameof(e), LogLevels.Error);
 				return;
 			}
 
@@ -84,7 +86,7 @@ namespace Assistant.Core {
 				return;
 			}
 
-			Logger.Log(e.FullPath, Enums.LogLevels.Trace);
+			Logger.Log(e.FullPath, LogLevels.Trace);
 
 			Task.Run(async () => await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.ModuleWatcherEvent, sender, e).ConfigureAwait(false));
 

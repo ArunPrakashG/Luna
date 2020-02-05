@@ -11,7 +11,7 @@ namespace Assistant.Logging.EventArgs {
 		public DateTime ReceivedTime { get; private set; }
 
 		[JsonProperty]
-		public LEVEL LogLevel { get; private set; }
+		public LogLevels LogLevel { get; private set; }
 
 		[JsonProperty]
 		public string? CallerMemberName { get; private set; }
@@ -22,7 +22,7 @@ namespace Assistant.Logging.EventArgs {
 		[JsonProperty]
 		public string? CallerFilePath { get; private set; }
 
-		public LogMessageEventArgs(string msg, DateTime time, LEVEL level, string? callerName, int callerLine, string? callerFile) {
+		public LogMessageEventArgs(string msg, DateTime time, LogLevels level, string? callerName, int callerLine, string? callerFile) {
 			LogMessage = msg;
 			ReceivedTime = time;
 			LogLevel = level;

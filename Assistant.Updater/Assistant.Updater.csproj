@@ -25,4 +25,8 @@
 		<Exec Command="dotnet-sshdeploy push" Condition="'$(Configuration)' == 'Release' " />
 	</Target>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
+	</ItemGroup>
+
 </Project>

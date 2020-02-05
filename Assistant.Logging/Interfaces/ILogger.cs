@@ -51,7 +51,7 @@ namespace Assistant.Logging.Interfaces {
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null);
 
-		void Log(string? message, LEVEL level = LEVEL.INFO,
+		void Log(string? message, LogLevels level = LogLevels.Info,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null);

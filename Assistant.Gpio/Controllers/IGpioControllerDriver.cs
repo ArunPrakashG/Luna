@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Assistant.Gpio.PiController;
@@ -9,7 +8,7 @@ namespace Assistant.Gpio.Controllers {
 	/// <summary>
 	/// The Gpio controller driver interface.
 	/// </summary>
-	internal interface IGpioControllerDriver {
+	public interface IGpioControllerDriver {
 
 		/// <summary>
 		/// Indicates if the driver has been properly initialized

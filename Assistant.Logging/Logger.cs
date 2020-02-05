@@ -30,7 +30,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.DEBUG, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Debug, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
 		public void Error(string? message,
@@ -41,7 +41,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.ERROR, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Error, previousMethodName, callermemberlineNo, calledFilePath));
 			OnErrorReceived?.Invoke(this, new EventArgsBase(DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
@@ -54,7 +54,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(exception.ToString(), DateTime.Now, LEVEL.EXCEPTION, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(exception.ToString(), DateTime.Now, LogLevels.Exception, previousMethodName, callermemberlineNo, calledFilePath));
 			OnExceptionReceived?.Invoke(this, new OnExceptionMessageEventArgs(exception, DateTime.Now, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
@@ -67,7 +67,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.INFO, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Info, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
 		public void Trace(string? message,
@@ -78,7 +78,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.TRACE, previousMethodName, callermemberlineNo, calledFilePath));			
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Trace, previousMethodName, callermemberlineNo, calledFilePath));			
 		}
 
 		public void Warning(string? message,
@@ -89,7 +89,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LEVEL.WARN, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Warn, previousMethodName, callermemberlineNo, calledFilePath));
 			OnWarningReceived?.Invoke(this, new EventArgsBase(DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
@@ -123,70 +123,70 @@ namespace Assistant.Logging {
 			Exception(e, previousMethodName, callermemberlineNo, calledFilePath);
 		}
 
-		public void Log(string? message, LEVEL level = LEVEL.INFO,
+		public void Log(string? message, LogLevels level = LogLevels.Info,
 			[CallerMemberName] string? methodName = null,
 			[CallerLineNumber] int lineNo = 0,
 			[CallerFilePath] string? filePath = null) {
 			switch (level) {
-				case LEVEL.TRACE:
+				case LogLevels.Trace:
 					Trace($"[{Helpers.GetFileName(filePath)} | {lineNo}] {message}", methodName);
 					break;
 
-				case LEVEL.DEBUG:
+				case LogLevels.Debug:
 					Debug(message, methodName);
 					break;
 
-				case LEVEL.INFO:
+				case LogLevels.Info:
 					Info(message, methodName);
 					break;
 
-				case LEVEL.WARN:
+				case LogLevels.Warn:
 					Warning($"[{Helpers.GetFileName(filePath)} | {lineNo}] " + message, methodName);
 					break;
 
-				case LEVEL.GREEN:
+				case LogLevels.Green:
 					WithColor(message, ConsoleColor.Green, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.INPUT:
+				case LogLevels.Input:
 					Input(message, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.CYAN:
+				case LogLevels.Cyan:
 					WithColor(message, ConsoleColor.Cyan, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.CUSTOM:
+				case LogLevels.Custom:
 					Console.WriteLine(message);
 					Trace(message, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.MAGENTA:
+				case LogLevels.Magenta:
 					WithColor(message, ConsoleColor.Magenta, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.ERROR:
+				case LogLevels.Error:
 					Error(message, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.RED:
+				case LogLevels.Red:
 					WithColor(message, ConsoleColor.Red, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.BLUE:
+				case LogLevels.Blue:
 					WithColor(message, ConsoleColor.Blue, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.EXCEPTION:
+				case LogLevels.Exception:
 					WithColor(message, ConsoleColor.DarkRed, methodName, lineNo, filePath);
 					break;
 
-				case LEVEL.FATAL:
+				case LogLevels.Fatal:
 					WithColor(message, ConsoleColor.DarkYellow, methodName, lineNo, filePath);
 					break;
 
 				default:
-					goto case LEVEL.INFO;
+					goto case LogLevels.Info;
 			}
 		}
 

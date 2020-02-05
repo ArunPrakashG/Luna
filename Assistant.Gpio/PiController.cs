@@ -4,22 +4,22 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Unosquare.RaspberryIO;
-using Unosquare.RaspberryIO.Abstractions;
 
 namespace Assistant.Gpio {
 	public class PiController {
 		internal static readonly ILogger Logger = new Logger("PI-CONTROLLER");
-		private static GpioEventManager GpioPollingManager = new GpioEventManager();
-		private static readonly GpioMorseTranslator MorseTranslator = new GpioMorseTranslator();
-		private static readonly BluetoothController PiBluetooth = new BluetoothController();
-		private static readonly InputManager InputManager  = new InputManager();
-		private static readonly SoundController PiSound = new SoundController();
-		private static readonly GpioPinController PinController = new GpioPinController();
+		private GpioEventManager? GpioPollingManager;
+		private readonly GpioMorseTranslator MorseTranslator = new GpioMorseTranslator();
+		private readonly BluetoothController PiBluetooth = new BluetoothController();
+		private readonly InputManager InputManager = new InputManager();
+		private readonly SoundController PiSound = new SoundController();
+		private readonly GpioPinController PinController;
 
 		public bool IsControllerProperlyInitialized { get; private set; } = false;
 		public bool EnableExperimentalFunction { get; private set; } = true;
-		public static EGPIO_DRIVERS CurrentDriver { get; private set; } = EGPIO_DRIVERS.RaspberryIODriver;
+		internal static EGPIO_DRIVERS CurrentDriver { get; private set; } = EGPIO_DRIVERS.RaspberryIODriver;
 		public static bool IsAllowedToExecute => Helpers.IsPiEnvironment();
 		internal static bool GracefullShutdown { get; private set; } = true;
 		private static int[] OutputPins = new int[41];
@@ -30,7 +30,16 @@ namespace Assistant.Gpio {
 
 		internal static (int[] output, int[] input) GetPins() => (OutputPins, InputPins);
 
-		internal PiController InitController(EGPIO_DRIVERS driver, int[] outputPins, int[] inputPins, bool gracefulExit = true) {
+		public PiController() {			
+			MorseTranslator = new GpioMorseTranslator();
+			PiBluetooth = new BluetoothController();
+			InputManager = new InputManager();
+			PiSound = new SoundController();
+			PinController = new GpioPinController(this);
+			GpioPollingManager = new GpioEventManager(this, PinController);
+		}
+
+		internal PiController InitController(EGPIO_DRIVERS driver, int[] outputPins, int[] inputPins, bool gracefulExit = true) {			
 			CurrentDriver = driver;
 			GracefullShutdown = gracefulExit;
 			OutputPins = outputPins;
@@ -79,14 +88,15 @@ namespace Assistant.Gpio {
 
 			if (!Pi.Gpio.Contains(Pi.Gpio[pin])) {
 				Logger.Warning($"pin {pin} doesn't exist or is not a valid Bcm Gpio pin.");
+				return false;
 			}
 
 			return true;
 		}
 
-		public static GpioEventManager GetEventManager() => GpioPollingManager;
+		public GpioEventManager? GetEventManager() => GpioPollingManager;
 
-		internal static void SetEventManager(GpioEventManager manager) {
+		internal void SetEventManager(GpioEventManager manager) {
 			if (manager == null) {
 				return;
 			}
@@ -94,15 +104,15 @@ namespace Assistant.Gpio {
 			GpioPollingManager = manager;
 		}
 
-		public static GpioMorseTranslator GetMorseTranslator() => MorseTranslator;
+		public GpioMorseTranslator GetMorseTranslator() => MorseTranslator;
 
-		public static BluetoothController GetBluetoothController() => PiBluetooth;
+		public BluetoothController GetBluetoothController() => PiBluetooth;
 
-		public static InputManager GetInputManager() => InputManager;
+		public  InputManager GetInputManager() => InputManager;
 
-		public static SoundController GetSoundController() => PiSound;
+		public SoundController GetSoundController() => PiSound;
 
-		public static GpioPinController GetPinController() => PinController;
+		public GpioPinController GetPinController() => PinController;
 
 		public void InitGpioShutdownTasks() {
 			GpioPollingManager.ExitEventGenerator();

@@ -1,8 +1,6 @@
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Text;
-using static AssistantSharedLibrary.Assistant.CoreServerEnums;
+using static Assistant.Server.CoreServer.CoreServerEnums;
 
 namespace Assistant.Server.CoreServer.Responses {
 	public class BaseResponse {
@@ -30,13 +28,11 @@ namespace Assistant.Server.CoreServer.Responses {
 
 		public static string SerializeRequest<TType>(TType type) where TType : class => JsonConvert.SerializeObject(type);
 
-		public static TType DeserializeRequest<TType>(string json) where TType : class => string.IsNullOrEmpty(json) ? default(TType) : JsonConvert.DeserializeObject<TType>(json);
-
 		public override int GetHashCode() {
 			return base.GetHashCode();
 		}
 
-		public override bool Equals(object obj) {
+		public override bool Equals(object? obj) {
 			if (obj == null) {
 				return false;
 			}

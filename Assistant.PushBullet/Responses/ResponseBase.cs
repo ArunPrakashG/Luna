@@ -12,39 +12,39 @@ namespace Assistant.Pushbullet.Responses {
 		public bool IsDeleteRequestSuccess { get; set; }
 
 		[JsonProperty("accounts", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Accounts { get; set; }
+		public object[]? Accounts { get; set; }
 
 		[JsonProperty("blocks", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Blocks { get; set; }
+		public object[]? Blocks { get; set; }
 
 		[JsonProperty("channels", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Channels { get; set; }
+		public object[]? Channels { get; set; }
 
 		[JsonProperty("chats", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public ChatsBase[] Chats { get; set; }
+		public ChatsBase[]? Chats { get; set; }
 
 		[JsonProperty("clients", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Clients { get; set; }
+		public object[]? Clients { get; set; }
 
 		[JsonProperty("contacts", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Contacts { get; set; }
+		public object[]? Contacts { get; set; }
 
 		[JsonProperty("devices", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public DevicesBase[] Devices { get; set; }
+		public DevicesBase[]? Devices { get; set; }
 
 		[JsonProperty("grants", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Grants { get; set; }
+		public object[]? Grants { get; set; }
 
 		[JsonProperty("pushes", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public PushesBase[] Pushes { get; set; }
+		public PushesBase[]? Pushes { get; set; }
 
 		[JsonProperty("profiles", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Profiles { get; set; }
+		public object[]? Profiles { get; set; }
 
 		[JsonProperty("subscriptions", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public SubscriptionsBase[] Subscriptions { get; set; }
+		public SubscriptionsBase[]? Subscriptions { get; set; }
 
 		[JsonProperty("texts", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public object[] Texts { get; set; }
+		public object[]? Texts { get; set; }
 	}
 }

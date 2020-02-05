@@ -1,20 +1,20 @@
 namespace Assistant.Logging {
 	public class Enums {
-		public enum LEVEL {
-			TRACE,
-			DEBUG,
-			INFO,
-			WARN,
-			ERROR,
-			EXCEPTION,
-			FATAL,
-			GREEN,
-			RED,
-			BLUE,
-			CYAN,
-			MAGENTA,
-			INPUT,
-			CUSTOM
+		public enum LogLevels {
+			Trace,
+			Debug,
+			Info,
+			Warn,
+			Error,
+			Exception,
+			Fatal,
+			Green,
+			Red,
+			Blue,
+			Cyan,
+			Magenta,
+			Input,
+			Custom
 		}
 	}
 }

@@ -26,17 +26,17 @@ namespace Assistant.Extensions
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				FileSeperator = "//";
-				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, Enums.LEVEL.TRACE);
+				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 				FileSeperator = "\\";
-				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, Enums.LEVEL.TRACE);
+				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
 			}
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 				FileSeperator = "//";
-				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, Enums.LEVEL.TRACE);
+				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, Enums.LogLevels.Trace);
 			}
 		}
 
@@ -72,7 +72,7 @@ namespace Assistant.Extensions
 		
 		public static Timer? ScheduleTask(Action action, TimeSpan delay) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return null;
 			}
 
@@ -90,7 +90,7 @@ namespace Assistant.Extensions
 			return TaskSchedulerTimer;
 		}
 
-		public static bool IsSocketConnected(Socket s) {
+		public static bool IsSocketConnected(Socket? s) {
 			if (s == null) {
 				return false;
 			}
@@ -103,10 +103,21 @@ namespace Assistant.Extensions
 
 			return true;
 		}
+
+		public static bool IsServerOnline(string? ip) {
+			if (string.IsNullOrEmpty(ip)) {
+				return false;
+			}
+
+			Ping ping = new Ping();
+			PingReply pingReply = ping.Send(ip);
+
+			return pingReply.Status == IPStatus.Success;
+		}
 		
 		public static string? ExecuteBash(this string cmd, bool sudo) {
 			if(GetOsPlatform() != OSPlatform.Linux) {
-				Logger.Log("Current OS environment isn't Linux.", Enums.LEVEL.ERROR);
+				Logger.Log("Current OS environment isn't Linux.", Enums.LogLevels.Error);
 				return null;
 			}
 
@@ -177,11 +188,11 @@ namespace Assistant.Extensions
 
 		public static void GenerateAsciiFromText(string text) {
 			if (string.IsNullOrEmpty(text)) {
-				Logger.Log("The specified text is empty or null", Enums.LEVEL.WARN);
+				Logger.Log("The specified text is empty or null", Enums.LogLevels.Warn);
 				return;
 			}
 
-			Logger.Log(FiggleFonts.Ogre.Render(text), Enums.LEVEL.GREEN);
+			Logger.Log(FiggleFonts.Ogre.Render(text), Enums.LogLevels.Green);
 		}
 
 		public static string? GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);
@@ -219,7 +230,7 @@ namespace Assistant.Extensions
 
 		public static string? GetUrlToString(string url, Method method) {
 			if (!IsNetworkAvailable()) {
-				Logger.Log("Network is unavailable.", Enums.LEVEL.WARN);
+				Logger.Log("Network is unavailable.", Enums.LogLevels.Warn);
 				return null;
 			}
 
@@ -242,7 +253,7 @@ namespace Assistant.Extensions
 
 		public static string? GetUrlToString(this string url) {
 			if (!IsNetworkAvailable()) {
-				Logger.Log("Network is unavailable.", Enums.LEVEL.WARN);
+				Logger.Log("Network is unavailable.", Enums.LogLevels.Warn);
 				return null;
 			}
 
@@ -262,7 +273,7 @@ namespace Assistant.Extensions
 
 		public static byte[]? GetUrlToBytes(string url, Method method, string userAgent, string? headerName = null, string? headerValue = null) {
 			if (!IsNetworkAvailable()) {
-				Logger.Log("Cannot process, network is unavailable.", Enums.LEVEL.WARN);
+				Logger.Log("Cannot process, network is unavailable.", Enums.LogLevels.Warn);
 				return new byte[0];
 			}
 
@@ -279,7 +290,7 @@ namespace Assistant.Extensions
 				request.AddHeader(headerName, headerValue);
 			}
 
-			Logger.Log("Downloading bytes...", Enums.LEVEL.TRACE);
+			Logger.Log("Downloading bytes...", Enums.LogLevels.Trace);
 			IRestResponse response = client.Execute(request);
 
 			if (response.StatusCode != HttpStatusCode.OK) {
@@ -287,7 +298,7 @@ namespace Assistant.Extensions
 				return null;
 			}
 
-			Logger.Log("Successfully downloaded", Enums.LEVEL.TRACE);
+			Logger.Log("Successfully downloaded", Enums.LogLevels.Trace);
 			return response.RawBytes;
 		}
 
@@ -340,9 +351,9 @@ namespace Assistant.Extensions
 			File.WriteAllBytes(filePath, bytesToWrite);
 		}
 
-		public static Thread? InBackgroundThread(Action action, string threadName, bool longRunning = false) {
+		public static Thread? InBackgroundThread(Action action, string? threadName, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return null;
 			}
 
@@ -353,7 +364,7 @@ namespace Assistant.Extensions
 				BackgroundThread.IsBackground = true;
 			}
 
-			BackgroundThread.Name = threadName;
+			BackgroundThread.Name = !string.IsNullOrEmpty(threadName) ? threadName : action.GetHashCode().ToString();
 			BackgroundThread.Priority = ThreadPriority.Normal;
 			BackgroundThread.Start();
 			return BackgroundThread;
@@ -361,7 +372,7 @@ namespace Assistant.Extensions
 
 		public static Thread? InBackgroundThread(Action action, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return null;
 			}
 
@@ -380,7 +391,7 @@ namespace Assistant.Extensions
 
 		public static void InBackground(Action action, bool longRunning = false) {
 			if (action == null) {
-				Logger.Log("Action is null! " + nameof(action), Enums.LEVEL.ERROR);
+				Logger.Log("Action is null! " + nameof(action), Enums.LogLevels.Error);
 				return;
 			}
 
@@ -395,7 +406,7 @@ namespace Assistant.Extensions
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
 			if (GetOsPlatform() != OSPlatform.Linux && fileName == "/bin/bash") {
-				Logger.Log($"Current OS environment isn't Linux.", Enums.LEVEL.ERROR);
+				Logger.Log($"Current OS environment isn't Linux.", Enums.LogLevels.Error);
 				return;
 			}
 
@@ -420,28 +431,28 @@ namespace Assistant.Extensions
 					while (!proc.StandardOutput.EndOfStream) {
 						string? output = proc.StandardOutput.ReadLine();
 						if (output != null) {
-							Logger.Log(output, Enums.LEVEL.TRACE);
+							Logger.Log(output, Enums.LogLevels.Trace);
 						}
 					}
 				}
 			}
 			catch (PlatformNotSupportedException) {
-				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", Enums.LEVEL.WARN);
+				Logger.Log("Platform not supported exception thrown, internal error, cannot proceed.", Enums.LogLevels.Warn);
 			}
 			catch (Win32Exception) {
-				Logger.Log("System cannot find the specified file.", Enums.LEVEL.ERROR);
+				Logger.Log("System cannot find the specified file.", Enums.LogLevels.Error);
 			}
 			catch (ObjectDisposedException) {
-				Logger.Log("Object has been disposed already.", Enums.LEVEL.ERROR);
+				Logger.Log("Object has been disposed already.", Enums.LogLevels.Error);
 			}
 			catch (InvalidOperationException) {
-				Logger.Log("Invalid operation exception, internal error.", Enums.LEVEL.ERROR);
+				Logger.Log("Invalid operation exception, internal error.", Enums.LogLevels.Error);
 			}
 		}
 
 		public static void InBackground<T>(Func<T> function, bool longRunning = false) {
 			if (function == null) {
-				Logger.Log("Function is null! " + nameof(function), Enums.LEVEL.ERROR);
+				Logger.Log("Function is null! " + nameof(function), Enums.LogLevels.Error);
 				return;
 			}
 
@@ -456,7 +467,7 @@ namespace Assistant.Extensions
 
 		public static async Task<IList<T>?> InParallel<T>(IEnumerable<Task<T>> tasks) {
 			if (tasks == null) {
-				Logger.Log(nameof(tasks), Enums.LEVEL.WARN);
+				Logger.Log(nameof(tasks), Enums.LogLevels.Warn);
 				return null;
 			}
 
@@ -466,7 +477,7 @@ namespace Assistant.Extensions
 
 		public static async Task InParallel(IEnumerable<Task> tasks) {
 			if (tasks == null) {
-				Logger.Log(nameof(tasks), Enums.LEVEL.WARN);
+				Logger.Log(nameof(tasks), Enums.LogLevels.Warn);
 				return;
 			}
 
@@ -520,7 +531,7 @@ namespace Assistant.Extensions
 
 			if (processes.Length > 1) {
 				while (true) {
-					Logger.Log("There are multiple instance of current program running.", Enums.LEVEL.WARN);
+					Logger.Log("There are multiple instance of current program running.", Enums.LogLevels.Warn);
 					Logger.Log("> Press Y to close them and continue executing current process.");
 					Logger.Log("> Press N to close current process and continue with the others.");
 
@@ -533,7 +544,7 @@ namespace Assistant.Extensions
 								if (proc.Id != Process.GetCurrentProcess().Id) {
 									proc.Kill();
 									procCounter++;
-									Logger.Log($"Killed {procCounter} processes.", Enums.LEVEL.WARN);
+									Logger.Log($"Killed {procCounter} processes.", Enums.LogLevels.Warn);
 								}
 							}
 							return;
@@ -544,7 +555,7 @@ namespace Assistant.Extensions
 							return;
 
 						default:
-							Logger.Log("Unknown key pressed... try again!", Enums.LEVEL.WARN);
+							Logger.Log("Unknown key pressed... try again!", Enums.LogLevels.Warn);
 							continue;
 					}
 				}

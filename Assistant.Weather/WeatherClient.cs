@@ -1,3 +1,5 @@
+using Assistant.Extensions;
+using Assistant.Extensions.Interfaces;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
@@ -7,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assistant.Weather {
-	public class WeatherClient {
+	public class WeatherClient : IExternal {
 		private const int MAX_RETRY_COUNT = 3;
 		public WeatherResponse Response { get; private set; } = new WeatherResponse();
 		private readonly ILogger Logger = new Logger("WEATHER");
@@ -21,8 +23,11 @@ namespace Assistant.Weather {
 			return $"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}";
 		}
 
-		public async Task<WeatherResponse?> GetWeather(string? apiKey, int pinCode, string? countryCode = "in") {
-			//TODO: Check if network connection exist.
+		public async Task<WeatherResponse?> GetWeather(string? apiKey, int pinCode, string? countryCode = "in") {			
+			if (!Helpers.IsNetworkAvailable()) {
+				Logger.Warning("Networking isn't available.");
+				return null;
+			}
 
 			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
 				return null;
@@ -44,7 +49,10 @@ namespace Assistant.Weather {
 		}
 
 		private async Task<WeatherResponse?> Request(string apiKey, int pinCode = 689653, string countryCode = "in") {
-			//TODO: Check if network connection exist.
+			if (!Helpers.IsNetworkAvailable()) {
+				Logger.Warning("Networking isn't available.");
+				return null;
+			}
 
 			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
 				return null;
@@ -81,5 +89,7 @@ namespace Assistant.Weather {
 				Sync.Release();
 			}
 		}
+
+		public void RegisterLoggerEvent(object eventHandler) => LoggerExtensions.RegisterLoggerEvent(eventHandler);
 	}
 }

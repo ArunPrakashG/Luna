@@ -14,23 +14,23 @@ using System.Threading.Tasks;
 namespace Assistant.Server.CoreServer {
 	public class Connection : IDisposable {
 		private readonly ILogger Logger = new Logger("CONNECTION");
-		private TcpClient Client;
-		private CoreServerBase Server;
+		private TcpClient? Client;
+		private CoreServerBase? Server;
 		private bool IsAlreadyInitialized;
-		public string ClientUniqueId { get; private set; }
-		public string ClientIpAddress { get; private set; }
-		private BaseRequest PreviousRequest;
+		public string? ClientUniqueId { get; private set; }
+		public string? ClientIpAddress { get; private set; }
+		private BaseRequest? PreviousRequest;
 		private SemaphoreSlim SendSemaphore = new SemaphoreSlim(1, 1);
 		public bool IsDisposed { get; private set; }
 
 		public delegate void OnDisconnected(object sender, OnDisconnectedEventArgs e);
-		public event OnDisconnected Disconnected;
+		public event OnDisconnected? Disconnected;
 
 		public delegate void OnConnected(object sender, OnConnectedEventArgs e);
-		public event OnConnected Connected;
+		public event OnConnected? Connected;
 
 		public delegate void OnReceived(object sender, OnReceivedEventArgs e);
-		public event OnReceived Received;
+		public event OnReceived? Received;
 
 		public Connection(TcpClient client, CoreServerBase server) {
 			Client = client ?? throw new ArgumentNullException(nameof(client));
@@ -43,7 +43,7 @@ namespace Assistant.Server.CoreServer {
 		}
 
 		public async Task<Connection> Init() {
-			if (IsAlreadyInitialized) {
+			if (IsAlreadyInitialized || string.IsNullOrEmpty(ClientUniqueId)) {
 				return this;
 			}
 
@@ -63,6 +63,10 @@ namespace Assistant.Server.CoreServer {
 		}
 
 		private void Receive() {
+			if(Client == null) {
+				return;
+			}
+
 			Helpers.InBackgroundThread(async () => {
 				while (Client.Connected) {
 					try {
@@ -125,7 +129,7 @@ namespace Assistant.Server.CoreServer {
 				return false;
 			}
 
-			if (!Helpers.IsSocketConnected(Client.Client)) {
+			if (!Helpers.IsSocketConnected(Client?.Client)) {
 				return false;
 			}
 
@@ -152,7 +156,7 @@ namespace Assistant.Server.CoreServer {
 			}
 		}
 
-		public async Task<(bool status, BaseRequest request)> SendWithResponseAsync(BaseResponse response, CancellationTokenSource token) {
+		public async Task<(bool status, BaseRequest? request)> SendWithResponseAsync(BaseResponse response, CancellationTokenSource token) {
 			if (response == null) {
 				return (false, null);
 			}
@@ -226,6 +230,10 @@ namespace Assistant.Server.CoreServer {
 				tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 			}
 
+			if(Client == null || string.IsNullOrEmpty(ClientUniqueId)) {
+				return false;
+			}
+
 			while (!tokenSource.Token.IsCancellationRequested) {
 				if (Client.GetStream().DataAvailable) {
 					await Task.Delay(1).ConfigureAwait(false);
@@ -259,8 +267,7 @@ namespace Assistant.Server.CoreServer {
 				Server = null;
 				PreviousRequest = null;
 				SendSemaphore?.Release();
-				SendSemaphore?.Dispose();
-				SendSemaphore = null;
+				SendSemaphore?.Dispose();				
 				Disconnected = null;
 				Connected = null;
 				Received = null;

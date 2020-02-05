@@ -40,6 +40,7 @@ namespace Assistant.Extensions {
 		public const string IMAPPushNotificationFilePath = ResourcesDirectory + "/mail_push_notification.mp3";
 		public const string TTSAlertFilePath = ResourcesDirectory + "/tts_alert.mp3";
 		public const string AlarmFilePath = ResourcesDirectory + "/" + AlarmFileName;
+		public const string ALERT_SOUND_PATH = ResourcesDirectory + "/" + "alert.mp3";
 
 		public const string StartupFileName = "startup.mp3";
 		public const string NewMailFileName = "newmail.mp3";

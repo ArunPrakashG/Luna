@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace Assistant.MorseCode {
+namespace Assistant.Morse {
 	public class Codes {
 		public string this[char character] {
 			get {

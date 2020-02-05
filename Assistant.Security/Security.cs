@@ -1,3 +1,4 @@
+using Assistant.Extensions.Interfaces;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
@@ -6,7 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 namespace Assistant.Security {
-	public static class Security {
+	public class Security : IExternal {
 		private static readonly ILogger Logger = new Logger("SECURITY");
 
 		public static string Encrypt(string data) {
@@ -102,5 +103,7 @@ namespace Assistant.Security {
 			}
 			return plaintext;
 		}
+
+		public void RegisterLoggerEvent(object eventHandler) => LoggerExtensions.RegisterLoggerEvent(eventHandler);
 	}
 }

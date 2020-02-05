@@ -2,6 +2,7 @@ using Assistant.Gpio.Controllers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Assistant.Gpio.PiController;
 
@@ -10,7 +11,10 @@ namespace Assistant.Gpio {
 		internal readonly ILogger Logger = new Logger("GPIO-CONTROLLER");
 		public EGPIO_DRIVERS CurrentGpioDriver { get; private set; }
 		private IGpioControllerDriver GpioControllerDriver { get; set; } = new NullDriver();
-		private GpioEventManager GpioPollingManager => GetEventManager();
+		private GpioEventManager? GpioPollingManager => Controller?.GetEventManager();
+		private readonly PiController Controller;
+
+		public GpioPinController(PiController controller) => Controller = controller;
 
 		public GpioPinController InitGpioController(EGPIO_DRIVERS driver) {
 			CurrentGpioDriver = driver;
@@ -18,7 +22,7 @@ namespace Assistant.Gpio {
 			switch (CurrentGpioDriver) {
 				case EGPIO_DRIVERS.RaspberryIODriver:
 					GpioControllerDriver = new RaspberryIOController(this).InitDriver();
-					SetEventManager(new GpioEventManager());
+					Controller.SetEventManager(new GpioEventManager(Controller, this));
 					Logger.Log($"Gpio Controller initiated with {CurrentGpioDriver.ToString()} driver.");
 					return this;
 				case EGPIO_DRIVERS.GpioDevicesDriver:
@@ -145,7 +149,7 @@ namespace Assistant.Gpio {
 
 		public void ShutdownDriver() => GetDriver().ShutdownDriver();
 
-		public async Task<bool> RelayTestServiceAsync(GpioCycles selectedCycle, int singleChannelValue = 0) => await GetDriver().RelayTestServiceAsync(selectedCycle, singleChannelValue).ConfigureAwait(false);
+		public async Task<bool> RelayTestServiceAsync(IEnumerable<int> relayPins, GpioCycles selectedCycle, int singleChannelValue = 0) => await GetDriver().RelayTestServiceAsync(relayPins, selectedCycle, singleChannelValue).ConfigureAwait(false);
 
 		public void UpdatePinConfig(int pin, GpioPinMode mode, GpioPinState value, TimeSpan duration) => GetDriver().UpdatePinConfig(pin, mode, value, duration);
 

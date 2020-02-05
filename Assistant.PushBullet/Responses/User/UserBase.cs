@@ -9,24 +9,24 @@ namespace Assistant.Pushbullet.Responses.User {
 		public float Created { get; set; }
 
 		[JsonProperty("email")]
-		public string Email { get; set; }
+		public string? Email { get; set; }
 
 		[JsonProperty("email_normalized")]
-		public string EmailNormalized { get; set; }
+		public string? EmailNormalized { get; set; }
 
 		[JsonProperty("iden")]
-		public string Iden { get; set; }
+		public string? Iden { get; set; }
 
 		[JsonProperty("image_url")]
-		public string ImageUrl { get; set; }
+		public string? ImageUrl { get; set; }
 
 		[JsonProperty("max_upload_size")]
-		public float MaxUploadSize { get; set; }
+		public float? MaxUploadSize { get; set; }
 
 		[JsonProperty("modified")]
 		public float Modified { get; set; }
 
 		[JsonProperty("name")]
-		public string Name { get; set; }
+		public string? Name { get; set; }
 	}
 }

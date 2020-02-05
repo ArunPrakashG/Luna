@@ -1,4 +1,4 @@
-using Assistant.AssistantCore;
+using Assistant.Core;
 using Assistant.Extensions;
 using Assistant.Log;
 using Assistant.Modules.Interfaces;
@@ -13,7 +13,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.AssistantCore.Enums;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Modules {
 	public class ModuleInfo<T> where T : IModuleBase {
@@ -243,7 +243,7 @@ namespace Assistant.Modules {
 		private HashSet<Assembly> LoadAssemblies() {
 			HashSet<Assembly> assemblies = new HashSet<Assembly>();
 
-			if(Constants.HomeDirectory == null || Constants.HomeDirectory.IsNull()) {
+			if (Constants.HomeDirectory == null || Constants.HomeDirectory.IsNull()) {
 				return new HashSet<Assembly>();
 			}
 
@@ -280,7 +280,7 @@ namespace Assistant.Modules {
 						assembly = Assembly.LoadFrom(assemblyPath);
 					}
 					catch (Exception e) {
-						Logger.Log($"Assembly path is invalid. {assemblyPath}", Enums.LogLevels.Warn);
+						Logger.Log($"Assembly path is invalid. {assemblyPath}", LogLevels.Warn);
 						Logger.Log(e);
 						continue;
 					}

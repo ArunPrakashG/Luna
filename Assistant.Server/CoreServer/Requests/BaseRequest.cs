@@ -17,12 +17,11 @@ namespace Assistant.Server.CoreServer.Requests {
 		public string RequestObject { get; set; } = string.Empty;
 
 		public BaseRequest(string requestJson) {
-			if (string.IsNullOrEmpty(requestJson)) {
-				EventLogger.LogError("The request is null or empty.");
+			if (string.IsNullOrEmpty(requestJson)) {				
 				return;
 			}
 
-			BaseRequest baseRequest = DeserializeRequest<BaseRequest>(requestJson);
+			BaseRequest baseRequest = JsonConvert.DeserializeObject<BaseRequest>(requestJson);
 			RequestTime = baseRequest.RequestTime;
 			TypeCode = baseRequest.TypeCode;
 			RequestObject = baseRequest.RequestObject;
@@ -36,13 +35,11 @@ namespace Assistant.Server.CoreServer.Requests {
 
 		public static string SerializeRequest<TType>(TType type) where TType : class => JsonConvert.SerializeObject(type);
 
-		public static TType DeserializeRequest<TType>(string json) where TType : class => string.IsNullOrEmpty(json) ? default(TType) : JsonConvert.DeserializeObject<TType>(json);
-
 		public override int GetHashCode() {
 			return base.GetHashCode();
 		}
 
-		public override bool Equals(object obj) {
+		public override bool Equals(object? obj) {
 			if (obj == null) {
 				return false;
 			}

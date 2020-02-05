@@ -1,4 +1,3 @@
-using Assistant.Log;
 using System;
 using System.Collections.Generic;
 
@@ -23,7 +22,7 @@ namespace Assistant.Extensions {
 			return true;
 		}
 
-		public void Dispose() {			
+		public void Dispose() {
 			Schedulers = null;
 			ScheduledTimeReached = null;
 		}

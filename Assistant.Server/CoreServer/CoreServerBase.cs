@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace Assistant.Server.CoreServer {
 	public class CoreServerBase {
 		private static readonly ILogger Logger = new Logger("CORE-SERVER");
-		private TcpListener Server { get; set; }
+		private TcpListener? Server { get; set; }
 		private int ServerPort { get; set; }
 		private bool ExitRequested { get; set; }
 		private bool _isListernerEventFired = false;
@@ -23,13 +23,13 @@ namespace Assistant.Server.CoreServer {
 		public static int ConnectedClientsCount => ConnectedClients.Count;
 
 		public delegate void OnClientConnected(object sender, OnClientConnectedEventArgs e);
-		public event OnClientConnected ClientConnected;
+		public event OnClientConnected? ClientConnected;
 
 		public delegate void OnServerStartedListerning(object sender, OnServerStartedListerningEventArgs e);
-		public event OnServerStartedListerning ServerStarted;
+		public event OnServerStartedListerning? ServerStarted;
 
 		public delegate void OnServerShutdown(object sender, OnServerShutdownEventArgs e);
-		public event OnServerShutdown ServerShutdown;
+		public event OnServerShutdown? ServerShutdown;
 
 		/// <summary>
 		/// Server startup method.

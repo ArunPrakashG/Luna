@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+		<Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
     <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="HTTPServer\" />
   </ItemGroup>
 
 </Project>

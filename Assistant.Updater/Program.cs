@@ -1,3 +1,4 @@
+using Assistant.Extensions;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -8,9 +9,8 @@ using System.Threading.Tasks;
 
 namespace UpdateHelper {
 	internal class Program {
-
 		public static string? HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
-		private static readonly SemaphoreSlim UpdateSemaphore = new SemaphoreSlim(1,1);
+		private static readonly SemaphoreSlim UpdateSemaphore = new SemaphoreSlim(1, 1);
 		private static async Task Main(string[] args) {
 			Console.WriteLine("Starting Update Process...");
 			Console.WriteLine("1.0.0.0");
@@ -26,41 +26,12 @@ namespace UpdateHelper {
 			using ZipArchive Archive = ZipFile.OpenRead(updateFilePath);
 
 			if (await UpdateFromArchive(Archive, Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/").ConfigureAwait(false)) {
-				Console.WriteLine("Sucessfully Updated! Restarting application...");
-				ExecuteBash("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet Assistant.dll", false);
+				Console.WriteLine("Successfully Updated! Restarting application...");
+				Console.WriteLine("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet Assistant.Core.dll".ExecuteBash(true));
 				Console.WriteLine("Exiting Updater as the process is finished...");
 				await Task.Delay(3000).ConfigureAwait(false);
 				Environment.Exit(0);
 			}
-		}
-
-		public static string ExecuteBash(string cmd, bool sudo) {
-			if(cmd == null || string.IsNullOrEmpty(cmd) || string.IsNullOrWhiteSpace(cmd)) {
-				return string.Empty;
-			}
-
-			string escapedArgs = cmd.Replace("\"", "\\\"");
-			string args = $"-c \"{escapedArgs}\"";
-			string argsWithSudo = $"-c \"sudo {escapedArgs}\"";
-
-			using Process process = new Process() {
-				StartInfo = new ProcessStartInfo {
-					FileName = "/bin/bash",
-					Arguments = sudo ? argsWithSudo : args,
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true,
-				}
-			};
-
-			string result = string.Empty;
-
-			if (process.Start()) {
-				result = process.StandardOutput.ReadToEnd();
-				process.WaitForExit(TimeSpan.FromMinutes(4).Milliseconds);
-			}
-
-			return result;
 		}
 
 		private static async Task<bool> UpdateFromArchive(ZipArchive archive, string pathtoUpdate) {
@@ -132,7 +103,7 @@ namespace UpdateHelper {
 				UpdateSemaphore.Release();
 			}
 
-			
+
 			return true;
 		}
 

@@ -1,44 +1,18 @@
-
-//    _  _  ___  __  __ ___     _   ___ ___ ___ ___ _____ _   _  _ _____
-//   | || |/ _ \|  \/  | __|   /_\ / __/ __|_ _/ __|_   _/_\ | \| |_   _|
-//   | __ | (_) | |\/| | _|   / _ \\__ \__ \| |\__ \ | |/ _ \| .` | | |
-//   |_||_|\___/|_|  |_|___| /_/ \_\___/___/___|___/ |_/_/ \_\_|\_| |_|
-//
-
-//MIT License
-
-//Copyright(c) 2019 Arun Prakash
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
 // All credits for this code goes to AshV
 // https://github.com/AshV
 
+using Assistant.Extensions;
+using Assistant.Extensions.Interfaces;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Assistant.Extensions;
-using Assistant.Log;
 
-namespace Assistant.MorseCode {
-	public class MorseCore {
+namespace Assistant.Morse {
+	public class MorseCore : IExternal {
 		private int TimeUnitInMilliSeconds { get; set; } = 100;
 
 		private int Frequency { get; set; } = 650;
@@ -53,7 +27,7 @@ namespace Assistant.MorseCode {
 
 		private Codes CodeStore { get; set; }
 
-		private Logger Logger = new Logger("MORSE-CORE");
+		private ILogger Logger = new Logger("MORSE-CORE");
 
 		public MorseCore() => CodeStore = new Codes();
 
@@ -86,7 +60,7 @@ namespace Assistant.MorseCode {
 
 		public void PlayMorseTone(string morseStringOrSentence) {
 			if (!Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
-				Logger.Log("Cannot play the morse tone as the OS platform is not windows.");
+				Logger.Log("Cannot play the Morse tone as the OS platform is not windows.");
 				return;
 			}
 
@@ -125,5 +99,7 @@ namespace Assistant.MorseCode {
 				sentence.Length > (countDot + countDash + countSpace)
 				? false : true;
 		}
+
+		public void RegisterLoggerEvent(object? eventHandler) => LoggerExtensions.RegisterLoggerEvent(eventHandler);
 	}
 }

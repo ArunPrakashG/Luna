@@ -2,6 +2,8 @@ using Assistant.Logging.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using static Assistant.Gpio.PiController;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
 	public sealed class GpioEventGenerator {
@@ -14,7 +16,7 @@ namespace Assistant.Gpio {
 		public GpioPinEventConfig EventPinConfig { get; private set; } = new GpioPinEventConfig();
 		public bool IsEventRegistered { get; private set; } = false;
 
-		public (int?, Thread?) PollingThreadInfo { get; private set; }
+		public Thread? PollingThread { get; private set; }
 
 		public (object sender, GpioPinValueChangedEventArgs e) _GpioPinValueChanged { get; private set; }
 
@@ -72,16 +74,16 @@ namespace Assistant.Gpio {
 				return;
 			}
 
-			if (!PiController.GetPinController().SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
-				throw new InvalidOperationException("Internal error occured. Check if the pin specified is correct.");
+			if (!GetPinController().SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
+				throw new InvalidOperationException("Internal error occurred. Check if the pin specified is correct.");
 			}
 
 			switch (EventPinConfig.PinMode) {
 				case GpioPinMode.Input:
 					break;
 				case GpioPinMode.Output:
-					if (!PiController.GetPinController().SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
-						throw new InvalidOperationException("Internal error occured. Check if the pin specified is correct.");
+					if (!GetPinController().SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
+						throw new InvalidOperationException("Internal error occurred. Check if the pin specified is correct.");
 					}
 					break;
 				case GpioPinMode.Alt02:
@@ -102,7 +104,7 @@ namespace Assistant.Gpio {
 			GpioPinState previousPinState = initialPinState;
 			bool previousPinValue = initialValue;
 
-			PollingThreadInfo = Extensions.Helpers.InBackgroundThread(async () => {
+			PollingThread = Extensions.Helpers.InBackgroundThread(async () => {
 				while (!OverrideEventWatcher) {
 					bool currentPinValue = Controller.GpioDigitalRead(EventPinConfig.GpioPin);
 					GpioPinState currentPinState = currentPinValue ? GpioPinState.Off : GpioPinState.On;
