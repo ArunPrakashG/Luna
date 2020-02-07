@@ -2,6 +2,7 @@ using Assistant.Alarm;
 using Assistant.AssistantCore.PiGpio;
 using Assistant.Extensions;
 using Assistant.Geolocation;
+using Assistant.Gpio;
 using Assistant.Log;
 using Assistant.Modules;
 using Assistant.MorseCode;

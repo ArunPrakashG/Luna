@@ -41,10 +41,14 @@ namespace Assistant.Gpio {
 
 		public GpioEventGenerator InitEventGenerator() {
 			if (PiController == null) {
+				throw new InvalidOperationException("The gpio controller is probably malfunctioning.");
+			}
+
+			if (Controller == null) {
 				throw new InvalidOperationException("The pin controller is probably malfunctioning.");
 			}
 
-			if (!PiController.GetPinController().IsDriverProperlyInitialized) {
+			if (!Controller.IsDriverProperlyInitialized) {
 				throw new InvalidOperationException("The pin controller isn't properly initialized.");
 			}
 
@@ -74,7 +78,7 @@ namespace Assistant.Gpio {
 				return;
 			}
 
-			if (!GetPinController().SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
+			if (!Controller.SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
 				throw new InvalidOperationException("Internal error occurred. Check if the pin specified is correct.");
 			}
 
@@ -82,7 +86,7 @@ namespace Assistant.Gpio {
 				case GpioPinMode.Input:
 					break;
 				case GpioPinMode.Output:
-					if (!GetPinController().SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
+					if (!Controller.SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
 						throw new InvalidOperationException("Internal error occurred. Check if the pin specified is correct.");
 					}
 					break;
@@ -151,7 +155,7 @@ namespace Assistant.Gpio {
 				return false;
 			}
 
-			if (!PiController.IsControllerProperlyInitialized || !PiController.GetPinController().IsDriverProperlyInitialized) {
+			if (!PiController.IsControllerProperlyInitialized || !Controller.IsDriverProperlyInitialized) {
 				return false;
 			}
 

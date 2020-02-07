@@ -10,14 +10,12 @@ using Unosquare.WiringPi;
 using static Assistant.Gpio.PiController;
 
 namespace Assistant.Gpio.Controllers {
-	internal class RaspberryIOController : IGpioControllerDriver {
-		private readonly GpioPinController GpioController;
+	internal class RaspberryIOController : IGpioControllerDriver {		
 		private readonly ILogger Logger;
 		public bool IsDriverProperlyInitialized { get; private set; }
 
-		internal RaspberryIOController(GpioPinController gpioController) {
-			GpioController = gpioController ?? throw new ArgumentNullException(nameof(gpioController), "The Gpio Controller cannot be null!");
-			Logger = GpioController.Logger;
+		internal RaspberryIOController(GpioPinController gpioController) {			
+			Logger = gpioController.Logger;
 		}
 
 		[CanBeNull]
@@ -141,7 +139,7 @@ namespace Assistant.Gpio.Controllers {
 
 		public void ShutdownDriver() {
 			if (PiController.GracefullShutdown) {
-				foreach (int pin in PiController.GetPins().output) {
+				foreach (int pin in Gpio.GetOccupiedPins().output) {
 					GpioPinConfig? pinStatus = GetGpioConfig(pin);
 
 					if (pinStatus == null) {
@@ -221,7 +219,7 @@ namespace Assistant.Gpio.Controllers {
 		}
 
 		protected async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
-			if (!GetPins().output.Contains(pin)) {
+			if (!Gpio.GetOccupiedPins().output.Contains(pin)) {
 				return false;
 			}
 

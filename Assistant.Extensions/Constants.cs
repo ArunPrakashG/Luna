@@ -5,14 +5,15 @@ using System.Reflection;
 namespace Assistant.Extensions {
 
 	public static class Constants {
-		public const string TraceLogPath = @"TraceLog.txt";
-		public const string DebugLogPath = @"DebugLog.txt";
+		public const string TraceLogPath = "TraceLog.txt";
+		public const string DebugLogPath = "DebugLog.txt";
+		public const string GpioConfigFile = "GpioConfig.json";
 		public const string ConfigDirectory = @"Config";
 		public const string ResourcesDirectory = @"Resources";
 		public const string ModuleDirectory = @"Modules";
 		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 
-		public const string GpioConfigDirectory = ConfigDirectory + "/GpioConfig";
+		public const string GpioConfigDirectory = ConfigDirectory + "/" + GpioConfigFile;
 		public const string CoreConfigPath = ConfigDirectory + "/Assistant.json";
 		public const string IPBlacklistPath = ConfigDirectory + "/IPBlacklist.txt";
 		public const string TaskQueueFilePath = ConfigDirectory + "/TaskQueue.json";

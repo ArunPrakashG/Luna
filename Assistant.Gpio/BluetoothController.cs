@@ -1,4 +1,3 @@
-using Assistant.Log;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System.Threading.Tasks;
@@ -10,14 +9,15 @@ namespace Assistant.Gpio {
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)
 	/// </summary>
 	public class BluetoothController {
-
 		private readonly ILogger Logger = new Logger("PI-BLUETOOTH");
 
-		private PiController? PiController => Core.PiController;
+		private readonly PiController? PiController;
 		public bool IsBluetoothControllerInitialized { get; private set; }
 
+		public BluetoothController(Gpio gpioCore) => PiController = gpioCore.GpioController;
+
 		public BluetoothController InitBluetoothController() {
-			if(PiController == null || !Core.CoreInitiationCompleted || Core.DisablePiMethods) {
+			if (PiController == null || PiController.IsAllowedToExecute) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}
@@ -26,7 +26,7 @@ namespace Assistant.Gpio {
 				return this;
 			}
 
-			if(PiController.GetPinController().CurrentGpioDriver != Enums.EGpioDriver.RaspberryIODriver) {
+			if (PiController.GetPinController()?.CurrentGpioDriver != PiController.EGPIO_DRIVERS.RaspberryIODriver) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}
@@ -40,7 +40,7 @@ namespace Assistant.Gpio {
 				return false;
 			}
 
-			Logger.Log("Fetching bluetooth controllers...");
+			Logger.Log("Fetching blue-tooth controllers...");
 
 			foreach (string i in await Pi.Bluetooth.ListControllers().ConfigureAwait(false)) {
 				Logger.Log($"FOUND > {i}");
@@ -55,7 +55,7 @@ namespace Assistant.Gpio {
 				return false;
 			}
 
-			Logger.Log("Fetching bluetooth devices...");
+			Logger.Log("Fetching blue-tooth devices...");
 
 			foreach (string dev in await Pi.Bluetooth.ListDevices().ConfigureAwait(false)) {
 				Logger.Log($"FOUND > {dev}");
@@ -71,11 +71,11 @@ namespace Assistant.Gpio {
 			}
 
 			if (await Pi.Bluetooth.PowerOn().ConfigureAwait(false)) {
-				Logger.Log("Bluetooth has been turned on.");
+				Logger.Log("Blue-tooth has been turned on.");
 				return true;
 			}
 
-			Logger.Log("Failed to turn on bluetooth.", Enums.LogLevels.Warn);
+			Logger.Log("Failed to turn on blue-tooth.", Enums.LogLevels.Warn);
 			return false;
 		}
 
@@ -85,11 +85,11 @@ namespace Assistant.Gpio {
 			}
 
 			if (await Pi.Bluetooth.PowerOff().ConfigureAwait(false)) {
-				Logger.Log("Bluetooth has been turned off.");
+				Logger.Log("Blue-tooth has been turned off.");
 				return true;
 			}
 
-			Logger.Log("Failed to turn off bluetooth.", Enums.LogLevels.Warn);
+			Logger.Log("Failed to turn off blue-tooth.", Enums.LogLevels.Warn);
 			return false;
 		}
 

@@ -105,6 +105,7 @@
 	<ItemGroup>
 	  <Folder Include="Config\SteamBots\" />
 	  <Folder Include="Gpio\" />
+	  <Folder Include="FileWatcher\" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -113,6 +114,7 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
+	  <ProjectReference Include="..\Assistant.Gpio\Assistant.Gpio.csproj" />
 	  <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
 	  <ProjectReference Include="..\Assistant.Modules\Assistant.Modules.csproj" />
 	  <ProjectReference Include="..\Assistant.PushBullet\Assistant.Pushbullet.csproj" />
