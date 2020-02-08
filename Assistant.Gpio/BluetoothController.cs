@@ -2,6 +2,7 @@ using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
 
@@ -75,7 +76,7 @@ namespace Assistant.Gpio {
 				return true;
 			}
 
-			Logger.Log("Failed to turn on blue-tooth.", Enums.LogLevels.Warn);
+			Logger.Log("Failed to turn on blue-tooth.", LogLevels.Warn);
 			return false;
 		}
 
@@ -89,7 +90,7 @@ namespace Assistant.Gpio {
 				return true;
 			}
 
-			Logger.Log("Failed to turn off blue-tooth.", Enums.LogLevels.Warn);
+			Logger.Log("Failed to turn off blue-tooth.", LogLevels.Warn);
 			return false;
 		}
 

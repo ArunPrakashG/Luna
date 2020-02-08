@@ -57,20 +57,12 @@ namespace Assistant.Modules.Interfaces.EventInterfaces {
 		Task<bool> OnSystemRestartRequestedAsync();
 
 		/// <summary>
-		/// Fired when any of the config files have been Deleted/Modified/Renamed.
+		/// Fired when watcher event raised for specified directory (Deleted/Modified/Renamed)
 		/// </summary>
 		/// <param name="sender">The sender object</param>
 		/// <param name="e">The event data</param>
 		/// <returns></returns>
-		Task<bool> OnConfigWatcherEventRasiedAsync(object sender, FileSystemEventArgs e);
-
-		/// <summary>
-		/// Fired when any of the modules have been Updated/Changed/Deleted/Renamed.
-		/// </summary>
-		/// <param name="sender">The sender object</param>
-		/// <param name="e">The event data</param>
-		/// <returns></returns>
-		Task<bool> OnModuleWatcherEventRasiedAsync(object sender, FileSystemEventArgs e);
+		Task<bool> OnWatcherEventRasiedAsync(object sender, FileSystemEventArgs e);
 
 	}
 }

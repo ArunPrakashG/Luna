@@ -40,7 +40,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Server", "Assista
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Morse", "Assistant.Morse\Assistant.Morse.csproj", "{3E4D070F-40B5-47C3-90F9-917DB80F3794}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Client", "Assistant.Client\Assistant.Client.csproj", "{FA83C28A-03E4-450B-9A37-218CC29399BA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Client", "Assistant.Client\Assistant.Client.csproj", "{FA83C28A-03E4-450B-9A37-218CC29399BA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Schedulers", "Assistant.Schedulers\Assistant.Schedulers.csproj", "{3D2B9DF9-B13B-49B6-A071-8CD7028DF2EC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -104,6 +106,10 @@ Global
 		{FA83C28A-03E4-450B-9A37-218CC29399BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA83C28A-03E4-450B-9A37-218CC29399BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA83C28A-03E4-450B-9A37-218CC29399BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D2B9DF9-B13B-49B6-A071-8CD7028DF2EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D2B9DF9-B13B-49B6-A071-8CD7028DF2EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D2B9DF9-B13B-49B6-A071-8CD7028DF2EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D2B9DF9-B13B-49B6-A071-8CD7028DF2EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

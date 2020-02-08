@@ -2,7 +2,7 @@ using Assistant.Extensions;
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Alarm {
+namespace Assistant.Core.Alarm {
 	public class AlarmConfig {
 		[JsonProperty]
 		public string? AlarmMessage { get; set; }

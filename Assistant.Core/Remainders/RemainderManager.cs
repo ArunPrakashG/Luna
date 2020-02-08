@@ -1,14 +1,15 @@
-using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using static Assistant.Logging.Enums;
 
-namespace Assistant.Remainders {
+namespace Assistant.Core.Remainders {
 	public class RemainderManager {
 		public List<(Remainder, Timer?)> RemainderCollection { get; private set; } = new List<(Remainder, Timer?)>();
-		private Logger Logger = new Logger("REMAINDER");
+		private ILogger Logger = new Logger("REMAINDER");
 
 		public bool Remind(string msgToRemind, int minsUntilReminding) {
 			if (string.IsNullOrEmpty(msgToRemind) || minsUntilReminding <= 0) {
@@ -39,9 +40,9 @@ namespace Assistant.Remainders {
 			}
 
 			Timer? timer = Helpers.ScheduleTask(async () => {
-				Logger.Log($"REMAINDER >>> {remainderData.Item1.Message}", Enums.LogLevels.Success);
+				Logger.Log($"REMAINDER >>> {remainderData.Item1.Message}", LogLevels.Green);
 				await TTS.SpeakText("Sir, You have a remainder!", true).ConfigureAwait(false);
-				if (remainderData.Item1.Message != null && !remainderData.Item1.Message.IsNull()) {
+				if (remainderData.Item1.Message != null && !string.IsNullOrEmpty(remainderData.Item1.Message)) {
 					await TTS.SpeakText(remainderData.Item1.Message, false).ConfigureAwait(false);
 				}
 

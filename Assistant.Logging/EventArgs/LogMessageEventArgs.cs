@@ -5,6 +5,9 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Logging.EventArgs {
 	public class LogMessageEventArgs {
 		[JsonProperty]
+		public string? LogIdentifier { get; private set; }
+
+		[JsonProperty]
 		public string? LogMessage { get; private set; }
 
 		[JsonProperty]
@@ -22,7 +25,8 @@ namespace Assistant.Logging.EventArgs {
 		[JsonProperty]
 		public string? CallerFilePath { get; private set; }
 
-		public LogMessageEventArgs(string msg, DateTime time, LogLevels level, string? callerName, int callerLine, string? callerFile) {
+		public LogMessageEventArgs(string? logId, string? msg, DateTime time, LogLevels level, string? callerName, int callerLine, string? callerFile) {
+			LogIdentifier = logId;
 			LogMessage = msg;
 			ReceivedTime = time;
 			LogLevel = level;

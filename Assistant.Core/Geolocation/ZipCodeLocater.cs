@@ -1,12 +1,12 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.NLog;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RestSharp;
 using static Assistant.AssistantCore.Enums;
 
-namespace Assistant.Geolocation {
+namespace Assistant.Core.Geolocation {
 	public class ZipCodeLocater {
 		private Logger Logger { get; set; } = new Logger("ZIP-LOCATER");
 

@@ -1,11 +1,11 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.NLog;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
 
-namespace Assistant.Update {
+namespace Assistant.Core.Update {
 	internal class GitHub {
 
 		[JsonProperty("url")]
@@ -37,7 +37,7 @@ namespace Assistant.Update {
 			string? json = Helpers.GetUrlToString(Constants.GitHubReleaseURL, Method.GET, true);
 
 			if (json == null || Helpers.IsNullOrEmpty(json)) {
-				Logger.Log("Could not fetch the latest patch release. Try again later!", Enums.LogLevels.Warn);
+				Logger.Log("Could not fetch the latest patch release. Try again later!", LogLevels.Warn);
 				return new GitHub();
 			}
 

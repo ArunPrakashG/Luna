@@ -2,7 +2,8 @@ using Newtonsoft.Json;
 using System;
 
 namespace Assistant.Logging.EventArgs {
-	public class EventArgsBase {
+	[Serializable]
+	public class WithColorEventArgs {
 		[JsonProperty]
 		public string? LogIdentifier { get; private set; }
 
@@ -16,14 +17,18 @@ namespace Assistant.Logging.EventArgs {
 		public string? CallerMemberName { get; private set; }
 
 		[JsonProperty]
+		public ConsoleColor Color { get; private set; }
+
+		[JsonProperty]
 		public int CallerLineNumber { get; private set; }
 
 		[JsonProperty]
 		public string? CallerFilePath { get; private set; }
 
-		public EventArgsBase(string? logId, DateTime dt, string? msg, string? callerName, int callerLine, string? callerFile) {
+		public WithColorEventArgs(string? logId, DateTime dt, string? msg, ConsoleColor color, string? callerName, int callerLine, string? callerFile) {
 			LogIdentifier = logId;
 			LogTime = dt;
+			Color = color;
 			LogMessage = msg;
 			CallerMemberName = callerName;
 			CallerLineNumber = callerLine;

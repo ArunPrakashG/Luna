@@ -19,6 +19,12 @@ namespace Assistant.Logging {
 		public delegate void OnErrorMessageReceived(object sender, EventArgsBase e);
 		public static event OnErrorMessageReceived? OnErrorReceived;
 
+		public delegate void OnInputMessageReceived(object sender, EventArgsBase e);
+		public static event OnInputMessageReceived? OnInputReceived;
+
+		public delegate void OnColoredOutputRequested(object sender, WithColorEventArgs e);
+		public static event OnColoredOutputRequested? OnColoredReceived;
+
 		public delegate void OnExceptionMessageRecevied(object sender, OnExceptionMessageEventArgs e);
 		public static event OnExceptionMessageRecevied? OnExceptionReceived;
 
@@ -30,7 +36,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Debug, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, message, DateTime.Now, LogLevels.Debug, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
 		public void Error(string? message,
@@ -41,8 +47,8 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Error, previousMethodName, callermemberlineNo, calledFilePath));
-			OnErrorReceived?.Invoke(this, new EventArgsBase(DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, message, DateTime.Now, LogLevels.Error, previousMethodName, callermemberlineNo, calledFilePath));
+			OnErrorReceived?.Invoke(this, new EventArgsBase(LogIdentifier, DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
 		public void Exception(Exception? exception,
@@ -54,8 +60,8 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(exception.ToString(), DateTime.Now, LogLevels.Exception, previousMethodName, callermemberlineNo, calledFilePath));
-			OnExceptionReceived?.Invoke(this, new OnExceptionMessageEventArgs(exception, DateTime.Now, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, exception.ToString(), DateTime.Now, LogLevels.Exception, previousMethodName, callermemberlineNo, calledFilePath));
+			OnExceptionReceived?.Invoke(this, new OnExceptionMessageEventArgs(LogIdentifier, exception, DateTime.Now, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
 		public void Info(string? message,
@@ -67,7 +73,7 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Info, previousMethodName, callermemberlineNo, calledFilePath));
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, message, DateTime.Now, LogLevels.Info, previousMethodName, callermemberlineNo, calledFilePath));
 		}
 
 		public void Trace(string? message,
@@ -78,10 +84,23 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Trace, previousMethodName, callermemberlineNo, calledFilePath));			
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, message, DateTime.Now, LogLevels.Trace, previousMethodName, callermemberlineNo, calledFilePath));			
 		}
 
 		public void Warning(string? message,
+			[CallerMemberName] string? previousMethodName = null,
+			[CallerLineNumber] int callermemberlineNo = 0,
+			[CallerFilePath] string? calledFilePath = null) {
+
+			if (string.IsNullOrEmpty(message)) {
+				return;
+			}
+
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, message, DateTime.Now, LogLevels.Warn, previousMethodName, callermemberlineNo, calledFilePath));
+			OnWarningReceived?.Invoke(this, new EventArgsBase(LogIdentifier, DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
+		}
+
+		public void WithColor(string? message, ConsoleColor color = ConsoleColor.Cyan,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
@@ -89,26 +108,20 @@ namespace Assistant.Logging {
 				return;
 			}
 
-			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(message, DateTime.Now, LogLevels.Warn, previousMethodName, callermemberlineNo, calledFilePath));
-			OnWarningReceived?.Invoke(this, new EventArgsBase(DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));
-		}
-
-		public void WithColor(string? message, ConsoleColor color = ConsoleColor.Cyan,
-			[CallerMemberName] string? previousMethodName = null,
-			[CallerLineNumber] int callermemberlineNo = 0,
-			[CallerFilePath] string? calledFilePath = null) {
-			Console.ForegroundColor = color;
-			Console.WriteLine(message);
-			Console.ResetColor();
-			Trace(message, previousMethodName, callermemberlineNo, calledFilePath);
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, message, DateTime.Now, LogLevels.Custom, previousMethodName, callermemberlineNo, calledFilePath));
+			OnColoredReceived?.Invoke(this, new WithColorEventArgs(LogIdentifier, DateTime.Now, message, color, previousMethodName, callermemberlineNo, calledFilePath));						
 		}
 
 		public void Input(string? message,
 			[CallerMemberName] string? previousMethodName = null,
 			[CallerLineNumber] int callermemberlineNo = 0,
 			[CallerFilePath] string? calledFilePath = null) {
-			Console.WriteLine("-> " + message);
-			Trace(message, previousMethodName, callermemberlineNo, calledFilePath);
+			if (string.IsNullOrEmpty(message)) {
+				return;
+			}
+
+			LogMessageReceived?.Invoke(this, new LogMessageEventArgs(LogIdentifier, message, DateTime.Now, LogLevels.Input, previousMethodName, callermemberlineNo, calledFilePath));
+			OnInputReceived?.Invoke(this, new EventArgsBase(LogIdentifier, DateTime.Now, message, previousMethodName, callermemberlineNo, calledFilePath));			
 		}
 
 		public void Log(Exception? e,

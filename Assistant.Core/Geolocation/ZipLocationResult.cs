@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace Assistant.Geolocation {
+namespace Assistant.Core.Geolocation {
 	public class ZipLocationResult {
 		[JsonProperty]
 		public string Message { get; set; } = string.Empty;

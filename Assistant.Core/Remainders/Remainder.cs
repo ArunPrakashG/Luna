@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Remainders {
+namespace Assistant.Core.Remainders {
 	public class Remainder {
 		[JsonProperty]
 		public string? UniqueId { get; set; }

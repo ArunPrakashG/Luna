@@ -1,11 +1,12 @@
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
 
@@ -17,23 +18,15 @@ namespace Assistant.Core {
 
 		[JsonProperty] public bool EnableConfigWatcher { get; set; } = true;
 
-		[JsonProperty] public bool EnableModuleWatcher { get; set; } = true;
-
 		[JsonProperty] public bool EnableModules { get; set; } = true;
 
 		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
 
 		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
 
-		[JsonProperty] public bool PushBulletLogging { get; set; } = true;
-
-		[JsonProperty] public bool KestrelServer { get; set; } = true;
-
 		[JsonProperty] public int KestrelServerPort { get; set; } = 9090;
 
 		[JsonProperty] public bool GpioSafeMode { get; set; } = false;
-
-		[JsonProperty] public Dictionary<string, int> AuthenticatedTokens { get; set; } = new Dictionary<string, int>();
 
 		[JsonProperty]
 		public int[] OutputModePins = new int[]
@@ -60,13 +53,12 @@ namespace Assistant.Core {
 		public int[] RelayPins = new int[] {
 			2, 3, 4, 17, 27, 22, 10, 9
 		};
+
 		[JsonProperty] public bool DisplayStartupMenu { get; set; } = false;
 
 		[JsonProperty] public bool EnableGpioControl { get; set; } = true;
 
 		[JsonProperty] public bool Debug { get; set; } = false;
-
-		[JsonProperty] public string? ZomatoApiKey { get; set; }
 
 		[JsonProperty] public string? StatisticsServerIP { get; set; }
 
@@ -94,7 +86,7 @@ namespace Assistant.Core {
 
 		[JsonProperty] public bool CloseRelayOnShutdown { get; set; } = false;
 
-		[JsonIgnore] private readonly Logger Logger = new Logger("CORE-CONFIG");
+		[JsonIgnore] private readonly ILogger Logger = new Logger("CORE-CONFIG");
 		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 
 		public CoreConfig SaveConfig(CoreConfig config) {
@@ -103,7 +95,7 @@ namespace Assistant.Core {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			Logger.Log("Saving core config...", Enums.LogLevels.Trace);
+			Logger.Log("Saving core config...", LogLevels.Trace);
 			string filePath = Constants.CoreConfigPath;
 			string json = JsonConvert.SerializeObject(config, Formatting.Indented);
 			string newFilePath = filePath + ".new";
@@ -138,7 +130,7 @@ namespace Assistant.Core {
 			if (Core.ConfigWatcher.FileSystemWatcher != null) {
 				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
 			}
-			Logger.Log("Saved core config!", Enums.LogLevels.Trace);
+			Logger.Log("Saved core config!", LogLevels.Trace);
 			return config;
 		}
 
@@ -152,7 +144,7 @@ namespace Assistant.Core {
 				return new CoreConfig();
 			}
 
-			Logger.Log("Loading core config...", Enums.LogLevels.Trace);
+			Logger.Log("Loading core config...", LogLevels.Trace);
 			string JSON;
 			ConfigSemaphore.Wait();
 			using (FileStream Stream = new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read)) {
@@ -163,12 +155,12 @@ namespace Assistant.Core {
 
 			Core.Config = JsonConvert.DeserializeObject<CoreConfig>(JSON);
 			ConfigSemaphore.Release();
-			Logger.Log("Core configuration loaded successfully!", Enums.LogLevels.Trace);
+			Logger.Log("Core configuration loaded successfully!", LogLevels.Trace);
 			return Core.Config;
 		}
 
 		public bool GenerateDefaultConfig() {
-			Logger.Log("Core config file doesnt exist. press c to continue generating default config or q to quit.");
+			Logger.Log("Core config file doesn't exist. press c to continue generating default config or q to quit.");
 
 			ConsoleKeyInfo? Key = Helpers.FetchUserInputSingleChar(TimeSpan.FromMinutes(1));
 
@@ -192,7 +184,7 @@ namespace Assistant.Core {
 
 			Logger.Log("Generating default Config...");
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Logger.Log("Config directory doesnt exist, creating one...");
+				Logger.Log("Config directory doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
@@ -227,7 +219,6 @@ namespace Assistant.Core {
 				hashCode = (hashCode * 397) ^ AutoUpdates.GetHashCode();
 				hashCode = (hashCode * 397) ^ EnableConfigWatcher.GetHashCode();
 				hashCode = (hashCode * 397) ^ UpdateIntervalInHours;
-				hashCode = (hashCode * 397) ^ KestrelServer.GetHashCode();
 				hashCode = (hashCode * 397) ^ GpioSafeMode.GetHashCode();
 				hashCode = (hashCode * 397) ^ (OutputModePins != null ? OutputModePins.GetHashCode() : 0);
 				hashCode = (hashCode * 397) ^ (InputModePins != null ? InputModePins.GetHashCode() : 0);
@@ -262,7 +253,7 @@ namespace Assistant.Core {
 			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
 				   EnableConfigWatcher == other.EnableConfigWatcher &&
 				   UpdateIntervalInHours == other.UpdateIntervalInHours &&
-				   KestrelServer == other.KestrelServer && GpioSafeMode == other.GpioSafeMode &&
+				   GpioSafeMode == other.GpioSafeMode &&
 				   Equals(OutputModePins, other.OutputModePins) && Equals(InputModePins, other.InputModePins) &&
 				   DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
 				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&

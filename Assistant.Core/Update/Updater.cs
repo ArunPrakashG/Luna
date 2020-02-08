@@ -1,6 +1,6 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.NLog;
 using RestSharp;
 using RestSharp.Extensions;
 using System;
@@ -9,8 +9,9 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using static Assistant.Logging.Enums;
 
-namespace Assistant.Update {
+namespace Assistant.Core.Update {
 
 	public class Updater {
 		private readonly Logger Logger = new Logger("UPDATER");
@@ -37,7 +38,7 @@ namespace Assistant.Update {
 				return ElapasedTimeCalculator.Elapsed;
 			}
 			else {
-				Logger.Log("Elapsed time calculator isn't running, cant get the time left.", Enums.LogLevels.Warn);
+				Logger.Log("Elapsed time calculator isn't running, cant get the time left.", LogLevels.Warn);
 				return new TimeSpan();
 			}
 		}
@@ -58,7 +59,7 @@ namespace Assistant.Update {
 
 				UpdateTimerStartTime = DateTime.Now;
 				ElapasedTimeCalculator.Start();
-				Logger.Log($"{Core.AssistantName} will automatically check for updates every 5 hours.", Enums.LogLevels.Info);
+				Logger.Log($"{Core.AssistantName} will automatically check for updates every 5 hours.", LogLevels.Info);
 			}
 		}
 
@@ -72,12 +73,12 @@ namespace Assistant.Update {
 			}
 
 			await UpdateSemaphore.WaitAsync().ConfigureAwait(false);
-			Logger.Log("Checking for any new version...", Enums.LogLevels.Trace);
+			Logger.Log("Checking for any new version...", LogLevels.Trace);
 			UpdateTimerStartTime = DateTime.Now;
 			ElapasedTimeCalculator.Restart();
 
 			if (!Core.Config.AutoUpdates) {
-				Logger.Log("Updates are disabled.", Enums.LogLevels.Trace);
+				Logger.Log("Updates are disabled.", LogLevels.Trace);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
@@ -86,22 +87,22 @@ namespace Assistant.Update {
 			string GitVersion = !Helpers.IsNullOrEmpty(Git.ReleaseTagName) ? Git.ReleaseTagName : string.Empty;
 
 			if (Helpers.IsNullOrEmpty(GitVersion)) {
-				Logger.Log("Failed to fetch the required details from github api.", Enums.LogLevels.Error);
+				Logger.Log("Failed to fetch the required details from github api.", LogLevels.Error);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
 			if (!Version.TryParse(GitVersion, out Version? LatestVersion)) {
-				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", Enums.LogLevels.Warn);
+				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", LogLevels.Warn);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
 			if (LatestVersion > Constants.Version) {
 				UpdateAvailable = true;
-				Logger.Log($"New version available!", Enums.LogLevels.Success);
+				Logger.Log($"New version available!", LogLevels.Green);
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
-				Logger.Log("Automatically updating in 10 seconds...", Enums.LogLevels.Warn);
+				Logger.Log("Automatically updating in 10 seconds...", LogLevels.Warn);
 				await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateAvailable).ConfigureAwait(false);
 				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
 				UpdateSemaphore.Release();
@@ -109,7 +110,7 @@ namespace Assistant.Update {
 			}
 
 			if (LatestVersion < Constants.Version) {
-				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", Enums.LogLevels.Warn);
+				Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", LogLevels.Warn);
 				UpdateSemaphore.Release();
 				return (true, LatestVersion);
 			}
@@ -127,10 +128,10 @@ namespace Assistant.Update {
 			await UpdateSemaphore.WaitAsync().ConfigureAwait(false);
 			int releaseID = Git.Assets[0].AssetId;
 			Logger.Log($"Release name: {Git.ReleaseFileName}");
-			Logger.Log($"URL: {Git.ReleaseUrl}", Enums.LogLevels.Trace);
-			Logger.Log($"Version: {Git.ReleaseTagName}", Enums.LogLevels.Trace);
+			Logger.Log($"URL: {Git.ReleaseUrl}", LogLevels.Trace);
+			Logger.Log($"Version: {Git.ReleaseTagName}", LogLevels.Trace);
 			Logger.Log($"Publish time: {Git.PublishedAt.ToLongTimeString()}");
-			Logger.Log($"ZIP URL: {Git.Assets[0].AssetDownloadUrl}", Enums.LogLevels.Trace);
+			Logger.Log($"ZIP URL: {Git.Assets[0].AssetDownloadUrl}", LogLevels.Trace);
 			Logger.Log($"Downloading {Git.ReleaseFileName}.zip...");
 
 			if (File.Exists(Constants.UpdateZipFileName)) {
@@ -157,7 +158,7 @@ namespace Assistant.Update {
 			await Task.Delay(2000).ConfigureAwait(false);
 
 			if (!File.Exists(Constants.UpdateZipFileName)) {
-				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", Enums.LogLevels.Error);
+				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", LogLevels.Error);
 				UpdateSemaphore.Release();
 				return false;
 			}

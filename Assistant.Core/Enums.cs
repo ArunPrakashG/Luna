@@ -18,13 +18,6 @@ namespace Assistant.Core {
 			Operator
 		}
 
-		public enum SpeechContext : byte {
-			AssistantStartup,
-			AssistantShutdown,
-			NewEmaiNotification,
-			Custom
-		}
-
 		public enum KeywordType {
 			Subject,
 			MessageBody,

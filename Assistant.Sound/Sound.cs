@@ -8,8 +8,9 @@ using static Assistant.Logging.Enums;
 
 namespace Assistant.Sound {
 	public class Sound : IExternal {
-		private static ILogger Logger = new Logger("SOUND");
-		public bool IsGloballyMuted = false;
+		private static readonly ILogger Logger = new Logger("SOUND");
+		public static bool IsGloballyMuted = false;
+		public static bool IsSoundAllowed => !IsGloballyMuted && Helpers.GetOsPlatform() == OSPlatform.Linux;
 
 		public Sound(bool isMuted) {
 			IsGloballyMuted = isMuted;
@@ -17,7 +18,7 @@ namespace Assistant.Sound {
 
 		public void PlayNotification(ENOTIFICATION_CONTEXT context = ENOTIFICATION_CONTEXT.NORMAL, bool redirectOutput = false) {
 			if (Helpers.GetOsPlatform() != OSPlatform.Linux) {
-				Logger.Log("Cannot proceed as the running operating system is unknown.", Enums.LogLevels.Error);
+				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Error);
 				return;
 			}
 

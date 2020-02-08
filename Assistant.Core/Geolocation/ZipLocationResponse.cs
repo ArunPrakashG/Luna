@@ -1,4 +1,4 @@
-namespace Assistant.Geolocation {
+namespace Assistant.Core.Geolocation {
 	public class ZipLocationResponse {
 		public string Message { get; set; } = string.Empty;
 		public string Status { get; set; } = string.Empty;

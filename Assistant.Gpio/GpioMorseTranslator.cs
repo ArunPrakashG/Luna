@@ -41,7 +41,7 @@ namespace Assistant.Gpio {
 				return false;
 			}
 
-			Logger.Log($"Converting to Morse...", Enums.LogLevels.Info);
+			Logger.Log($"Converting to Morse...", LogLevels.Info);
 			string Morse = MorseCore.ConvertToMorseCode(textToConvert);
 
 			if (string.IsNullOrEmpty(Morse)) {
@@ -59,7 +59,7 @@ namespace Assistant.Gpio {
 			}
 
 			if (!MorseCore.IsValidMorse(Morse)) {
-				Logger.Log("The specified Morse is invalid!", Enums.LogLevels.Warn);
+				Logger.Log("The specified Morse is invalid!", LogLevels.Warn);
 				return false;
 			}
 

@@ -1,12 +1,12 @@
 using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.Log;
+using Assistant.NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Assistant.Alarm {
+namespace Assistant.Core.Alarm {
 	public class AlarmManager {
 		public static Dictionary<AlarmConfig, SchedulerConfig> Alarms { get; private set; } = new Dictionary<AlarmConfig, SchedulerConfig>();
 		private readonly Logger Logger = new Logger("ALARM");
@@ -42,7 +42,7 @@ namespace Assistant.Alarm {
 				return true;
 			}
 
-			Logger.Log("Failed to set alarm.", Enums.LogLevels.Warn);
+			Logger.Log("Failed to set alarm.", LogLevels.Warn);
 			return false;
 		}
 

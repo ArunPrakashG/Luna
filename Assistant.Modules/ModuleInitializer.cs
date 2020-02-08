@@ -315,7 +315,7 @@ namespace Assistant.Modules {
 					case MODULE_EXECUTION_CONTEXT.AssistantStartup:
 						return await eventMod.OnAssistantStartedAsync().ConfigureAwait(false);
 
-					case MODULE_EXECUTION_CONTEXT.ConfigWatcherEvent:
+					case MODULE_EXECUTION_CONTEXT.WatcherEvent:
 						if (!eventMod.IsLoaded) {
 							continue;
 						}
@@ -324,18 +324,7 @@ namespace Assistant.Modules {
 							return false;
 						}
 
-						return await eventMod.OnConfigWatcherEventRasiedAsync(fileEventSender, fileEventArgs).ConfigureAwait(false);
-
-					case MODULE_EXECUTION_CONTEXT.ModuleWatcherEvent:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						if (fileEventArgs == null || fileEventSender == null) {
-							return false;
-						}
-
-						return await eventMod.OnModuleWatcherEventRasiedAsync(fileEventSender, fileEventArgs).ConfigureAwait(false);
+						return await eventMod.OnWatcherEventRasiedAsync(fileEventSender, fileEventArgs).ConfigureAwait(false);
 
 					case MODULE_EXECUTION_CONTEXT.NetworkDisconnected:
 						if (!eventMod.IsLoaded) {
@@ -411,8 +400,7 @@ namespace Assistant.Modules {
 			NetworkReconnected,
 			SystemShutdown,
 			SystemRestart,
-			ConfigWatcherEvent,
-			ModuleWatcherEvent
+			WatcherEvent
 		}
 
 		public enum MODULE_TYPE {

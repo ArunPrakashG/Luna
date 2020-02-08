@@ -60,7 +60,7 @@ namespace Assistant.Extensions {
 		public const char ConsoleMorseCodeKey = 'v';
 		public const char ConsoleWeatherInfoKey = 'w';
 
-		public static string ExternelIP { get; set; } = string.Empty;
+		public static string? ExternelIP { get; set; } = string.Empty;
 
 		public static string? LocalIP { get; set; }
 		public const string GitHubReleaseURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";

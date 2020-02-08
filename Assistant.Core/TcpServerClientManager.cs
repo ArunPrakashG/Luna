@@ -1,15 +1,21 @@
-using Assistant.AssistantCore.PiGpio;
-using Assistant.Log;
-using SharedLibrary.TCPServer;
-using SharedLibrary.TCPServer.EventArgs;
-using SharedLibrary.TCPServer.Requests;
+using Assistant.Gpio;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
+using Assistant.Server.CoreServer;
+using Assistant.Server.CoreServer.EventArgs;
+using Assistant.Server.CoreServer.Requests;
+using Assistant.Server.CoreServer.Responses;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using static Assistant.Gpio.PiController;
+using static Assistant.Logging.Enums;
+using static Assistant.Server.CoreServer.CoreServerEnums;
 
 namespace Assistant.Core {
 	public class TcpServerClientManager : IDisposable {
-		private readonly Logger Logger;
+		private readonly ILogger Logger;
 		public Connection? Client { get; private set; }
 		private readonly string ClientUid = string.Empty;
 
@@ -30,9 +36,9 @@ namespace Assistant.Core {
 			}
 
 			Client = client;
-			client.Received += ClientOnRecevied;
-			client.Connected += ClientOnConnected;
-			client.Disconnected += ClientOnDisconnected;
+			Client.Received += Client_Received;
+			Client.Connected += ClientOnConnected;
+			Client.Disconnected += ClientOnDisconnected;
 			return this;
 		}
 
@@ -44,8 +50,8 @@ namespace Assistant.Core {
 
 		}
 
-		private async void ClientOnRecevied(object sender, OnReceivedEventArgs e) {
-			if (e == null || e.ReceivedObject == null || string.IsNullOrEmpty(e.ReceivedObject)) {
+		private async void Client_Received(object sender, OnReceivedEventArgs e) {
+			if (e == null || e.BaseRequest == null || string.IsNullOrEmpty(e.ReceivedRaw)) {
 				return;
 			}
 
@@ -67,12 +73,12 @@ namespace Assistant.Core {
 						return;
 					}
 
-					SetGpioRequest setGpioRequest = BaseRequest.DeserializeRequest<SetGpioRequest>(request.RequestObject);
+					SetGpioRequest setGpioRequest = JsonConvert.DeserializeObject<SetGpioRequest>(request.RequestObject);
 					if (!PiController.IsValidPin(setGpioRequest.PinNumber)) {
 						return;
 					}
 
-					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized) {
+					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PinController == null) {
 						return;
 					}
 
@@ -80,10 +86,10 @@ namespace Assistant.Core {
 						return;
 					}
 
-					if (Core.PiController.GetPinController().SetGpioValue(setGpioRequest.PinNumber, (Enums.GpioPinMode) setGpioRequest.PinMode, (Enums.GpioPinState) setGpioRequest.PinState)) {
-						GpioPinConfig config = Core.PiController.GetPinController().GetGpioConfig(setGpioRequest.PinNumber);
+					if (Core.PinController.SetGpioValue(setGpioRequest.PinNumber, (GpioPinMode) setGpioRequest.PinMode, (GpioPinState) setGpioRequest.PinState)) {
+						GpioPinConfig config = Core.PinController.GetGpioConfig(setGpioRequest.PinNumber);
 						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO, "Success!", GpioPinConfig.AsJson(config))).ConfigureAwait(false)) {
-							Logger.Log($"{request.TypeCode.ToString()} response send!", Enums.LogLevels.Trace);
+							Logger.Log($"{request.TypeCode.ToString()} response send!", LogLevels.Trace);
 							return;
 						}
 					}
@@ -95,12 +101,12 @@ namespace Assistant.Core {
 						return;
 					}
 
-					SetGpioDelayedRequest setGpioDelayedRequest = BaseRequest.DeserializeRequest<SetGpioDelayedRequest>(request.RequestObject);
+					SetGpioDelayedRequest setGpioDelayedRequest = JsonConvert.DeserializeObject<SetGpioDelayedRequest>(request.RequestObject);
 					if (!PiController.IsValidPin(setGpioDelayedRequest.PinNumber)) {
 						return;
 					}
 
-					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized) {
+					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PinController == null) {
 						return;
 					}
 
@@ -108,10 +114,10 @@ namespace Assistant.Core {
 						return;
 					}
 
-					if (Core.PiController.GetPinController().SetGpioWithTimeout(setGpioDelayedRequest.PinNumber, (Enums.GpioPinMode) setGpioDelayedRequest.PinMode, (Enums.GpioPinState) setGpioDelayedRequest.PinState, TimeSpan.FromMinutes(setGpioDelayedRequest.Delay))) {
-						GpioPinConfig config = Core.PiController.GetPinController().GetGpioConfig(setGpioDelayedRequest.PinNumber);
+					if (Core.PinController.SetGpioWithTimeout(setGpioDelayedRequest.PinNumber, (GpioPinMode) setGpioDelayedRequest.PinMode, (GpioPinState) setGpioDelayedRequest.PinState, TimeSpan.FromMinutes(setGpioDelayedRequest.Delay))) {
+						GpioPinConfig config = Core.PinController.GetGpioConfig(setGpioDelayedRequest.PinNumber);
 						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO_DELAYED, "Success!", GpioPinConfig.AsJson(config))).ConfigureAwait(false)) {
-							Logger.Log($"{request.TypeCode.ToString()} response send!", Enums.LogLevels.Trace);
+							Logger.Log($"{request.TypeCode.ToString()} response send!", LogLevels.Trace);
 							return;
 						}
 					}
@@ -144,11 +150,11 @@ namespace Assistant.Core {
 				return null;
 			}
 
-			if (ServerBase.ConnectedClientsCount <= 0) {
+			if (CoreServerBase.ConnectedClientsCount <= 0) {
 				return null;
 			}
 
-			foreach (KeyValuePair<string, Connection> values in ServerBase.ConnectedClients) {
+			foreach (KeyValuePair<string, Connection> values in CoreServerBase.ConnectedClients) {
 				if ((string.IsNullOrEmpty(values.Key)) || (values.Value == null)) {
 					continue;
 				}
