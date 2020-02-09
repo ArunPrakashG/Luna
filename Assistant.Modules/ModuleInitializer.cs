@@ -75,7 +75,6 @@ namespace Assistant.Modules {
 				if (list.Count > 0) {
 					foreach (IModuleBase bot in list) {
 						Logger.Trace($"Loading module of type {ParseModuleType(bot.ModuleType)} ...");
-
 						bot.ModuleIdentifier = GenerateModuleIdentifier();
 						ModuleInfo<IModuleBase> data = new ModuleInfo<IModuleBase>(bot.ModuleIdentifier, ParseModuleType(bot.ModuleType), true) {
 							Module = bot
@@ -118,13 +117,16 @@ namespace Assistant.Modules {
 			}
 
 			await ModuleLoaderSemaphore.WaitAsync().ConfigureAwait(false);
-			if (module.InitModuleService()) {
-				Logger.Info($"Module loaded! {module.ModuleIdentifier}/{ParseModuleType(module.ModuleType).ToString()}");
+			try {
+				if (module.InitModuleService()) {
+					Logger.Info($"Module loaded! {module.ModuleIdentifier}/{ParseModuleType(module.ModuleType).ToString()}");
+					return true;
+				}
+			}
+			finally {
 				ModuleLoaderSemaphore.Release();
-				return true;
 			}
 
-			ModuleLoaderSemaphore.Release();
 			return false;
 		}
 

@@ -9,9 +9,7 @@ using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
-
 	public class CoreConfig : IEquatable<CoreConfig> {
-
 		[JsonProperty] public bool AutoRestart { get; set; } = false;
 
 		[JsonProperty] public bool AutoUpdates { get; set; } = true;
@@ -23,8 +21,6 @@ namespace Assistant.Core {
 		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
 
 		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
-
-		[JsonProperty] public int KestrelServerPort { get; set; } = 9090;
 
 		[JsonProperty] public bool GpioSafeMode { get; set; } = false;
 
@@ -86,27 +82,24 @@ namespace Assistant.Core {
 
 		[JsonProperty] public bool CloseRelayOnShutdown { get; set; } = false;
 
-		[JsonIgnore] private readonly ILogger Logger = new Logger("CORE-CONFIG");
+		private static readonly ILogger Logger = new Logger("CORE-CONFIG");
 		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 
-		public CoreConfig SaveConfig(CoreConfig config) {
+		public async Task<CoreConfig?> SaveConfig(CoreConfig config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
 			Logger.Log("Saving core config...", LogLevels.Trace);
-			string filePath = Constants.CoreConfigPath;
-			string json = JsonConvert.SerializeObject(config, Formatting.Indented);
-			string newFilePath = filePath + ".new";
-
-			ConfigSemaphore.Wait();
-
-			if (Core.ConfigWatcher.FileSystemWatcher != null) {
-				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = false;
-			}
+			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 
 			try {
+				string filePath = Constants.CoreConfigPath;
+				string json = JsonConvert.SerializeObject(config, Formatting.Indented);
+				string newFilePath = filePath + ".new";
+
+				Core.FileWatcher.IsOnline = false;
 				File.WriteAllText(newFilePath, json);
 
 				if (File.Exists(filePath)) {
@@ -118,45 +111,41 @@ namespace Assistant.Core {
 			}
 			catch (Exception e) {
 				Logger.Log(e);
-				if (Core.ConfigWatcher.FileSystemWatcher != null) {
-					Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
-				}
-				return config;
+				return null;
 			}
 			finally {
 				ConfigSemaphore.Release();
+				Core.FileWatcher.IsOnline = true;
 			}
 
-			if (Core.ConfigWatcher.FileSystemWatcher != null) {
-				Core.ConfigWatcher.FileSystemWatcher.EnableRaisingEvents = true;
-			}
 			Logger.Log("Saved core config!", LogLevels.Trace);
 			return config;
 		}
 
-		public CoreConfig LoadConfig() {
+		public async Task LoadConfig() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
 			if (!File.Exists(Constants.CoreConfigPath) && !GenerateDefaultConfig()) {
-				return new CoreConfig();
+				return;
 			}
 
-			Logger.Log("Loading core config...", LogLevels.Trace);
-			string JSON;
-			ConfigSemaphore.Wait();
-			using (FileStream Stream = new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read)) {
-				using (StreamReader ReadSettings = new StreamReader(Stream)) {
-					JSON = ReadSettings.ReadToEnd();
-				}
-			}
+			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 
-			Core.Config = JsonConvert.DeserializeObject<CoreConfig>(JSON);
-			ConfigSemaphore.Release();
-			Logger.Log("Core configuration loaded successfully!", LogLevels.Trace);
-			return Core.Config;
+			try {
+				Logger.Log("Loading core config...", LogLevels.Trace);					
+				using StreamReader streamReader = new StreamReader(new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read));
+				Core.Config = JsonConvert.DeserializeObject<CoreConfig>(streamReader.ReadToEnd());
+				Logger.Log("Core configuration loaded successfully!", LogLevels.Trace);
+			}
+			catch (Exception e) {
+				Logger.Log(e);
+			}
+			finally {
+				ConfigSemaphore.Release();
+			}
 		}
 
 		public bool GenerateDefaultConfig() {
@@ -193,7 +182,7 @@ namespace Assistant.Core {
 			}
 
 			CoreConfig Config = new CoreConfig();
-			SaveConfig(Config);
+			Helpers.InBackgroundThread(async () => await SaveConfig(new CoreConfig()).ConfigureAwait(false));
 			return true;
 		}
 

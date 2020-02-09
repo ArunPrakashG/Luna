@@ -1,15 +1,17 @@
-using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.NLog;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
+using Assistant.Sound.Speech;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Core.Alarm {
 	public class AlarmManager {
 		public static Dictionary<AlarmConfig, SchedulerConfig> Alarms { get; private set; } = new Dictionary<AlarmConfig, SchedulerConfig>();
-		private readonly Logger Logger = new Logger("ALARM");
+		private readonly ILogger Logger = new Logger("ALARM");
 
 		public bool SetAlarm(int hoursFromNow, string alarmMessage, bool useTTS, TimeSpan repeatInterval, bool repeat = false) {
 			if (hoursFromNow <= 0 || string.IsNullOrEmpty(alarmMessage)) {
@@ -105,8 +107,14 @@ namespace Assistant.Core.Alarm {
 			if (!File.Exists(Constants.AlarmFilePath)) {
 				return;
 			}
-
+			
 			if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized) {
+				return;
+			}
+
+			var soundController = Core.PiController.GetSoundController();
+
+			if(soundController == null) {
 				return;
 			}
 
@@ -114,11 +122,11 @@ namespace Assistant.Core.Alarm {
 				if (alarm.Key.AlarmGuid == guid) {
 
 					if (alarm.Key.ShouldOverideSoundSetting) {
-						await Core.PiController.GetSoundController().SetPiVolume(90).ConfigureAwait(false);
+						await soundController.SetPiVolume(90).ConfigureAwait(false);
 					}
 
 					while (!alarm.Key.Snooze) {
-						string executeResult = $"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.AlarmFileName} -q".ExecuteBash(false);
+						Logger.Trace($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.AlarmFileName} -q".ExecuteBash(false));
 						await Task.Delay(3000).ConfigureAwait(false);
 					}
 				}

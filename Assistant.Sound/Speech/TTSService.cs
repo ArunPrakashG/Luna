@@ -41,7 +41,7 @@ namespace Assistant.Sound.Speech {
 					await Task.Delay(200).ConfigureAwait(false);
 				}
 
-				string fileName = string.Empty;
+				string? fileName;
 
 				if (SpeechCache.Count > 0) {
 					SpeechServiceCache? cache = SpeechCache.Find(x => x.SpeechText != null && x.SpeechText.Equals(text, StringComparison.OrdinalIgnoreCase));
@@ -52,11 +52,11 @@ namespace Assistant.Sound.Speech {
 						goto PlaySound;
 					}
 					else {
-						fileName = GetSpeechFile(text);
+						fileName = await GetSpeechFile(text).ConfigureAwait(false);
 					}
 				}
 				else {
-					fileName = GetSpeechFile(text);
+					fileName = await GetSpeechFile(text).ConfigureAwait(false);
 				}
 
 				if (string.IsNullOrEmpty(fileName)) {

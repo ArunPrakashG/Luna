@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 
 namespace Assistant.Core.FileWatcher {
-	public interface IWatcher {
+	public interface IFileWatcher {
 		ILogger Logger { get; set; }
 
 		bool IsOnline { get; set; }

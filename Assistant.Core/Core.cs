@@ -7,6 +7,7 @@ using Assistant.Logging.Interfaces;
 using Assistant.Modules;
 using Assistant.Pushbullet;
 using Assistant.Server.CoreServer;
+using Assistant.Sound.Speech;
 using Assistant.Weather;
 using CommandLine;
 using Google.Protobuf.WellKnownTypes;
@@ -26,7 +27,6 @@ using static Assistant.Logging.Enums;
 using static Assistant.Modules.ModuleInitializer;
 
 namespace Assistant.Core {
-
 	public class Options {
 
 		[Option('d', "debug", Required = false, HelpText = "Displays all Trace level messages to console. (for debugging)")]
@@ -46,7 +46,6 @@ namespace Assistant.Core {
 	}
 
 	public class Core {
-		private const int SendIpDelay = 60;
 		public static ILogger Logger { get; set; } = new Logger("ASSISTANT");
 		private static List<NLog.CoreLogger> AssistantLoggers = new List<NLog.CoreLogger>();
 		public static DateTime StartupTime;
@@ -57,13 +56,12 @@ namespace Assistant.Core {
 		public static GpioPinController? PinController { get; private set; }
 		public static Updater Update { get; private set; } = new Updater();
 		public static CoreConfig Config { get; set; } = new CoreConfig();
-		public static ConfigWatcher ConfigWatcher { get; private set; } = new ConfigWatcher();
-		private static ModuleWatcher ModuleWatcher { get; set; } = new ModuleWatcher();
 		public static ModuleInitializer ModuleLoader { get; private set; } = new ModuleInitializer();
 		public static WeatherClient WeatherClient { get; private set; } = new WeatherClient();
 		public static PushbulletClient PushbulletClient { get; private set; } = new PushbulletClient();
 		public static CoreServerBase CoreServer { get; private set; } = new CoreServerBase();
-		public static IWatcher FileWatcher { get; private set; } = new GenericWatcher();
+		public static IFileWatcher FileWatcher { get; private set; } = new GenericFileWatcher();
+		public static IModuleWatcher ModuleWatcher { get; private set; } = new GenericModuleWatcher();
 
 		public static bool CoreInitiationCompleted { get; private set; }
 		public static bool IsNetworkAvailable { get; set; }
@@ -85,7 +83,7 @@ namespace Assistant.Core {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
 			}
 
-			await TTS.AssistantVoice(Enums.SpeechContext.AssistantStartup).ConfigureAwait(false);
+			await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
 			await KeepAlive().ConfigureAwait(false);
 		}
 
@@ -104,11 +102,6 @@ namespace Assistant.Core {
 			CoreServer.ServerStarted += CoreServer_ServerStarted;
 			CoreServer.ServerShutdown += CoreServer_ServerShutdown;
 			CoreServer.ClientConnected += CoreServer_ClientConnected;
-			FileWatcher.InitWatcher(Constants.ConfigDirectory, new Dictionary<string, Action>() {
-				{ "Assistant.json", new Action(OnCoreConfigChangeEvent) },
-				{ "DiscordBot.json", new Action(OnDiscordConfigChangeEvent) },
-				{ "MailConfig.json", new Action(OnMailConfigChangeEvent) }
-			}, new List<string>(), "*.json", false);
 			return this;
 		}
 
@@ -227,11 +220,12 @@ namespace Assistant.Core {
 				Logger.Log($"Starting {AssistantName} in offline mode...");
 			}
 
+			OS.Init(true);
 			return this;
 		}
 
-		public Core LoadConfiguration() {
-			Config = Config.LoadConfig();
+		public async Task<Core> LoadConfiguration() {
+			await Config.LoadConfig().ConfigureAwait(false);
 			return this;
 		}
 
@@ -253,8 +247,8 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		public Core InitIpRecrussion() {
-			SendLocalIp(!string.IsNullOrEmpty(Constants.LocalIP));
+		public Core AllowLocalNetworkConnections() {
+			SendLocalIp();
 			return this;
 		}
 
@@ -282,8 +276,17 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		public Core StartConfigWatcher() {
-			ConfigWatcher.InitConfigWatcher();
+		public Core StartWatcher() {
+			FileWatcher.InitWatcher(Constants.ConfigDirectory, new Dictionary<string, Action>() {
+				{ "Assistant.json", new Action(OnCoreConfigChangeEvent) },
+				{ "DiscordBot.json", new Action(OnDiscordConfigChangeEvent) },
+				{ "MailConfig.json", new Action(OnMailConfigChangeEvent) }
+			}, new List<string>(), "*.json", false);
+
+			ModuleWatcher.InitWatcher(Constants.ModuleDirectory, new List<Action<string>>() {
+				new Action<string>((x) => OnModuleDirectoryChangeEvent(x))
+			}, new List<string>(), "*.dll", false);
+
 			return this;
 		}
 
@@ -307,9 +310,7 @@ namespace Assistant.Core {
 		public Core StartModules() {
 			if (Config.EnableModules) {
 				Helpers.InBackground(async () => {
-					if (await ModuleLoader.LoadAsync().ConfigureAwait(false)) {
-						ModuleWatcher.InitModuleWatcher();
-					}
+					await ModuleLoader.LoadAsync().ConfigureAwait(false);
 				});
 			}
 
@@ -868,8 +869,8 @@ namespace Assistant.Core {
 			PiController?.InitGpioShutdownTasks();
 			Update?.StopUpdateTimer();
 			RefreshConsoleTitleTimer?.Dispose();
-			ConfigWatcher?.StopConfigWatcher();
-			ModuleWatcher?.StopModuleWatcher();
+			FileWatcher.StopWatcher();
+			ModuleWatcher.StopWatcher();
 
 			if (CoreServer.IsServerListerning) {
 				await CoreServer.TryShutdownAsync().ConfigureAwait(false);
@@ -881,7 +882,7 @@ namespace Assistant.Core {
 
 			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
-			Config.SaveConfig(Config);
+			await Config.SaveConfig(Config).ConfigureAwait(false);
 			Logger.Log("Finished on exit tasks.", LogLevels.Trace);
 		}
 
@@ -963,7 +964,7 @@ namespace Assistant.Core {
 			}
 
 			Logger.Log("Updating core config as the local config file as been updated...");
-			Config.LoadConfig();
+			Helpers.InBackgroundThread(async () => await Config.LoadConfig().ConfigureAwait(false));
 		}
 
 		private void OnDiscordConfigChangeEvent() {
@@ -974,13 +975,30 @@ namespace Assistant.Core {
 			//TODO: Mail config file change events
 		}
 
+		private void OnModuleDirectoryChangeEvent(string? absoluteFileName) {
+			if (string.IsNullOrEmpty(absoluteFileName)) {
+				return;
+			}
+
+			string fileName = Path.GetFileName(absoluteFileName);
+			string filePath = Path.GetFullPath(absoluteFileName);
+			Logger.Log($"An event has been raised on module folder for file > {fileName}", LogLevels.Trace);
+
+			if (!File.Exists(filePath)) {
+				ModuleLoader.UnloadFromPath(filePath);
+				return;
+			}
+
+			Helpers.InBackground(async () => await ModuleLoader.LoadAsync().ConfigureAwait(false));
+		}
+
 		/// <summary>
 		/// The method sends the current working local ip to an central server which i personally use for such tasks and for authentication etc.
 		/// You have to specify such a server manually else contact me personally for my server IP.
 		/// We use this so that the mobile controller app of the assistant can connect to the assistant running on the connected local interface.
 		/// </summary>
 		/// <param name="enableRecrussion">Specify if you want to execute this method in a loop every SendIpDelay minutes. (recommended)</param>
-		private static void SendLocalIp(bool enableRecrussion) {
+		private static void SendLocalIp() {
 			string? localIp = Helpers.GetLocalIpAddress();
 
 			if (localIp == null || string.IsNullOrEmpty(localIp)) {
@@ -992,14 +1010,12 @@ namespace Assistant.Core {
 			RestRequest request = new RestRequest(RestSharp.Method.POST);
 			request.AddHeader("cache-control", "no-cache");
 			IRestResponse response = client.Execute(request);
+
 			if (response.StatusCode != HttpStatusCode.OK) {
 				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
 			}
 
 			Logger.Log($"{Constants.LocalIP} IP request send!", LogLevels.Trace);
-			if (enableRecrussion) {
-				Helpers.ScheduleTask(() => SendLocalIp(enableRecrussion), TimeSpan.FromMinutes(SendIpDelay));
-			}
 		}
 	}
 }

@@ -1,6 +1,7 @@
 using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
+using Assistant.Sound.Speech;
 using System;
 using System.Collections.Generic;
 using System.Threading;

@@ -1,6 +1,6 @@
-using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.NLog;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using RestSharp;
 using RestSharp.Extensions;
 using System;
@@ -14,7 +14,7 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Core.Update {
 
 	public class Updater {
-		private readonly Logger Logger = new Logger("UPDATER");
+		private readonly ILogger Logger = new Logger("UPDATER");
 		private GitHub Git = new GitHub();
 		public bool UpdateAvailable = false;
 		private Timer? AutoUpdateTimer;
@@ -84,16 +84,16 @@ namespace Assistant.Core.Update {
 			}
 
 			Git = Git.FetchLatestAssest();
-			string GitVersion = !Helpers.IsNullOrEmpty(Git.ReleaseTagName) ? Git.ReleaseTagName : string.Empty;
+			string GitVersion = !string.IsNullOrEmpty(Git.ReleaseTagName) ? Git.ReleaseTagName : string.Empty;
 
-			if (Helpers.IsNullOrEmpty(GitVersion)) {
+			if (string.IsNullOrEmpty(GitVersion)) {
 				Logger.Log("Failed to fetch the required details from github api.", LogLevels.Error);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
 
 			if (!Version.TryParse(GitVersion, out Version? LatestVersion)) {
-				Logger.Log("Could not prase the version. Make sure the versioning is correct @ GitHub.", LogLevels.Warn);
+				Logger.Log("Could not parse the version. Make sure the versioning is correct @ GitHub.", LogLevels.Warn);
 				UpdateSemaphore.Release();
 				return (false, Constants.Version);
 			}
@@ -103,7 +103,7 @@ namespace Assistant.Core.Update {
 				Logger.Log($"New version available!", LogLevels.Green);
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...", LogLevels.Warn);
-				await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateAvailable).ConfigureAwait(false);
+				await Core.ModuleLoader.ExecuteAsyncEvent(Modules.ModuleInitializer.MODULE_EXECUTION_CONTEXT.UpdateAvailable).ConfigureAwait(false);
 				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
 				UpdateSemaphore.Release();
 				return (true, LatestVersion);
@@ -121,7 +121,7 @@ namespace Assistant.Core.Update {
 		}
 
 		public async Task<bool> InitUpdate() {
-			if (Git == null || Git.Assets == null || Git.Assets.Length <= 0 ||Git.Assets[0] == null) {
+			if (Git == null || Git.Assets == null || Git.Assets.Length <= 0 || Git.Assets[0] == null) {
 				return false;
 			}
 
@@ -153,12 +153,11 @@ namespace Assistant.Core.Update {
 
 			response.RawBytes.SaveAs(Constants.UpdateZipFileName);
 
-
-			Logger.Log("Sucessfully Downloaded, Starting update process...");
+			Logger.Log("Successfully Downloaded, Starting update process...");
 			await Task.Delay(2000).ConfigureAwait(false);
 
 			if (!File.Exists(Constants.UpdateZipFileName)) {
-				Logger.Log("Something unknown and fatal has occured during update process. unable to proceed.", LogLevels.Error);
+				Logger.Log("Something unknown and fatal has occurred during update process. unable to proceed.", LogLevels.Error);
 				UpdateSemaphore.Release();
 				return false;
 			}
@@ -169,7 +168,7 @@ namespace Assistant.Core.Update {
 			}
 
 			if (OS.IsUnix) {
-				if(Constants.HomeDirectory == null || Constants.HomeDirectory.IsNull()) {
+				if (string.IsNullOrEmpty(Constants.HomeDirectory)) {
 					return false;
 				}
 
@@ -183,7 +182,7 @@ namespace Assistant.Core.Update {
 
 			UpdateSemaphore.Release();
 			await Task.Delay(1000).ConfigureAwait(false);
-			await Core.ModuleLoader.ExecuteAsyncEvent(Enums.AsyncModuleContext.UpdateStarted).ConfigureAwait(false);
+			await Core.ModuleLoader.ExecuteAsyncEvent(Modules.ModuleInitializer.MODULE_EXECUTION_CONTEXT.UpdateStarted).ConfigureAwait(false);
 			"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet UpdateHelper.dll".ExecuteBash(true);
 			await Core.Restart(5).ConfigureAwait(false);
 			return true;

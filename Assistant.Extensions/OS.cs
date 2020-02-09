@@ -5,13 +5,12 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Assistant.Extensions {
-
-	internal static class OS {
-
-		internal static bool IsUnix => RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+	// Credits to this section goes to JustArchiNET -> ArchiSteamFarm
+	public static class OS {
+		public static bool IsUnix => RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 		private static readonly ILogger Logger = new Logger("OS");
 
-		internal static void Init(bool systemRequired) {
+		public static void Init(bool systemRequired) {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				DisableQuickEditMode();
 
@@ -21,7 +20,7 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		internal static void UnixSetFileAccessExecutable(string path) {
+		public static void UnixSetFileAccessExecutable(string path) {
 			if (string.IsNullOrEmpty(path) || !File.Exists(path)) {
 				Logger.Log(nameof(path));
 				return;
@@ -55,8 +54,7 @@ namespace Assistant.Extensions {
 
 		private static void KeepWindowsSystemActive() {
 
-			// This function calls unmanaged API in order to tell Windows OS that it should not enter sleep state while the program is running
-			// If user wishes to enter sleep mode, then he should use ShutdownOnFarmingFinished or manage ASF process with third-party tool or script
+			// This function calls unmanaged API in order to tell Windows OS that it should not enter sleep state while the program is running			
 			// More info: https://msdn.microsoft.com/library/windows/desktop/aa373208(v=vs.85).aspx
 			NativeMethods.EExecutionState result = NativeMethods.SetThreadExecutionState(NativeMethods.AwakeExecutionState);
 

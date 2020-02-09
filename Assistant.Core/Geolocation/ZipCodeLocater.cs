@@ -1,14 +1,14 @@
-using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.NLog;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RestSharp;
-using static Assistant.AssistantCore.Enums;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Core.Geolocation {
 	public class ZipCodeLocater {
-		private Logger Logger { get; set; } = new Logger("ZIP-LOCATER");
+		private ILogger Logger { get; set; } = new Logger("ZIP-LOCATER");
 
 		public ZipLocationResponse ZipLocationResponse { get; private set; } = new ZipLocationResponse();
 		public ZipLocationResult ZipLocationResult { get; set; } = new ZipLocationResult();
@@ -16,16 +16,16 @@ namespace Assistant.Core.Geolocation {
 		[CanBeNull]
 		public static string? GenerateRequestUrl(long pinCode) {
 			if (pinCode <= 0) {
-				return string.Empty;
+				return null;
 			}
 
 			return Helpers.GetUrlToString($"http://www.postalpincode.in/api/pincode/{pinCode}", Method.GET);
 		}
 
 		[CanBeNull]
-		public static string? GenerateRequestUrl(string branchName) {
-			if (branchName.IsNull()) {
-				return string.Empty;				
+		public static string? GenerateRequestUrl(string? branchName) {
+			if (string.IsNullOrEmpty(branchName)) {
+				return null;
 			}
 
 			return Helpers.GetUrlToString($"http://www.postalpincode.in/api/pincode/{branchName}", Method.GET);
@@ -48,7 +48,7 @@ namespace Assistant.Core.Geolocation {
 				ZipLocationResult.Message = apiResult.Message;
 				ZipLocationResult.Status = apiResult.Status;
 
-				if(apiResult == null || apiResult.PostOffice == null) {
+				if (apiResult == null || apiResult.PostOffice == null) {
 					return (false, ZipLocationResult);
 				}
 
@@ -76,7 +76,7 @@ namespace Assistant.Core.Geolocation {
 
 			string? json = GenerateRequestUrl(pinCode);
 
-			if (json == null || json.IsNull()) {
+			if (string.IsNullOrEmpty(json)) {
 				Logger.Log("Failed to fetch api response from api.postalpincode.in", LogLevels.Warn);
 				return (false, ZipLocationResponse);
 			}

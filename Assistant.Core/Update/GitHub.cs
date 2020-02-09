@@ -1,9 +1,10 @@
-using Assistant.AssistantCore;
 using Assistant.Extensions;
-using Assistant.NLog;
+using Assistant.Logging;
+using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
+using static Assistant.Logging.Enums;
 
 namespace Assistant.Core.Update {
 	internal class GitHub {
@@ -31,12 +32,12 @@ namespace Assistant.Core.Update {
 			public string AssetDownloadUrl { get; set; } = string.Empty;
 		}
 
-		private readonly Logger Logger = new Logger("GIT-HUB");
+		private readonly ILogger Logger = new Logger("GITHUB");
 
 		public GitHub FetchLatestAssest() {
-			string? json = Helpers.GetUrlToString(Constants.GitHubReleaseURL, Method.GET, true);
+			string? json = Helpers.GetUrlToString(Constants.GitHubReleaseURL, Method.GET);
 
-			if (json == null || Helpers.IsNullOrEmpty(json)) {
+			if (string.IsNullOrEmpty(json)) {
 				Logger.Log("Could not fetch the latest patch release. Try again later!", LogLevels.Warn);
 				return new GitHub();
 			}

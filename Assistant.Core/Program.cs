@@ -24,15 +24,15 @@ namespace Assistant.Core {
 			//NOTE: The order matters, as its going to start one by one.
 			_Core = _Core.PreInitTasks()
 				.RegisterEvents()
-				.LoadConfiguration()
+				.LoadConfiguration().Result
 				.VariableAssignation()
 				.StartTcpServer(2244, 10).Result
 				.VerifyStartupArgs(args)
-				.InitIpRecrussion()
+				.AllowLocalNetworkConnections()
 				.StartConsoleTitleUpdater()
 				.DisplayASCIILogo()
 				.Misc()
-				.StartConfigWatcher()
+				.StartWatcher()
 				.StartPushBulletService()
 				.StartPinController()
 				.StartModules()
