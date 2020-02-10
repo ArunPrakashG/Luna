@@ -27,7 +27,7 @@ namespace Assistant.Modules {
 
 		private readonly List<ModuleInfo<IModuleBase>> ModulesCache = new List<ModuleInfo<IModuleBase>>();
 
-		private static ModuleInfo<T> GenerateDefault<T>() where T : IModuleBase => new ModuleInfo<T>(null, MODULE_TYPE.Unknown, false);
+		private static ModuleInfo<T> GenerateDefault<T>() where T : IModuleBase => new ModuleInfo<T>(null, default, MODULE_TYPE.Unknown,  false);
 
 		public ModuleInitializer() {
 			Modules.CollectionChanged += OnModuleAdded;
@@ -76,7 +76,7 @@ namespace Assistant.Modules {
 					foreach (IModuleBase bot in list) {
 						Logger.Trace($"Loading module of type {ParseModuleType(bot.ModuleType)} ...");
 						bot.ModuleIdentifier = GenerateModuleIdentifier();
-						ModuleInfo<IModuleBase> data = new ModuleInfo<IModuleBase>(bot.ModuleIdentifier, ParseModuleType(bot.ModuleType), true) {
+						ModuleInfo<IModuleBase> data = new ModuleInfo<IModuleBase>(bot.ModuleIdentifier, bot, ParseModuleType(bot.ModuleType), true) {
 							Module = bot
 						};
 
@@ -192,12 +192,7 @@ namespace Assistant.Modules {
 			foreach (ModuleInfo<IModuleBase> mod in ModulesCache) {
 				if (mod.ModuleIdentifier == identifier) {
 					Logger.Trace($"Module found of type {mod.ModuleType} with identifier {mod.ModuleIdentifier}");
-
-					ModuleInfo<TType> module = new ModuleInfo<TType>(mod.ModuleIdentifier, mod.ModuleType, mod.IsLoaded) {
-						Module = (TType) mod.Module
-					};
-
-					return module;
+					return new ModuleInfo<TType>(mod.ModuleIdentifier, (TType) mod.Module, mod.ModuleType, mod.IsLoaded);
 				}
 			}
 

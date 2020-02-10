@@ -10,7 +10,6 @@ namespace Assistant.Gpio {
 	public class PiController {
 		internal static readonly ILogger Logger = new Logger("PI-CONTROLLER");
 		public readonly Gpio? GpioCore;
-
 		public bool IsControllerProperlyInitialized { get; private set; } = false;
 		internal static EGPIO_DRIVERS CurrentDriver { get; private set; } = EGPIO_DRIVERS.RaspberryIODriver;
 		public static bool IsAllowedToExecute => GpioHelpers.IsPiEnvironment();
@@ -22,7 +21,7 @@ namespace Assistant.Gpio {
 		public PiController(Gpio gpioCore) => GpioCore = gpioCore;
 
 		internal PiController? InitController(bool gracefulExit = true) {
-			if(GpioCore == null) {
+			if(GpioCore == null || !IsAllowedToExecute) {
 				return null;
 			}
 

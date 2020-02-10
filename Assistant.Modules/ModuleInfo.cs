@@ -8,8 +8,9 @@ namespace Assistant.Modules {
 		public TModuleObject Module { get; set; }
 		public bool IsLoaded { get; set; }
 
-		public ModuleInfo(string? modId, MODULE_TYPE modType, bool isLoaded) {
+		public ModuleInfo(string? modId, TModuleObject modObj, MODULE_TYPE modType, bool isLoaded) {
 			ModuleIdentifier = modId;
+			Module = modObj;
 			ModuleType = modType;
 			IsLoaded = isLoaded;
 		}

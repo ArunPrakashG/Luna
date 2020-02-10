@@ -23,7 +23,7 @@ namespace Assistant.Gpio {
 		}
 
 		public Gpio? InitGpioCore(int[] outputPins, int[] inputPins) {
-			if(GpioController == null) {
+			if(GpioController == null || !IsAllowedToExecute) {
 				return null;
 			}
 

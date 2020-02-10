@@ -17,6 +17,10 @@ namespace Assistant.Gpio {
 		public GpioPinController(PiController controller) => Controller = controller;
 
 		public GpioPinController InitGpioController(EGPIO_DRIVERS driver) {
+			if (!IsAllowedToExecute) {
+				return this;
+			}
+
 			CurrentGpioDriver = driver;
 
 			switch (CurrentGpioDriver) {

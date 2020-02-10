@@ -18,7 +18,7 @@ namespace Assistant.Gpio {
 		public BluetoothController(Gpio gpioCore) => PiController = gpioCore.GpioController;
 
 		public BluetoothController InitBluetoothController() {
-			if (PiController == null || PiController.IsAllowedToExecute) {
+			if (PiController == null || !PiController.IsAllowedToExecute) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}

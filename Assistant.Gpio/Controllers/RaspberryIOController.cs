@@ -20,7 +20,7 @@ namespace Assistant.Gpio.Controllers {
 
 		[CanBeNull]
 		internal RaspberryIOController InitDriver() {
-			if (!PiController.IsAllowedToExecute) {
+			if (!IsAllowedToExecute) {
 				Logger.Warning("Failed to initialize Gpio Controller Driver. (Driver isn't allowed to execute.)");
 				IsDriverProperlyInitialized = false;
 				return this;

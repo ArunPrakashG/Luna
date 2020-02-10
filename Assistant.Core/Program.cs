@@ -28,13 +28,13 @@ namespace Assistant.Core {
 				.VariableAssignation()
 				.StartTcpServer(2244, 10).Result
 				.VerifyStartupArgs(args)
-				.AllowLocalNetworkConnections()
-				.StartConsoleTitleUpdater()
+				//.AllowLocalNetworkConnections()				
 				.DisplayASCIILogo()
-				.Misc()
+				.Versioning()
 				.StartWatcher()
 				.StartPushBulletService()
 				.StartPinController()
+				.StartConsoleTitleUpdater()
 				.StartModules()
 				.CheckAndUpdate()
 				.MarkInitializationCompletion();

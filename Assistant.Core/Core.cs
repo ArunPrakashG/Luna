@@ -10,7 +10,6 @@ using Assistant.Server.CoreServer;
 using Assistant.Sound.Speech;
 using Assistant.Weather;
 using CommandLine;
-using Google.Protobuf.WellKnownTypes;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -69,7 +68,7 @@ namespace Assistant.Core {
 		public static OSPlatform RunningPlatform { get; private set; }
 		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
 		public static string AssistantName { get; set; } = "Tess Home Assistant";
-		public static CancellationTokenSource KeepAliveToken { get; private set; } = new CancellationTokenSource(TimeSpan.MaxValue);
+		public static CancellationTokenSource KeepAliveToken { get; private set; } = new CancellationTokenSource(TimeSpan.FromDays(10));
 
 		/// <summary>
 		/// Thread blocking method to startup the post init tasks.
@@ -239,6 +238,7 @@ namespace Assistant.Core {
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
 			GpioCore = new Gpio.Gpio(EGPIO_DRIVERS.RaspberryIODriver, Config.CloseRelayOnShutdown)
 				.InitGpioCore(Config.OutputModePins, Config.InputModePins);
+			Console.Title = $"Home Assistant Initializing...";
 			return this;
 		}
 
@@ -253,7 +253,7 @@ namespace Assistant.Core {
 		}
 
 		public Core StartConsoleTitleUpdater() {
-			Helpers.InBackgroundThread(SetConsoleTitle, "Console Title Updater", true);
+			Helpers.InBackgroundThread(() => SetConsoleTitle(), "Console Title Updater", true);
 			return this;
 		}
 
@@ -269,7 +269,7 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		public Core Misc() {
+		public Core Versioning() {
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 			Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", LogLevels.Blue);
 
@@ -291,13 +291,13 @@ namespace Assistant.Core {
 		}
 
 		public Core StartPushBulletService() {
-			if (!string.IsNullOrEmpty(Config.PushBulletApiKey)) {
-				Helpers.InBackground(() => {
-					if (PushbulletClient.InitPushbulletClient(Config.PushBulletApiKey) != null) {
-						Logger.Log("Push bullet service started.", LogLevels.Trace);
-					}
-				});
-			}
+			//if (!string.IsNullOrEmpty(Config.PushBulletApiKey)) {
+			//	Helpers.InBackground(() => {
+			//		if (PushbulletClient.InitPushbulletClient(Config.PushBulletApiKey) != null) {
+			//			Logger.Log("Push bullet service started.", LogLevels.Trace);
+			//		}
+			//	});
+			//}
 
 			return this;
 		}
@@ -318,6 +318,10 @@ namespace Assistant.Core {
 		}
 
 		public Core StartPinController() {
+			if (!IsAllowedToExecute) {
+				return this;
+			}
+
 			if (GpioCore != null) {
 				PiController = GpioCore.GpioController;
 				PinController = GpioCore.PinController;
@@ -347,10 +351,20 @@ namespace Assistant.Core {
 		//private static void TcpServerBase_ServerShutdown(object sender, OnServerShutdownEventArgs e) => Logger.Log($"TCP shutting down.");
 
 		private static void SetConsoleTitle() {
-			Helpers.SetConsoleTitle($"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | Uptime: {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes");
+			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()}";
+			text += IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
+
+			Helpers.SetConsoleTitle(text);
 
 			if (RefreshConsoleTitleTimer == null) {
 				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+			}
+		}
+
+		public void StopConsoleRefresh() {
+			if(RefreshConsoleTitleTimer != null) {
+				RefreshConsoleTitleTimer.Dispose();
+				RefreshConsoleTitleTimer = null;
 			}
 		}
 
@@ -359,7 +373,7 @@ namespace Assistant.Core {
 			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", LogLevels.Input);
 			Logger.Log($"{Constants.ConsoleShutdownKey} - Shutdown assistant.", LogLevels.Input);
 
-			if (!PiController.IsAllowedToExecute) {
+			if (IsAllowedToExecute) {
 				Logger.Log($"{Constants.ConsoleRelayCommandMenuKey} - Display relay pin control menu.", LogLevels.Input);
 				Logger.Log($"{Constants.ConsoleRelayCycleMenuKey} - Display relay cycle control menu.", LogLevels.Input);
 
@@ -371,6 +385,7 @@ namespace Assistant.Core {
 			}
 
 			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run preconfigured test methods or tasks.", LogLevels.Input);
+
 			if (WeatherClient != null) {
 				Logger.Log($"{Constants.ConsoleWeatherInfoKey} - Get weather info of the specified location based on the pin code.", LogLevels.Input);
 			}
@@ -396,22 +411,22 @@ namespace Assistant.Core {
 						await Exit(0).ConfigureAwait(false);
 						return;
 
-					case Constants.ConsoleRelayCommandMenuKey when !PiController.IsAllowedToExecute:
+					case Constants.ConsoleRelayCommandMenuKey when IsAllowedToExecute:
 						Logger.Log("Displaying relay command menu...", LogLevels.Warn);
 						DisplayRelayCommandMenu();
 						return;
 
-					case Constants.ConsoleRelayCycleMenuKey when !PiController.IsAllowedToExecute:
+					case Constants.ConsoleRelayCycleMenuKey when IsAllowedToExecute:
 						Logger.Log("Displaying relay cycle menu...", LogLevels.Warn);
 						await DisplayRelayCycleMenu().ConfigureAwait(false);
 						return;
 
-					case Constants.ConsoleRelayCommandMenuKey when PiController.IsAllowedToExecute:
-					case Constants.ConsoleRelayCycleMenuKey when PiController.IsAllowedToExecute:
+					case Constants.ConsoleRelayCommandMenuKey when !IsAllowedToExecute:
+					case Constants.ConsoleRelayCycleMenuKey when !IsAllowedToExecute:
 						Logger.Log("Assistant is running in an Operating system/Device which doesn't support GPIO pin controlling functionality.", LogLevels.Warn);
 						return;
 
-					case Constants.ConsoleMorseCodeKey when !PiController.IsAllowedToExecute:
+					case Constants.ConsoleMorseCodeKey when IsAllowedToExecute:
 						if (PiController == null) {
 							return;
 						}
