@@ -58,7 +58,7 @@ namespace Assistant.Core {
 		/// <returns>Boolean, when the endless thread block has been interrupted, such as, on exit.</returns>
 		public static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", LogLevels.Trace);
-			await ModuleLoader.ExecuteAsyncEvent(ModuleInitializer.MODULE_EXECUTION_CONTEXT.AssistantStartup).ConfigureAwait(false);
+			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantStartup).ConfigureAwait(false);
 
 			if (Config.DisplayStartupMenu) {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
@@ -169,29 +169,28 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		public Core StartPushBulletService() {
+		public Core InitPushbulletService() {
 			if (string.IsNullOrEmpty(Config.PushBulletApiKey)) {
 				Logger.Trace("Push bullet API key is null or invalid.");
 				return this;
 			}
 
 			PushbulletClient.InitPushbulletClient(Config.PushBulletApiKey);
-			Logger.Log("Push bullet notification service started.", LogLevels.Trace);
+			Logger.Info("Push bullet notification service started.");
 			return this;
 		}
 
 		public Core CheckAndUpdate() {
-			Helpers.InBackground(async () => await Update.CheckAndUpdateAsync(true).ConfigureAwait(false));
+			Task.Run(async () => await Update.CheckAndUpdateAsync(true).ConfigureAwait(false));
 			return this;
 		}
 
 		public Core StartModules() {
-			if (Config.EnableModules) {
-				Helpers.InBackground(async () => {
-					await ModuleLoader.LoadAsync().ConfigureAwait(false);
-				});
+			if (!Config.EnableModules) {
+				return this;
 			}
 
+			Task.Run(async () => await ModuleLoader.LoadAsync().ConfigureAwait(false));
 			return this;
 		}
 
@@ -215,6 +214,7 @@ namespace Assistant.Core {
 
 		public Core MarkInitializationCompletion() {
 			CoreInitiationCompleted = true;
+			Logger.Info("Core has been loaded!");
 			return this;
 		}
 
