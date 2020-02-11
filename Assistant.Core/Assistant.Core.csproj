@@ -42,7 +42,6 @@
 		<PackageReference Include="System.Composition" Version="1.4.0" />
 		<PackageReference Include="System.Device.Gpio" Version="1.0.0" />
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.7.0" />
-		<PackageReference Include="System.Interactive.Async" Version="4.0.0" />
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
 		
@@ -75,9 +74,6 @@
 		</None>
 		<None Update="Resources\tts_alert.mp3">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="System.Interactive.Async.dll">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 

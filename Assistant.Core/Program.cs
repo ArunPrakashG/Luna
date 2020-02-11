@@ -24,9 +24,9 @@ namespace Assistant.Core {
 			//NOTE: The order matters, as its going to start one by one.
 			_Core = _Core.PreInitTasks()
 				.RegisterEvents()
-				.LoadConfiguration().Result
+				.LoadConfiguration()
 				.VariableAssignation()
-				.StartTcpServer(2244, 10).Result
+				.StartTcpServer(2244, 10)
 				.VerifyStartupArgs(args)
 				//.AllowLocalNetworkConnections()				
 				.DisplayASCIILogo()

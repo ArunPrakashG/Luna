@@ -26,30 +26,12 @@ using static Assistant.Logging.Enums;
 using static Assistant.Modules.ModuleInitializer;
 
 namespace Assistant.Core {
-	public class Options {
-
-		[Option('d', "debug", Required = false, HelpText = "Displays all Trace level messages to console. (for debugging)")]
-		public bool Debug { get; set; }
-
-		[Option('s', "safe", Required = false, HelpText = "Enables safe mode so that only preconfigured pins can be modified.")]
-		public bool Safe { get; set; }
-
-		[Option('f', "firstchance", Required = false, HelpText = "Enables logging of first chance exceptions to console.")]
-		public bool EnableFirstChance { get; set; }
-
-		[Option('t', "tts", Required = false, HelpText = "Enable text to speech system for assistant.")]
-		public bool TextToSpeech { get; set; }
-
-		[Option("df", Required = false, HelpText = "Disable first chance exception logging when debug mode is enabled.")]
-		public bool DisableFirstChance { get; set; }
-	}
-
 	public class Core {
-		public static ILogger Logger { get; set; } = new Logger("ASSISTANT");
-		private static List<NLog.CoreLogger> AssistantLoggers = new List<NLog.CoreLogger>();
+		public static ILogger Logger { get; set; } = new Logger("ASSISTANT");		
 		public static DateTime StartupTime;
 		private static Timer? RefreshConsoleTitleTimer;
 		private static Gpio.Gpio? GpioCore;
+		private static readonly EventManager EventManager = new EventManager();
 
 		public static PiController? PiController { get; private set; }
 		public static GpioPinController? PinController { get; private set; }
@@ -67,7 +49,7 @@ namespace Assistant.Core {
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
 		public static OSPlatform RunningPlatform { get; private set; }
 		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
-		public static string AssistantName { get; set; } = "Tess Home Assistant";
+		public static string AssistantName => !string.IsNullOrEmpty(Config.AssistantDisplayName) ? Config.AssistantDisplayName : "Home Assistant";
 		public static CancellationTokenSource KeepAliveToken { get; private set; } = new CancellationTokenSource(TimeSpan.FromDays(10));
 
 		/// <summary>
@@ -92,118 +74,17 @@ namespace Assistant.Core {
 		}
 
 		public Core RegisterEvents() {
-			Logging.Logger.LogMessageReceived += Logger_LogMessageReceived;
-			Logging.Logger.OnColoredReceived += Logger_OnColoredReceived;
-			Logging.Logger.OnErrorReceived += Logger_OnErrorReceived;
-			Logging.Logger.OnExceptionReceived += Logger_OnExceptionReceived;
-			Logging.Logger.OnInputReceived += Logger_OnInputReceived;
-			Logging.Logger.OnWarningReceived += Logger_OnWarningReceived;
-			CoreServer.ServerStarted += CoreServer_ServerStarted;
-			CoreServer.ServerShutdown += CoreServer_ServerShutdown;
-			CoreServer.ClientConnected += CoreServer_ClientConnected;
+			Logging.Logger.LogMessageReceived += EventManager.Logger_LogMessageReceived;
+			Logging.Logger.OnColoredReceived += EventManager.Logger_OnColoredReceived;
+			Logging.Logger.OnErrorReceived += EventManager.Logger_OnErrorReceived;
+			Logging.Logger.OnExceptionReceived += EventManager.Logger_OnExceptionReceived;
+			Logging.Logger.OnInputReceived += EventManager.Logger_OnInputReceived;
+			Logging.Logger.OnWarningReceived += EventManager.Logger_OnWarningReceived;
+			CoreServer.ServerStarted += EventManager.CoreServer_ServerStarted;
+			CoreServer.ServerShutdown += EventManager.CoreServer_ServerShutdown;
+			CoreServer.ClientConnected += EventManager.CoreServer_ClientConnected;
 			return this;
-		}
-
-		private void CoreServer_ClientConnected(object sender, Server.CoreServer.EventArgs.OnClientConnectedEventArgs e) {
-
-		}
-
-		private void CoreServer_ServerShutdown(object sender, Server.CoreServer.EventArgs.OnServerShutdownEventArgs e) {
-
-		}
-
-		private void CoreServer_ServerStarted(object sender, Server.CoreServer.EventArgs.OnServerStartedListerningEventArgs e) {
-
-		}
-
-		private void Logger_OnWarningReceived(object sender, Logging.EventArgs.EventArgsBase e) { }
-
-		private void Logger_OnInputReceived(object sender, Logging.EventArgs.EventArgsBase e) { }
-
-		private void Logger_OnExceptionReceived(object sender, Logging.EventArgs.OnExceptionMessageEventArgs e) {
-			if (AssistantLoggers == null) {
-				AssistantLoggers = new List<NLog.CoreLogger>();
-			}
-
-			NLog.CoreLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
-
-			if (logger == null) {
-				logger = new NLog.CoreLogger(e.LogIdentifier);
-				AssistantLoggers.Add(logger);
-			}
-
-			logger.Log(e.LogException, LogLevels.Exception, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-		}
-
-		private void Logger_OnErrorReceived(object sender, Logging.EventArgs.EventArgsBase e) {
-			if (AssistantLoggers == null) {
-				AssistantLoggers = new List<NLog.CoreLogger>();
-			}
-
-			NLog.CoreLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
-
-			if (logger == null) {
-				logger = new NLog.CoreLogger(e.LogIdentifier);
-				AssistantLoggers.Add(logger);
-			}
-
-			logger.Log(e.LogMessage, LogLevels.Error, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-		}
-
-		private void Logger_OnColoredReceived(object sender, Logging.EventArgs.WithColorEventArgs e) { }
-
-		private void Logger_LogMessageReceived(object sender, Logging.EventArgs.LogMessageEventArgs e) {
-			if (AssistantLoggers == null) {
-				AssistantLoggers = new List<NLog.CoreLogger>();
-			}
-
-			NLog.CoreLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
-
-			if (logger == null) {
-				logger = new NLog.CoreLogger(e.LogIdentifier);
-				AssistantLoggers.Add(logger);
-			}
-
-			switch (e.LogLevel) {
-				case LogLevels.Trace:
-					logger.Log(e.LogMessage, LogLevels.Trace, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Debug:
-					logger.Log(e.LogMessage, LogLevels.Debug, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Info:
-					logger.Log(e.LogMessage, LogLevels.Info, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Warn:
-					logger.Log(e.LogMessage, LogLevels.Warn, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Error:
-				case LogLevels.Exception:
-				case LogLevels.Fatal:
-					break;
-				case LogLevels.Green:
-					logger.Log(e.LogMessage, LogLevels.Green, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Red:
-					logger.Log(e.LogMessage, LogLevels.Red, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Blue:
-					logger.Log(e.LogMessage, LogLevels.Blue, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Cyan:
-					logger.Log(e.LogMessage, LogLevels.Cyan, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Magenta:
-					logger.Log(e.LogMessage, LogLevels.Magenta, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Input:
-					logger.Log(e.LogMessage, LogLevels.Input, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-				case LogLevels.Custom:
-					logger.Log(e.LogMessage, LogLevels.Custom, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
-					break;
-			}
-		}
+		}		
 
 		public Core PreInitTasks() {
 			if (File.Exists(Constants.TraceLogPath)) {
@@ -223,15 +104,13 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		public async Task<Core> LoadConfiguration() {
-			await Config.LoadConfig().ConfigureAwait(false);
+		public Core LoadConfiguration() {
+			Task.Run(async () => await Config.LoadConfig().ConfigureAwait(false));
 			return this;
 		}
 
 		public Core VariableAssignation() {
 			StartupTime = DateTime.Now;
-			AssistantName = Config.AssistantDisplayName;
-			Logger.LogIdentifier = AssistantName;
 			RunningPlatform = Helpers.GetOsPlatform();
 			Config.ProgramLastStartup = StartupTime;
 			Constants.LocalIP = Helpers.GetLocalIpAddress();
@@ -242,8 +121,8 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		public async Task<Core> StartTcpServer(int port, int backlog) {
-			await CoreServer.StartAsync(port, backlog).ConfigureAwait(false);
+		public Core StartTcpServer(int port, int backlog) {
+			Task.Run(async () => await CoreServer.StartAsync(port, backlog).ConfigureAwait(false));
 			return this;
 		}
 
@@ -291,14 +170,13 @@ namespace Assistant.Core {
 		}
 
 		public Core StartPushBulletService() {
-			//if (!string.IsNullOrEmpty(Config.PushBulletApiKey)) {
-			//	Helpers.InBackground(() => {
-			//		if (PushbulletClient.InitPushbulletClient(Config.PushBulletApiKey) != null) {
-			//			Logger.Log("Push bullet service started.", LogLevels.Trace);
-			//		}
-			//	});
-			//}
+			if (string.IsNullOrEmpty(Config.PushBulletApiKey)) {
+				Logger.Trace("Push bullet API key is null or invalid.");
+				return this;
+			}
 
+			PushbulletClient.InitPushbulletClient(Config.PushBulletApiKey);
+			Logger.Log("Push bullet notification service started.", LogLevels.Trace);
 			return this;
 		}
 
@@ -550,7 +428,7 @@ namespace Assistant.Core {
 				return;
 			}
 
-			Parser.Default.ParseArguments<Options>(args).WithParsed(x => {
+			Parser.Default.ParseArguments<StartupOptions>(args).WithParsed(x => {
 				if (x.Debug) {
 					Logger.Log("Debug mode enabled. Logging trace data to console.", LogLevels.Warn);
 					Config.Debug = true;
