@@ -3,7 +3,6 @@ using Assistant.Extensions.Interfaces;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
-using RestSharp;
 using System;
 using System.Net;
 using System.Net.Http;
@@ -68,7 +67,7 @@ namespace Assistant.Weather {
 				while (requestCount < MAX_RETRY_COUNT) {
 					HttpResponseMessage httpResponse = await Client.GetAsync(GenerateRequestUrl(apiKey, pinCode, countryCode)).ConfigureAwait(false);
 
-					if(httpResponse == null || httpResponse.StatusCode != HttpStatusCode.OK) {
+					if (httpResponse == null || httpResponse.StatusCode != HttpStatusCode.OK) {
 						requestCount++;
 						continue;
 					}
