@@ -1,5 +1,7 @@
 # HOME ASSISTANT
 
+## NOTE: Currently rewritting the code.
+
 A simple console application written in C# using .NET Core framework with a single goal, provide you with assistance in your home!
 turning on lights, and turning them off, getting weather update, email notifications and more!
 Built and designed to run on raspberry pi 3 in headless and completely unattended mode.
