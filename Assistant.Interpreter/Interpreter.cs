@@ -8,17 +8,22 @@ using System.Threading.Tasks;
 
 namespace Assistant.Interpreter {
 	public static class Interpreter {
-		private static Dictionary<string, Action<string[]>> Commands = new Dictionary<string, Action<string[]>>() {
+		private static readonly Dictionary<string, Func<string[], (string? result, EXECUTE_RESULT code)>> InternalCommandActions = new Dictionary<string, Func<string[], (string? result, EXECUTE_RESULT code)>>() {
 			{"help", CommandProcessor.HelpCommand },
 			{"relay", CommandProcessor.RelayCommand },
 			{"device", CommandProcessor.DeviceCommand },
 			{"gpio", CommandProcessor.GpioCommand }
 		};
+
+		// <command_name, <command_param1, command_params[]>>
+		public static Dictionary<string, Func<string[], (string? result, EXECUTE_RESULT code)>> CommandActionPairs { get; private set; } = new Dictionary<string, Func<string[], (string? result, EXECUTE_RESULT code)>>();
+
 		private const char LINE_SPLITTER = ';';
 		private const string ExampleCommand = "relay -[param1],[param2];";
 		private static readonly ILogger Logger = new Logger("INTERPRETER");
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
-		private static string? CurrentCommand;
+		public static string? CurrentCommand { get; private set; }
+		private static bool AlreadyInitCompleted = false;
 
 		public delegate void OnRelayCommandInterpreted(object sender, OnRelayCommandEventArgs e);
 		public static event OnRelayCommandInterpreted? OnRelayCommand;
@@ -27,35 +32,65 @@ namespace Assistant.Interpreter {
 		public delegate void OnDeviceCommandInterpreted(object sender, OnDeviceCommandEventArgs e);
 		public static event OnDeviceCommandInterpreted? OnDeviceCommand;
 
-		public static async Task<(bool cmdStatus, T cmdResponseObject)> ExecuteCommand<T>(string? command) where T : class {
-			if (string.IsNullOrEmpty(command)) {
-				Logger.Trace("Command is null.");
-				return default;
+		public static void InitInterpreter<T>(List<T> commandActions) where T : ICommandFunction {
+			if (AlreadyInitCompleted) {
+				return;
 			}
 
-			await Sync.WaitAsync().ConfigureAwait(false);
+			AlreadyInitCompleted = true;
 
-			try {
-
+			if(commandActions.Count <= 0) {
+				return;
 			}
-			catch (Exception e) {
 
-			}
-			finally {
-				Sync.Release();
+			for(int i = 0; i < commandActions.Count; i++) {
+				if(string.IsNullOrEmpty(commandActions[i].CommandName) || commandActions[i].CommandFunctionObject == null) {
+					continue;
+				}
+
+				CommandActionPairs.Add(commandActions[i].CommandName, commandActions[i].CommandFunctionObject);
 			}
 		}
 
-		private static (bool cmdStatus, T cmdResponseObject) ParseCommand<T>(string? cmd) where T : class {
-			if (string.IsNullOrEmpty(cmd)) {
-				return default;
+		internal static Func<string[], (string? result, EXECUTE_RESULT code)>? GetFunc(string? cmd) {
+			if (string.IsNullOrEmpty(cmd) || CommandActionPairs.Count <= 0) {
+				return null;
 			}
 
+			if (!CommandActionPairs.ContainsKey(cmd)) {
+				return null;
+			}
+
+			CommandActionPairs.TryGetValue(cmd, out Func<string[], (string? result, EXECUTE_RESULT code)>? func);
+			return func;
+		}
+
+		public static async Task<(bool cmdStatus, string? cmdResponseObject)> ExecuteCommand(string? command) {
+			if (!AlreadyInitCompleted) {
+				Logger.Warning("Interpreter isn't initiated properly.");
+				return (false, "Interpreter is offline.");
+			}
+
+			if (string.IsNullOrEmpty(command)) {
+				Logger.Trace("Command is null.");
+				return (false, "Command empty or invalid.");
+			}
+			
+			CurrentCommand = command;
+			return await ParseCommand(command).ConfigureAwait(false);
+		}
+
+		private static async Task<(bool cmdStatus, string? cmdResponseObject)> ParseCommand(string? cmd) {
+			await Sync.WaitAsync().ConfigureAwait(false);
+
 			try {
+				if (!cmd.Contains(LINE_SPLITTER)) {
+					return (false, $"Command syntax is invalid. maybe you are missing {LINE_SPLITTER} at the end ?");
+				}
 				string[] split = cmd.Split(LINE_SPLITTER);
 
 				if (split == null || split.Length <= 0) {
-					return default;
+					return (false, "Failed to parse the command. Please retype in correct syntax!");
 				}
 
 				for (int i = 0; i < split.Length; i++) {
@@ -77,65 +112,45 @@ namespace Assistant.Interpreter {
 						continue;
 					}
 
-					if (Commands.ContainsKey(command)) {
-						if(Commands.TryGetValue(command, out Action<string[]>? func)) {
+					if (InternalCommandActions.ContainsKey(command)) {
+						if(InternalCommandActions.TryGetValue(command, out Func<string[], (string? result, EXECUTE_RESULT code)>? func)) {
 							if(func == null) {
 								continue;
 							}
 
-							func.Invoke(parameters);
+							(string? result, EXECUTE_RESULT code) = func.Invoke(parameters);
+
+							if (!string.IsNullOrEmpty(result) && code == EXECUTE_RESULT.Success) {
+								return (true, result);
+							}
+
+							return (false, !string.IsNullOrEmpty(result) ?
+								result + " - " + code.ToString()
+								: $"Execution failed. ({code.ToString()})");
 						}
 					}
-
-					//bool isOn;
-					//int pinNumber;
-					//int delayInMins;
-
-					////TODO: Add rest of the  commands
-					//switch (command) {
-					//	case "RELAY" when parameters != null && parameters.Length == 2:
-					//		if (string.IsNullOrEmpty(parameters[0]) || string.IsNullOrEmpty(parameters[1])) {
-					//			continue;
-					//		}
-
-					//		if (!bool.TryParse(parameters[0], out isOn)) {
-					//			continue;
-					//		}
-
-					//		if (!int.TryParse(parameters[1], out pinNumber)) {
-					//			continue;
-					//		}
-
-					//		OnRelayCommand?.Invoke(null, new OnRelayCommandEventArgs(pinNumber, isOn, 0));
-					//		return CommandProcessor.OnRelayCommand<T>(isOn, pinNumber, 0);
-					//	case "RELAY" when parameters != null && parameters.Length == 3:
-					//		if (string.IsNullOrEmpty(parameters[0]) || string.IsNullOrEmpty(parameters[1]) || string.IsNullOrEmpty(parameters[2])) {
-					//			continue;
-					//		}
-
-					//		if (!bool.TryParse(parameters[0], out isOn)) {
-					//			continue;
-					//		}
-
-					//		if (!int.TryParse(parameters[1], out pinNumber)) {
-					//			continue;
-					//		}
-
-					//		if (!int.TryParse(parameters[2], out delayInMins)) {
-					//			continue;
-					//		}
-
-					//		OnRelayCommand?.Invoke(null, new OnRelayCommandEventArgs(pinNumber, isOn, 0));
-					//		return CommandProcessor.OnRelayCommand<T>(isOn, pinNumber, delayInMins);
-					//}
+					else {
+						return (false, "Command doesn't exist. use 'help' to check all available commands!");
+					}
 				}
+
+				return (false, "Command syntax is invalid. Re-execute the command with correct syntax.");
 			}
 			catch (Exception e) {
-
+				Logger.Log(e);
+				return (false, "Internal exception occurred. Execution failed forcefully.");
 			}
 			finally {
-
+				Sync.Release();
 			}
+		}
+
+		public enum EXECUTE_RESULT : byte {
+			Success = 0x01,
+			Failed = 0x00,
+			InvalidArgs = 0x002,
+			InvalidCommand = 0x003,
+			DoesntExist = 0x004
 		}
 	}
 }
