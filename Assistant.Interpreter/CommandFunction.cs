@@ -1,15 +1,18 @@
 using System;
 using static Assistant.Interpreter.Interpreter;
+using static Assistant.Interpreter.InterpreterCore;
 
 namespace Assistant.Interpreter {
-	public class CommandAction : ICommandFunction {
+	public class CommandFunction : ICommandFunction {
 		public string? CommandName { get; set; }
 		public Func<string[], (string? result, EXECUTE_RESULT code)> CommandFunctionObject { get; set; }
 		public string? CommandDescription { get; set; }
+		public COMMAND_CODE CommandCode { get; set; }
 
-		public CommandAction(Func<string[], (string? result, EXECUTE_RESULT code)> func, string? cmdName, string? cmdDescription) {
+		public CommandFunction(Func<string[], (string? result, EXECUTE_RESULT code)> func, string? cmdName, COMMAND_CODE code, string? cmdDescription) {
 			CommandFunctionObject = func;
 			CommandName = cmdName;
+			CommandCode = code;
 			CommandDescription = cmdDescription;
 		}
 	}
