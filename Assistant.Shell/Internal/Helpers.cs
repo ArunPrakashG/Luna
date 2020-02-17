@@ -1,4 +1,4 @@
-namespace Assistant.Interpreter {
+namespace Assistant.Shell.Internal {
 	public static class Helpers {
 		public static bool AsBool(this string value, out bool? booleanValue) {
 			if (string.IsNullOrEmpty(value)) {

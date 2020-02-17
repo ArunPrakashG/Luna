@@ -1,24 +1,25 @@
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
+using Assistant.Shell.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Interpreter.InterpreterCore;
+using static Assistant.Shell.InterpreterCore;
 
-namespace Assistant.Interpreter {
+namespace Assistant.Shell {
 	public static class Interpreter {
-		private static readonly Dictionary<string, Func<Parameters, (string? result, EXECUTE_RESULT code)>> InternalCommandFunctionPairs = new Dictionary<string, Func<Parameters, (string? result, EXECUTE_RESULT code)>>() {
-			{"help", CommandProcessor.HelpCommand },
-			{"relay", CommandProcessor.RelayCommand },
-			{"device", CommandProcessor.DeviceCommand },
-			{"gpio", CommandProcessor.GpioCommand },
-			{"bash", CommandProcessor.BashCommand }
+		private static readonly Dictionary<string, Func<Parameter, (string? result, EXECUTE_RESULT code)>> InternalCommandFunctionPairs = new Dictionary<string, Func<Parameter, (string? result, EXECUTE_RESULT code)>>() {
+			{"help", Processor.HelpCommand },
+			{"relay", Processor.RelayCommand },
+			{"device", Processor.DeviceCommand },
+			{"gpio", Processor.GpioCommand },
+			{"bash", Processor.BashCommand }
 		};
 
-		// <command_name, <command_param1, command_params[]>>
-		public static readonly Dictionary<string, ICommandFunction> CommandFunctionPairs = new Dictionary<string, ICommandFunction>();
+		// <command_code, ICommandFunction>
+		public static readonly Dictionary<COMMAND_CODE, ICommandFunction> CommandFunctionPairs = new Dictionary<COMMAND_CODE, ICommandFunction>();
 
 		private const char LINE_SPLITTER = ';';
 		private const string ExampleCommand = "relay -[param1],[param2];";
@@ -37,28 +38,26 @@ namespace Assistant.Interpreter {
 			}
 
 			for (int i = 0; i < commandFunctions.Count; i++) {
-				string? cmdName = commandFunctions[i].CommandName;
-
-				if (string.IsNullOrEmpty(cmdName) || commandFunctions[i].CommandFunctionObject == null) {
+				if (commandFunctions[i].CommandFunctionObject == null) {
 					continue;
 				}
 
-				CommandFunctionPairs.Add(cmdName, commandFunctions[i]);
+				CommandFunctionPairs.Add(commandFunctions[i].CommandCode, commandFunctions[i]);
 			}
 
 			InitCompleted = true;
 		}
 
-		internal static ICommandFunction? GetFunc(string? cmd) {
-			if (string.IsNullOrEmpty(cmd) || CommandFunctionPairs.Count <= 0) {
+		internal static ICommandFunction? GetFunc(COMMAND_CODE code) {
+			if (code == COMMAND_CODE.INVALID || CommandFunctionPairs.Count <= 0) {
 				return null;
 			}
 
-			if (!CommandFunctionPairs.ContainsKey(cmd)) {
+			if (!CommandFunctionPairs.ContainsKey(code)) {
 				return null;
 			}
 
-			if (!CommandFunctionPairs.TryGetValue(cmd, out ICommandFunction? func)) {
+			if (!CommandFunctionPairs.TryGetValue(code, out ICommandFunction? func)) {
 				return null;
 			}
 
@@ -80,7 +79,7 @@ namespace Assistant.Interpreter {
 			return await ParseCommand(command).ConfigureAwait(false);
 		}
 
-		private static async Task<(bool cmdStatus, string? cmdResponseObject)> ParseCommand(string? cmd) {
+		private static async Task<(bool cmdStatus, string? cmdResponseObject)> ParseCommand(string cmd) {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
@@ -115,12 +114,12 @@ namespace Assistant.Interpreter {
 					}
 
 					if (InternalCommandFunctionPairs.ContainsKey(command)) {
-						if (InternalCommandFunctionPairs.TryGetValue(command, out Func<Parameters, (string? result, EXECUTE_RESULT code)>? func)) {
+						if (InternalCommandFunctionPairs.TryGetValue(command, out Func<Parameter, (string? result, EXECUTE_RESULT code)>? func)) {
 							if (func == null) {
 								continue;
 							}
 
-							Parameters values = new Parameters(parameters, GetCode(command, parameters, doesContainMultipleParams));
+							Parameter values = new Parameter(parameters, GetCode(command, parameters, doesContainMultipleParams));
 
 							(string? result, EXECUTE_RESULT code) = func.Invoke(values);
 
@@ -172,14 +171,6 @@ namespace Assistant.Interpreter {
 				default:
 					return COMMAND_CODE.INVALID;
 			}
-		}
-
-		public enum EXECUTE_RESULT : byte {
-			Success = 0x01,
-			Failed = 0x00,
-			InvalidArgs = 0x002,
-			InvalidCommand = 0x003,
-			DoesntExist = 0x004
 		}
 	}
 }

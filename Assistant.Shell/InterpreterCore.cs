@@ -2,7 +2,7 @@ using Assistant.Extensions.Interfaces;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 
-namespace Assistant.Interpreter {
+namespace Assistant.Shell {
 	public class InterpreterCore : IExternal {
 		internal static readonly ILogger Logger = new Logger("INTERPRETER-CORE");
 
@@ -29,6 +29,14 @@ namespace Assistant.Interpreter {
 			SET_ALARM = 0x17,
 			SET_REMAINDER = 0x18,
 			INVALID = 0x99
+		}
+
+		public enum EXECUTE_RESULT : byte {
+			Success = 0x01,
+			Failed = 0x00,
+			InvalidArgs = 0x002,
+			InvalidCommand = 0x003,
+			DoesntExist = 0x004
 		}
 
 		public void RegisterLoggerEvent(object eventHandler) => LoggerExtensions.RegisterLoggerEvent(eventHandler);

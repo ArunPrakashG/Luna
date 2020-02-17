@@ -1,8 +1,8 @@
 using System;
-using static Assistant.Interpreter.Interpreter;
-using static Assistant.Interpreter.InterpreterCore;
+using Assistant.Shell.Internal;
+using static Assistant.Shell.InterpreterCore;
 
-namespace Assistant.Interpreter {
+namespace Assistant.Shell {	
 	public class CommandFunction : ICommandFunction {
 		public string? CommandName { get; set; }
 		public Func<string[], (string? result, EXECUTE_RESULT code)> CommandFunctionObject { get; set; }

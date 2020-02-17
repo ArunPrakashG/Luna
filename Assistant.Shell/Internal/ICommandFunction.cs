@@ -1,8 +1,7 @@
 using System;
-using static Assistant.Interpreter.Interpreter;
-using static Assistant.Interpreter.InterpreterCore;
+using static Assistant.Shell.InterpreterCore;
 
-namespace Assistant.Interpreter {
+namespace Assistant.Shell.Internal {
 	public interface ICommandFunction {
 		string? CommandName { get; set; }
 		string? CommandDescription { get; set; }

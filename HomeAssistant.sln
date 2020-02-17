@@ -44,7 +44,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Client", "Assista
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Schedulers", "Assistant.Schedulers\Assistant.Schedulers.csproj", "{3D2B9DF9-B13B-49B6-A071-8CD7028DF2EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Interpreter", "Assistant.Interpreter\Assistant.Interpreter.csproj", "{C3D29D66-4AA5-4701-AEDC-F1907E11C885}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Shell", "Assistant.Shell\Assistant.Shell.csproj", "{C3D29D66-4AA5-4701-AEDC-F1907E11C885}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
