@@ -9,15 +9,15 @@ namespace Assistant.Shell.Internal {
 		/// </summary>
 		/// <param name="p">Parameter object consisting of string[] of parameters and command code.</param>
 		/// <returns>Tuple, string result and Execution code which states Success/Failure/Error status.</returns>
-		internal static (string? result, EXECUTE_RESULT code) HelpCommand(Parameter p) {
+		internal static Response? HelpCommand(Parameter p) {
 
 		}
 
-		internal static (string? result, EXECUTE_RESULT code) GpioCommand(Parameter p) {
+		internal static Response? GpioCommand(Parameter p) {
 
 		}
 
-		internal static (string? result, EXECUTE_RESULT code) DeviceCommand(Parameter p) {
+		internal static Response? DeviceCommand(Parameter p) {
 
 		}
 
@@ -26,12 +26,12 @@ namespace Assistant.Shell.Internal {
 		/// </summary>
 		/// <param name="p">Parameter object consisting of string[] of parameters and command code.</param>
 		/// <returns>Tuple, string result and Execution code which states Success/Failure/Error status.</returns>
-		internal static (string? result, EXECUTE_RESULT code) RelayCommand(Parameter p) {
-			if (p == null || p.CommandCode == COMMAND_CODE.INVALID || p.Parameters == null || p.Parameters.Length <= 0) {
-				return (null, EXECUTE_RESULT.InvalidCommand);
+		internal static Response? RelayCommand(Parameter p) {
+			if (p.CommandCode == COMMAND_CODE.INVALID || p.Parameters == null || p.Parameters.Length <= 0) {
+				return null;
 			}
 
-			(string? result, EXECUTE_RESULT code)? response;
+			Response? response;
 			bool? isOn;
 			int pinNumber;
 
@@ -39,43 +39,43 @@ namespace Assistant.Shell.Internal {
 				//generic relay command, on/off
 				case COMMAND_CODE.RELAY_BASIC:
 					if (!p.Parameters[0].AsBool(out isOn)) {
-						return ("Invalid Argument: Pin state could not be parsed.", EXECUTE_RESULT.InvalidArgs);
+						return new Response("Invalid Argument: Pin state could not be parsed.", EXECUTE_RESULT.InvalidArgs);
 					}
 
 					if (!int.TryParse(p.Parameters[1], out pinNumber)) {
-						return ("Invalid Argument: Pin number could not be parsed.", EXECUTE_RESULT.InvalidArgs);
+						return new Response("Invalid Argument: Pin number could not be parsed.", EXECUTE_RESULT.InvalidArgs);
 					}
 
-					response = GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p.Parameters);
+					response = GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p);
 
-					if (response == null || !response.HasValue) {
-						return ("Command execution failed.", EXECUTE_RESULT.Failed);
+					if (response == null || string.IsNullOrEmpty(response.Value.ExecutionResult)) {
+						return new Response("Command execution failed.", EXECUTE_RESULT.Failed);
 					}
 
-					return response.Value;
+					return response;
 				//relay delay command, on/off with delay value (mins)
 				case COMMAND_CODE.RELAY_DELAYED_TASK:
 					if (!p.Parameters[0].AsBool(out isOn)) {
-						return ("Invalid Argument: Pin state could not be parsed.", EXECUTE_RESULT.InvalidArgs);
+						return new Response("Invalid Argument: Pin state could not be parsed.", EXECUTE_RESULT.InvalidArgs);
 					}
 
 					if (!int.TryParse(p.Parameters[1], out pinNumber)) {
-						return ("Invalid Argument: Pin number could not be parsed.", EXECUTE_RESULT.InvalidArgs);
+						return new Response("Invalid Argument: Pin number could not be parsed.", EXECUTE_RESULT.InvalidArgs);
 					}
 
 					if (!int.TryParse(p.Parameters[2], out int delay)) {
-						return ("Invalid Argument: Delay could not be parsed.", EXECUTE_RESULT.InvalidArgs);
+						return new Response("Invalid Argument: Delay could not be parsed.", EXECUTE_RESULT.InvalidArgs);
 					}
 
-					response = GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p.Parameters);
+					response = GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p);
 
-					if (response == null || !response.HasValue) {
-						return ("Command execution failed.", EXECUTE_RESULT.Failed);
+					if (response == null || string.IsNullOrEmpty(response.Value.ExecutionResult)) {
+						return new Response("Command execution failed.", EXECUTE_RESULT.Failed);
 					}
 
-					return response.Value;
+					return response;
 				default:
-					return ("Command parameters are invalid.", EXECUTE_RESULT.InvalidCommand);
+					return new Response("Command parameters are invalid.", EXECUTE_RESULT.InvalidCommand);
 			}
 		}
 
@@ -84,7 +84,7 @@ namespace Assistant.Shell.Internal {
 		/// </summary>
 		/// <param name="p">Parameter object consisting of string[] of parameters and command code.</param>
 		/// <returns>Tuple, string result and Execution code which states Success/Failure/Error status.</returns>
-		internal static (string? result, EXECUTE_RESULT code) BashCommand(Parameter p) {
+		internal static Response? BashCommand(Parameter p) {
 
 		}
 	}

@@ -10,7 +10,7 @@ using static Assistant.Shell.InterpreterCore;
 
 namespace Assistant.Shell {
 	public static class Interpreter {
-		private static readonly Dictionary<string, Func<Parameter, (string? result, EXECUTE_RESULT code)>> InternalCommandFunctionPairs = new Dictionary<string, Func<Parameter, (string? result, EXECUTE_RESULT code)>>() {
+		private static readonly Dictionary<string, Func<Parameter, Response?>> InternalCommandFunctionPairs = new Dictionary<string, Func<Parameter, Response?>>() {
 			{"help", Processor.HelpCommand },
 			{"relay", Processor.RelayCommand },
 			{"device", Processor.DeviceCommand },
@@ -20,7 +20,7 @@ namespace Assistant.Shell {
 
 		// <command_code, ICommandFunction>
 		public static readonly Dictionary<COMMAND_CODE, ICommandFunction> CommandFunctionPairs = new Dictionary<COMMAND_CODE, ICommandFunction>();
-
+		internal static readonly List<ICommandFunction> CommandsCollection = new List<ICommandFunction>();
 		private const char LINE_SPLITTER = ';';
 		private const string ExampleCommand = "relay -[param1],[param2];";
 		private static readonly ILogger Logger = new Logger("INTERPRETER");
@@ -36,15 +36,46 @@ namespace Assistant.Shell {
 			if (commandFunctions.Count <= 0) {
 				return;
 			}
-
+			
 			for (int i = 0; i < commandFunctions.Count; i++) {
 				if (commandFunctions[i].CommandFunctionObject == null) {
 					continue;
 				}
 
+				CommandsCollection.Add(commandFunctions[i]);
 				CommandFunctionPairs.Add(commandFunctions[i].CommandCode, commandFunctions[i]);
 			}
 
+			if(InternalCommandFunctionPairs.Count > 0) {
+				foreach (KeyValuePair<string, Func<Parameter, Response?>> cmd in InternalCommandFunctionPairs) {
+					if (string.IsNullOrEmpty(cmd.Key)) {
+						continue;
+					}
+
+					ICommandFunction? cmdFunc = default;
+					switch (cmd.Key) {
+						case "relay":
+							cmdFunc = new CommandFunction(cmd.Value, cmd.Key, COMMAND_CODE.RELAY_BASIC, "Command to control relay board connected with pi.");
+							break;
+						case "help":
+							cmdFunc = new CommandFunction(cmd.Value, cmd.Key, COMMAND_CODE.HELP_BASIC, "Displays all the commands and their description.");
+							break;
+						case "gpio":
+							cmdFunc = new CommandFunction(cmd.Value, cmd.Key, COMMAND_CODE.GPIO_CYCLE_TEST, "Command to control Gpio pins on the raspberry pi board.");
+							break;
+						case "device":
+							cmdFunc = new CommandFunction(cmd.Value, cmd.Key, COMMAND_CODE.DEVICE_REBOOT, "Command for device related functions.");
+							break;
+						case "bash":
+							cmdFunc = new CommandFunction(cmd.Value, cmd.Key, COMMAND_CODE.HELP_BASIC, "Command provides functionality to execute bash script/command.");
+							break;
+					}
+
+					if(cmdFunc != null)
+						CommandsCollection.Add(cmdFunc);
+				}
+			}
+			
 			InitCompleted = true;
 		}
 
@@ -64,32 +95,32 @@ namespace Assistant.Shell {
 			return func;
 		}
 
-		public static async Task<(bool cmdStatus, string? cmdResponseObject)> ExecuteCommand(string? command) {
+		public static async Task<ParseResponse> ExecuteCommand(string? command) {
 			if (!InitCompleted) {
 				Logger.Warning("Interpreter isn't initiated properly.");
-				return (false, "Interpreter is offline.");
+				return new ParseResponse(false, "Interpreter is offline.");
 			}
 
 			if (string.IsNullOrEmpty(command)) {
 				Logger.Trace("Command is null.");
-				return (false, "Command empty or invalid.");
+				return new ParseResponse(false, "Command empty or invalid.");
 			}
 
 			CurrentCommand = command;
 			return await ParseCommand(command).ConfigureAwait(false);
 		}
 
-		private static async Task<(bool cmdStatus, string? cmdResponseObject)> ParseCommand(string cmd) {
+		private static async Task<ParseResponse> ParseCommand(string cmd) {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
 				if (!cmd.Contains(LINE_SPLITTER)) {
-					return (false, $"Command syntax is invalid. maybe you are missing {LINE_SPLITTER} at the end ?");
+					return new ParseResponse(false, $"Command syntax is invalid. maybe you are missing {LINE_SPLITTER} at the end ?");
 				}
 				string[] split = cmd.Split(LINE_SPLITTER);
 
 				if (split == null || split.Length <= 0) {
-					return (false, "Failed to parse the command. Please retype in correct syntax!");
+					return new ParseResponse(false, "Failed to parse the command. Please retype in correct syntax!");
 				}
 
 				for (int i = 0; i < split.Length; i++) {
@@ -114,34 +145,34 @@ namespace Assistant.Shell {
 					}
 
 					if (InternalCommandFunctionPairs.ContainsKey(command)) {
-						if (InternalCommandFunctionPairs.TryGetValue(command, out Func<Parameter, (string? result, EXECUTE_RESULT code)>? func)) {
+						if (InternalCommandFunctionPairs.TryGetValue(command, out Func<Parameter, Response?>? func)) {
 							if (func == null) {
 								continue;
 							}
 
 							Parameter values = new Parameter(parameters, GetCode(command, parameters, doesContainMultipleParams));
 
-							(string? result, EXECUTE_RESULT code) = func.Invoke(values);
+							Response? response = func.Invoke(values);
 
-							if (!string.IsNullOrEmpty(result) && code == EXECUTE_RESULT.Success) {
-								return (true, result);
+							if(response != null && response.HasValue && response.Value.ResultCode == EXECUTE_RESULT.Success && !string.IsNullOrEmpty(response.Value.ExecutionResult)) {
+								return new ParseResponse(true, response.Value.ExecutionResult);
 							}
 
-							return (false, !string.IsNullOrEmpty(result) ?
-								result + " - " + code.ToString()
-								: $"Execution failed. ({code.ToString()})");
+							return new ParseResponse(false, response != null && !string.IsNullOrEmpty(response.Value.ExecutionResult) ?
+								response.Value.ExecutionResult + " - " + response.Value.ResultCode.ToString()
+								: $"Execution failed. ({response.Value.ResultCode.ToString()})");
 						}
 					}
 					else {
-						return (false, "Command doesn't exist. use 'help' to check all available commands!");
+						return new ParseResponse(false, "Command doesn't exist. use 'help' to check all available commands!");
 					}
 				}
 
-				return (false, "Command syntax is invalid. Re-execute the command with correct syntax.");
+				return new ParseResponse(false, "Command syntax is invalid. Re-execute the command with correct syntax.");
 			}
 			catch (Exception e) {
 				Logger.Log(e);
-				return (false, "Internal exception occurred. Execution failed forcefully.");
+				return new ParseResponse(false, "Internal exception occurred. Execution failed forcefully.");
 			}
 			finally {
 				Sync.Release();
