@@ -3,7 +3,7 @@ using Assistant.Logging;
 using static Assistant.Gpio.PiController;
 
 namespace Assistant.Gpio {
-	public class Gpio : IExternal {
+	public class GpioCore : IExternal {
 		public readonly PiController? GpioController;
 		public readonly EGPIO_DRIVERS GpioDriver = EGPIO_DRIVERS.RaspberryIODriver;
 		private static (int[] InputPins, int[] OutputPins) OccupiedPins { get; set; }
@@ -15,14 +15,14 @@ namespace Assistant.Gpio {
 		public SoundController? PiSound { get; internal set; }
 		public GpioPinController? PinController { get; internal set; }
 
-		public Gpio(EGPIO_DRIVERS driver, bool gracefulExit) {
+		public GpioCore(EGPIO_DRIVERS driver, bool gracefulExit) {
 			GpioController = new PiController(this);
 			GpioDriver = driver;
 			
 			IsGracefullShutdownRequested = gracefulExit;
 		}
 
-		public Gpio? InitGpioCore(int[] outputPins, int[] inputPins) {
+		public GpioCore? InitGpioCore(int[] outputPins, int[] inputPins) {
 			if(GpioController == null || !IsAllowedToExecute) {
 				return null;
 			}

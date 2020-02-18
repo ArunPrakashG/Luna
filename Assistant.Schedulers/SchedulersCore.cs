@@ -1,11 +1,17 @@
 using Assistant.Extensions.Interfaces;
-using System;
+using Assistant.Logging;
+using FluentScheduler;
 
-namespace Assistant.Schedulers
-{
+namespace Assistant.Schedulers {
 	public class SchedulersCore : IExternal {
+		private static readonly Registry JobRegistry = new Registry();
+
+		public SchedulersCore() => JobManager.Initialize(JobRegistry);
+
+		internal Registry GetJobRegistry() => JobRegistry;
+
 		public void RegisterLoggerEvent(object eventHandler) {
-			throw new NotImplementedException();
+			LoggerExtensions.RegisterLoggerEvent(eventHandler);
 		}
 	}
 }

@@ -10,6 +10,7 @@ using Assistant.Server.CoreServer;
 using Assistant.Sound.Speech;
 using Assistant.Weather;
 using CommandLine;
+using FluentScheduler;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -30,7 +31,7 @@ namespace Assistant.Core {
 		public static ILogger Logger { get; set; } = new Logger("ASSISTANT");		
 		public static DateTime StartupTime;
 		private static Timer? RefreshConsoleTitleTimer;
-		private static Gpio.Gpio? GpioCore;
+		private static GpioCore? GpioCore;
 		private static readonly EventManager EventManager = new EventManager();
 
 		public static PiController? PiController { get; private set; }
@@ -51,6 +52,7 @@ namespace Assistant.Core {
 		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
 		public static string AssistantName => !string.IsNullOrEmpty(Config.AssistantDisplayName) ? Config.AssistantDisplayName : "Home Assistant";
 		public static CancellationTokenSource KeepAliveToken { get; private set; } = new CancellationTokenSource(TimeSpan.FromDays(10));
+		public static readonly Registry JobRegistry = new Registry();
 
 		/// <summary>
 		/// Thread blocking method to startup the post init tasks.
@@ -83,8 +85,19 @@ namespace Assistant.Core {
 			CoreServer.ServerStarted += EventManager.CoreServer_ServerStarted;
 			CoreServer.ServerShutdown += EventManager.CoreServer_ServerShutdown;
 			CoreServer.ClientConnected += EventManager.CoreServer_ClientConnected;
+			JobManager.JobException += JobManager_JobException;
+			JobManager.JobStart += JobManager_JobStart;
+			JobManager.JobEnd += JobManager_JobEnd;
 			return this;
-		}		
+		}
+
+		private void JobManager_JobEnd(JobEndInfo obj) {
+			Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
+		}
+
+		private void JobManager_JobStart(JobStartInfo obj) {
+			Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
+		}
 
 		public Core PreInitTasks() {
 			if (File.Exists(Constants.TraceLogPath)) {
@@ -109,13 +122,20 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		public Core StartScheduler() {
+			JobManager.Initialize(JobRegistry);			
+			return this;
+		}
+
+		private void JobManager_JobException(JobExceptionInfo obj) => Logger.Exception(obj.Exception);
+
 		public Core VariableAssignation() {
 			StartupTime = DateTime.Now;
 			RunningPlatform = Helpers.GetOsPlatform();
 			Config.ProgramLastStartup = StartupTime;
 			Constants.LocalIP = Helpers.GetLocalIpAddress();
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
-			GpioCore = new Gpio.Gpio(EGPIO_DRIVERS.RaspberryIODriver, Config.CloseRelayOnShutdown)
+			GpioCore = new Gpio.GpioCore(EGPIO_DRIVERS.RaspberryIODriver, Config.CloseRelayOnShutdown)
 				.InitGpioCore(Config.OutputModePins, Config.InputModePins);
 			Console.Title = $"Home Assistant Initializing...";
 			return this;
@@ -184,7 +204,7 @@ namespace Assistant.Core {
 			Task.Run(async () => await Update.CheckAndUpdateAsync(true).ConfigureAwait(false));
 			return this;
 		}
-
+		
 		public Core StartModules() {
 			if (!Config.EnableModules) {
 				return this;

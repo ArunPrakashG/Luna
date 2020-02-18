@@ -139,7 +139,7 @@ namespace Assistant.Gpio.Controllers {
 
 		public void ShutdownDriver() {
 			if (PiController.GracefullShutdown) {
-				foreach (int pin in Gpio.GetOccupiedPins().output) {
+				foreach (int pin in GpioCore.GetOccupiedPins().output) {
 					GpioPinConfig? pinStatus = GetGpioConfig(pin);
 
 					if (pinStatus == null) {
@@ -219,7 +219,7 @@ namespace Assistant.Gpio.Controllers {
 		}
 
 		protected async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
-			if (!Gpio.GetOccupiedPins().output.Contains(pin)) {
+			if (!GpioCore.GetOccupiedPins().output.Contains(pin)) {
 				return false;
 			}
 

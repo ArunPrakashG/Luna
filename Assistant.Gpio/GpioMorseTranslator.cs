@@ -9,12 +9,12 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Gpio {
 	public class GpioMorseTranslator {
 		private MorseCore MorseCore = new MorseCore();
-		private Gpio? GpioCore;
+		private GpioCore? GpioCore;
 		private GpioPinController? Controller => GpioCore?.PinController;
 		private readonly ILogger Logger = new Logger("GPIO-MORSE");
 		public bool IsTranslatorOnline { get; private set; }
 
-		public GpioMorseTranslator InitMorseTranslator(Gpio gpioCore) {
+		public GpioMorseTranslator InitMorseTranslator(GpioCore gpioCore) {
 			if (Controller == null) {
 				IsTranslatorOnline = false;
 				throw new InvalidOperationException("Cannot start Morse translator as the PinController is null!");

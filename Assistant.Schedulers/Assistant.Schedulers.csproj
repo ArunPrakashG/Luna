@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentScheduler" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
   </ItemGroup>
 

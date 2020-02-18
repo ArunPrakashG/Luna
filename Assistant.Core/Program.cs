@@ -26,6 +26,7 @@ namespace Assistant.Core {
 				.RegisterEvents()
 				.LoadConfiguration()
 				.VariableAssignation()
+				.StartScheduler()
 				.DisplayASCIILogo()
 				.StartTcpServer(2244, 10)
 				.VerifyStartupArgs(args)

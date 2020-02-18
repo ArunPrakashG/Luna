@@ -9,7 +9,7 @@ using Unosquare.RaspberryIO;
 namespace Assistant.Gpio {
 	public class PiController {
 		internal static readonly ILogger Logger = new Logger("PI-CONTROLLER");
-		public readonly Gpio? GpioCore;
+		public readonly GpioCore? GpioCore;
 		public bool IsControllerProperlyInitialized { get; private set; } = false;
 		internal static EGPIO_DRIVERS CurrentDriver { get; private set; } = EGPIO_DRIVERS.RaspberryIODriver;
 		public static bool IsAllowedToExecute => GpioHelpers.IsPiEnvironment();
@@ -18,7 +18,7 @@ namespace Assistant.Gpio {
 		[JsonProperty]
 		public static List<GpioPinConfig> PinConfigCollection { get; private set; } = new List<GpioPinConfig>(40);
 
-		public PiController(Gpio gpioCore) => GpioCore = gpioCore;
+		public PiController(GpioCore gpioCore) => GpioCore = gpioCore;
 
 		internal PiController? InitController(bool gracefulExit = true) {
 			if(GpioCore == null || !IsAllowedToExecute) {
@@ -65,7 +65,7 @@ namespace Assistant.Gpio {
 			}
 
 			IsControllerProperlyInitialized = true;
-			GpioCore.PinController.StartInternalPinPolling(Gpio.GetOccupiedPins().output);
+			GpioCore.PinController.StartInternalPinPolling(GpioCore.GetOccupiedPins().output);
 			Logger.Trace("Initiated Gpio Controller class!");
 			return this;
 		}
@@ -108,7 +108,7 @@ namespace Assistant.Gpio {
 
 			GpioCore.GpioPollingManager?.ExitEventGenerator();
 
-			(int[] output, int[] input) = Gpio.GetOccupiedPins();
+			(int[] output, int[] input) = GpioCore.GetOccupiedPins();
 
 			if(output.Length > 0 && GracefullShutdown) {
 				foreach (int pin in output) {

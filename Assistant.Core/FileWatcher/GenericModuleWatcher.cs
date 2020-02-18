@@ -8,7 +8,7 @@ using static Assistant.Modules.ModuleInitializer;
 
 namespace Assistant.Core.FileWatcher {
 	public class GenericModuleWatcher : IModuleWatcher {
-		public ILogger Logger { get; set; } = new Logger("FILE-WATCHER");
+		public ILogger Logger { get; set; } = new Logger(typeof(GenericModuleWatcher).Name);
 		private const int DELAY_SECS = 2;
 
 		public bool IsOnline {
