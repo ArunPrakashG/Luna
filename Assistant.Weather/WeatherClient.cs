@@ -13,7 +13,7 @@ namespace Assistant.Weather {
 	public class WeatherClient : IExternal {
 		private const int MAX_RETRY_COUNT = 3;
 		public WeatherResponse Response { get; private set; } = new WeatherResponse();
-		private readonly ILogger Logger = new Logger("WEATHER");
+		private readonly ILogger Logger = new Logger(typeof(WeatherClient).Name);
 		private static readonly HttpClient Client = new HttpClient();
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 
@@ -34,18 +34,6 @@ namespace Assistant.Weather {
 			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
 				return null;
 			}
-
-			//TODO: check if should speak the values out using TextToSpeech Module
-			//Helpers.InBackgroundThread(async () => {
-			//	await TTS.SpeakText($"Sir, The weather at {pinCode} is...", true).ConfigureAwait(false);
-			//	await TTS.SpeakText($"Temperature is {WeatherResult.Temperature}").ConfigureAwait(false);
-			//	await TTS.SpeakText($"Humidity is {WeatherResult.Humidity}").ConfigureAwait(false);
-			//	await TTS.SpeakText($"Pressure is {WeatherResult.Pressure}").ConfigureAwait(false);
-			//	await TTS.SpeakText($"Sea Level is {WeatherResult.SeaLevel}").ConfigureAwait(false);
-			//	await TTS.SpeakText($"Wind Speed is {WeatherResult.WindSpeed}").ConfigureAwait(false);
-			//	await TTS.SpeakText($"And the location name is {WeatherResult.LocationName}").ConfigureAwait(false);
-			//	await TTS.SpeakText($"and thats all sir!").ConfigureAwait(false);
-			//});
 
 			return await Request(apiKey, pinCode, countryCode).ConfigureAwait(false);
 		}

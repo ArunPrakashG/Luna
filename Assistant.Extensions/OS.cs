@@ -8,7 +8,7 @@ namespace Assistant.Extensions {
 	// Credits to this section goes to JustArchiNET -> ArchiSteamFarm
 	public static class OS {
 		public static bool IsUnix => RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-		private static readonly ILogger Logger = new Logger("OS");
+		private static readonly ILogger Logger = new Logger(typeof(OS).Name);
 
 		public static void Init(bool systemRequired) {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {

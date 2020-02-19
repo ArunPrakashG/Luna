@@ -12,7 +12,7 @@ namespace Assistant.Core.NLog {
 
 		public static bool IsLoggerOnline { get; set; } = true;
 
-		public static global::NLog.Logger RegisterLogger(string loggerName) {
+		public static Logger RegisterLogger(string loggerName) {
 			if (string.IsNullOrEmpty(loggerName)) {
 				throw new ArgumentException("message", nameof(loggerName));
 			}

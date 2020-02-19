@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Assistant.Client {
 	public class ClientBase : IDisposable {
-		private readonly ILogger Logger = new Logger("CLIENT-BASE");
+		private readonly ILogger Logger = new Logger(typeof(ClientBase).Name);
 		private TcpClient? Connector;
 		public const int MAX_CONNECTION_RETRY_COUNT = 6;
 		private readonly SemaphoreSlim ClientSemaphore = new SemaphoreSlim(1, 1);

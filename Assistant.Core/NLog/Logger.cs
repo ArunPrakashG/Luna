@@ -16,7 +16,7 @@ namespace Assistant.Core.NLog {
 			}
 
 			LogIdentifier = logId;
-			LogModule = Assistant.Core.NLog.NLog.RegisterLogger(logId);
+			LogModule = NLog.RegisterLogger(logId);
 		}
 
 		private void Debug(string? message,

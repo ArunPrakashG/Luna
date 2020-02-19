@@ -8,7 +8,7 @@ using Unosquare.RaspberryIO;
 
 namespace Assistant.Gpio {
 	public class PiController {
-		internal static readonly ILogger Logger = new Logger("PI-CONTROLLER");
+		internal static readonly ILogger Logger = new Logger(typeof(PiController).Name);
 		public readonly GpioCore? GpioCore;
 		public bool IsControllerProperlyInitialized { get; private set; } = false;
 		internal static EGPIO_DRIVERS CurrentDriver { get; private set; } = EGPIO_DRIVERS.RaspberryIODriver;

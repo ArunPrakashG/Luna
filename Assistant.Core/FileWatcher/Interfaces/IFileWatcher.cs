@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Assistant.Core.FileWatcher {
+namespace Assistant.Core.FileWatcher.Interfaces {
 	public interface IFileWatcher {
 		ILogger Logger { get; set; }
 

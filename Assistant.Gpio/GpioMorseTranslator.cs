@@ -11,7 +11,7 @@ namespace Assistant.Gpio {
 		private MorseCore MorseCore = new MorseCore();
 		private GpioCore? GpioCore;
 		private GpioPinController? Controller => GpioCore?.PinController;
-		private readonly ILogger Logger = new Logger("GPIO-MORSE");
+		private readonly ILogger Logger = new Logger(typeof(GpioMorseTranslator).Name);
 		public bool IsTranslatorOnline { get; private set; }
 
 		public GpioMorseTranslator InitMorseTranslator(GpioCore gpioCore) {

@@ -63,7 +63,7 @@ namespace Assistant.Extensions {
 		public static string? ExternelIP { get; set; } = string.Empty;
 
 		public static string? LocalIP { get; set; }
-		public const string GitHubReleaseURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";
+		public const string GITHUB_RELEASE_URL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";
 		public const string GitHubAssetDownloadURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/assets/";
 
 		public static readonly int[] BcmGpioPins = new int[26] {

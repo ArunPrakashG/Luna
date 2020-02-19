@@ -11,7 +11,7 @@ using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
 	public class GpioConfigHandler {
-		private readonly ILogger Logger = new Logger("GPIO-CONFIG-HANDLER");
+		private readonly ILogger Logger = new Logger(typeof(GpioConfigHandler).Name);
 
 		[JsonProperty]
 		public List<GpioPinConfig> PinConfigs { get; private set; } = new List<GpioPinConfig>();

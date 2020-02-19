@@ -10,7 +10,6 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Composition.Convention;
 using System.Composition.Hosting;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -20,14 +19,14 @@ using System.Threading.Tasks;
 
 namespace Assistant.Modules {
 	public class ModuleInitializer : IExternal {
-		private readonly ILogger Logger = new Logger("MODULES");
+		private readonly ILogger Logger = new Logger(typeof(ModuleInitializer).Name);
 		public readonly ObservableCollection<IModuleBase> Modules = new ObservableCollection<IModuleBase>();
 		public HashSet<Assembly>? AssemblyCollection { get; private set; } = new HashSet<Assembly>();
 		private static readonly SemaphoreSlim ModuleLoaderSemaphore = new SemaphoreSlim(1, 1);
 
 		private readonly List<ModuleInfo<IModuleBase>> ModulesCache = new List<ModuleInfo<IModuleBase>>();
 
-		private static ModuleInfo<T> GenerateDefault<T>() where T : IModuleBase => new ModuleInfo<T>(null, default, MODULE_TYPE.Unknown,  false);
+		private static ModuleInfo<T> GenerateDefault<T>() where T : IModuleBase => new ModuleInfo<T>(null, default, MODULE_TYPE.Unknown, false);
 
 		public ModuleInitializer() {
 			Modules.CollectionChanged += OnModuleAdded;
@@ -183,7 +182,7 @@ namespace Assistant.Modules {
 
 			return module.InitModuleShutdown();
 		}
-		
+
 		public ModuleInfo<TType> FindModuleOfType<TType>(string identifier) where TType : IModuleBase {
 			if (string.IsNullOrEmpty(identifier) || ModulesCache.Count <= 0 || !ModulesCache.OfType<TType>().Any()) {
 				return GenerateDefault<TType>();

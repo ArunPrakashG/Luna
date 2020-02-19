@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Assistant.Gpio {
 	public class GpioEventManager {
-		internal readonly ILogger Logger = new Logger("GPIO-EVENTS");
+		internal readonly ILogger Logger = new Logger(typeof(GpioEventManager).Name);
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();
 		private readonly PiController PiController;
 		private readonly GpioPinController PinController;

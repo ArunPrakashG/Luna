@@ -10,7 +10,7 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Core.Remainders {
 	public class RemainderManager {
 		public List<(Remainder, Timer?)> RemainderCollection { get; private set; } = new List<(Remainder, Timer?)>();
-		private ILogger Logger = new Logger("REMAINDER");
+		private ILogger Logger = new Logger(typeof(RemainderManager).Name);
 
 		public bool Remind(string msgToRemind, int minsUntilReminding) {
 			if (string.IsNullOrEmpty(msgToRemind) || minsUntilReminding <= 0) {

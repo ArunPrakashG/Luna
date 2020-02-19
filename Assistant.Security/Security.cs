@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Assistant.Security {
 	public class Security : IExternal {
-		private static readonly ILogger Logger = new Logger("SECURITY");
+		private static readonly ILogger Logger = new Logger(typeof(Security).Name);
 
 		public static string Encrypt(string data) {
 			if (string.IsNullOrEmpty(data) || string.IsNullOrWhiteSpace(data)) {

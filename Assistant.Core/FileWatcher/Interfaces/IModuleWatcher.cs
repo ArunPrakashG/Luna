@@ -2,10 +2,11 @@ using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
-namespace Assistant.Core.FileWatcher {
-	public interface IModuleWatcher {
+namespace Assistant.Core.FileWatcher.Interfaces
+{
+	public interface IModuleWatcher
+	{
 		ILogger Logger { get; set; }
 
 		bool IsOnline { get; set; }

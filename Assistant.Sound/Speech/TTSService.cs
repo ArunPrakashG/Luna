@@ -12,7 +12,7 @@ using static Assistant.Logging.Enums;
 
 namespace Assistant.Sound.Speech {
 	public class TTS {
-		private static readonly ILogger Logger = new Logger("TTS");
+		private static readonly ILogger Logger = new Logger(typeof(TTS).Name);
 		private static readonly SemaphoreSlim SpeechSemaphore = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim SpeechDownloadSemaphore = new SemaphoreSlim(1, 1);
 		private static List<SpeechServiceCache> SpeechCache { get; set; } = new List<SpeechServiceCache>();

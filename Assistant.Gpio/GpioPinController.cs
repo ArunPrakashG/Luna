@@ -8,7 +8,7 @@ using static Assistant.Gpio.PiController;
 
 namespace Assistant.Gpio {
 	public class GpioPinController : IGpioControllerDriver {
-		internal readonly ILogger Logger = new Logger("GPIO-CONTROLLER");
+		internal readonly ILogger Logger = new Logger(typeof(GpioPinController).Name);
 		public EGPIO_DRIVERS CurrentGpioDriver { get; private set; }
 		private IGpioControllerDriver GpioControllerDriver { get; set; } = new NullDriver();
 		private GpioEventManager? GpioPollingManager => Controller?.GetEventManager();

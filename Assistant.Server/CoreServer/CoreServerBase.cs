@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Assistant.Server.CoreServer {
 	public class CoreServerBase {
-		private static readonly ILogger Logger = new Logger("CORE-SERVER");
+		private static readonly ILogger Logger = new Logger(typeof(CoreServerBase).Name);
 		private TcpListener? Server { get; set; }
 		private int ServerPort { get; set; }
 		private bool ExitRequested { get; set; }

@@ -1,4 +1,5 @@
 using Assistant.Core.FileWatcher;
+using Assistant.Core.FileWatcher.Interfaces;
 using Assistant.Core.Update;
 using Assistant.Extensions;
 using Assistant.Gpio;
@@ -28,7 +29,7 @@ using static Assistant.Modules.ModuleInitializer;
 
 namespace Assistant.Core {
 	public class Core {
-		public static ILogger Logger { get; set; } = new Logger("ASSISTANT");		
+		public static ILogger Logger { get; set; } = new Logger(typeof(Core).Name);		
 		public static DateTime StartupTime;
 		private static Timer? RefreshConsoleTitleTimer;
 		private static GpioCore? GpioCore;
@@ -36,7 +37,7 @@ namespace Assistant.Core {
 
 		public static PiController? PiController { get; private set; }
 		public static GpioPinController? PinController { get; private set; }
-		public static Updater Update { get; private set; } = new Updater();
+		public static UpdateManager Update { get; private set; } = new UpdateManager();
 		public static CoreConfig Config { get; set; } = new CoreConfig();
 		public static ModuleInitializer ModuleLoader { get; private set; } = new ModuleInitializer();
 		public static WeatherClient WeatherClient { get; private set; } = new WeatherClient();
@@ -89,14 +90,6 @@ namespace Assistant.Core {
 			JobManager.JobStart += JobManager_JobStart;
 			JobManager.JobEnd += JobManager_JobEnd;
 			return this;
-		}
-
-		private void JobManager_JobEnd(JobEndInfo obj) {
-			Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
-		}
-
-		private void JobManager_JobStart(JobStartInfo obj) {
-			Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
 		}
 
 		public Core PreInitTasks() {
@@ -743,11 +736,6 @@ namespace Assistant.Core {
 				IsNetworkAvailable = false;
 				await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkDisconnected).ConfigureAwait(false);
 				Constants.ExternelIP = "Internet connection lost.";
-
-				if (Update != null) {
-					Update.StopUpdateTimer();
-					Logger.Log("Stopped update timer.", LogLevels.Warn);
-				}
 			}
 			finally {
 				NetworkSemaphore.Release();
@@ -772,6 +760,14 @@ namespace Assistant.Core {
 			}
 		}
 
+		private void JobManager_JobEnd(JobEndInfo obj) {
+			Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
+		}
+
+		private void JobManager_JobStart(JobStartInfo obj) {
+			Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
+		}
+
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
 
@@ -780,7 +776,8 @@ namespace Assistant.Core {
 			}
 
 			PiController?.InitGpioShutdownTasks();
-			Update?.StopUpdateTimer();
+			JobManager.RemoveAllJobs();
+			JobManager.Stop();
 			RefreshConsoleTitleTimer?.Dispose();
 			FileWatcher.StopWatcher();
 			ModuleWatcher.StopWatcher();
@@ -796,7 +793,7 @@ namespace Assistant.Core {
 			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
 			await Config.SaveConfig(Config).ConfigureAwait(false);
-			Logger.Log("Finished on exit tasks.", LogLevels.Trace);
+			Logger.Log("Finished exit tasks.", LogLevels.Trace);
 		}
 
 		public static async Task Exit(int exitCode = 0) {

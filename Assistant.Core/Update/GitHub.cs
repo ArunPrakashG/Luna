@@ -2,21 +2,22 @@ using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
-using RestSharp;
 using System;
-using static Assistant.Logging.Enums;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Assistant.Core.Update {
 	internal class GitHub {
 
 		[JsonProperty("url")]
-		public string ReleaseUrl { get; set; } = string.Empty;
+		public string? ReleaseUrl { get; set; }
 
 		[JsonProperty("tag_name")]
-		public string ReleaseTagName { get; set; } = string.Empty;
+		public string? ReleaseTagName { get; set; }
 
 		[JsonProperty("name")]
-		public string ReleaseFileName { get; set; } = string.Empty;
+		public string? ReleaseFileName { get; set; }
 
 		[JsonProperty("published_at")]
 		public DateTime PublishedAt { get; set; }
@@ -29,20 +30,60 @@ namespace Assistant.Core.Update {
 			public int AssetId { get; set; }
 
 			[JsonProperty("browser_download_url")]
-			public string AssetDownloadUrl { get; set; } = string.Empty;
+			public string? AssetDownloadUrl { get; set; }
 		}
 
-		private readonly ILogger Logger = new Logger("GITHUB");
+		private const int MAX_TRIES = 3;
+		private readonly ILogger Logger = new Logger(typeof(GitHub).Name);
+		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		private static readonly HttpClient Client = new HttpClient();
 
-		public GitHub FetchLatestAssest() {
-			string? json = Helpers.GetUrlToString(Constants.GitHubReleaseURL, Method.GET);
-
-			if (string.IsNullOrEmpty(json)) {
-				Logger.Log("Could not fetch the latest patch release. Try again later!", LogLevels.Warn);
-				return new GitHub();
+		public async Task Request() {
+			if (string.IsNullOrEmpty(Constants.GITHUB_RELEASE_URL)) {
+				return;
 			}
 
-			return JsonConvert.DeserializeObject<GitHub>(json);
+			await Sync.WaitAsync().ConfigureAwait(false);
+
+			try {
+				string? json = null;
+
+				for (int i = 0; i < MAX_TRIES; i++) {
+					HttpResponseMessage responseMessage = await Client.GetAsync(Constants.GITHUB_RELEASE_URL).ConfigureAwait(false);
+
+					if (responseMessage == null || responseMessage.StatusCode != System.Net.HttpStatusCode.OK || responseMessage.Content == null) {
+						Logger.Trace($"Request failed ({i})");
+						continue;
+					}
+
+					json = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+					if (string.IsNullOrEmpty(json)) {
+						continue;
+					}
+
+					break;
+				}
+
+				if (string.IsNullOrEmpty(json)) {
+					return;
+				}
+
+				GitHub obj = JsonConvert.DeserializeObject<GitHub>(json);
+				this.Assets = obj.Assets;
+				this.PublishedAt = obj.PublishedAt;
+				this.ReleaseFileName = obj.ReleaseFileName;
+				this.ReleaseTagName = obj.ReleaseTagName;
+				this.ReleaseUrl = obj.ReleaseUrl;
+
+			}
+			catch (Exception e) {
+				Logger.Exception(e);
+				return;
+			}
+			finally {
+				Sync.Release();
+			}
 		}
 	}
 }

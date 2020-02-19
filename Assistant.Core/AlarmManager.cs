@@ -7,7 +7,7 @@ using System.Collections.Generic;
 namespace Assistant.Core {
 	public static class AlarmManager {
 		public static readonly Dictionary<IAlarm, Schedule> Alarms = new Dictionary<IAlarm, Schedule>();
-		private static readonly ILogger Logger = new Logger("ALARM");
+		private static readonly ILogger Logger = new Logger(typeof(AlarmManager).Name);
 
 		public static AlarmResponse SetAlarm(IAlarm alarm) {
 			if (alarm == null || string.IsNullOrEmpty(alarm.Name) || string.IsNullOrEmpty(alarm.Description) || alarm.Task == null) {

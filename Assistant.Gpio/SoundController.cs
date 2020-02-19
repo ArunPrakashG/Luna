@@ -7,7 +7,7 @@ using static Assistant.Gpio.PiController;
 
 namespace Assistant.Gpio {
 	public class SoundController {
-		private readonly ILogger Logger = new Logger("PI-SOUND");
+		private readonly ILogger Logger = new Logger(typeof(SoundController).Name);
 
 		public async Task SetPiAudioState(PiAudioState state) {
 			switch (state) {

@@ -21,7 +21,7 @@ namespace Assistant.Core {
 
 		public TcpServerClientManager(string uid) {
 			ClientUid = uid;
-			Logger = new Logger($"CLIENT | {ClientUid}");
+			Logger = new Logger($"{typeof(TcpServerClientManager).Name} | {ClientUid}");
 		}
 
 		public TcpServerClientManager Handle() {

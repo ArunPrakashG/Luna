@@ -8,7 +8,7 @@ using static Assistant.Logging.Enums;
 
 namespace Assistant.Sound {
 	public class Sound : IExternal {
-		private static readonly ILogger Logger = new Logger("SOUND");
+		private static readonly ILogger Logger = new Logger(typeof(Sound).Name);
 		public static bool IsGloballyMuted = false;
 		public static bool IsSoundAllowed => !IsGloballyMuted && Helpers.GetOsPlatform() == OSPlatform.Linux;
 

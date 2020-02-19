@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
-
 	public class Program {
-		private static readonly ILogger Logger = new Logger("MAIN");
+		private static readonly ILogger Logger = new Logger(typeof(Program).Name);
 		private static Core _Core = new Core();
 
 		private static async Task Main(string[] args) {

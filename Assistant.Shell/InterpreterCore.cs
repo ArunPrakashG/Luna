@@ -4,7 +4,7 @@ using Assistant.Logging.Interfaces;
 
 namespace Assistant.Shell {
 	public class InterpreterCore : IExternal {
-		internal static readonly ILogger Logger = new Logger("INTERPRETER-CORE");
+		internal static readonly ILogger Logger = new Logger(typeof(InterpreterCore).Name);
 
 		public InterpreterCore() { }
 

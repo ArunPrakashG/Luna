@@ -1,3 +1,4 @@
+using Assistant.Core.FileWatcher.Interfaces;
 using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;

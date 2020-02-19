@@ -27,7 +27,7 @@ namespace Assistant.Pushbullet {
 		private const int MAX_REQUEST_FAILED_COUNT = 3;
 
 		private static RestClient? RestClient = new RestClient();
-		internal static readonly ILogger Logger = new Logger("PUSH-BULLET");
+		internal static readonly ILogger Logger = new Logger(typeof(PushbulletClient).Name);
 		public string? ClientAccessToken { get; set; }
 		public bool IsServiceLoaded { get; private set; }
 		private static int RequestFailedCount = 0;

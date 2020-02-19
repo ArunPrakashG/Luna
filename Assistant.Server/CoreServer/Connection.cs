@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Assistant.Server.CoreServer {
 	public class Connection : IDisposable {
-		private readonly ILogger Logger = new Logger("CONNECTION");
+		private readonly ILogger Logger = new Logger(typeof(Connection).Name);
 		private TcpClient? Client;
 		private CoreServerBase? Server;
 		private bool IsAlreadyInitialized;

@@ -27,7 +27,7 @@ namespace Assistant.Morse {
 
 		private Codes CodeStore { get; set; }
 
-		private ILogger Logger = new Logger("MORSE-CORE");
+		private ILogger Logger = new Logger(typeof(MorseCore).Name);
 
 		public MorseCore() => CodeStore = new Codes();
 

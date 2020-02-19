@@ -29,7 +29,7 @@ namespace Assistant.Gpio {
 		public bool IsPinOn => PinValue == GpioPinState.On;
 
 		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
-		private static readonly ILogger Logger = new Logger("GPIO-CONFIG");
+		private static readonly ILogger Logger = new Logger(typeof(GpioPinConfig).Name);
 
 		public override bool Equals(object? obj) {
 			if (obj == null) {

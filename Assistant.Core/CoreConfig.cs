@@ -82,7 +82,7 @@ namespace Assistant.Core {
 
 		[JsonProperty] public bool CloseRelayOnShutdown { get; set; } = false;
 
-		private static readonly ILogger Logger = new Logger("CORE-CONFIG");
+		private static readonly ILogger Logger = new Logger(typeof(CoreConfig).Name);
 		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 
 		public async Task<CoreConfig?> SaveConfig(CoreConfig config) {

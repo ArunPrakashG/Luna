@@ -16,11 +16,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
-namespace Assistant.Extensions
-{
+namespace Assistant.Extensions {
 	public static class Helpers
 	{
-		private static readonly ILogger Logger = new Logger("HELPERS");
+		private static readonly ILogger Logger = new Logger(typeof(Helpers).Name);
 
 		private static string FileSeperator { get; set; } = @"\";
 
