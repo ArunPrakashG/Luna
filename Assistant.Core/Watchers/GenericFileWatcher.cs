@@ -1,4 +1,4 @@
-using Assistant.Core.FileWatcher.Interfaces;
+using Assistant.Core.Watchers.Interfaces;
 using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.IO;
 using static Assistant.Modules.ModuleInitializer;
 
-namespace Assistant.Core.FileWatcher {
-	public class GenericModuleWatcher : IModuleWatcher {
-		public ILogger Logger { get; set; } = new Logger(typeof(GenericModuleWatcher).Name);
+namespace Assistant.Core.Watchers {
+	public class GenericFileWatcher : IFileWatcher {
+		public ILogger Logger { get; set; } = new Logger(typeof(GenericFileWatcher).Name);
 		private const int DELAY_SECS = 2;
 
 		public bool IsOnline {
@@ -23,11 +23,11 @@ namespace Assistant.Core.FileWatcher {
 		public string? WatcherFilter { get; set; }
 		public string? WatcherDirectory { get; set; }
 		public List<string> IgnoreList { get; set; } = new List<string>();
-		public List<Action<string>> WatcherEvents { get; set; } = new List<Action<string>>();
+		public Dictionary<string, Action> WatcherFileEvents { get; set; } = new Dictionary<string, Action>();
 		public FileSystemWatcher? Watcher { get; set; }
 		public DateTime LastRead { get; set; }
 
-		public void InitWatcher(string? dir, List<Action<string>> watcherEvents, List<string> ignoreList, string? filter = "*.dll", bool includeSubs = false) {
+		public void InitWatcher(string? dir, Dictionary<string, Action> watcherFileEvents, List<string> ignoreList, string? filter = "*.json", bool includeSubs = false) {
 			if (string.IsNullOrEmpty(filter) || string.IsNullOrEmpty(dir)) {
 				Logger.Warning("Directory or filter of the watcher isn't specified or is invalid.");
 				return;
@@ -38,7 +38,7 @@ namespace Assistant.Core.FileWatcher {
 				Directory.CreateDirectory(dir);
 			}
 
-			if (watcherEvents == null || watcherEvents.Count <= 0) {
+			if (watcherFileEvents == null || watcherFileEvents.Count <= 0) {
 				Logger.Warning("File events can't be null or empty.");
 				return;
 			}
@@ -46,7 +46,7 @@ namespace Assistant.Core.FileWatcher {
 			WatcherFilter = filter;
 			WatcherDirectory = dir;
 			IgnoreList = ignoreList;
-			WatcherEvents = watcherEvents;
+			WatcherFileEvents = watcherFileEvents;
 			LastRead = DateTime.Now;
 
 			Watcher = new FileSystemWatcher(WatcherDirectory) {
@@ -89,18 +89,20 @@ namespace Assistant.Core.FileWatcher {
 
 			Helpers.InBackground(async () => await Core.ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.WatcherEvent, sender, e).ConfigureAwait(false));
 
-			if (WatcherEvents.Count <= 0) {
+			if (WatcherFileEvents.Count <= 0) {
 				return;
 			}
 
-			foreach (var action in WatcherEvents) {
-				if (action == null) {
+			foreach (KeyValuePair<string, Action> pair in WatcherFileEvents) {
+				if (string.IsNullOrEmpty(pair.Key) || pair.Value == null) {
 					continue;
 				}
 
-				Logger.Trace($"Watcher file event raised for -> {absoluteFileName}; Executing corresponding action...");
-				action.Invoke(absoluteFileName);
-				break;
+				if (absoluteFileName.Equals(pair.Key, StringComparison.OrdinalIgnoreCase)) {
+					Logger.Trace($"Watcher file event raised for -> {pair.Key}; Executing corresponding action...");
+					pair.Value.Invoke();
+					break;
+				}
 			}
 		}
 

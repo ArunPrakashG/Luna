@@ -1,5 +1,5 @@
-using Assistant.Core.FileWatcher;
-using Assistant.Core.FileWatcher.Interfaces;
+using Assistant.Core.Watchers;
+using Assistant.Core.Watchers.Interfaces;
 using Assistant.Core.Update;
 using Assistant.Extensions;
 using Assistant.Gpio;

@@ -4,7 +4,7 @@ using FluentScheduler;
 using System;
 using System.Collections.Generic;
 
-namespace Assistant.Core {
+namespace Assistant.Core.Alarms {
 	public static class AlarmManager {
 		public static readonly Dictionary<IAlarm, Schedule> Alarms = new Dictionary<IAlarm, Schedule>();
 		private static readonly ILogger Logger = new Logger(typeof(AlarmManager).Name);

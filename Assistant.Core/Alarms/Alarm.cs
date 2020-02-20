@@ -1,7 +1,7 @@
 using FluentScheduler;
 using System;
 
-namespace Assistant.Core {
+namespace Assistant.Core.Alarms {
 	public class Alarm : IAlarm, IJob {
 		public string? Name { get; }
 

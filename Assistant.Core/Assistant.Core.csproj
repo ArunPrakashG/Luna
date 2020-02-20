@@ -3,15 +3,15 @@
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>netcoreapp3.1</TargetFramework>
-		<AssemblyVersion>7.1.0.0</AssemblyVersion>
-		<FileVersion>7.1.0.0</FileVersion>
-		<Version>7.1.0.0</Version>
+		<AssemblyVersion>8.0.0.0</AssemblyVersion>
+		<FileVersion>8.0.0.0</FileVersion>
+		<Version>8.0.0.0</Version>
 		<Authors>Arun</Authors>
 		<Company>Arun Prakash</Company>
-		<Copyright>Copyright © Home Assistant 2019-2019</Copyright>
-		<PackageProjectUrl>https://github.com/SynergYFTW/HomeAssistant</PackageProjectUrl>
+		<Copyright>Copyright © Home Assistant 2019-2020</Copyright>
+		<PackageProjectUrl>https://github.com/ArunPrakashG/HomeAssistant</PackageProjectUrl>
 		<RepositoryType>Git</RepositoryType>
-		<RepositoryUrl>https://github.com/SynergYFTW/HomeAssistant.git</RepositoryUrl>
+		<RepositoryUrl>https://github.com/ArunPrakashG/HomeAssistant.git</RepositoryUrl>
 		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<RuntimeIdentifiers>linux-arm;win-x64</RuntimeIdentifiers>

@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.28917.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Core", "Assistant.Core\Assistant.Core.csproj", "{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3E4D070F-40B5-47C3-90F9-917DB80F3794} = {3E4D070F-40B5-47C3-90F9-917DB80F3794}
+		{1DD08E73-9218-426D-9C75-874A7D2CF12B} = {1DD08E73-9218-426D-9C75-874A7D2CF12B}
+		{FA83C28A-03E4-450B-9A37-218CC29399BA} = {FA83C28A-03E4-450B-9A37-218CC29399BA}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Updater", "Assistant.Updater\Assistant.Updater.csproj", "{271C066A-F852-4AD5-921A-48C0AB4DF1CB}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -46,7 +51,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Schedulers", "Ass
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Shell", "Assistant.Shell\Assistant.Shell.csproj", "{C3D29D66-4AA5-4701-AEDC-F1907E11C885}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Location", "Assistant.Location\Assistant.Location.csproj", "{1DD08E73-9218-426D-9C75-874A7D2CF12B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Location", "Assistant.Location\Assistant.Location.csproj", "{1DD08E73-9218-426D-9C75-874A7D2CF12B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Time", "Assistant.Time\Assistant.Time.csproj", "{E4FFA8FB-E732-42F0-B95C-D769721B7023}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -122,6 +129,10 @@ Global
 		{1DD08E73-9218-426D-9C75-874A7D2CF12B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1DD08E73-9218-426D-9C75-874A7D2CF12B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1DD08E73-9218-426D-9C75-874A7D2CF12B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4FFA8FB-E732-42F0-B95C-D769721B7023}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4FFA8FB-E732-42F0-B95C-D769721B7023}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4FFA8FB-E732-42F0-B95C-D769721B7023}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4FFA8FB-E732-42F0-B95C-D769721B7023}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

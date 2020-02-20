@@ -1,67 +1,68 @@
-using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Assistant.Sound.Speech;
+using FluentScheduler;
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core.Remainders {
-	public class RemainderManager {
-		public List<(Remainder, Timer?)> RemainderCollection { get; private set; } = new List<(Remainder, Timer?)>();
-		private ILogger Logger = new Logger(typeof(RemainderManager).Name);
+	public static class RemainderManager {
+		public static readonly Dictionary<string, Remainder> Remainders = new Dictionary<string, Remainder>();
+		private static readonly ILogger Logger = new Logger(typeof(RemainderManager).Name);
 
-		public bool Remind(string msgToRemind, int minsUntilReminding) {
-			if (string.IsNullOrEmpty(msgToRemind) || minsUntilReminding <= 0) {
+		public static bool Remind(Remainder obj) {
+			if (obj == null || string.IsNullOrEmpty(obj.Message) || string.IsNullOrEmpty(obj.UniqueId) ||
+				obj.RemaindAt < DateTime.Now) {
 				return false;
 			}
 
-			(Remainder, Timer?) remainderData = (new Remainder {
-				IsCompleted = false,
-				Message = msgToRemind,
-				RemaindAt = DateTime.Now.AddMinutes(minsUntilReminding),
-				UniqueId = Guid.NewGuid().ToString()
-			}, null);
+			try {
+				JobManager.AddJob(async () => await OnJobExecAsync(obj).ConfigureAwait(false), (s) => s.WithName(obj.UniqueId).ToRunOnceAt(obj.RemaindAt));
+				Remainders.Add(obj.UniqueId, obj);
+				Schedule sch = JobManager.GetSchedule(obj.UniqueId);
 
-			if (!RemainderCollection.Exists(x => x.Item1.Message != null && x.Item1.Message.Equals(msgToRemind, StringComparison.OrdinalIgnoreCase))) {
-				RemainderCollection.Add(remainderData);
+				if (sch == null) {
+					return false;
+				}
+
+				Logger.Info($"A remainder has been set at {sch.NextRun.ToString()} ({Math.Round((sch.NextRun - DateTime.Now).TotalMinutes, 3)} minutes left)");
+				return !sch.Disabled;
 			}
-
-			return SetRemainder(remainderData);
+			catch (Exception e) {
+				Logger.Exception(e);
+				return false;
+			}
 		}
 
-		private bool SetRemainder((Remainder, Timer?) remainderData) {
-			if (remainderData.Item1 == null) {
-				return false;
+		private static async Task OnJobExecAsync(Remainder r) {
+			if (r == null || string.IsNullOrEmpty(r.Message) || r.RemaindAt < DateTime.Now || r.Func == null) {
+				return;
 			}
 
-			if (remainderData.Item1.IsCompleted || remainderData.Item1.RemaindAt < DateTime.Now) {
-				return true;
+			Logger.Log($"REMAINDER >>> {r.Message}", LogLevels.Green);
+			await TTS.SpeakText("Sir, You have a remainder!", true).ConfigureAwait(false);
+			await Task.Delay(400).ConfigureAwait(false);
+			await TTS.SpeakText(r.Message, false).ConfigureAwait(false);
+
+			if (r.Func != null) {
+				r.Func.Invoke(r);
 			}
 
-			Timer? timer = Helpers.ScheduleTask(async () => {
-				Logger.Log($"REMAINDER >>> {remainderData.Item1.Message}", LogLevels.Green);
-				await TTS.SpeakText("Sir, You have a remainder!", true).ConfigureAwait(false);
-				if (remainderData.Item1.Message != null && !string.IsNullOrEmpty(remainderData.Item1.Message)) {
-					await TTS.SpeakText(remainderData.Item1.Message, false).ConfigureAwait(false);
-				}
-
-			}, TimeSpan.FromMinutes((remainderData.Item1.RemaindAt - DateTime.Now).TotalMinutes));
-
-			Logger.Log($"A remainder has been set for message: {remainderData.Item1.Message} from {(remainderData.Item1.RemaindAt - DateTime.Now).Minutes} minutes from now.");
-
-			foreach ((Remainder, Timer?) t in RemainderCollection) {
-				if (t.Item2 == null) {
-					continue;
-				}
-				if (t.Item1.UniqueId == remainderData.Item1.UniqueId) {
-					RemainderCollection[RemainderCollection.IndexOf(t)] = (remainderData.Item1, timer);
-					break;
-				}
+			if (string.IsNullOrEmpty(r.UniqueId)) {
+				return;
 			}
 
-			return true;
+			try {
+				if (Remainders.ContainsKey(r.UniqueId)) {
+					Remainders.Remove(r.UniqueId);
+				}
+			}
+			catch (Exception e) {
+				Logger.Exception(e);
+				return;
+			}
 		}
 	}
 }

@@ -55,7 +55,9 @@ namespace Assistant.Core.Update {
 					Logger.Log($"You are up to date! ({LatestVersion}/{Constants.Version})");
 
 					if (withTimer) {
-						JobManager.AddJob(async () => await CheckAndUpdateAsync(withTimer).ConfigureAwait(false), (s) => s.WithName(JOB_NAME).ToRunEvery(1).Days().At(00, 00));
+						if(JobManager.GetSchedule(JOB_NAME) == null) {
+							JobManager.AddJob(async () => await CheckAndUpdateAsync(withTimer).ConfigureAwait(false), (s) => s.WithName(JOB_NAME).ToRunEvery(1).Days().At(00, 00));
+						}
 					}
 
 					return LatestVersion;

@@ -1,6 +1,7 @@
 using System;
 
-namespace Assistant.Core {
+namespace Assistant.Core.Alarms
+{
 	public interface IAlarm {
 		string? Name { get; }
 		string? Description { get; }

@@ -1,6 +1,7 @@
 using System;
 
-namespace Assistant.Core {
+namespace Assistant.Core.Alarms
+{
 	public struct AlarmResponse {
 		public bool IsScheduled { get; }
 		public string? Id { get; }

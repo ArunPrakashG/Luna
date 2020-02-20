@@ -1,18 +1,28 @@
-using Newtonsoft.Json;
+using FluentScheduler;
 using System;
 
 namespace Assistant.Core.Remainders {
-	public class Remainder {
-		[JsonProperty]
-		public string? UniqueId { get; set; }
+	public class Remainder : IJob {
+		public readonly string? UniqueId;
+		public readonly string? Message;
+		public readonly DateTime RemaindAt;
+		public readonly Action<Remainder>? Func;
+		public readonly bool IsCompleted;
 
-		[JsonProperty]
-		public string? Message { get; set; }
+		public Remainder() { }
 
-		[JsonProperty]
-		public DateTime RemaindAt { get; set; }
+		public Remainder(string? msg, DateTime at, Action<Remainder>? func = null) {
+			Message = msg;
+			UniqueId = Guid.NewGuid().ToString();
+			RemaindAt = at;
+			Func = func;
+			IsCompleted = false;
+		}
 
-		[JsonProperty]
-		public bool IsCompleted { get; set; }
+		public void Execute() {
+			if(Func != null) {
+				Func.Invoke(this);
+			}
+		}
 	}
 }
