@@ -1,6 +1,6 @@
-using static Assistant.Shell.InterpreterCore;
+using static Assistant.Core.Shell.InterpreterCore;
 
-namespace Assistant.Shell.Internal {
+namespace Assistant.Core.Shell.Internal {
 	public readonly struct Response {
 		public readonly string? ExecutionResult;
 		public readonly EXECUTE_RESULT ResultCode;

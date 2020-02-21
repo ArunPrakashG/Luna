@@ -11,6 +11,7 @@ namespace Assistant.Extensions {
 		public const string ConfigDirectory = @"Config";
 		public const string ResourcesDirectory = @"Resources";
 		public const string ModuleDirectory = @"Modules";
+		public const string COMMANDS_PATH = @"Commands";
 		public const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 
 		public const string GpioConfigDirectory = ConfigDirectory + "/" + GpioConfigFile;

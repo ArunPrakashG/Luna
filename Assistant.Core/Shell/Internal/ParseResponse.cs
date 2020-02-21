@@ -1,4 +1,4 @@
-namespace Assistant.Shell.Internal {
+namespace Assistant.Core.Shell.Internal {
 	public readonly struct ParseResponse {
 		public readonly bool CommandStatus;
 		public readonly string? CommandResponse;

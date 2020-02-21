@@ -2,11 +2,10 @@ using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using FluentScheduler;
-using RestSharp;
-using RestSharp.Extensions;
 using System;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
@@ -20,6 +19,7 @@ namespace Assistant.Core.Update {
 		public bool IsOnPrerelease { get; private set; } = false;
 		public DateTime NextUpdateCheck => JobManager.GetSchedule(JOB_NAME).NextRun;
 		private static readonly SemaphoreSlim UpdateSemaphore = new SemaphoreSlim(1, 1);
+		private static readonly HttpClient Client = new HttpClient();
 
 		public async Task<Version?> CheckAndUpdateAsync(bool withTimer) {
 			if (!Core.IsNetworkAvailable) {
@@ -55,7 +55,7 @@ namespace Assistant.Core.Update {
 					Logger.Log($"You are up to date! ({LatestVersion}/{Constants.Version})");
 
 					if (withTimer) {
-						if(JobManager.GetSchedule(JOB_NAME) == null) {
+						if (JobManager.GetSchedule(JOB_NAME) == null) {
 							JobManager.AddJob(async () => await CheckAndUpdateAsync(withTimer).ConfigureAwait(false), (s) => s.WithName(JOB_NAME).ToRunEvery(1).Days().At(00, 00));
 						}
 					}
@@ -90,66 +90,75 @@ namespace Assistant.Core.Update {
 			}
 
 			await UpdateSemaphore.WaitAsync().ConfigureAwait(false);
-			int releaseID = Github.Assets[0].AssetId;
-			Logger.Log($"Release name: {Github.ReleaseFileName}");
-			Logger.Log($"URL: {Github.ReleaseUrl}", LogLevels.Trace);
-			Logger.Log($"Version: {Github.ReleaseTagName}", LogLevels.Trace);
-			Logger.Log($"Publish time: {Github.PublishedAt.ToLongTimeString()}");
-			Logger.Log($"ZIP URL: {Github.Assets[0].AssetDownloadUrl}", LogLevels.Trace);
-			Logger.Log($"Downloading {Github.ReleaseFileName}.zip...");
 
-			if (File.Exists(Constants.UpdateZipFileName)) {
-				File.Delete(Constants.UpdateZipFileName);
-			}
+			try {
+				int releaseID = Github.Assets[0].AssetId;
+				Logger.Log($"Release name: {Github.ReleaseFileName}");
+				Logger.Log($"URL: {Github.ReleaseUrl}", LogLevels.Trace);
+				Logger.Log($"Version: {Github.ReleaseTagName}", LogLevels.Trace);
+				Logger.Log($"Publish time: {Github.PublishedAt.ToLongTimeString()}");
+				Logger.Log($"ZIP URL: {Github.Assets[0].AssetDownloadUrl}", LogLevels.Trace);
+				Logger.Log($"Downloading {Github.ReleaseFileName}.zip...");
 
-			RestClient client = new RestClient($"{Constants.GitHubAssetDownloadURL}/{releaseID}");
-			RestRequest request = new RestRequest(Method.GET);
-			client.UserAgent = Constants.GitHubProjectName;
-			request.AddHeader("cache-control", "no-cache");
-			request.AddHeader("Accept", "application/octet-stream");
-			IRestResponse response = client.Execute(request);
+				if (File.Exists(Constants.UpdateZipFileName)) {
+					File.Delete(Constants.UpdateZipFileName);
+				}
 
-			if (response.StatusCode != HttpStatusCode.OK) {
-				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus.ToString());
-				UpdateSemaphore.Release();
-				return false;
-			}
-
-			response.RawBytes.SaveAs(Constants.UpdateZipFileName);
-
-			Logger.Log("Successfully Downloaded, Starting update process...");
-			await Task.Delay(2000).ConfigureAwait(false);
-
-			if (!File.Exists(Constants.UpdateZipFileName)) {
-				Logger.Log("Something unknown and fatal has occurred during update process. unable to proceed.", LogLevels.Error);
-				UpdateSemaphore.Release();
-				return false;
-			}
-
-			if (Directory.Exists(Constants.BackupDirectoryPath)) {
-				Directory.Delete(Constants.BackupDirectoryPath, true);
-				Logger.Log("Deleted old backup folder and its contents.");
-			}
-
-			if (OS.IsUnix) {
-				if (string.IsNullOrEmpty(Constants.HomeDirectory)) {
+				Client.DefaultRequestHeaders.Add("cache-control", "no-cache");
+				Client.DefaultRequestHeaders.Add("Accept", "application/octet-stream");
+				Client.DefaultRequestHeaders.Add("User-Agent", Constants.GitHubProjectName);
+				var result = await Client.GetAsync($"{Constants.GitHubAssetDownloadURL}/{releaseID}").ConfigureAwait(false);
+				if (result == null) {
+					Logger.Warning("Update request failed forcefully.");
 					return false;
 				}
 
-				string executable = Path.Combine(Constants.HomeDirectory, Constants.GitHubProjectName);
-
-				if (File.Exists(executable)) {
-					OS.UnixSetFileAccessExecutable(executable);
-					Logger.Log("File Permission set successfully!");
+				if (result.StatusCode != HttpStatusCode.OK) {
+					Logger.Log("Failed to download. Status Code: " + result.StatusCode + "/" + result.ReasonPhrase);
+					return false;
 				}
-			}
 
-			UpdateSemaphore.Release();
-			await Task.Delay(1000).ConfigureAwait(false);
-			await Core.ModuleLoader.ExecuteAsyncEvent(Modules.ModuleInitializer.MODULE_EXECUTION_CONTEXT.UpdateStarted).ConfigureAwait(false);
-			"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash(true);
-			await Core.Restart(5).ConfigureAwait(false);
-			return true;
+				await File.WriteAllBytesAsync(Constants.UpdateZipFileName, await result.Content.ReadAsByteArrayAsync().ConfigureAwait(false)).ConfigureAwait(false);
+				Logger.Log("Successfully Downloaded, Starting update process...");
+
+				if (!File.Exists(Constants.UpdateZipFileName)) {
+					Logger.Log("Something unknown and fatal has occurred during update process. unable to proceed.", LogLevels.Error);
+					return false;
+				}
+
+				await Task.Delay(2000).ConfigureAwait(false);
+
+				if (Directory.Exists(Constants.BackupDirectoryPath)) {
+					Directory.Delete(Constants.BackupDirectoryPath, true);
+					Logger.Log("Deleted old backup folder and its contents.");
+				}
+
+				if (OS.IsUnix) {
+					if (string.IsNullOrEmpty(Constants.HomeDirectory)) {
+						return false;
+					}
+
+					string executable = Path.Combine(Constants.HomeDirectory, Constants.GitHubProjectName);
+
+					if (File.Exists(executable)) {
+						OS.UnixSetFileAccessExecutable(executable);
+						Logger.Log("File Permission set successfully!");
+					}
+				}
+
+				await Task.Delay(1000).ConfigureAwait(false);
+				await Core.ModuleLoader.ExecuteAsyncEvent(Modules.ModuleInitializer.MODULE_EXECUTION_CONTEXT.UpdateStarted).ConfigureAwait(false);
+				"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash(true);
+				await Core.Restart(5).ConfigureAwait(false);
+				return true;
+			}
+			catch (Exception e) {
+				Logger.Exception(e);
+				return false;
+			}
+			finally {
+				UpdateSemaphore.Release();
+			}
 		}
 	}
 }

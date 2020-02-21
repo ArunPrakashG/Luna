@@ -1,8 +1,8 @@
+using Assistant.Core.Shell.Internal;
 using System;
-using Assistant.Shell.Internal;
-using static Assistant.Shell.InterpreterCore;
+using static Assistant.Extensions.Shared.Shell.ShellEnum;
 
-namespace Assistant.Shell {	
+namespace Assistant.Core.Shell {
 	public class CommandFunction : ICommandFunction {
 		public string? CommandName { get; }
 		public Func<Parameter, Response?> CommandFunctionObject { get; }

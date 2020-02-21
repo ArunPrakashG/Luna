@@ -47,8 +47,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Morse", "Assistan
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Client", "Assistant.Client\Assistant.Client.csproj", "{FA83C28A-03E4-450B-9A37-218CC29399BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assistant.Shell", "Assistant.Shell\Assistant.Shell.csproj", "{C3D29D66-4AA5-4701-AEDC-F1907E11C885}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Location", "Assistant.Location\Assistant.Location.csproj", "{1DD08E73-9218-426D-9C75-874A7D2CF12B}"
 EndProject
 Global
@@ -113,10 +111,6 @@ Global
 		{FA83C28A-03E4-450B-9A37-218CC29399BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA83C28A-03E4-450B-9A37-218CC29399BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA83C28A-03E4-450B-9A37-218CC29399BA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C3D29D66-4AA5-4701-AEDC-F1907E11C885}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C3D29D66-4AA5-4701-AEDC-F1907E11C885}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C3D29D66-4AA5-4701-AEDC-F1907E11C885}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C3D29D66-4AA5-4701-AEDC-F1907E11C885}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1DD08E73-9218-426D-9C75-874A7D2CF12B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1DD08E73-9218-426D-9C75-874A7D2CF12B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1DD08E73-9218-426D-9C75-874A7D2CF12B}.Release|Any CPU.ActiveCfg = Release|Any CPU

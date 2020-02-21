@@ -1,6 +1,6 @@
-using static Assistant.Shell.InterpreterCore;
+using static Assistant.Extensions.Shared.Shell.ShellEnum;
 
-namespace Assistant.Shell.Internal {
+namespace Assistant.Core.Shell.Internal {
 	public readonly struct Parameter {
 		public readonly string[] Parameters;
 		public readonly COMMAND_CODE CommandCode;

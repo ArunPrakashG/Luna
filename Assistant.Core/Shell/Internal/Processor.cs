@@ -1,7 +1,7 @@
-using static Assistant.Shell.Interpreter;
-using static Assistant.Shell.InterpreterCore;
+using static Assistant.Core.Shell.InterpreterCore;
+using static Assistant.Extensions.Shared.Shell.ShellEnum;
 
-namespace Assistant.Shell.Internal {
+namespace Assistant.Core.Shell.Internal {
 	internal static class Processor {
 
 		/// <summary>
@@ -46,7 +46,7 @@ namespace Assistant.Shell.Internal {
 						return new Response("Invalid Argument: Pin number could not be parsed.", EXECUTE_RESULT.InvalidArgs);
 					}
 
-					response = GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p);
+					response = Interpreter.GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p);
 
 					if (response == null || string.IsNullOrEmpty(response.Value.ExecutionResult)) {
 						return new Response("Command execution failed.", EXECUTE_RESULT.Failed);
@@ -67,7 +67,7 @@ namespace Assistant.Shell.Internal {
 						return new Response("Invalid Argument: Delay could not be parsed.", EXECUTE_RESULT.InvalidArgs);
 					}
 
-					response = GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p);
+					response = Interpreter.GetFunc(p.CommandCode)?.CommandFunctionObject.Invoke(p);
 
 					if (response == null || string.IsNullOrEmpty(response.Value.ExecutionResult)) {
 						return new Response("Command execution failed.", EXECUTE_RESULT.Failed);

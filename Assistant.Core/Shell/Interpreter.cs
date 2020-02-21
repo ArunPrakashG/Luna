@@ -1,14 +1,23 @@
+using Assistant.Core.Shell.Internal;
+using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
-using Assistant.Shell.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Shell.InterpreterCore;
+using static Assistant.Core.Shell.InterpreterCore;
+using static Assistant.Extensions.Shared.Shell.ShellEnum;
+/*
+	TODO: Implement Command loading based on IShellCommand Interface.
+		  Load and run InitAsync() method
+		  Assign loading assembly method for custom parsing and function to OnExecuteFunc()
+		  Assign UniqueId to the command assembly
 
-namespace Assistant.Shell {
+*/
+
+namespace Assistant.Core.Shell {
 	public static class Interpreter {
 		private static readonly Dictionary<string, Func<Parameter, Response?>> InternalCommandFunctionPairs = new Dictionary<string, Func<Parameter, Response?>>() {
 			{"help", Processor.HelpCommand },
@@ -28,6 +37,12 @@ namespace Assistant.Shell {
 		public static string? CurrentCommand { get; private set; }
 		private static bool InitCompleted = false;
 
+		static Interpreter() {
+			if (!Directory.Exists(Constants.COMMANDS_PATH)) {
+				Directory.CreateDirectory(Constants.COMMANDS_PATH);
+			}
+		}
+
 		public static void InitInterpreter<T>(List<T> commandFunctions) where T : ICommandFunction {
 			if (InitCompleted) {
 				return;
@@ -36,7 +51,7 @@ namespace Assistant.Shell {
 			if (commandFunctions.Count <= 0) {
 				return;
 			}
-			
+
 			for (int i = 0; i < commandFunctions.Count; i++) {
 				if (commandFunctions[i].CommandFunctionObject == null) {
 					continue;
@@ -46,7 +61,7 @@ namespace Assistant.Shell {
 				CommandFunctionPairs.Add(commandFunctions[i].CommandCode, commandFunctions[i]);
 			}
 
-			if(InternalCommandFunctionPairs.Count > 0) {
+			if (InternalCommandFunctionPairs.Count > 0) {
 				foreach (KeyValuePair<string, Func<Parameter, Response?>> cmd in InternalCommandFunctionPairs) {
 					if (string.IsNullOrEmpty(cmd.Key)) {
 						continue;
@@ -71,11 +86,11 @@ namespace Assistant.Shell {
 							break;
 					}
 
-					if(cmdFunc != null)
+					if (cmdFunc != null)
 						CommandsCollection.Add(cmdFunc);
 				}
 			}
-			
+
 			InitCompleted = true;
 		}
 
@@ -154,7 +169,7 @@ namespace Assistant.Shell {
 
 							Response? response = func.Invoke(values);
 
-							if(response != null && response.HasValue && response.Value.ResultCode == EXECUTE_RESULT.Success && !string.IsNullOrEmpty(response.Value.ExecutionResult)) {
+							if (response != null && response.HasValue && response.Value.ResultCode == EXECUTE_RESULT.Success && !string.IsNullOrEmpty(response.Value.ExecutionResult)) {
 								return new ParseResponse(true, response.Value.ExecutionResult);
 							}
 
@@ -180,7 +195,7 @@ namespace Assistant.Shell {
 		}
 
 		private static COMMAND_CODE GetCode(string? cmd, string[] values, bool multiParams) {
-			if(string.IsNullOrEmpty(cmd) || values == null || values.Length <= 0) {
+			if (string.IsNullOrEmpty(cmd) || values == null || values.Length <= 0) {
 				return COMMAND_CODE.INVALID;
 			}
 
