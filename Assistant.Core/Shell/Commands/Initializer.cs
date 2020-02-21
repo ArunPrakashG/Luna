@@ -38,7 +38,7 @@ namespace Assistant.Core.Shell.Commands {
 			AssemblyCollection = LoadAssemblies();
 
 			if (AssemblyCollection == null || AssemblyCollection.Count <= 0) {
-				Logger.Trace("No assemblies found.");
+				Logger.Trace("No command assemblies found.");
 				return false;
 			}
 
@@ -187,7 +187,7 @@ namespace Assistant.Core.Shell.Commands {
 			}
 		}
 
-		internal async Task<bool> IsExistingCommand<T>(string? id) where T : IShellCommand {
+		private async Task<bool> IsExistingCommand<T>(string? id) where T : IShellCommand {
 			if (string.IsNullOrEmpty(id)) {
 				return true;
 			}

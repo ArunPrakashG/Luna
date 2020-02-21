@@ -26,6 +26,8 @@ using Unosquare.RaspberryIO;
 using static Assistant.Gpio.PiController;
 using static Assistant.Logging.Enums;
 using static Assistant.Modules.ModuleInitializer;
+using Assistant.Core.Shell;
+using Assistant.Extensions.Shared.Shell;
 
 namespace Assistant.Core {
 	public class Core {
@@ -136,6 +138,14 @@ namespace Assistant.Core {
 
 		public Core StartTcpServer(int port, int backlog) {
 			Task.Run(async () => await CoreServer.StartAsync(port, backlog).ConfigureAwait(false));
+			return this;
+		}
+
+		public Core InitShell<T>() where T: IShellCommand {			
+			Helpers.InBackground(async () => {
+				await Interpreter.InitInterpreter<T>().ConfigureAwait(false);
+				await Interpreter.ShellLoop().ConfigureAwait(false);
+			});
 			return this;
 		}
 
@@ -418,21 +428,23 @@ namespace Assistant.Core {
 			}
 		}
 
+		[Obsolete("Disabled as long as testing of shell is going on.")]
 		private static async Task KeepAlive() {
-			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
+			//Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
 
 			while (!KeepAliveToken.Token.IsCancellationRequested) {
-				char pressedKey = Console.ReadKey().KeyChar;
+				await Task.Delay(50).ConfigureAwait(false);
+				//char pressedKey = Console.ReadKey().KeyChar;
 
-				switch (pressedKey) {
-					case Constants.ConsoleCommandMenuKey:
-						await DisplayConsoleCommandMenu().ConfigureAwait(false);
-						break;
+				//switch (pressedKey) {
+				//	case Constants.ConsoleCommandMenuKey:
+				//		await DisplayConsoleCommandMenu().ConfigureAwait(false);
+				//		break;
 
-					default:
-						Logger.Log("Unknown key pressed during KeepAlive() command", LogLevels.Trace);
-						continue;
-				}
+				//	default:
+				//		Logger.Log("Unknown key pressed during KeepAlive() command", LogLevels.Trace);
+				//		continue;
+				//}
 			}
 		}
 

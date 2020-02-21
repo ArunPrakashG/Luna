@@ -19,10 +19,10 @@ namespace Assistant.Core.Shell.Commands {
 
 		public ShellEnum.COMMAND_CODE CommandCode => ShellEnum.COMMAND_CODE.BASH_SCRIPT_PATH;
 
-		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		private readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 
 		public void Dispose() {
-
+			Sync.Dispose();
 		}
 
 		public async Task ExecuteAsync(Parameter parameter) {
@@ -35,6 +35,8 @@ namespace Assistant.Core.Shell.Commands {
 					return;
 				}
 			}
+
+			//TODO: bash command
 		}
 
 		public async Task InitAsync() {

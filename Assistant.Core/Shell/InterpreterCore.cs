@@ -4,10 +4,6 @@ using System.Threading.Tasks;
 
 namespace Assistant.Core.Shell {
 	public class InterpreterCore {
-		public async Task InitAsync() {
-
-		}
-
 		public enum EXECUTE_RESULT : byte {
 			Success = 0x01,
 			Failed = 0x00,

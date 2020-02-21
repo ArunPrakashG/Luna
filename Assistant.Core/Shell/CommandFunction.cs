@@ -1,4 +1,5 @@
 using Assistant.Core.Shell.Internal;
+using Assistant.Extensions.Shared.Shell;
 using System;
 using static Assistant.Extensions.Shared.Shell.ShellEnum;
 

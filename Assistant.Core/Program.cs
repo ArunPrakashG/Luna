@@ -1,3 +1,4 @@
+using Assistant.Extensions.Shared.Shell;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
@@ -37,6 +38,7 @@ namespace Assistant.Core {
 				.StartConsoleTitleUpdater()
 				.StartModules()
 				.CheckAndUpdate()
+				.InitShell<IShellCommand>()
 				.MarkInitializationCompletion();
 
 			//Finally, call the blocking async method to wait endlessly unless its interrupted or canceled manually.
