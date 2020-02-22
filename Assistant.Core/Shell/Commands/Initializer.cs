@@ -4,7 +4,6 @@ using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Composition.Convention;
 using System.Composition.Hosting;
@@ -19,12 +18,8 @@ namespace Assistant.Core.Shell.Commands {
 		private static readonly ILogger Logger = new Logger(typeof(Initializer).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
-		internal static readonly ObservableCollection<IShellCommand> Commands = new ObservableCollection<IShellCommand>();
 
-		static Initializer() {
-			Commands.CollectionChanged += OnCommandCollectionChanged;
-		}
-
+		//TODO: Implement custom dictionary with events for collection changes
 		private static void OnCommandCollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {
 			Logger.Trace($"Commands collection changed -> {e.Action.ToString()}");
 		}
@@ -63,7 +58,7 @@ namespace Assistant.Core.Shell.Commands {
 					}
 
 					await command.InitAsync().ConfigureAwait(false);
-					Commands.Add(command);
+					Interpreter.Commands.Add(command.UniqueId, command);
 					Logger.Info($"Loaded shell command -> {command.CommandName}");
 				}
 
@@ -83,22 +78,22 @@ namespace Assistant.Core.Shell.Commands {
 				return false;
 			}
 
-			if (Commands.Count <= 0) {
+			if (Interpreter.CommandsCount <= 0) {
 				return false;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				foreach (T cmd in Commands) {
-					if (cmd == null || string.IsNullOrEmpty(cmd.UniqueId)) {
+				foreach (KeyValuePair<string, IShellCommand> cmd in Interpreter.Commands) {
+					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
 						continue;
 					}
 
-					if (cmd.UniqueId.Equals(cmdId)) {
-						cmd.Dispose();
-						Commands.Remove(cmd);
-						Logger.Warning($"Shell command has been unloaded -> {cmd.CommandName}");
+					if (cmd.Value.UniqueId.Equals(cmdId)) {
+						cmd.Value.Dispose();
+						Interpreter.Commands.Remove(cmd.Value.UniqueId);
+						Logger.Warning($"Shell command has been unloaded -> {cmd.Value.CommandName}");
 						return true;
 					}
 				}
@@ -115,19 +110,19 @@ namespace Assistant.Core.Shell.Commands {
 		}
 
 		internal async Task<T> GetCommandWithIdAsync<T>(string? id) where T : IShellCommand {
-			if (string.IsNullOrEmpty(id) || Commands.Count <= 0) {
+			if (string.IsNullOrEmpty(id) || Interpreter.CommandsCount <= 0) {
 				return default;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 			try {
-				foreach (T cmd in Commands) {
-					if (cmd == null || string.IsNullOrEmpty(cmd.UniqueId)) {
+				foreach (var cmd in Interpreter.Commands) {
+					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
 						continue;
 					}
 
-					if (cmd.UniqueId.Equals(id)) {
-						return cmd;
+					if (cmd.Value.UniqueId.Equals(id)) {
+						return (T) cmd.Value;
 					}
 				}
 
@@ -139,19 +134,19 @@ namespace Assistant.Core.Shell.Commands {
 		}
 
 		internal async Task<T> GetCommandWithKeyAsync<T>(string? commandKey) where T : IShellCommand {
-			if (string.IsNullOrEmpty(commandKey) || Commands.Count <= 0) {
+			if (string.IsNullOrEmpty(commandKey) || Interpreter.CommandsCount <= 0) {
 				return default;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 			try {
-				foreach (T cmd in Commands) {
-					if (cmd == null || string.IsNullOrEmpty(cmd.UniqueId)) {
+				foreach (var cmd in Interpreter.Commands) {
+					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
 						continue;
 					}
 
-					if (cmd.CommandKey.Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
-						return cmd;
+					if (cmd.Value.CommandKey.Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
+						return (T) cmd.Value;
 					}
 				}
 
@@ -163,19 +158,19 @@ namespace Assistant.Core.Shell.Commands {
 		}
 
 		internal async Task<bool> SetOnExecuteFuncAsync<T>(string? id, Func<Parameter, bool> func) where T : IShellCommand {
-			if (string.IsNullOrEmpty(id) || Commands.Count <= 0) {
+			if (string.IsNullOrEmpty(id) || Interpreter.CommandsCount <= 0) {
 				return false;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 			try {
-				foreach (T cmd in Commands) {
-					if (cmd == null || string.IsNullOrEmpty(cmd.UniqueId)) {
+				foreach (var cmd in Interpreter.Commands) {
+					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
 						continue;
 					}
 
-					if (cmd.CommandKey.Equals(id, StringComparison.OrdinalIgnoreCase)) {
-						cmd.OnExecuteFunc = func;
+					if (cmd.Value.CommandKey.Equals(id, StringComparison.OrdinalIgnoreCase)) {
+						cmd.Value.OnExecuteFunc = func;
 						return true;
 					}
 				}
@@ -192,18 +187,18 @@ namespace Assistant.Core.Shell.Commands {
 				return true;
 			}
 
-			if (Commands.Count <= 0) {
+			if (Interpreter.CommandsCount <= 0) {
 				return false;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 			try {
-				foreach (T cmd in Commands) {
-					if (cmd == null || string.IsNullOrEmpty(cmd.UniqueId)) {
+				foreach (var cmd in Interpreter.Commands) {
+					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
 						continue;
 					}
 
-					if (cmd.UniqueId.Equals(id)) {
+					if (cmd.Value.UniqueId.Equals(id)) {
 						return true;
 					}
 				}

@@ -26,6 +26,7 @@ namespace Assistant.Core.Shell {
 		private static readonly ILogger Logger = new Logger("INTERPRETER");
 		public static int CommandsCount => Commands.Count;
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
 		internal static readonly Initializer Init = new Initializer();
 		/// <summary>
 		/// The current command which is being executed.
@@ -47,18 +48,11 @@ namespace Assistant.Core.Shell {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				LoadInternalCommands<T>();
+				await LoadInternalCommands().ConfigureAwait(false);
 				await Init.LoadCommandsAsync<T>().ConfigureAwait(false);
 
-				if (Initializer.Commands.Count > 0) {
-					foreach (T cmd in Initializer.Commands) {
-						lock (Commands) {
-							Commands.Add(cmd.UniqueId, cmd);
-						}
-					}
-				}
-
 				InitCompleted = true;
+				Helpers.InBackground(async () => await ShellLoop().ConfigureAwait(false));
 				return InitCompleted;
 			}
 			catch (Exception e) {
@@ -75,29 +69,43 @@ namespace Assistant.Core.Shell {
 				return;
 			}
 
-			Console.WriteLine("Assistant Shell waiting for your commands!");
-			do {				
-				Console.ForegroundColor = ConsoleColor.Green;
-				Console.Write($"#~{Core.AssistantName} -> ");
-				Console.ResetColor();
-				string command = Console.ReadLine();
+			await LoopSync.WaitAsync().ConfigureAwait(false);
+			try {
+				Console.WriteLine("Assistant Shell waiting for your commands!");
+				do {
+					Console.ForegroundColor = ConsoleColor.Green;
+					Console.Write($"#~{Core.AssistantName} -> ");
+					Console.ResetColor();
+					string command = Console.ReadLine();
+					//Console.Write("\n");
 
-				if (string.IsNullOrEmpty(command) || string.IsNullOrWhiteSpace(command)) {
-					ShellOut.Error("Please input valid command.");
-					continue;
-				}
+					if (string.IsNullOrEmpty(command) || string.IsNullOrWhiteSpace(command)) {
+						ShellOut.Error("Please input valid command.");
+						continue;
+					}
 
-				await ExecuteCommand(command).ConfigureAwait(false);
-			} while (!ShutdownShell);
+					await ExecuteCommand(command).ConfigureAwait(false);
+				} while (!ShutdownShell);
+			}
+			catch (Exception e) {
+				Logger.Exception(e);
+				return;
+			}
+			finally {
+				LoopSync.Release();
+				Logger.Info("Shell has been shutdown.");
+			}
 		}
 
-		private static void LoadInternalCommands<T>() where T : IShellCommand {
+		private static async Task LoadInternalCommands() {
 			IShellCommand helpCommand = new HelpCommand();
+			await helpCommand.InitAsync().ConfigureAwait(false);
 			lock (Commands) {
 				Commands.Add(helpCommand.UniqueId, helpCommand);
 			}
 
 			IShellCommand bashCommand = new BashCommand();
+			await bashCommand.InitAsync().ConfigureAwait(false);
 			lock (Commands) {
 				Commands.Add(bashCommand.UniqueId, bashCommand);
 			}
@@ -130,32 +138,39 @@ namespace Assistant.Core.Shell {
 
 			try {
 				if (!cmd.Contains(LINE_SPLITTER)) {
-					ShellOut.Error($"Command syntax is invalid. maybe you are missing {LINE_SPLITTER} at the end ?");
+					ShellOut.Error($"Command syntax is invalid. maybe you are missing '{LINE_SPLITTER}' at the end ?");
 					return false;
 				}
-				string[] split = cmd.Split(LINE_SPLITTER);
+
+				//commands - returns {help -params}
+				string[] split = cmd.Split(LINE_SPLITTER, StringSplitOptions.RemoveEmptyEntries);
 
 				if (split == null || split.Length <= 0) {
 					ShellOut.Error("Failed to parse the command. Please retype in correct syntax!");
 					return false;
 				}
 
+				//for each command
 				for (int i = 0; i < split.Length; i++) {
 					if (string.IsNullOrEmpty(split[i])) {
 						continue;
 					}
 
-					string[] split2 = split[i].Split('-');
+					//splits the params - returns {help}{param1},{param2},{param3}...
+					string[] split2 = split[i].Split('-', StringSplitOptions.RemoveEmptyEntries);
 
 					if (split2 == null || split2.Length <= 0) {
 						continue;
 					}
-
+					
 					string? commandKey = split2[0].Trim().ToLower();
-					bool doesContainMultipleParams = !string.IsNullOrEmpty(split2[1]) && split2[1].Trim().Contains(',');
+					bool doesContainParams = split2.Length > 1 && !string.IsNullOrEmpty(split2[1]);
+					bool doesContainMultipleParams = doesContainParams && split2[1].Trim().Contains(',');
 					string[] parameters = doesContainMultipleParams ?
 						split2[1].Trim().Split(',')
-						: new string[] { split2[1].Trim() };
+						: doesContainParams ?
+						new string[] { split2[1].Trim() }
+						: new string[] { };
 
 					if (string.IsNullOrEmpty(commandKey)) {
 						continue;
@@ -185,6 +200,7 @@ namespace Assistant.Core.Shell {
 
 					await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
 					command.Dispose();
+					return true;
 				}
 
 				ShellOut.Error("Command syntax is invalid. Re-execute the command with correct syntax.");

@@ -147,23 +147,24 @@ namespace Assistant.Core.NLog {
 			[CallerFilePath] string? q = null) {
 			switch (level) {
 				case LogLevels.Trace:
-					Trace($"[{Helpers.GetFileName(q)} | {c}] {message}", p);
+					Trace($"[{Helpers.GetFileName(q)} | {c}] {message}", p, c, q);
 					break;
 				case LogLevels.Debug:
-					Debug(message, p);
+					Debug(message, p, c, q);
 					break;
 				case LogLevels.Info:
-					Info(message, p);
+					Info(message, p, c, q);
 					break;
 				case LogLevels.Warn:
-					Warn($"[{Helpers.GetFileName(q)} | {c}] " + message, p);
+					Warn(message, p, c, q);
+					//Warn($"[{Helpers.GetFileName(q)} | {c}] " + message, p, c, q);
 					break;
 				case LogLevels.Custom:
 					Console.WriteLine(message);
-					Trace(message, p);
+					Trace(message, p, c, q);
 					break;
 				case LogLevels.Error:
-					Error(message, p);
+					Error(message, p, c, q);
 					break;
 				case LogLevels.Fatal:
 					Error(message, p, c, q);

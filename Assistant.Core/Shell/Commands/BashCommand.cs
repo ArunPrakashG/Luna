@@ -40,11 +40,11 @@ namespace Assistant.Core.Shell.Commands {
 		}
 
 		public async Task InitAsync() {
-			throw new NotImplementedException();
+			
 		}
 
 		public bool Parse(Parameter parameter) {
-			throw new NotImplementedException();
+			return false;
 		}
 	}
 }

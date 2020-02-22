@@ -143,8 +143,8 @@ namespace Assistant.Core {
 
 		public Core InitShell<T>() where T: IShellCommand {			
 			Helpers.InBackground(async () => {
+				await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
 				await Interpreter.InitInterpreter<T>().ConfigureAwait(false);
-				await Interpreter.ShellLoop().ConfigureAwait(false);
 			});
 			return this;
 		}
@@ -204,7 +204,7 @@ namespace Assistant.Core {
 		}
 
 		public Core CheckAndUpdate() {
-			Task.Run(async () => await Update.CheckAndUpdateAsync(true).ConfigureAwait(false));
+			_ = Update.CheckAndUpdateAsync(true).Result;
 			return this;
 		}
 		
