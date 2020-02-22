@@ -74,13 +74,12 @@ namespace Assistant.Core.Shell {
 				Console.WriteLine("Assistant Shell waiting for your commands!");
 				do {
 					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write($"#~{Core.AssistantName} -> ");
+					Console.Write($"#~/{Core.AssistantName}/$ -> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
-					//Console.Write("\n");
 
 					if (string.IsNullOrEmpty(command) || string.IsNullOrWhiteSpace(command)) {
-						ShellOut.Error("Please input valid command.");
+						ShellOut.Error("Please input a valid command.");
 						continue;
 					}
 
@@ -99,13 +98,17 @@ namespace Assistant.Core.Shell {
 
 		private static async Task LoadInternalCommands() {
 			IShellCommand helpCommand = new HelpCommand();
-			await helpCommand.InitAsync().ConfigureAwait(false);
+			if (!helpCommand.IsInitSuccess) {
+				await helpCommand.InitAsync().ConfigureAwait(false);
+			}			
 			lock (Commands) {
 				Commands.Add(helpCommand.UniqueId, helpCommand);
 			}
 
 			IShellCommand bashCommand = new BashCommand();
-			await bashCommand.InitAsync().ConfigureAwait(false);
+			if (!bashCommand.IsInitSuccess) {
+				await bashCommand.InitAsync().ConfigureAwait(false);
+			}			
 			lock (Commands) {
 				Commands.Add(bashCommand.UniqueId, bashCommand);
 			}
@@ -181,6 +184,10 @@ namespace Assistant.Core.Shell {
 					if (command == null) {
 						ShellOut.Error("Command doesn't exist. use 'help' to check all available commands!");
 						return false;
+					}
+
+					if (!command.IsInitSuccess) {
+						await command.InitAsync().ConfigureAwait(false);
 					}
 
 					if (!command.IsCurrentCommandContext(commandKey, parameters.Length)) {

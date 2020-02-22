@@ -19,31 +19,51 @@ namespace Assistant.Core.Shell.Commands {
 
 		public ShellEnum.COMMAND_CODE CommandCode => ShellEnum.COMMAND_CODE.BASH_SCRIPT_PATH;
 
-		private readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		public bool IsInitSuccess { get; set; }
+
+		public SemaphoreSlim Sync { get; set; } = new SemaphoreSlim(1, 1);
 
 		public void Dispose() {
+			IsInitSuccess = false;
 			Sync.Dispose();
 		}
 
 		public async Task ExecuteAsync(Parameter parameter) {
+			if (!IsInitSuccess) {
+				return;
+			}
+
 			if (parameter.Parameters == null || parameter.Parameters.Length <= 0) {
 				return;
 			}
 
-			if (OnExecuteFunc != null) {
-				if (OnExecuteFunc.Invoke(parameter)) {
-					return;
+			try {
+				if (OnExecuteFunc != null) {
+					if (OnExecuteFunc.Invoke(parameter)) {
+						return;
+					}
 				}
-			}
 
-			//TODO: bash command
+				//TODO: bash command
+			}catch(Exception e) {
+				ShellOut.Exception(e);
+				return;
+			}
+			finally {
+				Sync.Release();
+			}
 		}
 
 		public async Task InitAsync() {
-			
+			Sync = new SemaphoreSlim(1, 1);
+			IsInitSuccess = true;
 		}
 
 		public bool Parse(Parameter parameter) {
+			if (!IsInitSuccess) {
+				return false;
+			}
+
 			return false;
 		}
 	}

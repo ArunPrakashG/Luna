@@ -19,13 +19,20 @@ namespace Assistant.Core.Shell.Commands {
 		public int MaxParameterCount => 1;
 		public ShellEnum.COMMAND_CODE CommandCode => ShellEnum.COMMAND_CODE.HELP_ADVANCED;
 
-		private readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		public bool IsInitSuccess { get; set; }
+
+		private SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 
 		public void Dispose() {
+			IsInitSuccess = false;
 			Sync.Dispose();
 		}
 
 		public async Task ExecuteAsync(Parameter parameter) {
+			if (!IsInitSuccess) {
+				return;
+			}
+
 			if (parameter.Parameters == null || parameter.Parameters.Length <= 0) {
 				ShellOut.Error("Invalid Arguments.");
 				return;
@@ -81,6 +88,9 @@ namespace Assistant.Core.Shell.Commands {
 
 				ShellOut.Info($"Command Description -> {command.CommandDescription}");
 				ShellOut.Info("---------------------------------------------------------------------------------------");
+			}catch(Exception e) {
+				ShellOut.Exception(e);
+				return;
 			}
 			finally {
 				Sync.Release();
@@ -108,10 +118,15 @@ namespace Assistant.Core.Shell.Commands {
 		}
 
 		public async Task InitAsync() {
-
+			Sync = new SemaphoreSlim(1, 1);
+			IsInitSuccess = true;
 		}
 
 		public bool Parse(Parameter parameter) {
+			if (!IsInitSuccess) {
+				return false;
+			}
+
 			return false;
 		}
 	}
