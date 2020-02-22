@@ -26,7 +26,7 @@ namespace Assistant.Extensions {
 
 		public const string BackupDirectoryPath = @"_old";
 		public const string UpdateZipFileName = @"Latest.zip";
-		public const string GitHubUserID = "SynergyFTW";
+		public const string GitHubUserID = "ArunPrakashG";
 		public const string VariablesPath = "Variables.txt";
 		public const string GitHubProjectName = "HomeAssistant";
 		public const string AssistantPushBulletChannelName = "assistantcontroller";

@@ -52,11 +52,16 @@ namespace Assistant.Core.Update {
 				IsOnPrerelease = LatestVersion < Constants.Version;
 
 				if (!UpdateAvailable) {
+					if(IsOnPrerelease) {
+						Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", LogLevels.Warn);
+					}
+
 					Logger.Log($"You are up to date! ({LatestVersion}/{Constants.Version})");
 
 					if (withTimer) {
 						if (JobManager.GetSchedule(JOB_NAME) == null) {
 							JobManager.AddJob(async () => await CheckAndUpdateAsync(withTimer).ConfigureAwait(false), (s) => s.WithName(JOB_NAME).ToRunEvery(1).Days().At(00, 00));
+							Logger.Info("Assistant will check for updates every 24 hours.");
 						}
 					}
 

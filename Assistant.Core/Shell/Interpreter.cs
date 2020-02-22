@@ -18,21 +18,40 @@ Assign UniqueId to the command assembly
 */
 
 namespace Assistant.Core.Shell {
+	/// <summary>
+	/// The Shell Instance.
+	/// </summary>
 	public static class Interpreter {
-		internal static readonly Dictionary<string, IShellCommand> Commands = new Dictionary<string, IShellCommand>();
-		internal static bool ShutdownShell = false;
-		private const char LINE_SPLITTER = ';';
-		private const string ExampleCommand = "relay -[param1],[param2];";
 		private static readonly ILogger Logger = new Logger("INTERPRETER");
-		public static int CommandsCount => Commands.Count;
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
+		private const char LINE_SPLITTER = ';';
+		private static bool InitCompleted = false;
+
+		/// <summary>
+		/// The external command loader instance.<br>Used to load commands onto shell instance.</br>
+		/// </summary>
 		internal static readonly Initializer Init = new Initializer();
+
+		/// <summary>
+		/// Contains all the commands currently loaded into the shell.
+		/// </summary>
+		internal static readonly Dictionary<string, IShellCommand> Commands = new Dictionary<string, IShellCommand>();
+
+		/// <summary>
+		/// Positive value will start shutdown process on the shell.
+		/// </summary>
+		internal static bool ShutdownShell = false;
+
 		/// <summary>
 		/// The current command which is being executed.
 		/// </summary>
 		public static string? CurrentCommand { get; private set; }
-		private static bool InitCompleted = false;
+
+		/// <summary>
+		/// The current usable commands count.
+		/// </summary>
+		public static int CommandsCount => Commands.Count;
 
 		static Interpreter() {
 			if (!Directory.Exists(Constants.COMMANDS_PATH)) {
@@ -40,7 +59,12 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
-		public static async Task<bool> InitInterpreter<T>() where T : IShellCommand {
+		/// <summary>
+		/// Loads the internally defined shell commands, then loads the external commands libraries, then starts the shell instance.
+		/// </summary>
+		/// <typeparam name="T">The Shell command type. <b>(IShellCommand)</b></typeparam>
+		/// <returns>Boolean, indicating if the startup was successful.</returns>
+		public static async Task<bool> InitInterpreterAsync<T>() where T : IShellCommand {
 			if (InitCompleted) {
 				return false;
 			}
@@ -48,11 +72,11 @@ namespace Assistant.Core.Shell {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				await LoadInternalCommands().ConfigureAwait(false);
+				await LoadInternalCommandsAsync().ConfigureAwait(false);
 				await Init.LoadCommandsAsync<T>().ConfigureAwait(false);
 
 				InitCompleted = true;
-				Helpers.InBackground(async () => await ShellLoop().ConfigureAwait(false));
+				Helpers.InBackground(async () => await ReplAsync().ConfigureAwait(false));
 				return InitCompleted;
 			}
 			catch (Exception e) {
@@ -64,7 +88,7 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
-		public static async Task ShellLoop() {
+		private static async Task ReplAsync() {
 			if (!InitCompleted) {
 				return;
 			}
@@ -83,7 +107,7 @@ namespace Assistant.Core.Shell {
 						continue;
 					}
 
-					await ExecuteCommand(command).ConfigureAwait(false);
+					await ExecuteCommandAsync(command).ConfigureAwait(false);
 				} while (!ShutdownShell);
 			}
 			catch (Exception e) {
@@ -96,25 +120,40 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
-		private static async Task LoadInternalCommands() {
+		private static async Task LoadInternalCommandsAsync() {
+			#region helpCommand
 			IShellCommand helpCommand = new HelpCommand();
 			if (!helpCommand.IsInitSuccess) {
 				await helpCommand.InitAsync().ConfigureAwait(false);
-			}			
+			}
+			
 			lock (Commands) {
 				Commands.Add(helpCommand.UniqueId, helpCommand);
 			}
-
+			#endregion helpCommand
+			#region bashCommand
 			IShellCommand bashCommand = new BashCommand();
 			if (!bashCommand.IsInitSuccess) {
 				await bashCommand.InitAsync().ConfigureAwait(false);
-			}			
+			}
+			
 			lock (Commands) {
 				Commands.Add(bashCommand.UniqueId, bashCommand);
 			}
+			#endregion bashCommand
+			#region exitCommand
+			IShellCommand exitCommand = new ExitCommand();
+			if (!exitCommand.IsInitSuccess) {
+				await exitCommand.InitAsync().ConfigureAwait(false);
+			}
+
+			lock (Commands) {
+				Commands.Add(exitCommand.UniqueId, exitCommand);
+			}
+			#endregion exitCommand
 		}
 
-		private static async Task<bool> ExecuteCommand(string? command) {
+		private static async Task<bool> ExecuteCommandAsync(string? command) {
 			if (!InitCompleted) {
 				Logger.Warning("Shell isn't initiated properly.");
 				ShellOut.Error("Shell is offline!");
@@ -128,10 +167,10 @@ namespace Assistant.Core.Shell {
 			}
 
 			CurrentCommand = command;
-			return await ParseCommand(command).ConfigureAwait(false);
+			return await ParseCommandAsync(command).ConfigureAwait(false);
 		}
 
-		private static async Task<bool> ParseCommand(string cmd) {
+		private static async Task<bool> ParseCommandAsync(string cmd) {
 			if (Commands.Count <= 0) {
 				ShellOut.Info("No commands have been loaded into the shell.");
 				return false;
@@ -145,7 +184,7 @@ namespace Assistant.Core.Shell {
 					return false;
 				}
 
-				//commands - returns {help -params}
+				//commands - returns {help -argument}
 				string[] split = cmd.Split(LINE_SPLITTER, StringSplitOptions.RemoveEmptyEntries);
 
 				if (split == null || split.Length <= 0) {
@@ -160,8 +199,16 @@ namespace Assistant.Core.Shell {
 						continue;
 					}
 
-					//splits the params - returns {help}{param1},{param2},{param3}...
+					//splits the arguments - returns {help}{param1},{param2},{param3}...
 					string[] split2 = split[i].Split('-', StringSplitOptions.RemoveEmptyEntries);
+
+					foreach(string val in split2) {
+						if (string.IsNullOrEmpty(val)) {
+							continue;
+						}
+
+						val.Trim();
+					}
 
 					if (split2 == null || split2.Length <= 0) {
 						continue;
@@ -228,6 +275,14 @@ namespace Assistant.Core.Shell {
 			finally {
 				Sync.Release();
 			}
+		}
+
+		public enum EXECUTE_RESULT : byte {
+			Success = 0x01,
+			Failed = 0x00,
+			InvalidArgs = 0x002,
+			InvalidCommand = 0x003,
+			DoesntExist = 0x004
 		}
 	}
 }

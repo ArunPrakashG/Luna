@@ -140,7 +140,6 @@ namespace Assistant.Core.NLog {
 			Trace(msg, p, c, q);
 		}
 
-
 		public void Log(string? message, LogLevels level = LogLevels.Info,
 			[CallerMemberName] string? p = null,
 			[CallerLineNumber] int c = 0,

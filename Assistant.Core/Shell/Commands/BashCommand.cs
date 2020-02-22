@@ -21,7 +21,7 @@ namespace Assistant.Core.Shell.Commands {
 
 		public bool IsInitSuccess { get; set; }
 
-		public SemaphoreSlim Sync { get; set; } = new SemaphoreSlim(1, 1);
+		public SemaphoreSlim Sync { get; set; }
 
 		public void Dispose() {
 			IsInitSuccess = false;
@@ -33,9 +33,16 @@ namespace Assistant.Core.Shell.Commands {
 				return;
 			}
 
+			if (parameter.Parameters.Length > MaxParameterCount) {
+				ShellOut.Error("Too many arguments.");
+				return;
+			}
+
 			if (parameter.Parameters == null || parameter.Parameters.Length <= 0) {
 				return;
 			}
+
+			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
 				if (OnExecuteFunc != null) {

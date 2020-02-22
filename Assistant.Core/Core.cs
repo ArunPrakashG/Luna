@@ -130,22 +130,19 @@ namespace Assistant.Core {
 			Config.ProgramLastStartup = StartupTime;
 			Constants.LocalIP = Helpers.GetLocalIpAddress();
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
-			GpioCore = new Gpio.GpioCore(EGPIO_DRIVERS.RaspberryIODriver, Config.CloseRelayOnShutdown)
+			GpioCore = new GpioCore(EGPIO_DRIVERS.RaspberryIODriver, Config.CloseRelayOnShutdown)
 				.InitGpioCore(Config.OutputModePins, Config.InputModePins);
 			Console.Title = $"Home Assistant Initializing...";
 			return this;
 		}
 
 		public Core StartTcpServer(int port, int backlog) {
-			Task.Run(async () => await CoreServer.StartAsync(port, backlog).ConfigureAwait(false));
+			_ = CoreServer.StartAsync(port, backlog).Result;
 			return this;
 		}
 
-		public Core InitShell<T>() where T: IShellCommand {			
-			Helpers.InBackground(async () => {
-				await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
-				await Interpreter.InitInterpreter<T>().ConfigureAwait(false);
-			});
+		public Core InitShell<T>() where T: IShellCommand {
+			Task.Run(async () => await Interpreter.InitInterpreterAsync<T>().ConfigureAwait(false));
 			return this;
 		}
 
@@ -164,17 +161,14 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		public Core DisplayASCIILogo(string text) {
-			if (!string.IsNullOrEmpty(text)) {
-				Helpers.GenerateAsciiFromText(text);
-			}
+		public Core DisplayASCIILogo(string? text) {
+			Helpers.GenerateAsciiFromText(text);
 			return this;
 		}
 
 		public Core Versioning() {
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
-			Logger.Log($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", LogLevels.Blue);
-
+			Logger.WithColor($"X---------------- Starting {AssistantName} V{Constants.Version} ----------------X", ConsoleColor.Blue);
 			return this;
 		}
 

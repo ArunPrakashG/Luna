@@ -38,21 +38,27 @@ namespace Assistant.Core.Update {
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly HttpClient Client = new HttpClient();
 
+		static GitHub() {
+			Client.DefaultRequestHeaders.Add("User-Agent", Constants.GitHubProjectName);
+		}
+
 		public async Task Request() {
 			if (string.IsNullOrEmpty(Constants.GITHUB_RELEASE_URL)) {
 				return;
 			}
 
-			await Sync.WaitAsync().ConfigureAwait(false);
+			await Sync.WaitAsync().ConfigureAwait(false);			
 
 			try {
 				string? json = null;
 
 				for (int i = 0; i < MAX_TRIES; i++) {
-					HttpResponseMessage responseMessage = await Client.GetAsync(Constants.GITHUB_RELEASE_URL).ConfigureAwait(false);
+					
+					HttpResponseMessage responseMessage = await Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, Constants.GITHUB_RELEASE_URL)).ConfigureAwait(false);
 
 					if (responseMessage == null || responseMessage.StatusCode != System.Net.HttpStatusCode.OK || responseMessage.Content == null) {
 						Logger.Trace($"Request failed ({i})");
+						Logger.Trace(responseMessage?.ReasonPhrase);
 						continue;
 					}
 

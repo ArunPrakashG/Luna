@@ -21,7 +21,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="ByteSize" Version="2.0.0" />
 		<PackageReference Include="CommandLineParser" Version="2.7.82" />
 		<PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0">
 		  <PrivateAssets>all</PrivateAssets>
@@ -36,7 +35,6 @@
 		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.7.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 		<PackageReference Include="NLog" Version="4.6.8" />
-		<PackageReference Include="RestSharp" Version="106.10.1" />
 		<PackageReference Include="System.Composition" Version="1.4.0" />
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />

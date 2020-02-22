@@ -40,6 +40,45 @@ namespace Assistant.Extensions {
 			}
 		}
 
+		public static bool AsBool(this string value, out bool? booleanValue) {
+			if (string.IsNullOrEmpty(value)) {
+				booleanValue = null;
+				return false;
+			}
+
+			bool? temp;
+			switch (value) {
+				case "1":
+					temp = true;
+					break;
+				case "0":
+					temp = false;
+					break;
+				default:
+					temp = null;
+					break;
+			}
+
+			bool parseResult = bool.TryParse(value, out bool parsed);
+
+			if (parseResult && parsed == temp) {
+				booleanValue = parsed;
+				return true;
+			}
+			else if (parseResult && parsed != temp) {
+				booleanValue = parsed;
+				return true;
+			}
+			else if (!parseResult && parsed != temp) {
+				booleanValue = temp;
+				return true;
+			}
+			else {
+				booleanValue = null;
+				return false;
+			}
+		}
+
 		public static OSPlatform GetOsPlatform() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				return OSPlatform.Windows;
@@ -186,13 +225,12 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		public static void GenerateAsciiFromText(string text) {
-			if (string.IsNullOrEmpty(text)) {
-				Logger.Log("The specified text is empty or null", LogLevels.Warn);
+		public static void GenerateAsciiFromText(string? text) {
+			if (string.IsNullOrEmpty(text)) {				
 				return;
 			}
-
-			Logger.Log(FiggleFonts.Ogre.Render(text), LogLevels.Green);
+			
+			Logger.WithColor(FiggleFonts.Ogre.Render(text), ConsoleColor.Green);
 		}
 
 		public static string? GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);

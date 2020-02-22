@@ -21,7 +21,7 @@ namespace Assistant.Core.Shell.Commands {
 
 		public bool IsInitSuccess { get; set; }
 
-		public SemaphoreSlim Sync { get; set; } = new SemaphoreSlim(1, 1);
+		public SemaphoreSlim Sync { get; set; }
 
 		public void Dispose() {
 			IsInitSuccess = false;
@@ -30,11 +30,6 @@ namespace Assistant.Core.Shell.Commands {
 
 		public async Task ExecuteAsync(Parameter parameter) {
 			if (!IsInitSuccess) {
-				return;
-			}
-
-			if (parameter.Parameters == null || parameter.Parameters.Length <= 0) {
-				ShellOut.Error("Invalid Arguments.");
 				return;
 			}
 
@@ -50,6 +45,19 @@ namespace Assistant.Core.Shell.Commands {
 					if (OnExecuteFunc.Invoke(parameter)) {
 						return;
 					}
+				}
+
+				if(parameter.Parameters == null || parameter.Parameters.Length <= 0) {
+					foreach (var cmd in Interpreter.Commands) {
+						if (string.IsNullOrEmpty(cmd.Value.CommandKey) || string.IsNullOrEmpty(cmd.Value.CommandName)) {
+							continue;
+						}
+
+						ShellOut.Info($"{cmd.Value.CommandKey} - {cmd.Value.CommandName} - {cmd.Value.Representation}");
+						ShellOut.Info("_________________________________________________");
+					}
+
+					return;
 				}
 
 				string? helpCmdKey = parameter.Parameters[0];
@@ -80,6 +88,7 @@ namespace Assistant.Core.Shell.Commands {
 				}
 
 				ShellOut.Info($"Command Name: {command.CommandName}");
+				ShellOut.Info($"Syntax: {command.Representation}");
 
 				if (string.IsNullOrEmpty(command.CommandDescription)) {
 					ShellOut.Error("Command description isn't set. Come on...");
@@ -111,6 +120,7 @@ namespace Assistant.Core.Shell.Commands {
 
 				ShellOut.Info($"Command Key: {cmd.Value.CommandKey}");
 				ShellOut.Info($"Command Name: {cmd.Value.CommandName}");
+				ShellOut.Info($"Syntax: {cmd.Value.Representation}");
 				ShellOut.Info($"{cmd.Value.CommandDescription}");
 				ShellOut.Info("********************************************************************************");
 			}
