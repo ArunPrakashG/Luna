@@ -143,7 +143,7 @@ namespace Assistant.Core {
 
 		public Core InitShell<T>() where T: IShellCommand {			
 			Helpers.InBackground(async () => {
-				await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
 				await Interpreter.InitInterpreter<T>().ConfigureAwait(false);
 			});
 			return this;

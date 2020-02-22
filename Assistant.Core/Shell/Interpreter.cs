@@ -153,6 +153,7 @@ namespace Assistant.Core.Shell {
 					return false;
 				}
 
+				bool anyExec = false;
 				//for each command
 				for (int i = 0; i < split.Length; i++) {
 					if (string.IsNullOrEmpty(split[i])) {
@@ -183,7 +184,7 @@ namespace Assistant.Core.Shell {
 
 					if (command == null) {
 						ShellOut.Error("Command doesn't exist. use 'help' to check all available commands!");
-						return false;
+						continue;
 					}
 
 					if (!command.IsInitSuccess) {
@@ -192,26 +193,31 @@ namespace Assistant.Core.Shell {
 
 					if (!command.IsCurrentCommandContext(commandKey, parameters.Length)) {
 						ShellOut.Error("Command doesn't match the syntax. Please retype.");
-						return false;
+						continue;
 					}
 
 					if (!command.HasParameters && parameters.Length > 0) {
 						ShellOut.Error("Command doesn't have any parameters and you have few arguments entered. What were you thinking ?");
-						return false;
+						continue;
 					}
 
 					if (parameters.Length > command.MaxParameterCount) {
 						ShellOut.Error("You have specified more than the allowed arguments for this command. Please use the backspace button.");
-						return false;
+						continue;
 					}
 
 					await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
 					command.Dispose();
-					return true;
+					anyExec = true;
+					continue;
 				}
 
-				ShellOut.Error("Command syntax is invalid. Re-execute the command with correct syntax.");
-				return false;
+				if (!anyExec) {
+					ShellOut.Error("Command syntax is invalid. Re-execute the command with correct syntax.");
+					return false;
+				}
+
+				return true;
 			}
 			catch (Exception e) {
 				Logger.Log(e);
