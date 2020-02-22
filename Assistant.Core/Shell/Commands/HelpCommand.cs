@@ -21,7 +21,7 @@ namespace Assistant.Core.Shell.Commands {
 
 		public bool IsInitSuccess { get; set; }
 
-		private SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		public SemaphoreSlim Sync { get; set; } = new SemaphoreSlim(1, 1);
 
 		public void Dispose() {
 			IsInitSuccess = false;
@@ -72,21 +72,21 @@ namespace Assistant.Core.Shell.Commands {
 				}
 
 				ShellOut.Info("--------------------------------------- Command ---------------------------------------");
-				ShellOut.Info($"Command Key -> {command.CommandKey}");
+				ShellOut.Info($"Command Key: {command.CommandKey}");
 
 				if (string.IsNullOrEmpty(command.CommandName)) {
 					ShellOut.Error("Command name isn't set. Who made this command anyway ?");
 					return;
 				}
 
-				ShellOut.Info($"Command Name -> {command.CommandName}");
+				ShellOut.Info($"Command Name: {command.CommandName}");
 
 				if (string.IsNullOrEmpty(command.CommandDescription)) {
 					ShellOut.Error("Command description isn't set. Come on...");
 					return;
 				}
 
-				ShellOut.Info($"Command Description -> {command.CommandDescription}");
+				ShellOut.Info($"{command.CommandDescription}");
 				ShellOut.Info("---------------------------------------------------------------------------------------");
 			}catch(Exception e) {
 				ShellOut.Exception(e);
@@ -109,10 +109,10 @@ namespace Assistant.Core.Shell.Commands {
 					continue;
 				}
 
-				ShellOut.Info($"Command Key -> {cmd.Value.CommandKey}");
-				ShellOut.Info($"Command Name -> {cmd.Value.CommandName}");
-				ShellOut.Info($"Command Description -> {cmd.Value.CommandDescription}");
-				ShellOut.Info("******************************************************");
+				ShellOut.Info($"Command Key: {cmd.Value.CommandKey}");
+				ShellOut.Info($"Command Name: {cmd.Value.CommandName}");
+				ShellOut.Info($"{cmd.Value.CommandDescription}");
+				ShellOut.Info("********************************************************************************");
 			}
 			ShellOut.Info("---------------------------------------------------------------------------------------");
 		}
