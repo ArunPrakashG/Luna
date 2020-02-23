@@ -1,4 +1,4 @@
-using Assistant.Core.Shell.Commands;
+using Assistant.Core.Shell.InternalCommands;
 using Assistant.Extensions;
 using Assistant.Extensions.Shared.Shell;
 using Assistant.Logging;
@@ -9,14 +9,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Parameter = Assistant.Extensions.Shared.Shell.Parameter;
-/*
-TODO: Implement Command loading based on IShellCommand Interface.
-Load and run InitAsync() method
-Assign loading assembly method for custom parsing and function to OnExecuteFunc()
-Assign UniqueId to the command assembly
-
-*/
-
 namespace Assistant.Core.Shell {
 	/// <summary>
 	/// The Shell Instance.
@@ -31,7 +23,7 @@ namespace Assistant.Core.Shell {
 		/// <summary>
 		/// The external command loader instance.<br>Used to load commands onto shell instance.</br>
 		/// </summary>
-		internal static readonly Initializer Init = new Initializer();
+		internal static readonly CommandInitializer Init = new CommandInitializer();
 
 		/// <summary>
 		/// Contains all the commands currently loaded into the shell.
@@ -107,7 +99,7 @@ namespace Assistant.Core.Shell {
 						continue;
 					}
 
-					await ExecuteCommandAsync(command).ConfigureAwait(false);					
+					await ExecuteCommandAsync(command).ConfigureAwait(false);
 				} while (!ShutdownShell);
 			}
 			catch (Exception e) {
@@ -126,7 +118,7 @@ namespace Assistant.Core.Shell {
 			if (!helpCommand.IsInitSuccess) {
 				await helpCommand.InitAsync().ConfigureAwait(false);
 			}
-			
+
 			lock (Commands) {
 				Commands.Add(helpCommand.UniqueId, helpCommand);
 			}
@@ -192,7 +184,7 @@ namespace Assistant.Core.Shell {
 					//splits the arguments - returns {help}{param1},{param2},{param3}...
 					string[] split2 = split[i].Split('-', StringSplitOptions.RemoveEmptyEntries);
 
-					foreach(string val in split2) {
+					foreach (string val in split2) {
 						if (string.IsNullOrEmpty(val)) {
 							continue;
 						}
@@ -203,7 +195,7 @@ namespace Assistant.Core.Shell {
 					if (split2 == null || split2.Length <= 0) {
 						continue;
 					}
-					
+
 					string? commandKey = split2[0].Trim().ToLower();
 					bool doesContainParams = split2.Length > 1 && !string.IsNullOrEmpty(split2[1]);
 					bool doesContainMultipleParams = doesContainParams && split2[1].Trim().Contains(',');

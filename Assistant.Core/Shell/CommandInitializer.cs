@@ -13,9 +13,9 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.Core.Shell.Commands {
-	internal class Initializer {
-		private static readonly ILogger Logger = new Logger(typeof(Initializer).Name);
+namespace Assistant.Core.Shell {
+	internal class CommandInitializer {
+		private static readonly ILogger Logger = new Logger(typeof(CommandInitializer).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoadSync = new SemaphoreSlim(1, 1);
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();

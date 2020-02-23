@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.Core.Shell.Commands {
+namespace Assistant.Core.Shell.InternalCommands {
 	public class HelpCommand : IShellCommand, IDisposable {
 		public bool HasParameters => true;
 
