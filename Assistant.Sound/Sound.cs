@@ -16,7 +16,7 @@ namespace Assistant.Sound {
 			IsGloballyMuted = isMuted;
 		}
 
-		public void PlayNotification(ENOTIFICATION_CONTEXT context = ENOTIFICATION_CONTEXT.NORMAL, bool redirectOutput = false) {
+		public static void PlayNotification(ENOTIFICATION_CONTEXT context = ENOTIFICATION_CONTEXT.NORMAL, bool redirectOutput = false) {
 			if (Helpers.GetOsPlatform() != OSPlatform.Linux) {
 				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Error);
 				return;
@@ -35,13 +35,13 @@ namespace Assistant.Sound {
 			switch (context) {
 				case ENOTIFICATION_CONTEXT.NORMAL:
 					break;
-				case ENOTIFICATION_CONTEXT.ALERT:
+				case ENOTIFICATION_CONTEXT.ALERT:					
 					if (!File.Exists(Constants.ALERT_SOUND_PATH)) {
 						Logger.Warning("Alert sound file doesn't exist!");
 						return;
 					}
 
-					Logger.Log($"cd /home/pi/Desktop/HomeAssistant/AssistantCore/{Constants.ResourcesDirectory} && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(true), LogLevels.Blue);
+					Logger.Log($"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.ResourcesDirectory} && cvlc --no-video  {Constants.ALERT_SOUND_PATH}".ExecuteBash(false), LogLevels.Blue);
 					break;
 				case ENOTIFICATION_CONTEXT.ERROR:
 					break;

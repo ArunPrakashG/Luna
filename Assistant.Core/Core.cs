@@ -1055,7 +1055,7 @@ namespace Assistant.Core {
 				return;
 			}
 
-			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(true), TimeSpan.FromSeconds(delay));
+			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);
 		}

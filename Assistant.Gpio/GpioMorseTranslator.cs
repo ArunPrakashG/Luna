@@ -8,19 +8,19 @@ using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
 	public class GpioMorseTranslator {
-		private MorseCore MorseCore = new MorseCore();
-		private GpioCore? GpioCore;
-		private GpioPinController? Controller => GpioCore?.PinController;
+		private readonly MorseCore MorseCore = new MorseCore();
+		private GpioPinController? Controller;
 		private readonly ILogger Logger = new Logger(typeof(GpioMorseTranslator).Name);
 		public bool IsTranslatorOnline { get; private set; }
 
 		public GpioMorseTranslator InitMorseTranslator(GpioCore gpioCore) {
+			Controller = gpioCore.PinController;
+
 			if (Controller == null) {
 				IsTranslatorOnline = false;
 				throw new InvalidOperationException("Cannot start Morse translator as the PinController is null!");
 			}
-
-			GpioCore = gpioCore;
+			
 			IsTranslatorOnline = true;
 			return this;
 		}

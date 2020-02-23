@@ -4,6 +4,7 @@ namespace Assistant.Core.Shell {
 	using Assistant.Extensions.Shared.Shell;
 	using Assistant.Logging;
 	using Assistant.Logging.Interfaces;
+	using Assistant.Sound;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
@@ -276,6 +277,7 @@ namespace Assistant.Core.Shell {
 
 					await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
 					command.Dispose();
+					Sound.PlayNotification(Sound.ENOTIFICATION_CONTEXT.ALERT);
 					anyExec = true;
 					continue;
 				}

@@ -81,7 +81,7 @@
 		<SshDeployClean />
 		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Assistant.Core</SshDeployTargetPath>
 		<SshDeployUsername>pi</SshDeployUsername>
-		<SshDeployPassword>3033</SshDeployPassword>
+		<SshDeployPassword>miniprakash</SshDeployPassword>
 		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
 		<LangVersion>8.0</LangVersion>
 		<Authors>Arun Prakash (ArunPrakashG)</Authors>

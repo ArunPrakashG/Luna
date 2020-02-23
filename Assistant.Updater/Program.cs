@@ -14,8 +14,8 @@ namespace UpdateHelper {
 		private static async Task Main(string[] args) {
 			Console.WriteLine("Starting Update Process...");
 			Console.WriteLine("1.0.0.0");
-			Console.WriteLine("Assistant Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/");
-			string updateFilePath = $@"{Directory.GetParent(HomeDirectory).Parent?.FullName}/AssistantCore/Latest.zip";
+			Console.WriteLine("Assistant Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/Assistant.Core/");
+			string updateFilePath = $@"{Directory.GetParent(HomeDirectory).Parent?.FullName}/Assistant.Core/Latest.zip";
 
 			if (!File.Exists(updateFilePath)) {
 				Console.WriteLine("Update file not found in the source directory.");
@@ -25,9 +25,9 @@ namespace UpdateHelper {
 
 			using ZipArchive Archive = ZipFile.OpenRead(updateFilePath);
 
-			if (await UpdateFromArchive(Archive, Directory.GetParent(HomeDirectory).Parent?.FullName + "/AssistantCore/").ConfigureAwait(false)) {
+			if (await UpdateFromArchive(Archive, Directory.GetParent(HomeDirectory).Parent?.FullName + "/Assistant.Core/").ConfigureAwait(false)) {
 				Console.WriteLine("Successfully Updated! Restarting application...");
-				Console.WriteLine("cd /home/pi/Desktop/HomeAssistant/AssistantCore && dotnet Assistant.Core.dll".ExecuteBash(true));
+				Console.WriteLine("cd /home/pi/Desktop/HomeAssistant/Assistant.Core && dotnet Assistant.Core.dll".ExecuteBash(false));
 				Console.WriteLine("Exiting Updater as the process is finished...");
 				await Task.Delay(3000).ConfigureAwait(false);
 				Environment.Exit(0);

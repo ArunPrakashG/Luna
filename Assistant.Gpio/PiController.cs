@@ -24,12 +24,12 @@ namespace Assistant.Gpio {
 			if(GpioCore == null || !IsAllowedToExecute) {
 				return null;
 			}
-
+			
+			GpioCore.PinController = new GpioPinController(this);
+			GpioCore.GpioPollingManager = new GpioEventManager(this, GpioCore.PinController);
 			GpioCore.MorseTranslator = new GpioMorseTranslator();
 			GpioCore.PiBluetooth = new BluetoothController(GpioCore);
 			GpioCore.PiSound = new SoundController();
-			GpioCore.PinController = new GpioPinController(this);
-			GpioCore.GpioPollingManager = new GpioEventManager(this, GpioCore.PinController);
 
 			CurrentDriver = GpioCore.GpioDriver;
 			GracefullShutdown = gracefulExit;
@@ -75,8 +75,14 @@ namespace Assistant.Gpio {
 				return false;
 			}
 
-			if (!Pi.Gpio.Contains(Pi.Gpio[pin])) {
-				Logger.Warning($"pin {pin} doesn't exist or is not a valid Bcm Gpio pin.");
+			try {
+				if (!Pi.Gpio.Contains(Pi.Gpio[pin])) {
+					Logger.Warning($"pin {pin} doesn't exist or is not a valid Bcm Gpio pin.");
+					return false;
+				}
+			}
+			catch (Exception e) {
+				Logger.Exception(e);
 				return false;
 			}
 

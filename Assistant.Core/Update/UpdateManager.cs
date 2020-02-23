@@ -153,7 +153,7 @@ namespace Assistant.Core.Update {
 
 				await Task.Delay(1000).ConfigureAwait(false);
 				await Core.ModuleLoader.ExecuteAsyncEvent(Modules.ModuleInitializer.MODULE_EXECUTION_CONTEXT.UpdateStarted).ConfigureAwait(false);
-				"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash(true);
+				"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash(false);
 				await Core.Restart(5).ConfigureAwait(false);
 				return true;
 			}
