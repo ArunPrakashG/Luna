@@ -6,10 +6,12 @@
 *.user
 *.userosscache
 *.sln.docstates
-Assistant.json
-DiscordBot.json
-GpioConfig.json
-MailConfig.json
+*.json
+*.txt
+*.dll
+*.exe
+*.xml
+*.config
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
