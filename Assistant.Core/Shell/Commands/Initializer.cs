@@ -17,6 +17,7 @@ namespace Assistant.Core.Shell.Commands {
 	internal class Initializer {
 		private static readonly ILogger Logger = new Logger(typeof(Initializer).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		private static readonly SemaphoreSlim LoadSync = new SemaphoreSlim(1, 1);
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
 
 		//TODO: Implement custom dictionary with events for collection changes
@@ -38,7 +39,7 @@ namespace Assistant.Core.Shell.Commands {
 				return false;
 			}
 
-			await Sync.WaitAsync().ConfigureAwait(false);
+			await LoadSync.WaitAsync().ConfigureAwait(false);
 
 			try {
 				ConventionBuilder conventions = new ConventionBuilder();
@@ -70,7 +71,7 @@ namespace Assistant.Core.Shell.Commands {
 				return false;
 			}
 			finally {
-				Sync.Release();
+				LoadSync.Release();
 			}
 		}
 
@@ -194,7 +195,7 @@ namespace Assistant.Core.Shell.Commands {
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 			try {
-				foreach (var cmd in Interpreter.Commands) {
+				foreach (KeyValuePair<string, IShellCommand> cmd in Interpreter.Commands) {
 					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
 						continue;
 					}

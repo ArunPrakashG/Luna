@@ -42,37 +42,26 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Update="Config\AssistantExample.json">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<Content Include="Commands\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>		
+		<None Update="Config\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Config\DiscordBot.json">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Config\MailConfig.json">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Config\Assistant.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Update="Modules\">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<None Update="Modules\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="NLog.config">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Resources\mail_push_notification.mp3">
+		<None Update="Resources\**">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Resources\TTS\startup.mp3">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Resources\tts_alert.mp3">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
+		</None>		
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Folder Include="Config\SteamBots\" />
+	  <Folder Include="Commands\" />
 	</ItemGroup>
 
 	<ItemGroup>

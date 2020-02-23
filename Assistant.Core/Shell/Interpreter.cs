@@ -107,7 +107,7 @@ namespace Assistant.Core.Shell {
 						continue;
 					}
 
-					await ExecuteCommandAsync(command).ConfigureAwait(false);
+					await ExecuteCommandAsync(command).ConfigureAwait(false);					
 				} while (!ShutdownShell);
 			}
 			catch (Exception e) {

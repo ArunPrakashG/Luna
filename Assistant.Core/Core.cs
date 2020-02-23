@@ -797,6 +797,7 @@ namespace Assistant.Core {
 			//}
 
 			ModuleLoader?.OnCoreShutdown();
+			Interpreter.ShutdownShell = true;
 			Config.ProgramLastShutdown = DateTime.Now;
 			await Config.SaveConfig(Config).ConfigureAwait(false);
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);
