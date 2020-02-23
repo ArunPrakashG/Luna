@@ -1,60 +1,152 @@
-using Assistant.Core.Watchers;
-using Assistant.Core.Watchers.Interfaces;
-using Assistant.Core.Update;
-using Assistant.Extensions;
-using Assistant.Gpio;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
-using Assistant.Modules;
-using Assistant.Pushbullet;
-using Assistant.Server.CoreServer;
-using Assistant.Sound.Speech;
-using Assistant.Weather;
-using CommandLine;
-using FluentScheduler;
-using RestSharp;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
-using Unosquare.RaspberryIO;
-using static Assistant.Gpio.PiController;
-using static Assistant.Logging.Enums;
-using static Assistant.Modules.ModuleInitializer;
-using Assistant.Core.Shell;
-using Assistant.Extensions.Shared.Shell;
-
 namespace Assistant.Core {
+	using Assistant.Core.Shell;
+	using Assistant.Core.Update;
+	using Assistant.Core.Watchers;
+	using Assistant.Core.Watchers.Interfaces;
+	using Assistant.Extensions;
+	using Assistant.Extensions.Shared.Shell;
+	using Assistant.Gpio;
+	using Assistant.Logging;
+	using Assistant.Logging.Interfaces;
+	using Assistant.Modules;
+	using Assistant.Pushbullet;
+	using Assistant.Server.CoreServer;
+	using Assistant.Sound.Speech;
+	using Assistant.Weather;
+	using CommandLine;
+	using FluentScheduler;
+	using RestSharp;
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.IO;
+	using System.Linq;
+	using System.Net;
+	using System.Runtime.InteropServices;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Unosquare.RaspberryIO;
+	using static Assistant.Gpio.PiController;
+	using static Assistant.Logging.Enums;
+	using static Assistant.Modules.ModuleInitializer;
+
+	/// <summary>
+	/// Defines the <see cref="Core" />
+	/// </summary>
 	public class Core {
-		public static ILogger Logger { get; set; } = new Logger(typeof(Core).Name);		
+		/// <summary>
+		/// Gets or sets the Logger
+		/// </summary>
+		public static ILogger Logger { get; set; } = new Logger(typeof(Core).Name);
+
+		/// <summary>
+		/// Defines the StartupTime
+		/// </summary>
 		public static DateTime StartupTime;
+
+		/// <summary>
+		/// Defines the RefreshConsoleTitleTimer
+		/// </summary>
 		private static Timer? RefreshConsoleTitleTimer;
+
+		/// <summary>
+		/// Defines the GpioCore
+		/// </summary>
 		private static GpioCore? GpioCore;
+
+		/// <summary>
+		/// Defines the EventManager
+		/// </summary>
 		private static readonly EventManager EventManager = new EventManager();
 
+		/// <summary>
+		/// Gets the PiController
+		/// </summary>
 		public static PiController? PiController { get; private set; }
+
+		/// <summary>
+		/// Gets the PinController
+		/// </summary>
 		public static GpioPinController? PinController { get; private set; }
+
+		/// <summary>
+		/// Gets the Update
+		/// </summary>
 		public static UpdateManager Update { get; private set; } = new UpdateManager();
+
+		/// <summary>
+		/// Gets or sets the Config
+		/// </summary>
 		public static CoreConfig Config { get; set; } = new CoreConfig();
+
+		/// <summary>
+		/// Gets the ModuleLoader
+		/// </summary>
 		public static ModuleInitializer ModuleLoader { get; private set; } = new ModuleInitializer();
+
+		/// <summary>
+		/// Gets the WeatherClient
+		/// </summary>
 		public static WeatherClient WeatherClient { get; private set; } = new WeatherClient();
+
+		/// <summary>
+		/// Gets the PushbulletClient
+		/// </summary>
 		public static PushbulletClient PushbulletClient { get; private set; } = new PushbulletClient();
+
+		/// <summary>
+		/// Gets the CoreServer
+		/// </summary>
 		public static CoreServerBase CoreServer { get; private set; } = new CoreServerBase();
+
+		/// <summary>
+		/// Gets the FileWatcher
+		/// </summary>
 		public static IFileWatcher FileWatcher { get; private set; } = new GenericFileWatcher();
+
+		/// <summary>
+		/// Gets the ModuleWatcher
+		/// </summary>
 		public static IModuleWatcher ModuleWatcher { get; private set; } = new GenericModuleWatcher();
 
+		/// <summary>
+		/// Gets a value indicating whether CoreInitiationCompleted
+		/// </summary>
 		public static bool CoreInitiationCompleted { get; private set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether IsNetworkAvailable
+		/// </summary>
 		public static bool IsNetworkAvailable { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether DisableFirstChanceLogWithDebug
+		/// </summary>
 		public static bool DisableFirstChanceLogWithDebug { get; set; }
+
+		/// <summary>
+		/// Gets the RunningPlatform
+		/// </summary>
 		public static OSPlatform RunningPlatform { get; private set; }
+
+		/// <summary>
+		/// Defines the NetworkSemaphore
+		/// </summary>
 		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
+
+		/// <summary>
+		/// Gets the AssistantName
+		/// </summary>
 		public static string AssistantName => !string.IsNullOrEmpty(Config.AssistantDisplayName) ? Config.AssistantDisplayName : "Home Assistant";
+
+		/// <summary>
+		/// Gets the KeepAliveToken
+		/// </summary>
 		public static CancellationTokenSource KeepAliveToken { get; private set; } = new CancellationTokenSource(TimeSpan.FromDays(10));
+
+		/// <summary>
+		/// Defines the JobRegistry
+		/// </summary>
 		public static readonly Registry JobRegistry = new Registry();
 
 		/// <summary>
@@ -73,11 +165,20 @@ namespace Assistant.Core {
 			await KeepAlive().ConfigureAwait(false);
 		}
 
+		/// <summary>
+		/// The VerifyStartupArgs
+		/// </summary>
+		/// <param name="args">The args<see cref="string[]"/></param>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core VerifyStartupArgs(string[] args) {
 			ParseStartupArguments(args);
 			return this;
 		}
 
+		/// <summary>
+		/// The RegisterEvents
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core RegisterEvents() {
 			Logging.Logger.LogMessageReceived += EventManager.Logger_LogMessageReceived;
 			Logging.Logger.OnColoredReceived += EventManager.Logger_OnColoredReceived;
@@ -94,6 +195,10 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		/// <summary>
+		/// The PreInitTasks
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core PreInitTasks() {
 			if (File.Exists(Constants.TraceLogPath)) {
 				File.Delete(Constants.TraceLogPath);
@@ -112,18 +217,34 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		/// <summary>
+		/// The LoadConfiguration
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core LoadConfiguration() {
 			Task.Run(async () => await Config.LoadConfig().ConfigureAwait(false));
 			return this;
 		}
 
+		/// <summary>
+		/// The StartScheduler
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core StartScheduler() {
-			JobManager.Initialize(JobRegistry);			
+			JobManager.Initialize(JobRegistry);
 			return this;
 		}
 
+		/// <summary>
+		/// The JobManager_JobException
+		/// </summary>
+		/// <param name="obj">The obj<see cref="JobExceptionInfo"/></param>
 		private void JobManager_JobException(JobExceptionInfo obj) => Logger.Exception(obj.Exception);
 
+		/// <summary>
+		/// The VariableAssignation
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core VariableAssignation() {
 			StartupTime = DateTime.Now;
 			RunningPlatform = Helpers.GetOsPlatform();
@@ -136,42 +257,78 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		/// <summary>
+		/// The StartTcpServer
+		/// </summary>
+		/// <param name="port">The port<see cref="int"/></param>
+		/// <param name="backlog">The backlog<see cref="int"/></param>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core StartTcpServer(int port, int backlog) {
 			_ = CoreServer.StartAsync(port, backlog).Result;
 			return this;
 		}
 
-		public Core InitShell<T>() where T: IShellCommand {
+		/// <summary>
+		/// The InitShell
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns>The <see cref="Core"/></returns>
+		public Core InitShell<T>() where T : IShellCommand {
 			Task.Run(async () => await Interpreter.InitInterpreterAsync<T>().ConfigureAwait(false));
 			return this;
 		}
 
+		/// <summary>
+		/// The AllowLocalNetworkConnections
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core AllowLocalNetworkConnections() {
 			SendLocalIp();
 			return this;
 		}
 
+		/// <summary>
+		/// The StartConsoleTitleUpdater
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core StartConsoleTitleUpdater() {
 			Helpers.InBackgroundThread(() => SetConsoleTitle(), "Console Title Updater", true);
 			return this;
 		}
 
+		/// <summary>
+		/// The DisplayASCIILogo
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core DisplayASCIILogo() {
 			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
 			return this;
 		}
 
+		/// <summary>
+		/// The DisplayASCIILogo
+		/// </summary>
+		/// <param name="text">The text<see cref="string?"/></param>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core DisplayASCIILogo(string? text) {
 			Helpers.GenerateAsciiFromText(text);
 			return this;
 		}
 
+		/// <summary>
+		/// The Versioning
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core Versioning() {
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 			Logger.WithColor($"X---------------- Starting {AssistantName} V{Constants.Version} ----------------X", ConsoleColor.Blue);
 			return this;
 		}
 
+		/// <summary>
+		/// The StartWatcher
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core StartWatcher() {
 			FileWatcher.InitWatcher(Constants.ConfigDirectory, new Dictionary<string, Action>() {
 				{ "Assistant.json", new Action(OnCoreConfigChangeEvent) },
@@ -186,6 +343,10 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		/// <summary>
+		/// The InitPushbulletService
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core InitPushbulletService() {
 			if (string.IsNullOrEmpty(Config.PushBulletApiKey)) {
 				Logger.Trace("Push bullet API key is null or invalid.");
@@ -197,11 +358,19 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		/// <summary>
+		/// The CheckAndUpdate
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core CheckAndUpdate() {
 			_ = Update.CheckAndUpdateAsync(true).Result;
 			return this;
 		}
-		
+
+		/// <summary>
+		/// The StartModules
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core StartModules() {
 			if (!Config.EnableModules) {
 				return this;
@@ -211,6 +380,10 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		/// <summary>
+		/// The StartPinController
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core StartPinController() {
 			if (!IsAllowedToExecute) {
 				return this;
@@ -229,6 +402,10 @@ namespace Assistant.Core {
 			return this;
 		}
 
+		/// <summary>
+		/// The MarkInitializationCompletion
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		public Core MarkInitializationCompletion() {
 			CoreInitiationCompleted = true;
 			Logger.Info("Core has been loaded!");
@@ -244,7 +421,9 @@ namespace Assistant.Core {
 		//private static void TcpServerBase_ServerStarted(object sender, OnServerStartedListerningEventArgs e) => Logger.Log($"TCP Server listening at {e.ListerningAddress} / {e.ServerPort}");
 
 		//private static void TcpServerBase_ServerShutdown(object sender, OnServerShutdownEventArgs e) => Logger.Log($"TCP shutting down.");
-
+		/// <summary>
+		/// The SetConsoleTitle
+		/// </summary>
 		private static void SetConsoleTitle() {
 			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()}";
 			text += IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
@@ -256,13 +435,20 @@ namespace Assistant.Core {
 			}
 		}
 
+		/// <summary>
+		/// The StopConsoleRefresh
+		/// </summary>
 		public void StopConsoleRefresh() {
-			if(RefreshConsoleTitleTimer != null) {
+			if (RefreshConsoleTitleTimer != null) {
 				RefreshConsoleTitleTimer.Dispose();
 				RefreshConsoleTitleTimer = null;
 			}
 		}
 
+		/// <summary>
+		/// The DisplayConsoleCommandMenu
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		private static async Task DisplayConsoleCommandMenu() {
 			Logger.Log("Displaying console command window", LogLevels.Trace);
 			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", LogLevels.Input);
@@ -422,6 +608,10 @@ namespace Assistant.Core {
 			}
 		}
 
+		/// <summary>
+		/// The KeepAlive
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		[Obsolete("Disabled as long as testing of shell is going on.")]
 		private static async Task KeepAlive() {
 			//Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
@@ -442,6 +632,10 @@ namespace Assistant.Core {
 			}
 		}
 
+		/// <summary>
+		/// The ParseStartupArguments
+		/// </summary>
+		/// <param name="args">The args<see cref="string[]"/></param>
 		private static void ParseStartupArguments(string[] args) {
 			if (!args.Any() || args == null) {
 				return;
@@ -475,6 +669,9 @@ namespace Assistant.Core {
 			});
 		}
 
+		/// <summary>
+		/// The DisplayRelayCommandMenu
+		/// </summary>
 		private static void DisplayRelayCommandMenu() {
 			Logger.Log("-------------------- RELAY COMMAND MENU --------------------", LogLevels.Input);
 			Logger.Log("1 | Relay pin 1", LogLevels.Input);
@@ -635,6 +832,10 @@ namespace Assistant.Core {
 			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
 		}
 
+		/// <summary>
+		/// The DisplayRelayCycleMenu
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		private static async Task DisplayRelayCycleMenu() {
 			if (!PiController.IsAllowedToExecute) {
 				Logger.Log("You are running on incorrect OS or device. Pi controls are disabled.", LogLevels.Error);
@@ -736,6 +937,10 @@ namespace Assistant.Core {
 			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} to display command menu.");
 		}
 
+		/// <summary>
+		/// The OnNetworkDisconnected
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		public static async Task OnNetworkDisconnected() {
 			try {
 				await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
@@ -748,6 +953,10 @@ namespace Assistant.Core {
 			}
 		}
 
+		/// <summary>
+		/// The OnNetworkReconnected
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		public static async Task OnNetworkReconnected() {
 			try {
 				await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
@@ -766,14 +975,26 @@ namespace Assistant.Core {
 			}
 		}
 
+		/// <summary>
+		/// The JobManager_JobEnd
+		/// </summary>
+		/// <param name="obj">The obj<see cref="JobEndInfo"/></param>
 		private void JobManager_JobEnd(JobEndInfo obj) {
 			Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
 		}
 
+		/// <summary>
+		/// The JobManager_JobStart
+		/// </summary>
+		/// <param name="obj">The obj<see cref="JobStartInfo"/></param>
 		private void JobManager_JobStart(JobStartInfo obj) {
 			Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
 		}
 
+		/// <summary>
+		/// The OnExit
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
 
@@ -803,6 +1024,11 @@ namespace Assistant.Core {
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);
 		}
 
+		/// <summary>
+		/// The Exit
+		/// </summary>
+		/// <param name="exitCode">The exitCode<see cref="int"/></param>
+		/// <returns>The <see cref="Task"/></returns>
 		public static async Task Exit(int exitCode = 0) {
 			if (exitCode != 0) {
 				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
@@ -818,6 +1044,11 @@ namespace Assistant.Core {
 			Environment.Exit(exitCode);
 		}
 
+		/// <summary>
+		/// The Restart
+		/// </summary>
+		/// <param name="delay">The delay<see cref="int"/></param>
+		/// <returns>The <see cref="Task"/></returns>
 		public static async Task Restart(int delay = 10) {
 			if (!Config.AutoRestart) {
 				Logger.Log("Auto restart is turned off in config.", LogLevels.Warn);
@@ -829,6 +1060,10 @@ namespace Assistant.Core {
 			await Exit(0).ConfigureAwait(false);
 		}
 
+		/// <summary>
+		/// The SystemShutdown
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemShutdown() {
 			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemShutdown).ConfigureAwait(false);
 			if (PiController.IsAllowedToExecute) {
@@ -851,6 +1086,10 @@ namespace Assistant.Core {
 			}
 		}
 
+		/// <summary>
+		/// The SystemRestart
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemRestart() {
 			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemRestart).ConfigureAwait(false);
 			if (PiController.IsAllowedToExecute) {
@@ -873,6 +1112,9 @@ namespace Assistant.Core {
 			}
 		}
 
+		/// <summary>
+		/// The OnCoreConfigChangeEvent
+		/// </summary>
 		private void OnCoreConfigChangeEvent() {
 			if (!File.Exists(Constants.CoreConfigPath)) {
 				Logger.Log("The core config file has been deleted.", LogLevels.Warn);
@@ -884,14 +1126,22 @@ namespace Assistant.Core {
 			Helpers.InBackgroundThread(async () => await Config.LoadConfig().ConfigureAwait(false));
 		}
 
+		/// <summary>
+		/// The OnDiscordConfigChangeEvent
+		/// </summary>
 		private void OnDiscordConfigChangeEvent() {
-			//TODO: Discord config file change events
 		}
 
+		/// <summary>
+		/// The OnMailConfigChangeEvent
+		/// </summary>
 		private void OnMailConfigChangeEvent() {
-			//TODO: Mail config file change events
 		}
 
+		/// <summary>
+		/// The OnModuleDirectoryChangeEvent
+		/// </summary>
+		/// <param name="absoluteFileName">The absoluteFileName<see cref="string?"/></param>
 		private void OnModuleDirectoryChangeEvent(string? absoluteFileName) {
 			if (string.IsNullOrEmpty(absoluteFileName)) {
 				return;
@@ -914,7 +1164,6 @@ namespace Assistant.Core {
 		/// You have to specify such a server manually else contact me personally for my server IP.
 		/// We use this so that the mobile controller app of the assistant can connect to the assistant running on the connected local interface.
 		/// </summary>
-		/// <param name="enableRecrussion">Specify if you want to execute this method in a loop every SendIpDelay minutes. (recommended)</param>
 		private static void SendLocalIp() {
 			string? localIp = Helpers.GetLocalIpAddress();
 

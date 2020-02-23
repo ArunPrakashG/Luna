@@ -1,23 +1,43 @@
-using Assistant.Core.Shell.InternalCommands;
-using Assistant.Extensions;
-using Assistant.Extensions.Shared.Shell;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Parameter = Assistant.Extensions.Shared.Shell.Parameter;
 namespace Assistant.Core.Shell {
+	using Assistant.Core.Shell.InternalCommands;
+	using Assistant.Extensions;
+	using Assistant.Extensions.Shared.Shell;
+	using Assistant.Logging;
+	using Assistant.Logging.Interfaces;
+	using System;
+	using System.Collections.Generic;
+	using System.IO;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Parameter = Assistant.Extensions.Shared.Shell.Parameter;
+
 	/// <summary>
 	/// The Shell Instance.
 	/// </summary>
 	public static class Interpreter {
+		/// <summary>
+		/// Defines the Logger
+		/// </summary>
 		private static readonly ILogger Logger = new Logger("INTERPRETER");
+
+		/// <summary>
+		/// Defines the Sync
+		/// </summary>
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+
+		/// <summary>
+		/// Defines the LoopSync
+		/// </summary>
 		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
+
+		/// <summary>
+		/// Defines the LINE_SPLITTER
+		/// </summary>
 		private const char LINE_SPLITTER = ';';
+
+		/// <summary>
+		/// Defines the InitCompleted
+		/// </summary>
 		private static bool InitCompleted = false;
 
 		/// <summary>
@@ -36,15 +56,20 @@ namespace Assistant.Core.Shell {
 		internal static bool ShutdownShell = false;
 
 		/// <summary>
+		/// Gets the CurrentCommand
 		/// The current command which is being executed.
 		/// </summary>
 		public static string? CurrentCommand { get; private set; }
 
 		/// <summary>
+		/// Gets the CommandsCount
 		/// The current usable commands count.
 		/// </summary>
 		public static int CommandsCount => Commands.Count;
 
+		/// <summary>
+		/// Initializes static members of the <see cref="Interpreter"/> class.
+		/// </summary>
 		static Interpreter() {
 			if (!Directory.Exists(Constants.COMMANDS_PATH)) {
 				Directory.CreateDirectory(Constants.COMMANDS_PATH);
@@ -80,6 +105,10 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
+		/// <summary>
+		/// The ReplAsync
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		private static async Task ReplAsync() {
 			if (!InitCompleted) {
 				return;
@@ -112,8 +141,11 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
+		/// <summary>
+		/// The LoadInternalCommandsAsync
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
 		private static async Task LoadInternalCommandsAsync() {
-			#region helpCommand
 			IShellCommand helpCommand = new HelpCommand();
 			if (!helpCommand.IsInitSuccess) {
 				await helpCommand.InitAsync().ConfigureAwait(false);
@@ -122,8 +154,6 @@ namespace Assistant.Core.Shell {
 			lock (Commands) {
 				Commands.Add(helpCommand.UniqueId, helpCommand);
 			}
-			#endregion helpCommand			
-			#region exitCommand
 			IShellCommand exitCommand = new ExitCommand();
 			if (!exitCommand.IsInitSuccess) {
 				await exitCommand.InitAsync().ConfigureAwait(false);
@@ -132,9 +162,13 @@ namespace Assistant.Core.Shell {
 			lock (Commands) {
 				Commands.Add(exitCommand.UniqueId, exitCommand);
 			}
-			#endregion exitCommand
 		}
 
+		/// <summary>
+		/// The ExecuteCommandAsync
+		/// </summary>
+		/// <param name="command">The command<see cref="string?"/></param>
+		/// <returns>The <see cref="Task{bool}"/></returns>
 		private static async Task<bool> ExecuteCommandAsync(string? command) {
 			if (!InitCompleted) {
 				Logger.Warning("Shell isn't initiated properly.");
@@ -152,6 +186,11 @@ namespace Assistant.Core.Shell {
 			return await ParseCommandAsync(command).ConfigureAwait(false);
 		}
 
+		/// <summary>
+		/// The ParseCommandAsync
+		/// </summary>
+		/// <param name="cmd">The cmd<see cref="string"/></param>
+		/// <returns>The <see cref="Task{bool}"/></returns>
 		private static async Task<bool> ParseCommandAsync(string cmd) {
 			if (Commands.Count <= 0) {
 				ShellOut.Info("No commands have been loaded into the shell.");
@@ -259,11 +298,33 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
+		/// <summary>
+		/// Defines the EXECUTE_RESULT
+		/// </summary>
 		public enum EXECUTE_RESULT : byte {
+			/// <summary>
+			/// Defines the Success
+			/// </summary>
 			Success = 0x01,
+
+			/// <summary>
+			/// Defines the Failed
+			/// </summary>
 			Failed = 0x00,
+
+			/// <summary>
+			/// Defines the InvalidArgs
+			/// </summary>
 			InvalidArgs = 0x002,
+
+			/// <summary>
+			/// Defines the InvalidCommand
+			/// </summary>
 			InvalidCommand = 0x003,
+
+			/// <summary>
+			/// Defines the DoesntExist
+			/// </summary>
 			DoesntExist = 0x004
 		}
 	}
