@@ -1,8 +1,8 @@
 using System;
 
-namespace Assistant.Core.Shell {
-	internal static class ShellOut {
-		internal static void Info(string? msg) {
+namespace Assistant.Extensions.Shared.Shell {
+	public static class ShellOut {
+		public static void Info(string? msg) {
 			if (string.IsNullOrEmpty(msg)) {
 				return;
 			}
@@ -10,7 +10,7 @@ namespace Assistant.Core.Shell {
 			Console.WriteLine(msg);
 		}
 
-		internal static void Error(string? msg) {
+		public static void Error(string? msg) {
 			if (string.IsNullOrEmpty(msg)) {
 				return;
 			}
@@ -20,7 +20,7 @@ namespace Assistant.Core.Shell {
 			Console.ResetColor();
 		}
 
-		internal static void Exception(Exception e) {
+		public static void Exception(Exception e) {
 			if (e == null) {
 				return;
 			}

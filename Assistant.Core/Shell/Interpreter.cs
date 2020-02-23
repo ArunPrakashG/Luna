@@ -130,17 +130,7 @@ namespace Assistant.Core.Shell {
 			lock (Commands) {
 				Commands.Add(helpCommand.UniqueId, helpCommand);
 			}
-			#endregion helpCommand
-			#region bashCommand
-			IShellCommand bashCommand = new BashCommand();
-			if (!bashCommand.IsInitSuccess) {
-				await bashCommand.InitAsync().ConfigureAwait(false);
-			}
-			
-			lock (Commands) {
-				Commands.Add(bashCommand.UniqueId, bashCommand);
-			}
-			#endregion bashCommand
+			#endregion helpCommand			
 			#region exitCommand
 			IShellCommand exitCommand = new ExitCommand();
 			if (!exitCommand.IsInitSuccess) {

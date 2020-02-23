@@ -602,7 +602,7 @@ namespace Assistant.Core {
 						return;
 					}
 
-					if (Config.IRSensorPins.Count() > 0 && Config.IRSensorPins.Contains(pinNumber)) {
+					if (Config.IRSensorPins.Any() && Config.IRSensorPins.Contains(pinNumber)) {
 						Logger.Log("Sorry, the specified pin is preconfigured for IR Sensor. cannot modify!");
 						return;
 					}

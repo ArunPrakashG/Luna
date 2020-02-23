@@ -47,7 +47,7 @@ namespace Assistant.Core.Shell.Commands {
 					}
 				}
 
-				if(parameter.Parameters == null || parameter.Parameters.Length <= 0) {
+				if (parameter.Parameters == null || parameter.Parameters.Length <= 0) {
 					foreach (var cmd in Interpreter.Commands) {
 						if (string.IsNullOrEmpty(cmd.Value.CommandKey) || string.IsNullOrEmpty(cmd.Value.CommandName)) {
 							continue;
@@ -97,7 +97,8 @@ namespace Assistant.Core.Shell.Commands {
 
 				ShellOut.Info($"{command.CommandDescription}");
 				ShellOut.Info("---------------------------------------------------------------------------------------");
-			}catch(Exception e) {
+			}
+			catch (Exception e) {
 				ShellOut.Exception(e);
 				return;
 			}

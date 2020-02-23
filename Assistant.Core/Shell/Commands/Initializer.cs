@@ -20,6 +20,7 @@ namespace Assistant.Core.Shell.Commands {
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
 
 		//TODO: Implement custom dictionary with events for collection changes
+		[Obsolete]
 		private static void OnCommandCollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {
 			Logger.Trace($"Commands collection changed -> {e.Action.ToString()}");
 		}

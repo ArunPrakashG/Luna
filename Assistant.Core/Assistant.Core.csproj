@@ -88,14 +88,14 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<SshDeployHost>raspberrypi</SshDeployHost>
+		<SshDeployHost>192.168.1.37</SshDeployHost>
 		<SshDeployClean />
-		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/AssistantCore</SshDeployTargetPath>
+		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Assistant.Core</SshDeployTargetPath>
 		<SshDeployUsername>pi</SshDeployUsername>
 		<SshDeployPassword>3033</SshDeployPassword>
 		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
 		<LangVersion>8.0</LangVersion>
-		<Authors>Arun Prakash (SynergyFTW)</Authors>
+		<Authors>Arun Prakash (ArunPrakashG)</Authors>
 		<Product>Home Assistant</Product>
 		<Description>Home automation and personal assistant running on raspberry pi using C# .NET Core Framework.</Description>
 		<SignAssembly>false</SignAssembly>

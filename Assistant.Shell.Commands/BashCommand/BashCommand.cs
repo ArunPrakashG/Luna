@@ -1,5 +1,7 @@
+using Assistant.Extensions;
 using Assistant.Extensions.Shared.Shell;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,8 +53,21 @@ namespace Assistant.Core.Shell.Commands {
 					}
 				}
 
-				//TODO: bash command
-			}catch(Exception e) {
+				string? bashScriptPath = parameter.Parameters[0].Trim();
+				if (string.IsNullOrEmpty(bashScriptPath)) {
+					ShellOut.Error("Specified script file is invalid.");
+					return;
+				}
+
+				if (!File.Exists(bashScriptPath)) {
+					ShellOut.Error($"{bashScriptPath} doesn't exist.");
+					return;
+				}
+
+				ShellOut.Info($"Executing {bashScriptPath} ...");
+				ShellOut.Info(bashScriptPath.ExecuteBash(false));
+			}
+			catch (Exception e) {
 				ShellOut.Exception(e);
 				return;
 			}

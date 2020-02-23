@@ -11,9 +11,9 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<SshDeployHost>raspberrypi</SshDeployHost>
+		<SshDeployHost>192.168.1.37</SshDeployHost>
 		<SshDeployClean />	
-		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Helpers/Updater</SshDeployTargetPath>
+		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Assistant.Updater</SshDeployTargetPath>
 		<SshDeployUsername>pi</SshDeployUsername>
 		<SshDeployPassword>3033</SshDeployPassword>
 		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
