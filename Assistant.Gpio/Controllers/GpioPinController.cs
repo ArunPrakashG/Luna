@@ -1,14 +1,18 @@
-using Assistant.Gpio.Controllers;
+using Assistant.Gpio.Config;
+using Assistant.Gpio.Drivers;
+using Assistant.Gpio.Events;
+using Assistant.Gpio.Events.EventArgs;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Config.PinConfig;
+using static Assistant.Gpio.Controllers.PiController;
 
-namespace Assistant.Gpio {
+namespace Assistant.Gpio.Controllers {
 	public class GpioPinController : IGpioControllerDriver {
-		internal readonly ILogger Logger = new Logger(typeof(GpioPinController).Name);
+		public static readonly ILogger Logger = new Logger(typeof(GpioPinController).Name);
 		public EGPIO_DRIVERS CurrentGpioDriver { get; private set; }
 		private IGpioControllerDriver GpioControllerDriver { get; set; } = new NullDriver();
 		private GpioEventManager? GpioPollingManager => Controller?.GetEventManager();
@@ -25,16 +29,21 @@ namespace Assistant.Gpio {
 
 			switch (CurrentGpioDriver) {
 				case EGPIO_DRIVERS.RaspberryIODriver:
-					GpioControllerDriver = new RaspberryIOController(this).InitDriver();
+					GpioControllerDriver = new RaspberryIODriver().InitDriver();
 					Controller.SetEventManager(new GpioEventManager(Controller, this));
-					Logger.Log($"Gpio Controller initiated with {CurrentGpioDriver.ToString()} driver.");
-					return this;
+					break;
 				case EGPIO_DRIVERS.GpioDevicesDriver:
+					GpioControllerDriver = new SystemDeviceDriver().InitDriver(System.Device.Gpio.PinNumberingScheme.Logical);
+					Controller.SetEventManager(new GpioEventManager(Controller, this));
+					break;
 				case EGPIO_DRIVERS.WiringPiDriver:
 				default:
 					Logger.Info("Currently, only RaspberryIO Driver is supported.");
-					return this;
+					break;
 			}
+
+			Logger.Log($"Gpio Controller initiated with {CurrentGpioDriver.ToString()} driver.");
+			return this;
 		}
 
 		public void StartInternalPinPolling(int[] outputPins) {
@@ -127,6 +136,8 @@ namespace Assistant.Gpio {
 
 		public bool IsDriverProperlyInitialized => GetDriver().IsDriverProperlyInitialized;
 
+		public PinConfig PinConfig => PinConfigManager.GetConfiguration();
+
 		private IGpioControllerDriver GetDriver() {
 			switch (CurrentGpioDriver) {
 				case EGPIO_DRIVERS.RaspberryIODriver:
@@ -141,7 +152,7 @@ namespace Assistant.Gpio {
 			return GpioControllerDriver ?? new NullDriver();
 		}
 
-		public GpioPinConfig GetGpioConfig(int pinNumber) => GetDriver().GetGpioConfig(pinNumber);
+		public Pin GetPinConfig(int pinNumber) => GetDriver().GetPinConfig(pinNumber);
 
 		public bool SetGpioValue(int pin, GpioPinMode mode) => GetDriver().SetGpioValue(pin, mode);
 
@@ -153,14 +164,18 @@ namespace Assistant.Gpio {
 
 		public void ShutdownDriver() => GetDriver().ShutdownDriver();
 
-		public async Task<bool> RelayTestServiceAsync(IEnumerable<int> relayPins, GpioCycles selectedCycle, int singleChannelValue = 0) => await GetDriver().RelayTestServiceAsync(relayPins, selectedCycle, singleChannelValue).ConfigureAwait(false);
+		public async Task<bool> RelayTestAsync(IEnumerable<int> relayPins, GpioCycles selectedCycle, int singleChannelValue = 0) => await GetDriver().RelayTestAsync(relayPins, selectedCycle, singleChannelValue).ConfigureAwait(false);
 
-		public void UpdatePinConfig(int pin, GpioPinMode mode, GpioPinState value, TimeSpan duration) => GetDriver().UpdatePinConfig(pin, mode, value, duration);
+		public void UpdatePinConfig(Pin pin) => GetDriver().UpdatePinConfig(pin);
 
 		public GpioPinState GpioPinStateRead(int pin) => GetDriver().GpioPinStateRead(pin);
 
 		public bool GpioDigitalRead(int pin) => GetDriver().GpioDigitalRead(pin);
 
 		public int GpioPhysicalPinNumber(int bcmPin) => GetDriver().GpioPhysicalPinNumber(bcmPin);
+
+		public IGpioControllerDriver? CastDriver<T>(T driver) where T : IGpioControllerDriver {
+			return driver;
+		}
 	}
 }

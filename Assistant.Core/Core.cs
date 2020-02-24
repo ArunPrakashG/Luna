@@ -6,6 +6,7 @@ namespace Assistant.Core {
 	using Assistant.Extensions;
 	using Assistant.Extensions.Shared.Shell;
 	using Assistant.Gpio;
+	using Assistant.Gpio.Controllers;
 	using Assistant.Logging;
 	using Assistant.Logging.Interfaces;
 	using Assistant.Modules;
@@ -26,7 +27,8 @@ namespace Assistant.Core {
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Unosquare.RaspberryIO;
-	using static Assistant.Gpio.PiController;
+	using static Assistant.Gpio.Config.PinConfig;
+	using static Assistant.Gpio.Controllers.PiController;
 	using static Assistant.Logging.Enums;
 	using static Assistant.Modules.ModuleInitializer;
 
@@ -252,7 +254,7 @@ namespace Assistant.Core {
 			Constants.LocalIP = Helpers.GetLocalIpAddress();
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
 			GpioCore = new GpioCore(EGPIO_DRIVERS.RaspberryIODriver, Config.CloseRelayOnShutdown)
-				.InitGpioCore(Config.OutputModePins, Config.InputModePins);
+				.InitGpioCore(new AvailablePins(Config.OutputModePins, Config.InputModePins, Constants.BcmGpioPins));
 			Console.Title = $"Home Assistant Initializing...";
 			return this;
 		}
@@ -700,7 +702,7 @@ namespace Assistant.Core {
 					return;
 				}
 
-				GpioPinConfig? pinStatus = PinController.GetGpioConfig(pin);
+				Pin pinStatus = PinController.GetPinConfig(pin);
 				if (pinStatus.IsPinOn) {
 					PinController.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
 					Logger.Log($"Successfully set {pin} pin to OFF.", LogLevels.Green);
@@ -787,7 +789,7 @@ namespace Assistant.Core {
 						return;
 					}
 
-					GpioPinConfig status = PinController.GetGpioConfig(pinNumber);
+					Pin status = PinController.GetPinConfig(pinNumber);
 
 					if (status.IsPinOn && pinStatus.Equals(1)) {
 						Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
@@ -867,7 +869,7 @@ namespace Assistant.Core {
 			bool Configured;
 			switch (SelectedValue) {
 				case 1:
-					Configured = await PinController.RelayTestServiceAsync(Config.RelayPins, GpioCycles.Cycle).ConfigureAwait(false);
+					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.Cycle).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -876,7 +878,7 @@ namespace Assistant.Core {
 					break;
 
 				case 2:
-					Configured = await PinController.RelayTestServiceAsync(Config.RelayPins, GpioCycles.OneMany).ConfigureAwait(false);
+					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.OneMany).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -885,14 +887,14 @@ namespace Assistant.Core {
 					break;
 
 				case 3:
-					Configured = await PinController.RelayTestServiceAsync(Config.RelayPins, GpioCycles.OneOne).ConfigureAwait(false);
+					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.OneOne).ConfigureAwait(false);
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
 					break;
 
 				case 4:
-					Configured = await PinController.RelayTestServiceAsync(Config.RelayPins, GpioCycles.OneTwo).ConfigureAwait(false);
+					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.OneTwo).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -908,7 +910,7 @@ namespace Assistant.Core {
 						goto case 5;
 					}
 
-					Configured = await PinController.RelayTestServiceAsync(Config.RelayPins, GpioCycles.Single, selectedsingleKey).ConfigureAwait(false);
+					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.Single, selectedsingleKey).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -916,7 +918,7 @@ namespace Assistant.Core {
 					break;
 
 				case 6:
-					Configured = await PinController.RelayTestServiceAsync(Config.RelayPins, GpioCycles.Default).ConfigureAwait(false);
+					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.Default).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);

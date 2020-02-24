@@ -1,4 +1,4 @@
-using Assistant.Gpio;
+using Assistant.Gpio.Controllers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Assistant.Server.CoreServer;
@@ -9,7 +9,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Config.PinConfig;
+using static Assistant.Gpio.Controllers.PiController;
 using static Assistant.Logging.Enums;
 using static Assistant.Server.CoreServer.CoreServerEnums;
 
@@ -87,8 +88,8 @@ namespace Assistant.Core {
 					}
 
 					if (Core.PinController.SetGpioValue(setGpioRequest.PinNumber, (GpioPinMode) setGpioRequest.PinMode, (GpioPinState) setGpioRequest.PinState)) {
-						GpioPinConfig config = Core.PinController.GetGpioConfig(setGpioRequest.PinNumber);
-						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO, "Success!", GpioPinConfig.AsJson(config))).ConfigureAwait(false)) {
+						Pin config = Core.PinController.GetPinConfig(setGpioRequest.PinNumber);
+						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO, "Success!", JsonConvert.SerializeObject(config)))) {
 							Logger.Log($"{request.TypeCode.ToString()} response send!", LogLevels.Trace);
 							return;
 						}
@@ -115,8 +116,8 @@ namespace Assistant.Core {
 					}
 
 					if (Core.PinController.SetGpioWithTimeout(setGpioDelayedRequest.PinNumber, (GpioPinMode) setGpioDelayedRequest.PinMode, (GpioPinState) setGpioDelayedRequest.PinState, TimeSpan.FromMinutes(setGpioDelayedRequest.Delay))) {
-						GpioPinConfig config = Core.PinController.GetGpioConfig(setGpioDelayedRequest.PinNumber);
-						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO_DELAYED, "Success!", GpioPinConfig.AsJson(config))).ConfigureAwait(false)) {
+						Pin config = Core.PinController.GetPinConfig(setGpioDelayedRequest.PinNumber);
+						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO_DELAYED, "Success!", JsonConvert.SerializeObject(config)))) {
 							Logger.Log($"{request.TypeCode.ToString()} response send!", LogLevels.Trace);
 							return;
 						}

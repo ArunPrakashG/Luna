@@ -77,7 +77,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<SshDeployHost>192.168.1.37</SshDeployHost>
+		<SshDeployHost>192.168.1.38</SshDeployHost>
 		<SshDeployClean />
 		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Assistant.Core</SshDeployTargetPath>
 		<SshDeployUsername>pi</SshDeployUsername>

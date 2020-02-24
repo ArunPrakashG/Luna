@@ -1,3 +1,6 @@
+using Assistant.Extensions;
+using Assistant.Gpio.Config;
+using Assistant.Gpio.Events;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
@@ -5,8 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unosquare.RaspberryIO;
+using static Assistant.Gpio.Config.PinConfig;
 
-namespace Assistant.Gpio {
+namespace Assistant.Gpio.Controllers {
 	public class PiController {
 		internal static readonly ILogger Logger = new Logger(typeof(PiController).Name);
 		public readonly GpioCore? GpioCore;
@@ -15,21 +19,18 @@ namespace Assistant.Gpio {
 		public static bool IsAllowedToExecute => GpioHelpers.IsPiEnvironment();
 		internal static bool GracefullShutdown { get; private set; } = true;
 
-		[JsonProperty]
-		public static List<GpioPinConfig> PinConfigCollection { get; private set; } = new List<GpioPinConfig>(40);
-
 		public PiController(GpioCore gpioCore) => GpioCore = gpioCore;
 
 		internal PiController? InitController(bool gracefulExit = true) {
-			if(GpioCore == null || !IsAllowedToExecute) {
+			if (GpioCore == null || !IsAllowedToExecute) {
 				return null;
 			}
-			
+
 			GpioCore.PinController = new GpioPinController(this);
 			GpioCore.GpioPollingManager = new GpioEventManager(this, GpioCore.PinController);
 			GpioCore.MorseTranslator = new GpioMorseTranslator();
 			GpioCore.PiBluetooth = new BluetoothController(GpioCore);
-			GpioCore.PiSound = new SoundController();
+			GpioCore.PiSound = new PiSoundController();
 
 			CurrentDriver = GpioCore.GpioDriver;
 			GracefullShutdown = gracefulExit;
@@ -55,23 +56,22 @@ namespace Assistant.Gpio {
 			}
 
 			GpioCore.MorseTranslator.InitMorseTranslator(GpioCore);
-			GpioCore.PiBluetooth.InitBluetoothController();
-			PinConfigCollection.Clear();
+			GpioCore.PiBluetooth.InitBluetoothController();			
 
-			for (int i = 0; i < Pi.Gpio.Count; i++) {
-				GpioPinConfig config = GpioCore.PinController.GetGpioConfig(Pi.Gpio[i].PhysicalPinNumber);
-				PinConfigCollection.Add(config);
+			for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {
+				Pin config = GpioCore.PinController.GetPinConfig(Pi.Gpio[i].PhysicalPinNumber);
+				PinConfigManager.GetConfiguration().PinConfigs[i] = config;
 				Logger.Trace($"Generated pin config for {Pi.Gpio[i].PhysicalPinNumber} gpio pin.");
 			}
 
 			IsControllerProperlyInitialized = true;
-			GpioCore.PinController.StartInternalPinPolling(GpioCore.GetOccupiedPins().output);
+			GpioCore.PinController.StartInternalPinPolling(GpioCore.GetOccupiedPins().OutputPins);
 			Logger.Trace("Initiated Gpio Controller class!");
 			return this;
 		}
 
 		public static bool IsValidPin(int pin) {
-			if (!IsAllowedToExecute || pin > 41 || pin <= 0) {
+			if (!IsAllowedToExecute || !Constants.BcmGpioPins.Contains(pin)) {
 				return false;
 			}
 
@@ -103,23 +103,23 @@ namespace Assistant.Gpio {
 
 		public BluetoothController? GetBluetoothController() => GpioCore?.PiBluetooth;
 
-		public SoundController? GetSoundController() => GpioCore?.PiSound;
+		public PiSoundController? GetSoundController() => GpioCore?.PiSound;
 
 		public GpioPinController? GetPinController() => GpioCore?.PinController;
 
 		public void InitGpioShutdownTasks() {
-			if(GpioCore == null) {
+			if (GpioCore == null) {
 				return;
 			}
 
 			GpioCore.GpioPollingManager?.ExitEventGenerator();
 
-			(int[] output, int[] input) = GpioCore.GetOccupiedPins();
+			var pins = GpioCore.GetOccupiedPins();
 
-			if(output.Length > 0 && GracefullShutdown) {
-				foreach (int pin in output) {
-					GpioPinConfig? pinStatus = GpioCore.PinController?.GetGpioConfig(pin);
-					if(pinStatus == null) {
+			if (pins.OutputPins.Length > 0 && GracefullShutdown) {
+				foreach (int pin in pins.OutputPins) {
+					Pin? pinStatus = GpioCore.PinController?.GetPinConfig(pin);
+					if (pinStatus == null) {
 						continue;
 					}
 

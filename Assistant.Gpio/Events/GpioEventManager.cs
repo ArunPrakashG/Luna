@@ -1,8 +1,9 @@
+using Assistant.Gpio.Controllers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System.Collections.Generic;
 
-namespace Assistant.Gpio {
+namespace Assistant.Gpio.Events {
 	public class GpioEventManager {
 		internal readonly ILogger Logger = new Logger(typeof(GpioEventManager).Name);
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();

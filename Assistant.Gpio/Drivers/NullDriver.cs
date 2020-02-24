@@ -1,13 +1,21 @@
+using Assistant.Gpio.Config;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Config.PinConfig;
+using static Assistant.Gpio.Controllers.PiController;
 
-namespace Assistant.Gpio.Controllers {
+namespace Assistant.Gpio.Drivers {
 	public class NullDriver : IGpioControllerDriver {
 		public bool IsDriverProperlyInitialized => throw new NotImplementedException();
 
-		public GpioPinConfig GetGpioConfig(int pinNumber) {
+		public PinConfig PinConfig => throw new NotImplementedException();
+
+		public IGpioControllerDriver? CastDriver<T>(T driver) where T : IGpioControllerDriver {
+			throw new NotImplementedException();
+		}
+
+		public Pin GetPinConfig(int pinNumber) {
 			throw new NotImplementedException();
 		}
 
@@ -23,7 +31,7 @@ namespace Assistant.Gpio.Controllers {
 			throw new NotImplementedException();
 		}
 
-		public Task<bool> RelayTestServiceAsync(IEnumerable<int> relayPins, GpioCycles selectedCycle, int singleChannelValue = 0) {
+		public Task<bool> RelayTestAsync(IEnumerable<int> relayPins, GpioCycles selectedCycle, int singleChannelValue = 0) {
 			throw new NotImplementedException();
 		}
 

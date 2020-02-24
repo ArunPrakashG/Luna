@@ -3,22 +3,22 @@ using Assistant.Logging.Interfaces;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Computer;
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Controllers.PiController;
 
-namespace Assistant.Gpio {
-	public class SoundController {
-		private readonly ILogger Logger = new Logger(typeof(SoundController).Name);
+namespace Assistant.Gpio.Controllers {
+	public class PiSoundController {
+		private readonly ILogger Logger = new Logger(typeof(PiSoundController).Name);
 
 		public async Task SetPiAudioState(PiAudioState state) {
 			switch (state) {
 				case PiAudioState.Mute:
 					await Pi.Audio.ToggleMute(true).ConfigureAwait(false);
-					Logger.Log("pi audio is muted.");
+					Logger.Log("Pi audio is muted.");
 					break;
 
 				case PiAudioState.Unmute:
 					await Pi.Audio.ToggleMute(false).ConfigureAwait(false);
-					Logger.Log("pi audio is un-muted.");
+					Logger.Log("Pi audio is Unmuted.");
 					break;
 			}
 		}

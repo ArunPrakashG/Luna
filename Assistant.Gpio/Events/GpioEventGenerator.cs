@@ -1,11 +1,13 @@
+using Assistant.Gpio.Controllers;
+using Assistant.Gpio.Events.EventArgs;
 using Assistant.Logging.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Controllers.PiController;
 using static Assistant.Logging.Enums;
 
-namespace Assistant.Gpio {
+namespace Assistant.Gpio.Events {
 	public sealed class GpioEventGenerator {
 		private readonly PiController PiController;
 		private readonly GpioPinController Controller;

@@ -1,9 +1,11 @@
+using Assistant.Gpio.Controllers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Assistant.Morse;
 using System;
 using System.Threading.Tasks;
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Config.PinConfig;
+using static Assistant.Gpio.Controllers.PiController;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
@@ -20,7 +22,7 @@ namespace Assistant.Gpio {
 				IsTranslatorOnline = false;
 				throw new InvalidOperationException("Cannot start Morse translator as the PinController is null!");
 			}
-			
+
 			IsTranslatorOnline = true;
 			return this;
 		}
@@ -52,7 +54,7 @@ namespace Assistant.Gpio {
 			Logger.Log($"TEXT >> {textToConvert}");
 			Logger.Log($"MORSE >> {Morse}");
 
-			GpioPinConfig beforePinStatus = Controller.GetGpioConfig(relayPin);
+			Pin beforePinStatus = Controller.GetPinConfig(relayPin);
 
 			if (beforePinStatus.IsPinOn) {
 				Controller.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
@@ -83,7 +85,7 @@ namespace Assistant.Gpio {
 				}
 			}
 
-			GpioPinConfig afterPinStatus = Controller.GetGpioConfig(relayPin);
+			Pin afterPinStatus = Controller.GetPinConfig(relayPin);
 
 			if (afterPinStatus.IsPinOn) {
 				Controller.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);

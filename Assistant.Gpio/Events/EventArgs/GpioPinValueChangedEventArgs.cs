@@ -1,20 +1,20 @@
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Controllers.PiController;
 
-namespace Assistant.Gpio {
+namespace Assistant.Gpio.Events.EventArgs {
 	public class GpioPinValueChangedEventArgs {
-		public int PinNumber { get; set; }
+		public readonly int PinNumber;
 
-		public GpioPinState PinState { get; set; }
+		public readonly GpioPinState PinState;
 
-		public GpioPinState PinPreviousState { get; set; }
+		public readonly GpioPinState PinPreviousState;
 
-		public bool PinCurrentDigitalValue { get; set; }
+		public readonly bool PinCurrentDigitalValue;
 
-		public bool PinPreviousDigitalValue { get; set; }
+		public readonly bool PinPreviousDigitalValue;
 
-		public GpioPinMode PinDriveMode { get; set; }
+		public readonly GpioPinMode PinDriveMode;
 
-		public int GpioPhysicalPinNumber { get; set; }
+		public readonly int GpioPhysicalPinNumber;
 
 		public GpioPinValueChangedEventArgs(int _pinNumber, GpioPinState _pinState,
 			GpioPinState _pinPreviousState, bool _pinCurrentDigitalValue, bool _pinPreviousDigitalValue,

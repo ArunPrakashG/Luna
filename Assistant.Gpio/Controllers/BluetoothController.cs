@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using static Assistant.Logging.Enums;
 
-namespace Assistant.Gpio {
+namespace Assistant.Gpio.Controllers {
 
 	/// <summary>
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)

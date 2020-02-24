@@ -21,9 +21,6 @@ namespace Assistant.Extensions {
 		public const string KestrelConfigurationFile = "KestrelServer" + ".config";
 		public const string KestrelConfigFilePath = ConfigDirectory + "/" + KestrelConfigurationFile;
 
-		[Obsolete("Using temporarily")]
-		public const int KestrelAuthCode = 3033;
-
 		public const string BackupDirectoryPath = @"_old";
 		public const string UpdateZipFileName = @"Latest.zip";
 		public const string GitHubUserID = "ArunPrakashG";

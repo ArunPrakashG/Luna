@@ -1,6 +1,6 @@
-using static Assistant.Gpio.PiController;
+using static Assistant.Gpio.Controllers.PiController;
 
-namespace Assistant.Gpio {
+namespace Assistant.Gpio.Events {
 	public sealed class GpioPinEventConfig {
 		public int GpioPin { get; set; } = 2;
 

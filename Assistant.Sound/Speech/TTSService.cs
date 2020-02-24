@@ -98,7 +98,7 @@ namespace Assistant.Sound.Speech {
 					break;
 				case ESPEECH_CONTEXT.AssistantShutdown:
 					if (!File.Exists(Constants.ShutdownSpeechFilePath)) {
-						string textToSpeak = $"Sir, your assistant shutting down! Have a nice day!";
+						string textToSpeak = $"Sir, your assistant is shutting down! Have a nice day!";
 						await SpeakText(textToSpeak).ConfigureAwait(false);
 						break;
 					}
