@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static Assistant.Gpio.Config.PinConfig;
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Drivers {
 
@@ -16,12 +16,18 @@ namespace Assistant.Gpio.Drivers {
 	/// </summary>
 	public interface IGpioControllerDriver {
 
-		ILogger Logger => GpioPinController.Logger;
+		ILogger Logger => PinController.Logger;
 
 		/// <summary>
 		/// Indicates if the driver has been properly initialized
 		/// </summary>
 		bool IsDriverProperlyInitialized { get; }
+
+		IGpioControllerDriver InitDriver(NumberingScheme scheme);
+
+		NumberingScheme NumberingScheme { get; set; }
+
+		EGPIO_DRIVERS DriverName { get; }
 
 		/// <summary>
 		/// The pin config.
@@ -29,7 +35,7 @@ namespace Assistant.Gpio.Drivers {
 		PinConfig PinConfig { get; }
 
 		bool PreExecValidation(int pin) {
-			if(!IsDriverProperlyInitialized || !IsAllowedToExecute) {
+			if (!IsDriverProperlyInitialized || !PiGpioController.IsAllowedToExecute) {
 				return false;
 			}
 
@@ -37,7 +43,7 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (!PiController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -52,7 +58,7 @@ namespace Assistant.Gpio.Drivers {
 		/// </summary>
 		/// <param name="pinNumber">The pin to configure</param>
 		/// <returns></returns>
-		Pin GetPinConfig(int pinNumber);
+		Pin? GetPinConfig(int pinNumber);
 
 		/// <summary>
 		/// Sets the GpioPinMode of the specified pin.
@@ -104,7 +110,7 @@ namespace Assistant.Gpio.Drivers {
 		bool SetGpioWithTimeout(int pin, GpioPinMode mode, GpioPinState state, TimeSpan duration) {
 			if (!PreExecValidation(pin)) {
 				return false;
-			}			
+			}
 
 			if (SetGpioValue(pin, mode, state)) {
 				UpdatePinConfig(new Pin(pin, state, mode));
@@ -125,8 +131,8 @@ namespace Assistant.Gpio.Drivers {
 		/// Invokes shutdown on the currently loaded GpioController driver.
 		/// </summary>
 		void ShutdownDriver() {
-			if (PiController.GracefullShutdown) {
-				foreach (int pin in GpioCore.GetOccupiedPins().OutputPins) {
+			if (PiGpioController.IsGracefullShutdownRequested) {
+				foreach (int pin in PiGpioController.AvailablePins.OutputPins) {
 					Pin pinStatus = GetPinConfig(pin);
 
 					if (pinStatus == null) {
@@ -139,7 +145,7 @@ namespace Assistant.Gpio.Drivers {
 					}
 				}
 			}
-		}		
+		}
 
 		/// <summary>
 		/// Updates the pin configuration of the specified pin
@@ -216,7 +222,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
-			if (!GpioCore.GetOccupiedPins().OutputPins.Contains(pin) || !PreExecValidation(pin)) {
+			if (!PiGpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
 				return false;
 			}
 
@@ -300,8 +306,8 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			foreach (int pin in pins) {
-				if (!GpioCore.GetOccupiedPins().OutputPins.Contains(pin) || !PreExecValidation(pin)) {
-					continue;					
+				if (!PiGpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
+					continue;
 				}
 
 				Pin pinConfig = GetPinConfig(pin);

@@ -3,31 +3,35 @@ using Assistant.Gpio.Controllers;
 using System;
 using System.Device.Gpio;
 using static Assistant.Gpio.Config.PinConfig;
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Drivers {
 	internal class SystemDeviceDriver : IGpioControllerDriver {
 		private GpioController? Controller { get; set; }
 
 		public bool IsDriverProperlyInitialized { get; private set; }
+		public Enums.EGPIO_DRIVERS DriverName => Enums.EGPIO_DRIVERS.SystemDevicesDriver;
 
 		public PinConfig PinConfig => PinConfigManager.GetConfiguration();
 
-		internal SystemDeviceDriver InitDriver(PinNumberingScheme numberingScheme) {
-			if (!PiController.IsAllowedToExecute) {
-				Logger.Warning("Failed to initialize Gpio Controller Driver.");
+		public NumberingScheme NumberingScheme { get; set; }
+
+		public IGpioControllerDriver InitDriver(NumberingScheme numberingScheme) {
+			if (!PiGpioController.IsAllowedToExecute) {
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Warning("Failed to initialize Gpio Controller Driver.");
 				IsDriverProperlyInitialized = false;
 				return null;
 			}
 
-			Controller = new GpioController(numberingScheme);
+			NumberingScheme = numberingScheme;
+			Controller = new GpioController((PinNumberingScheme) numberingScheme);
 			IsDriverProperlyInitialized = true;
 			return this;
 		}
 
 
-		public Pin GetPinConfig(int pinNumber) {
-			if (!PiController.IsValidPin(pinNumber) || Controller == null) {
+		public Pin? GetPinConfig(int pinNumber) {
+			if (!PinController.IsValidPin(pinNumber) || Controller == null) {
 				return null;
 			}
 

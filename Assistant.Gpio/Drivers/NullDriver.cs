@@ -3,13 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Assistant.Gpio.Config.PinConfig;
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Drivers {
 	public class NullDriver : IGpioControllerDriver {
 		public bool IsDriverProperlyInitialized => throw new NotImplementedException();
 
 		public PinConfig PinConfig => throw new NotImplementedException();
+
+		public Enums.EGPIO_DRIVERS DriverName => Enums.EGPIO_DRIVERS.NullDriver;
+
+		public NumberingScheme NumberingScheme { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
 		public IGpioControllerDriver? CastDriver<T>(T driver) where T : IGpioControllerDriver {
 			throw new NotImplementedException();
@@ -28,6 +32,10 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		public GpioPinState GpioPinStateRead(int pin) {
+			throw new NotImplementedException();
+		}
+
+		public IGpioControllerDriver InitDriver(NumberingScheme scheme) {
 			throw new NotImplementedException();
 		}
 
@@ -56,6 +64,10 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		public void UpdatePinConfig(int pin, GpioPinMode mode, GpioPinState value, TimeSpan duration) {
+			throw new NotImplementedException();
+		}
+
+		Enums.GpioPinState IGpioControllerDriver.GpioPinStateRead(int pin) {
 			throw new NotImplementedException();
 		}
 	}

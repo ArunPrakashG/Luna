@@ -1,3 +1,4 @@
+using Assistant.Gpio.Drivers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System.Threading.Tasks;
@@ -9,25 +10,18 @@ namespace Assistant.Gpio.Controllers {
 	/// <summary>
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)
 	/// </summary>
-	public class BluetoothController {
-		private readonly ILogger Logger = new Logger(typeof(BluetoothController).Name);
-
-		private readonly PiController? PiController;
+	public class PiBluetoothController {
+		private readonly ILogger Logger = new Logger(typeof(PiBluetoothController).Name);
+		private IGpioControllerDriver? Driver => PinController.GetDriver();
 		public bool IsBluetoothControllerInitialized { get; private set; }
 
-		public BluetoothController(GpioCore gpioCore) => PiController = gpioCore.GpioController;
-
-		public BluetoothController InitBluetoothController() {
-			if (PiController == null || !PiController.IsAllowedToExecute) {
+		public PiBluetoothController InitBluetoothController() {
+			if (Driver == null || !PiGpioController.IsAllowedToExecute) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}
 
-			if (!PiController.IsControllerProperlyInitialized) {
-				return this;
-			}
-
-			if (PiController.GetPinController()?.CurrentGpioDriver != PiController.EGPIO_DRIVERS.RaspberryIODriver) {
+			if (!Driver.IsDriverProperlyInitialized || Driver.DriverName != Enums.EGPIO_DRIVERS.RaspberryIODriver) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}
@@ -93,6 +87,5 @@ namespace Assistant.Gpio.Controllers {
 			Logger.Log("Failed to turn off blue-tooth.", LogLevels.Warn);
 			return false;
 		}
-
 	}
 }

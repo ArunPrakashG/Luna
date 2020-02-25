@@ -6,7 +6,9 @@ namespace Assistant.Core {
 	using Assistant.Extensions;
 	using Assistant.Extensions.Shared.Shell;
 	using Assistant.Gpio;
+	using Assistant.Gpio.Config;
 	using Assistant.Gpio.Controllers;
+	using Assistant.Gpio.Drivers;
 	using Assistant.Logging;
 	using Assistant.Logging.Interfaces;
 	using Assistant.Modules;
@@ -28,7 +30,7 @@ namespace Assistant.Core {
 	using System.Threading.Tasks;
 	using Unosquare.RaspberryIO;
 	using static Assistant.Gpio.Config.PinConfig;
-	using static Assistant.Gpio.Controllers.PiController;
+	using static Assistant.Gpio.Enums;
 	using static Assistant.Logging.Enums;
 	using static Assistant.Modules.ModuleInitializer;
 
@@ -52,11 +54,6 @@ namespace Assistant.Core {
 		private static Timer? RefreshConsoleTitleTimer;
 
 		/// <summary>
-		/// Defines the GpioCore
-		/// </summary>
-		private static GpioCore? GpioCore;
-
-		/// <summary>
 		/// Defines the EventManager
 		/// </summary>
 		private static readonly EventManager EventManager = new EventManager();
@@ -64,12 +61,12 @@ namespace Assistant.Core {
 		/// <summary>
 		/// Gets the PiController
 		/// </summary>
-		public static PiController? PiController { get; private set; }
+		public static PiGpioController? Controller { get; private set; }
 
 		/// <summary>
 		/// Gets the PinController
 		/// </summary>
-		public static GpioPinController? PinController { get; private set; }
+		public static PinController? PinController => PiGpioController.GetPinController();
 
 		/// <summary>
 		/// Gets the Update
@@ -251,10 +248,10 @@ namespace Assistant.Core {
 			StartupTime = DateTime.Now;
 			RunningPlatform = Helpers.GetOsPlatform();
 			Config.ProgramLastStartup = StartupTime;
-			Constants.LocalIP = Helpers.GetLocalIpAddress();
+			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
-			GpioCore = new GpioCore(EGPIO_DRIVERS.RaspberryIODriver, Config.CloseRelayOnShutdown)
-				.InitGpioCore(new AvailablePins(Config.OutputModePins, Config.InputModePins, Constants.BcmGpioPins));
+			Controller = new PiGpioController(Gpio.Enums.EGPIO_DRIVERS.RaspberryIODriver,
+				new AvailablePins(Config.OutputModePins, Config.InputModePins, Constants.BcmGpioPins), true);
 			Console.Title = $"Home Assistant Initializing...";
 			return this;
 		}
@@ -387,18 +384,15 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core StartPinController() {
-			if (!IsAllowedToExecute) {
+			if (!PiGpioController.IsAllowedToExecute) {
 				return this;
 			}
 
-			if (GpioCore != null) {
-				PiController = GpioCore.GpioController;
-				PinController = GpioCore.PinController;
-			}
-
-			if (PiController != null && !PiController.IsControllerProperlyInitialized) {
-				PiController = null;
-				Logger.Warning("Failed to start gpio pin controller.");
+			Controller?.InitController();
+			IGpioControllerDriver? driver = PinController.GetDriver();
+			
+			if (driver == null || !driver.IsDriverProperlyInitialized) {
+				return this;
 			}
 
 			return this;
@@ -428,7 +422,7 @@ namespace Assistant.Core {
 		/// </summary>
 		private static void SetConsoleTitle() {
 			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()}";
-			text += IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
+			text += PiGpioController.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
 
 			Helpers.SetConsoleTitle(text);
 
@@ -456,7 +450,7 @@ namespace Assistant.Core {
 			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", LogLevels.Input);
 			Logger.Log($"{Constants.ConsoleShutdownKey} - Shutdown assistant.", LogLevels.Input);
 
-			if (IsAllowedToExecute) {
+			if (PiGpioController.IsAllowedToExecute) {
 				Logger.Log($"{Constants.ConsoleRelayCommandMenuKey} - Display relay pin control menu.", LogLevels.Input);
 				Logger.Log($"{Constants.ConsoleRelayCycleMenuKey} - Display relay cycle control menu.", LogLevels.Input);
 
@@ -494,29 +488,29 @@ namespace Assistant.Core {
 						await Exit(0).ConfigureAwait(false);
 						return;
 
-					case Constants.ConsoleRelayCommandMenuKey when IsAllowedToExecute:
+					case Constants.ConsoleRelayCommandMenuKey when PiGpioController.IsAllowedToExecute:
 						Logger.Log("Displaying relay command menu...", LogLevels.Warn);
 						DisplayRelayCommandMenu();
 						return;
 
-					case Constants.ConsoleRelayCycleMenuKey when IsAllowedToExecute:
+					case Constants.ConsoleRelayCycleMenuKey when PiGpioController.IsAllowedToExecute:
 						Logger.Log("Displaying relay cycle menu...", LogLevels.Warn);
 						await DisplayRelayCycleMenu().ConfigureAwait(false);
 						return;
 
-					case Constants.ConsoleRelayCommandMenuKey when !IsAllowedToExecute:
-					case Constants.ConsoleRelayCycleMenuKey when !IsAllowedToExecute:
+					case Constants.ConsoleRelayCommandMenuKey when !PiGpioController.IsAllowedToExecute:
+					case Constants.ConsoleRelayCycleMenuKey when !PiGpioController.IsAllowedToExecute:
 						Logger.Log("Assistant is running in an Operating system/Device which doesn't support GPIO pin controlling functionality.", LogLevels.Warn);
 						return;
 
-					case Constants.ConsoleMorseCodeKey when IsAllowedToExecute:
-						if (PiController == null) {
+					case Constants.ConsoleMorseCodeKey when PiGpioController.IsAllowedToExecute:
+						if (Controller == null) {
 							return;
 						}
 
 						Logger.Log("Enter text to convert to Morse: ");
 						string morseCycle = Console.ReadLine();
-						var morseTranslator = PiController.GetMorseTranslator();
+						var morseTranslator = PiGpioController.GetMorseTranslator();
 
 						if (morseTranslator == null || !morseTranslator.IsTranslatorOnline) {
 							Logger.Warning("Morse translator is offline or unavailable.");
@@ -698,17 +692,22 @@ namespace Assistant.Core {
 			}
 
 			static void set(int pin) {
-				if (PiController == null || PinController == null) {
+				if (Controller == null || PinController == null) {
 					return;
 				}
 
-				Pin pinStatus = PinController.GetPinConfig(pin);
+				Pin? pinStatus = PinController.GetDriver()?.GetPinConfig(pin);
+
+				if (pinStatus == null) {
+					return;
+				}
+
 				if (pinStatus.IsPinOn) {
-					PinController.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
+					PinController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
 					Logger.Log($"Successfully set {pin} pin to OFF.", LogLevels.Green);
 				}
 				else {
-					PinController.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
+					PinController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
 					Logger.Log($"Successfully set {pin} pin to ON.", LogLevels.Green);
 				}
 			}
@@ -785,11 +784,21 @@ namespace Assistant.Core {
 						}
 					}
 
-					if (PiController == null || PinController == null) {
+					if (Controller == null || PinController == null) {
 						return;
 					}
 
-					Pin status = PinController.GetPinConfig(pinNumber);
+					var driver = PinController.GetDriver();
+
+					if (driver == null) {
+						return;
+					}
+
+					Pin status = driver.GetPinConfig(pinNumber);
+
+					if (status == null) {
+						return;
+					}
 
 					if (status.IsPinOn && pinStatus.Equals(1)) {
 						Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
@@ -813,12 +822,12 @@ namespace Assistant.Core {
 
 					Helpers.ScheduleTask(() => {
 						if (status.IsPinOn && pinStatus.Equals(0)) {
-							PinController.SetGpioValue(pinNumber, GpioPinMode.Output, GpioPinState.Off);
+							driver.SetGpioValue(pinNumber, GpioPinMode.Output, GpioPinState.Off);
 							Logger.Log($"Successfully finished execution of the task: {pinNumber} pin set to OFF.", LogLevels.Green);
 						}
 
 						if (!status.IsPinOn && pinStatus.Equals(1)) {
-							PinController.SetGpioValue(pinNumber, GpioPinMode.Output, GpioPinState.On);
+							driver.SetGpioValue(pinNumber, GpioPinMode.Output, GpioPinState.On);
 							Logger.Log($"Successfully finished execution of the task: {pinNumber} pin set to ON.", LogLevels.Green);
 						}
 					}, TimeSpan.FromMinutes(delay));
@@ -839,7 +848,7 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Task"/></returns>
 		private static async Task DisplayRelayCycleMenu() {
-			if (!PiController.IsAllowedToExecute) {
+			if (!PiGpioController.IsAllowedToExecute) {
 				Logger.Log("You are running on incorrect OS or device. Pi controls are disabled.", LogLevels.Error);
 				return;
 			}
@@ -862,14 +871,20 @@ namespace Assistant.Core {
 				return;
 			}
 
-			if (PiController == null || PinController == null) {
+			if (Controller == null || PinController == null) {
 				return;
 			}
 
 			bool Configured;
+			var driver = PinController.GetDriver();
+
+			if (driver == null) {
+				return;
+			}
+
 			switch (SelectedValue) {
 				case 1:
-					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.Cycle).ConfigureAwait(false);
+					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.Cycle).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -878,7 +893,7 @@ namespace Assistant.Core {
 					break;
 
 				case 2:
-					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.OneMany).ConfigureAwait(false);
+					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.OneMany).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -887,14 +902,14 @@ namespace Assistant.Core {
 					break;
 
 				case 3:
-					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.OneOne).ConfigureAwait(false);
+					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.OneOne).ConfigureAwait(false);
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
 					}
 					break;
 
 				case 4:
-					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.OneTwo).ConfigureAwait(false);
+					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.OneTwo).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -910,7 +925,7 @@ namespace Assistant.Core {
 						goto case 5;
 					}
 
-					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.Single, selectedsingleKey).ConfigureAwait(false);
+					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.Single, selectedsingleKey).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -918,7 +933,7 @@ namespace Assistant.Core {
 					break;
 
 				case 6:
-					Configured = await PinController.RelayTestAsync(Config.RelayPins, GpioCycles.Default).ConfigureAwait(false);
+					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.Default).ConfigureAwait(false);
 
 					if (!Configured) {
 						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
@@ -1004,7 +1019,7 @@ namespace Assistant.Core {
 				await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantShutdown).ConfigureAwait(false);
 			}
 
-			PiController?.InitGpioShutdownTasks();
+			Controller?.Shutdown();
 			JobManager.RemoveAllJobs();
 			JobManager.Stop();
 			RefreshConsoleTitleTimer?.Dispose();
@@ -1068,7 +1083,7 @@ namespace Assistant.Core {
 		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemShutdown() {
 			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemShutdown).ConfigureAwait(false);
-			if (PiController.IsAllowedToExecute) {
+			if (PiGpioController.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Shutting down pi...", LogLevels.Warn);
 				await OnExit().ConfigureAwait(false);
@@ -1094,7 +1109,7 @@ namespace Assistant.Core {
 		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemRestart() {
 			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemRestart).ConfigureAwait(false);
-			if (PiController.IsAllowedToExecute) {
+			if (PiGpioController.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Restarting pi...", LogLevels.Warn);
 				await OnExit().ConfigureAwait(false);
@@ -1175,7 +1190,7 @@ namespace Assistant.Core {
 
 			Constants.LocalIP = localIp;
 			RestClient client = new RestClient($"http://{Config.StatisticsServerIP}/api/v1/assistant/ip?ip={Constants.LocalIP}");
-			RestRequest request = new RestRequest(RestSharp.Method.POST);
+			RestRequest request = new RestRequest(Method.POST);
 			request.AddHeader("cache-control", "no-cache");
 			IRestResponse response = client.Execute(request);
 

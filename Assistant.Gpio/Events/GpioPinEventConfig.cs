@@ -1,21 +1,17 @@
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Events {
-	public sealed class GpioPinEventConfig {
-		public int GpioPin { get; set; } = 2;
+	public struct GpioPinEventConfig {
+		public readonly int GpioPin;
 
-		public GpioPinMode PinMode { get; set; } = GpioPinMode.Input;
+		public readonly GpioPinMode PinMode;
 
-		public GpioPinEventStates PinEventState { get; set; } = GpioPinEventStates.ALL;
+		public readonly GpioPinEventStates PinEventState;
 
 		public GpioPinEventConfig(int _gpioPin, GpioPinMode _pinMode, GpioPinEventStates _pinEventState) {
 			GpioPin = _gpioPin;
 			PinMode = _pinMode;
 			PinEventState = _pinEventState;
-		}
-
-		public GpioPinEventConfig() {
-
 		}
 	}
 }

@@ -1,3 +1,4 @@
+using Assistant.Gpio.Config;
 using Assistant.Gpio.Controllers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
@@ -10,7 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Assistant.Gpio.Config.PinConfig;
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 using static Assistant.Server.CoreServer.CoreServerEnums;
 
@@ -62,6 +63,12 @@ namespace Assistant.Core {
 		}
 
 		private async Task ProcessOnReceived(BaseRequest request) {
+			var driver = PinController.GetDriver();
+
+			if (driver == null) {
+				return;
+			}
+
 			switch (request.TypeCode) {
 				case TYPE_CODE.EVENT_PIN_STATE:
 					break;
@@ -75,11 +82,11 @@ namespace Assistant.Core {
 					}
 
 					SetGpioRequest setGpioRequest = JsonConvert.DeserializeObject<SetGpioRequest>(request.RequestObject);
-					if (!PiController.IsValidPin(setGpioRequest.PinNumber)) {
+					if (!PinController.IsValidPin(setGpioRequest.PinNumber)) {
 						return;
 					}
 
-					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PinController == null) {
+					if (Core.Controller == null || Core.PinController == null) {
 						return;
 					}
 
@@ -87,8 +94,8 @@ namespace Assistant.Core {
 						return;
 					}
 
-					if (Core.PinController.SetGpioValue(setGpioRequest.PinNumber, (GpioPinMode) setGpioRequest.PinMode, (GpioPinState) setGpioRequest.PinState)) {
-						Pin config = Core.PinController.GetPinConfig(setGpioRequest.PinNumber);
+					if (driver.SetGpioValue(setGpioRequest.PinNumber, (GpioPinMode) setGpioRequest.PinMode, (GpioPinState) setGpioRequest.PinState)) {
+						Pin config = driver.GetPinConfig(setGpioRequest.PinNumber);
 						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO, "Success!", JsonConvert.SerializeObject(config)))) {
 							Logger.Log($"{request.TypeCode.ToString()} response send!", LogLevels.Trace);
 							return;
@@ -103,11 +110,11 @@ namespace Assistant.Core {
 					}
 
 					SetGpioDelayedRequest setGpioDelayedRequest = JsonConvert.DeserializeObject<SetGpioDelayedRequest>(request.RequestObject);
-					if (!PiController.IsValidPin(setGpioDelayedRequest.PinNumber)) {
+					if (!PinController.IsValidPin(setGpioDelayedRequest.PinNumber)) {
 						return;
 					}
 
-					if (Core.PiController == null || !Core.PiController.IsControllerProperlyInitialized || Core.PinController == null) {
+					if (Core.Controller == null || Core.PinController == null) {
 						return;
 					}
 
@@ -115,8 +122,8 @@ namespace Assistant.Core {
 						return;
 					}
 
-					if (Core.PinController.SetGpioWithTimeout(setGpioDelayedRequest.PinNumber, (GpioPinMode) setGpioDelayedRequest.PinMode, (GpioPinState) setGpioDelayedRequest.PinState, TimeSpan.FromMinutes(setGpioDelayedRequest.Delay))) {
-						Pin config = Core.PinController.GetPinConfig(setGpioDelayedRequest.PinNumber);
+					if (driver.SetGpioWithTimeout(setGpioDelayedRequest.PinNumber, (GpioPinMode) setGpioDelayedRequest.PinMode, (GpioPinState) setGpioDelayedRequest.PinState, TimeSpan.FromMinutes(setGpioDelayedRequest.Delay))) {
+						Pin config = driver.GetPinConfig(setGpioDelayedRequest.PinNumber);
 						if (await Client.SendAsync(new BaseResponse(DateTime.Now, TYPE_CODE.SET_GPIO_DELAYED, "Success!", JsonConvert.SerializeObject(config)))) {
 							Logger.Log($"{request.TypeCode.ToString()} response send!", LogLevels.Trace);
 							return;

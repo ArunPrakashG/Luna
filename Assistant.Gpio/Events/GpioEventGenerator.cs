@@ -1,19 +1,17 @@
 using Assistant.Gpio.Controllers;
+using Assistant.Gpio.Drivers;
 using Assistant.Gpio.Events.EventArgs;
 using Assistant.Logging.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio.Events {
 	public sealed class GpioEventGenerator {
-		private readonly PiController PiController;
-		private readonly GpioPinController Controller;
-		private readonly ILogger Logger;
-
-		private GpioEventManager EventManager { get; set; }
+		private static IGpioControllerDriver? Driver => PinController.GetDriver();
+		private static ILogger Logger => GpioEventManager.Logger;
 		private bool OverrideEventWatcher { get; set; }
 		public GpioPinEventConfig EventPinConfig { get; private set; } = new GpioPinEventConfig();
 		public bool IsEventRegistered { get; private set; } = false;
@@ -34,38 +32,20 @@ namespace Assistant.Gpio.Events {
 			}
 		}
 
-		public GpioEventGenerator(PiController piController, GpioPinController controller, GpioEventManager manager) {
-			PiController = piController ?? throw new ArgumentNullException(nameof(manager), "The pi controller instance cannot be null!");
-			Controller = controller ?? throw new ArgumentNullException(nameof(manager), "The controller instance cannot be null!");
-			EventManager = manager ?? throw new ArgumentNullException(nameof(manager), "The event manager instance cannot be null!");
-			Logger = EventManager.Logger;
-		}
-
-		public GpioEventGenerator InitEventGenerator() {
-			if (PiController == null) {
-				throw new InvalidOperationException("The gpio controller is probably malfunctioning.");
-			}
-
-			if (Controller == null) {
+		public GpioEventGenerator() {
+			if (Driver == null) {
 				throw new InvalidOperationException("The pin controller is probably malfunctioning.");
 			}
 
-			if (!Controller.IsDriverProperlyInitialized) {
+			if (!Driver.IsDriverProperlyInitialized) {
 				throw new InvalidOperationException("The pin controller isn't properly initialized.");
 			}
-
-			return this;
 		}
 
 		public void OverridePinPolling() => OverrideEventWatcher = true;
 
 		private void StartPolling() {
-			if (PiController == null) {
-				Logger.Log("PiController is null. Polling failed.", LogLevels.Warn);
-				return;
-			}
-
-			if (Controller == null) {
+			if (Driver == null || !Driver.IsDriverProperlyInitialized) {
 				Logger.Log("Controller is null. Polling failed.", LogLevels.Warn);
 				return;
 			}
@@ -80,7 +60,7 @@ namespace Assistant.Gpio.Events {
 				return;
 			}
 
-			if (!Controller.SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
+			if (!Driver.SetGpioValue(EventPinConfig.GpioPin, EventPinConfig.PinMode)) {
 				throw new InvalidOperationException("Internal error occurred. Check if the pin specified is correct.");
 			}
 
@@ -88,7 +68,7 @@ namespace Assistant.Gpio.Events {
 				case GpioPinMode.Input:
 					break;
 				case GpioPinMode.Output:
-					if (!Controller.SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
+					if (!Driver.SetGpioValue(EventPinConfig.GpioPin, GpioPinState.Off)) {
 						throw new InvalidOperationException("Internal error occurred. Check if the pin specified is correct.");
 					}
 					break;
@@ -98,9 +78,9 @@ namespace Assistant.Gpio.Events {
 					throw new InvalidOperationException("Internal error. The pin mode seems to be invalid. (No modes other than Input/Output is currently supported)");
 			}
 
-			bool initialValue = Controller.GpioDigitalRead(EventPinConfig.GpioPin);
+			bool initialValue = Driver.GpioDigitalRead(EventPinConfig.GpioPin);
 			GpioPinState initialPinState = initialValue ? GpioPinState.Off : GpioPinState.On;
-			int physicalPinNumber = Controller.GpioPhysicalPinNumber(EventPinConfig.GpioPin);
+			int physicalPinNumber = Driver.GpioPhysicalPinNumber(EventPinConfig.GpioPin);
 			_GpioPinValueChanged = (this, new GpioPinValueChangedEventArgs(EventPinConfig.GpioPin, initialPinState, GpioPinState.Off, initialValue, true, EventPinConfig.PinMode, physicalPinNumber));
 
 			Logger.Log($"Started input pin polling for {EventPinConfig.GpioPin}.", LogLevels.Trace);
@@ -112,7 +92,7 @@ namespace Assistant.Gpio.Events {
 
 			PollingThread = Extensions.Helpers.InBackgroundThread(async () => {
 				while (!OverrideEventWatcher) {
-					bool currentPinValue = Controller.GpioDigitalRead(EventPinConfig.GpioPin);
+					bool currentPinValue = Driver.GpioDigitalRead(EventPinConfig.GpioPin);
 					GpioPinState currentPinState = currentPinValue ? GpioPinState.Off : GpioPinState.On;
 
 					switch (EventPinConfig.PinEventState) {
@@ -148,20 +128,11 @@ namespace Assistant.Gpio.Events {
 		}
 
 		public bool StartPinPolling(GpioPinEventConfig config) {
-			if (config == null) {
+			if (Driver == null || !Driver.IsDriverProperlyInitialized) {
 				return false;
 			}
 
-			if (PiController == null) {
-				Logger.Log("PiController is null. Polling failed.", LogLevels.Warn);
-				return false;
-			}
-
-			if (!PiController.IsControllerProperlyInitialized || !Controller.IsDriverProperlyInitialized) {
-				return false;
-			}
-
-			if (!PiController.IsValidPin(config.GpioPin)) {
+			if (!PinController.IsValidPin(config.GpioPin)) {
 				Logger.Log("The specified pin is invalid.", LogLevels.Warn);
 				return false;
 			}

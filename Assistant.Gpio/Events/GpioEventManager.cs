@@ -5,28 +5,18 @@ using System.Collections.Generic;
 
 namespace Assistant.Gpio.Events {
 	public class GpioEventManager {
-		internal readonly ILogger Logger = new Logger(typeof(GpioEventManager).Name);
+		internal static readonly ILogger Logger = new Logger(typeof(GpioEventManager).Name);
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();
-		private readonly PiController PiController;
-		private readonly GpioPinController PinController;
 
-		public GpioEventManager(PiController piController, GpioPinController pinController) {
-			PiController = piController;
-			PinController = pinController;
-		}
-
-		public bool RegisterGpioEvent(GpioPinEventConfig pinData) {
-			if (pinData == null) {
-				return false;
-			}
-
-			if (!PiController.IsValidPin(pinData.GpioPin)) {
+		public bool RegisterGpioEvent(GpioPinEventConfig pinConfig) {
+			if (!PinController.IsValidPin(pinConfig.GpioPin)) {
 				Logger.Warning("The specified pin is invalid.");
 				return false;
 			}
 
-			GpioEventGenerator Generator = new GpioEventGenerator(PiController, PinController, this).InitEventGenerator();
-			if (Generator.StartPinPolling(pinData)) {
+			GpioEventGenerator Generator = new GpioEventGenerator();
+
+			if (Generator.StartPinPolling(pinConfig)) {
 				GpioPinEventGenerators.Add(Generator);
 				return true;
 			}
@@ -40,7 +30,7 @@ namespace Assistant.Gpio.Events {
 			}
 
 			foreach (GpioPinEventConfig pin in pinDataList) {
-				if (!PiController.IsValidPin(pin.GpioPin)) {
+				if (!PinController.IsValidPin(pin.GpioPin)) {
 					Logger.Warning("Invalid pin in the pin list.");
 					return false;
 				}
@@ -53,29 +43,29 @@ namespace Assistant.Gpio.Events {
 			return true;
 		}
 
-		public void ExitEventGenerator() {
+		public void StopAllEventGenerators() {
 			if (GpioPinEventGenerators == null || GpioPinEventGenerators.Count <= 0) {
 				return;
 			}
 
 			foreach (GpioEventGenerator gen in GpioPinEventGenerators) {
-				ExitEventGenerator(gen.EventPinConfig.GpioPin);
+				StopEventGeneratorForPin(gen.EventPinConfig.GpioPin);
 			}
 		}
 
-		public void ExitEventGenerator(int pin) {
+		public void StopEventGeneratorForPin(int pin) {
 			if (GpioPinEventGenerators == null || GpioPinEventGenerators.Count <= 0) {
 				return;
 			}
 
-			if (!PiController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				return;
 			}
 
 			foreach (GpioEventGenerator gen in GpioPinEventGenerators) {
 				if (gen.EventPinConfig.GpioPin == pin) {
 					gen.OverridePinPolling();
-					Logger.Trace($"Stopping pin polling for {gen.EventPinConfig.GpioPin} ...");
+					Logger.Trace($"Stopped pin polling for '{gen.EventPinConfig.GpioPin}' pin");
 				}
 			}
 		}

@@ -7,8 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Gpio.Config.PinConfig;
-using static Assistant.Gpio.Controllers.PiController;
 
 namespace Assistant.Gpio.Config {
 	/// <summary>
@@ -18,6 +16,11 @@ namespace Assistant.Gpio.Config {
 		private readonly ILogger Logger = new Logger(typeof(PinConfigManager).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static PinConfig PinConfig;
+
+		public PinConfigManager Init(PinConfig config) {
+			PinConfig = config;
+			return this;
+		}
 
 		/// <summary>
 		/// Saves the pin configuration.
@@ -32,24 +35,19 @@ namespace Assistant.Gpio.Config {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				string json = JsonConvert.SerializeObject(config, Formatting.Indented);
+				for (int i = 0; i < PinConfig.PinConfigs.Count; i++) {
+					if (PinConfig.PinConfigs[i].PinNumber == config.PinNumber) {
+						PinConfig.PinConfigs[i] = config;
+					}
+				}
+
+				string json = JsonConvert.SerializeObject(PinConfig, Formatting.Indented);
 
 				if (string.IsNullOrEmpty(json)) {
 					return;
 				}
 
-				string fileName = config.PinNumber + ".json";
-				string filePath = Constants.GpioConfigDirectory + "/" + fileName;
-				string newFilePath = filePath + ".new";
-
-				File.WriteAllText(newFilePath, json);
-
-				if (File.Exists(filePath)) {
-					File.Replace(newFilePath, filePath, null);
-				}
-				else {
-					File.Move(newFilePath, filePath);
-				}
+				File.WriteAllText(Constants.GpioConfigDirectory, json);
 			}
 			catch (Exception e) {
 				Logger.Log(e);
@@ -113,7 +111,7 @@ namespace Assistant.Gpio.Config {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			if (!File.Exists(Constants.GpioConfigDirectory) && !GenerateDefault()) {
+			if (!File.Exists(Constants.GpioConfigDirectory)) {
 				return;
 			}
 
@@ -121,9 +119,7 @@ namespace Assistant.Gpio.Config {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				using FileStream stream = new FileStream(Constants.GpioConfigDirectory, FileMode.Open, FileAccess.Read);
-				using StreamReader reader = new StreamReader(stream);
-				PinConfig = JsonConvert.DeserializeObject<PinConfig>(reader.ReadToEnd());
+				PinConfig = JsonConvert.DeserializeObject<PinConfig>(File.ReadAllText(Constants.GpioConfigDirectory));
 
 				if (PinConfig != null && PinConfig.PinConfigs.Count > 0)
 					Logger.Trace("Pin configuration loaded!");
@@ -136,30 +132,6 @@ namespace Assistant.Gpio.Config {
 			finally {
 				Sync.Release();
 			}
-		}
-
-		/// <summary>
-		/// Generates a default configuration.
-		/// </summary>
-		/// <returns>The <see cref="bool"/> status of the generation</returns>
-		private bool GenerateDefault() {
-			if (File.Exists(Constants.GpioConfigDirectory)) {
-				return false;
-			}
-
-			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Directory.CreateDirectory(Constants.ConfigDirectory);
-			}
-
-			Logger.Log("Generating default Gpio Config...");
-			List<Pin> pinConfigs = new List<Pin>();
-
-			foreach (int pin in Constants.BcmGpioPins) {
-				Pin pinConfig = new Pin(pin, GpioPinState.Off, GpioPinMode.Input);
-				pinConfigs.Add(pinConfig);
-			}
-
-			return true;
 		}
 	}
 }

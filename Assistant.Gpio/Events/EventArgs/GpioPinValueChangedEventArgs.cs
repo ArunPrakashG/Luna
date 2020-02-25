@@ -1,4 +1,4 @@
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Events.EventArgs {
 	public class GpioPinValueChangedEventArgs {

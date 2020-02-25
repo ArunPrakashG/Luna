@@ -1,30 +1,29 @@
+using Assistant.Gpio.Config;
 using Assistant.Gpio.Controllers;
+using Assistant.Gpio.Drivers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Assistant.Morse;
 using System;
 using System.Threading.Tasks;
 using static Assistant.Gpio.Config.PinConfig;
-using static Assistant.Gpio.Controllers.PiController;
+using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
 	public class GpioMorseTranslator {
-		private readonly MorseCore MorseCore = new MorseCore();
-		private GpioPinController? Controller;
 		private readonly ILogger Logger = new Logger(typeof(GpioMorseTranslator).Name);
-		public bool IsTranslatorOnline { get; private set; }
+		private readonly MorseCore MorseCore = new MorseCore();
+		private IGpioControllerDriver? Driver => PinController.GetDriver();
+		public readonly bool IsTranslatorOnline;
 
-		public GpioMorseTranslator InitMorseTranslator(GpioCore gpioCore) {
-			Controller = gpioCore.PinController;
-
-			if (Controller == null) {
+		public GpioMorseTranslator() {
+			if (Driver == null) {
 				IsTranslatorOnline = false;
 				throw new InvalidOperationException("Cannot start Morse translator as the PinController is null!");
 			}
 
 			IsTranslatorOnline = true;
-			return this;
 		}
 
 		public async Task<bool> RelayMorseCycle(string textToConvert, int relayPin) {
@@ -33,12 +32,12 @@ namespace Assistant.Gpio {
 				return false;
 			}
 
-			if (Controller == null) {
+			if (Driver == null) {
 				Logger.Log("Malfunctioning PinController.", LogLevels.Warn);
 				return false;
 			}
 
-			if (!PiController.IsValidPin(relayPin)) {
+			if (!PinController.IsValidPin(relayPin)) {
 				Logger.Log("Please specify a valid relay pin to run the cycle.", LogLevels.Warn);
 				return false;
 			}
@@ -54,10 +53,10 @@ namespace Assistant.Gpio {
 			Logger.Log($"TEXT >> {textToConvert}");
 			Logger.Log($"MORSE >> {Morse}");
 
-			Pin beforePinStatus = Controller.GetPinConfig(relayPin);
+			Pin beforePinStatus = Driver.GetPinConfig(relayPin);
 
 			if (beforePinStatus.IsPinOn) {
-				Controller.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
+				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
 			}
 
 			if (!MorseCore.IsValidMorse(Morse)) {
@@ -74,10 +73,10 @@ namespace Assistant.Gpio {
 			foreach (char character in Morse.ToCharArray()) {
 				switch (character) {
 					case '.':
-						Controller.SetGpioWithTimeout(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300));
+						Driver.SetGpioWithTimeout(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300));
 						break;
 					case '-':
-						Controller.SetGpioWithTimeout(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3));
+						Driver.SetGpioWithTimeout(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3));
 						break;
 					case '_':
 						await Task.Delay(300).ConfigureAwait(false);
@@ -85,10 +84,10 @@ namespace Assistant.Gpio {
 				}
 			}
 
-			Pin afterPinStatus = Controller.GetPinConfig(relayPin);
+			Pin afterPinStatus = Driver.GetPinConfig(relayPin);
 
 			if (afterPinStatus.IsPinOn) {
-				Controller.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
+				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
 			}
 
 			return true;
