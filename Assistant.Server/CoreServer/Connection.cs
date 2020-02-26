@@ -4,6 +4,7 @@ using Assistant.Logging.Interfaces;
 using Assistant.Server.CoreServer.EventArgs;
 using Assistant.Server.CoreServer.Requests;
 using Assistant.Server.CoreServer.Responses;
+using Newtonsoft.Json;
 using System;
 using System.Net.Sockets;
 using System.Text;
@@ -19,7 +20,7 @@ namespace Assistant.Server.CoreServer {
 		private bool IsAlreadyInitialized;
 		public string? ClientUniqueId { get; private set; }
 		public string? ClientIpAddress { get; private set; }
-		private BaseRequest? PreviousRequest;
+		private string? PreviousRequest;
 		private SemaphoreSlim SendSemaphore = new SemaphoreSlim(1, 1);
 		public bool IsDisposed { get; private set; }
 
@@ -42,7 +43,7 @@ namespace Assistant.Server.CoreServer {
 				: GenerateUniqueId(Client.Client.GetHashCode().ToString());
 		}
 
-		public async Task<Connection> Init() {
+		internal async Task<Connection> Init() {
 			if (IsAlreadyInitialized || string.IsNullOrEmpty(ClientUniqueId)) {
 				return this;
 			}
@@ -102,8 +103,6 @@ namespace Assistant.Server.CoreServer {
 							continue;
 						}
 
-						BaseRequest request = new BaseRequest(receviedMessage);
-
 						if (PreviousRequest != null && PreviousRequest.Identifier == request.Identifier) {
 							await Task.Delay(1).ConfigureAwait(false);
 							continue;
@@ -124,8 +123,8 @@ namespace Assistant.Server.CoreServer {
 			}, ClientUniqueId, true);
 		}
 
-		public async Task<bool> SendAsync(BaseResponse response) {
-			if (response == null) {
+		public async Task<bool> SendAsync(string? content) {
+			if (string.IsNullOrEmpty(content)) {
 				return false;
 			}
 
@@ -133,32 +132,36 @@ namespace Assistant.Server.CoreServer {
 				return false;
 			}
 
+			await SendSemaphore.WaitAsync().ConfigureAwait(false);
+			CancellationTokenSource token = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+			NetworkStream? stream = null;
+			string? received = null;
 			try {
-				await SendSemaphore.WaitAsync().ConfigureAwait(false);
-				string jsonResponse = BaseResponse.SerializeRequest<BaseResponse>(response);
-
-				if (string.IsNullOrEmpty(jsonResponse)) {
-					return false;
-				}
-
 				if (Client == null || !Client.Connected || !Client.GetStream().CanWrite) {
 					return false;
 				}
 
-				NetworkStream stream = Client.GetStream();
-				byte[] writeBuffer = Encoding.ASCII.GetBytes(jsonResponse);
+				stream = Client.GetStream();
+				byte[] writeBuffer = Encoding.ASCII.GetBytes(content);
 				stream.Write(writeBuffer, 0, writeBuffer.Length);
-				stream.Dispose();
+				await Task.Delay(100).ConfigureAwait(false);
+				byte[] readBuffer = new byte[8000];
+				while (stream.CanRead && stream.DataAvailable) {
+					stream.Read(readBuffer, 0, readBuffer.Length);
+				}
+
+				received = Encoding.ASCII.GetString(readBuffer);
 				return true;
 			}
 			finally {
 				SendSemaphore.Release();
+				stream?.Dispose();
 			}
 		}
 
-		public async Task<(bool status, BaseRequest? request)> SendWithResponseAsync(BaseResponse response, CancellationTokenSource token) {
-			if (response == null) {
-				return (false, null);
+		public async Task<string?> SendWithResponseAsync(string? content, CancellationTokenSource token) {
+			if (string.IsNullOrEmpty(content)) {
+				return null;
 			}
 
 			if (token == null) {
@@ -166,8 +169,8 @@ namespace Assistant.Server.CoreServer {
 			}
 
 			try {
-				if (!await SendAsync(response).ConfigureAwait(false)) {
-					return (false, null);
+				if (!await SendAsync(content).ConfigureAwait(false)) {
+					return null;
 				}
 
 				while (!token.Token.IsCancellationRequested) {
@@ -206,10 +209,8 @@ namespace Assistant.Server.CoreServer {
 						await Task.Delay(1).ConfigureAwait(false);
 						continue;
 					}
-
-					BaseRequest request = new BaseRequest(receviedMessage);
-
-					if (PreviousRequest != null && PreviousRequest.Identifier == request.Identifier) {
+					
+					if (PreviousRequest != null && PreviousRequest.GetHashCode() == ) {
 						await Task.Delay(1).ConfigureAwait(false);
 						continue;
 					}
