@@ -34,7 +34,7 @@ namespace Assistant.Gpio.Drivers {
 		/// </summary>
 		PinConfig PinConfig { get; }
 
-		bool PreExecValidation(int pin) {
+		private bool PreExecValidation(int pin) {
 			if (!IsDriverProperlyInitialized || !PiGpioController.IsAllowedToExecute) {
 				return false;
 			}
@@ -133,7 +133,7 @@ namespace Assistant.Gpio.Drivers {
 		void ShutdownDriver() {
 			if (PiGpioController.IsGracefullShutdownRequested) {
 				foreach (int pin in PiGpioController.AvailablePins.OutputPins) {
-					Pin pinStatus = GetPinConfig(pin);
+					Pin? pinStatus = GetPinConfig(pin);
 
 					if (pinStatus == null) {
 						continue;
@@ -310,7 +310,11 @@ namespace Assistant.Gpio.Drivers {
 					continue;
 				}
 
-				Pin pinConfig = GetPinConfig(pin);
+				Pin? pinConfig = GetPinConfig(pin);
+
+				if(pinConfig == null) {
+					return false;
+				}
 
 				if (pinConfig.Mode != setMode) {
 					SetGpioValue(pin, setMode);

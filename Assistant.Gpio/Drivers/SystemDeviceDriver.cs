@@ -7,7 +7,7 @@ using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Drivers {
 	internal class SystemDeviceDriver : IGpioControllerDriver {
-		private GpioController? Controller { get; set; }
+		private GpioController? DriverController { get; set; }
 
 		public bool IsDriverProperlyInitialized { get; private set; }
 		public Enums.EGPIO_DRIVERS DriverName => Enums.EGPIO_DRIVERS.SystemDevicesDriver;
@@ -24,19 +24,18 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			NumberingScheme = numberingScheme;
-			Controller = new GpioController((PinNumberingScheme) numberingScheme);
+			DriverController = new GpioController((PinNumberingScheme) numberingScheme);
 			IsDriverProperlyInitialized = true;
 			return this;
 		}
 
-
 		public Pin? GetPinConfig(int pinNumber) {
-			if (!PinController.IsValidPin(pinNumber) || Controller == null) {
+			if (!PinController.IsValidPin(pinNumber) || DriverController == null || !IsDriverProperlyInitialized) {
 				return null;
 			}
 
-			PinValue value = Controller.Read(pinNumber);
-			PinMode mode = Controller.GetPinMode(pinNumber);
+			PinValue value = DriverController.Read(pinNumber);
+			PinMode mode = DriverController.GetPinMode(pinNumber);
 			Pin config = new Pin(pinNumber, value == PinValue.High ? GpioPinState.Off : GpioPinState.On, mode == PinMode.Input ? GpioPinMode.Input : GpioPinMode.Output);
 			return config;
 		}
@@ -46,27 +45,188 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		public bool SetGpioValue(int pin, GpioPinMode mode) {
-			throw new NotImplementedException();
+			if (!PinController.IsValidPin(pin) || !IsDriverProperlyInitialized) {
+				return false;
+			}
+
+			try {
+				if (DriverController == null) {
+					return false;
+				}
+
+				if (!DriverController.IsPinModeSupported(pin, (PinMode) mode)) {
+					return false;
+				}
+
+				DriverController.OpenPin(pin);
+
+				if (!DriverController.IsPinOpen(pin)) {
+					return false;
+				}
+
+				DriverController.SetPinMode(pin, (PinMode) mode);
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
+				CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, mode));
+				return true;
+			}
+			finally {
+				if (DriverController != null) {
+					if (DriverController.IsPinOpen(pin)) {
+						DriverController.ClosePin(pin);
+					}
+				}
+			}
 		}
 
 		public bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state) {
-			throw new NotImplementedException();
+			if (!PinController.IsValidPin(pin) || !IsDriverProperlyInitialized) {
+				return false;
+			}
+
+			try {
+				if (DriverController == null) {
+					return false;
+				}
+
+				if (!DriverController.IsPinModeSupported(pin, (PinMode) mode)) {
+					return false;
+				}
+
+				DriverController.OpenPin(pin);
+
+				if (!DriverController.IsPinOpen(pin)) {
+					return false;
+				}
+
+				DriverController.SetPinMode(pin, (PinMode) mode);
+				DriverController.Write(pin, state == GpioPinState.Off ? PinValue.High : PinValue.Low);
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state with ({mode.ToString()}) mode.");
+				CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, state, mode));
+				return true;
+			}
+			finally {
+				if (DriverController != null) {
+					if (DriverController.IsPinOpen(pin)) {
+						DriverController.ClosePin(pin);
+					}
+				}
+			}
 		}
 
 		public GpioPinState GpioPinStateRead(int pin) {
-			throw new NotImplementedException();
+			if (!PinController.IsValidPin(pin) || !IsDriverProperlyInitialized) {
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
+				return GpioPinState.Off;
+			}
+
+			try {
+				if (DriverController == null) {
+					return GpioPinState.Off;
+				}
+
+				DriverController.OpenPin(pin);
+
+				if (!DriverController.IsPinOpen(pin)) {
+					return GpioPinState.Off;
+				}
+
+				return DriverController.Read(pin) == PinValue.High ? GpioPinState.Off : GpioPinState.On;
+			}
+			finally {
+				if(DriverController != null) {
+					if (DriverController.IsPinOpen(pin)) {
+						DriverController.ClosePin(pin);
+					}
+				}				
+			}
 		}
 
 		public bool GpioDigitalRead(int pin) {
-			throw new NotImplementedException();
+			if (!PinController.IsValidPin(pin) || !IsDriverProperlyInitialized) {
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
+				return false;
+			}
+
+			try {
+				if (DriverController == null) {
+					return false;
+				}
+
+				DriverController.OpenPin(pin);
+
+				if (!DriverController.IsPinOpen(pin)) {
+					return false;
+				}
+
+				return !(DriverController.Read(pin) == PinValue.High);
+			}
+			finally {
+				if (DriverController != null) {
+					if (DriverController.IsPinOpen(pin)) {
+						DriverController.ClosePin(pin);
+					}
+				}
+			}			
 		}
 
 		public bool SetGpioValue(int pin, GpioPinState state) {
-			throw new NotImplementedException();
+			if (!PinController.IsValidPin(pin) || !IsDriverProperlyInitialized) {
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
+				return false;
+			}
+
+			try {
+				if (DriverController == null) {
+					return false;
+				}
+
+				DriverController.OpenPin(pin);
+
+				if (!DriverController.IsPinOpen(pin)) {
+					return false;
+				}
+
+				DriverController.Write(pin, state == GpioPinState.Off ? PinValue.High : PinValue.Low);
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state.");
+				CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, state));
+				return true;
+			}
+			finally {
+				if (DriverController != null) {
+					if (DriverController.IsPinOpen(pin)) {
+						DriverController.ClosePin(pin);
+					}
+				}
+			}
 		}
 
 		public int GpioPhysicalPinNumber(int bcmPin) {
-			throw new NotImplementedException();
+			if (!PinController.IsValidPin(bcmPin) || !IsDriverProperlyInitialized) {
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
+				return -1;
+			}
+
+			try {
+				if (DriverController == null) {
+					return -1;
+				}
+
+				DriverController.OpenPin(bcmPin);
+
+				if (!DriverController.IsPinOpen(bcmPin)) {
+					return -1;
+				}
+
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Info("System.Devices.Gpio driver doesn't support PhysicalPinNumber conversion.");
+				return -1;
+			}
+			finally {
+				if (DriverController != null) {
+					if (DriverController.IsPinOpen(bcmPin)) {
+						DriverController.ClosePin(bcmPin);
+					}
+				}
+			}
 		}
 	}
 }

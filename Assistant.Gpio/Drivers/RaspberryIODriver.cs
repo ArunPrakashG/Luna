@@ -90,7 +90,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		public GpioPinState GpioPinStateRead(int pin) {
-			if (!PinController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin) || !IsDriverProperlyInitialized) {
 				CastDriver<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return GpioPinState.Off;
 			}
@@ -100,7 +100,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		public bool GpioDigitalRead(int pin) {
-			if (!PinController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin) || !IsDriverProperlyInitialized) {
 				CastDriver<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}

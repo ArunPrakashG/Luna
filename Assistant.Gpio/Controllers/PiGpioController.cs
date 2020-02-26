@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
-using static Assistant.Gpio.Config.PinConfig;
 using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Controllers {
@@ -30,35 +29,35 @@ namespace Assistant.Gpio.Controllers {
 		public PiGpioController(EGPIO_DRIVERS driverToUse, AvailablePins pins, bool shouldShutdownGracefully) {
 			GpioDriver = driverToUse;
 			AvailablePins = pins;
-			IsGracefullShutdownRequested = shouldShutdownGracefully;			
+			IsGracefullShutdownRequested = shouldShutdownGracefully;
 		}
 
-		public void InitController() {
+		public async Task InitController() {
 			if (IsAlreadyInit) {
 				return;
-			}			
+			}
 
 			if (!IsAllowedToExecute) {
 				Logger.Warning("Running OS platform is unsupported.");
 				return;
 			}
-			
+
 			PinController = new PinController();
 
 			switch (GpioDriver) {
 				case EGPIO_DRIVERS.RaspberryIODriver:
-					PinController.InitPinController<RaspberryIODriver>(new RaspberryIODriver());
+					PinController.InitPinController<RaspberryIODriver>(new RaspberryIODriver(), NumberingScheme.Logical);
 					break;
 				case EGPIO_DRIVERS.SystemDevicesDriver:
-					PinController.InitPinController<SystemDeviceDriver>(new SystemDeviceDriver());
+					PinController.InitPinController<SystemDeviceDriver>(new SystemDeviceDriver(), NumberingScheme.Logical);
 					break;
 				case EGPIO_DRIVERS.WiringPiDriver:
-					PinController.InitPinController<WiringPiDriver>(new WiringPiDriver());
+					PinController.InitPinController<WiringPiDriver>(new WiringPiDriver(), NumberingScheme.Logical);
 					break;
 				case EGPIO_DRIVERS.NullDriver:
 				case EGPIO_DRIVERS.Invalid:
 				default:
-					PinController.InitPinController<NullDriver>(new NullDriver());
+					PinController.InitPinController<NullDriver>(new NullDriver(), NumberingScheme.Logical);
 					break;
 			}
 
@@ -76,8 +75,8 @@ namespace Assistant.Gpio.Controllers {
 
 			SetEvents();
 
-			if(ConfigManager != null) {
-				Task.Run(async () => await ConfigManager.LoadConfiguration().ConfigureAwait(false));
+			if (ConfigManager != null && PinConfigManager.GetConfiguration().PinConfigs.Count <= 0) {
+				await ConfigManager.LoadConfiguration().ConfigureAwait(false);
 			}
 
 			IsAlreadyInit = true;
@@ -98,7 +97,7 @@ namespace Assistant.Gpio.Controllers {
 
 			List<Pin> pinConfigs = new List<Pin>();
 			for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {
-				Pin? config = PinController.GetDriver()?.GetPinConfig(Pi.Gpio[i].PhysicalPinNumber);
+				Pin? config = PinController.GetDriver()?.GetPinConfig(Constants.BcmGpioPins[i]);
 
 				if (config == null) {
 					continue;
@@ -126,6 +125,7 @@ namespace Assistant.Gpio.Controllers {
 				return;
 			}
 
+			ConfigManager?.SaveConfig().ConfigureAwait(false);
 			EventManager?.StopAllEventGenerators();
 			PinController.GetDriver()?.ShutdownDriver();
 		}

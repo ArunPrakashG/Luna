@@ -41,7 +41,10 @@ namespace Assistant.Sound {
 						return;
 					}
 
-					Logger.Log($"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.ResourcesDirectory} && cvlc --no-video  {Constants.ALERT_SOUND_PATH}".ExecuteBash(false), LogLevels.Blue);
+					if(redirectOutput)
+						Logger.Info($"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/ && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(false));
+					else
+						Logger.Trace($"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/ && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(false));
 					break;
 				case ENOTIFICATION_CONTEXT.ERROR:
 					break;

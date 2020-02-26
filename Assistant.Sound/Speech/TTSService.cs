@@ -36,7 +36,7 @@ namespace Assistant.Sound.Speech {
 				}
 
 				if (File.Exists(Constants.TTSAlertFilePath) && enableAlert) {
-					string? executeResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.ResourcesDirectory} && cvlc --no-video  {Constants.TTSAlertFileName}".ExecuteBash(false);
+					string? executeResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.ResourcesDirectory} && play {Constants.TTSAlertFileName} -q".ExecuteBash(false);
 					Logger.Log(executeResult, LogLevels.Trace);
 					await Task.Delay(200).ConfigureAwait(false);
 				}
@@ -69,7 +69,7 @@ namespace Assistant.Sound.Speech {
 				SpeechCache.Add(Cache);
 
 			PlaySound:
-				string? playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && cvlc --no-video  {fileName}".ExecuteBash(false);
+				string? playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {fileName} -q".ExecuteBash(false);
 				Logger.Log(playingResult, LogLevels.Trace);
 				await Task.Delay(500).ConfigureAwait(false);
 				return true;
@@ -93,7 +93,7 @@ namespace Assistant.Sound.Speech {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && cvlc --no-video  {Constants.StartupFileName}".ExecuteBash(false);
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q".ExecuteBash(false);
 					Logger.Log(playingResult, LogLevels.Trace);
 					break;
 				case ESPEECH_CONTEXT.AssistantShutdown:
@@ -103,7 +103,7 @@ namespace Assistant.Sound.Speech {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && cvlc --no-video  {Constants.ShutdownFileName}".ExecuteBash(false);
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.ShutdownFileName} -q".ExecuteBash(false);
 					Logger.Log(playingResult, LogLevels.Trace);
 					break;
 				case ESPEECH_CONTEXT.NewEmaiNotification:
@@ -113,7 +113,7 @@ namespace Assistant.Sound.Speech {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && cvlc --no-video {Constants.NewMailFileName}".ExecuteBash(false);
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.NewMailFileName} -q".ExecuteBash(false);
 					Logger.Log(playingResult, LogLevels.Trace);
 					break;
 				default:
@@ -129,10 +129,8 @@ namespace Assistant.Sound.Speech {
 			if (!Helpers.IsNetworkAvailable()) {
 				return null;
 			}
-
-			try {
-				await SpeechDownloadSemaphore.WaitAsync().ConfigureAwait(false);
-
+			await SpeechDownloadSemaphore.WaitAsync().ConfigureAwait(false);
+			try {				
 				string requestUrl = "https://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&textlen=32&client=tw-ob&q=" + text + "&tl=en-us";
 				RestClient client = new RestClient(requestUrl);
 				RestRequest request = new RestRequest(Method.GET);
@@ -161,6 +159,9 @@ namespace Assistant.Sound.Speech {
 				}
 
 				return fileName;
+			}catch(Exception e) {
+				Logger.Exception(e);
+				return null;
 			}
 			finally {
 				SpeechDownloadSemaphore.Release();

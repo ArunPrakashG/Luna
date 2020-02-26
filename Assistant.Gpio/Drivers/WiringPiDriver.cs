@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace Assistant.Gpio.Drivers {
+	// TODO: Implement command line based WiringPi library support.
 	internal class WiringPiDriver : IGpioControllerDriver {
 		public bool IsDriverProperlyInitialized => throw new NotImplementedException();
 

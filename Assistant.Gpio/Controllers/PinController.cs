@@ -13,12 +13,12 @@ namespace Assistant.Gpio.Controllers {
 		private static IGpioControllerDriver CurrentDriver;
 		private static bool IsAlreadyInit;
 
-		public void InitPinController<T>(T driver) where T : IGpioControllerDriver {
+		public void InitPinController<T>(T driver, Enums.NumberingScheme numberingScheme = Enums.NumberingScheme.Logical) where T : IGpioControllerDriver {
 			if (!PiGpioController.IsAllowedToExecute || IsAlreadyInit) {
 				return;
 			}
 
-			CurrentDriver = driver.InitDriver(Enums.NumberingScheme.Logical);
+			CurrentDriver = driver.InitDriver(numberingScheme);
 			IsAlreadyInit = true;
 		}
 

@@ -29,7 +29,6 @@ namespace Assistant.Core {
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Unosquare.RaspberryIO;
-	using static Assistant.Gpio.Config.PinConfig;
 	using static Assistant.Gpio.Enums;
 	using static Assistant.Logging.Enums;
 	using static Assistant.Modules.ModuleInitializer;
@@ -389,12 +388,6 @@ namespace Assistant.Core {
 			}
 
 			Controller?.InitController();
-			IGpioControllerDriver? driver = PinController.GetDriver();
-			
-			if (driver == null || !driver.IsDriverProperlyInitialized) {
-				return this;
-			}
-
 			return this;
 		}
 
@@ -510,7 +503,7 @@ namespace Assistant.Core {
 
 						Logger.Log("Enter text to convert to Morse: ");
 						string morseCycle = Console.ReadLine();
-						var morseTranslator = PiGpioController.GetMorseTranslator();
+						GpioMorseTranslator? morseTranslator = PiGpioController.GetMorseTranslator();
 
 						if (morseTranslator == null || !morseTranslator.IsTranslatorOnline) {
 							Logger.Warning("Morse translator is offline or unavailable.");

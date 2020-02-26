@@ -15,7 +15,7 @@ namespace Assistant.Gpio.Config {
 	public class PinConfigManager {
 		private readonly ILogger Logger = new Logger(typeof(PinConfigManager).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
-		private static PinConfig PinConfig;
+		private static PinConfig PinConfig { get; set; }
 
 		public PinConfigManager Init(PinConfig config) {
 			PinConfig = config;
@@ -23,24 +23,18 @@ namespace Assistant.Gpio.Config {
 		}
 
 		/// <summary>
-		/// Saves the pin configuration.
+		/// Saves the pin configuration as a whole.
 		/// </summary>
-		/// <param name="config">The config to save <see cref="Pin"/></param>
+		/// <param name="pinConfig">The pin config collection <see cref="PinConfig"/></param>
 		/// <returns>The <see cref="Task"/></returns>
-		public async Task SaveConfig(Pin config) {
-			if (config == null) {
+		public async Task SaveConfig() {
+			if (PinConfig == null || PinConfig.PinConfigs.Count <= 0) {
 				return;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				for (int i = 0; i < PinConfig.PinConfigs.Count; i++) {
-					if (PinConfig.PinConfigs[i].PinNumber == config.PinNumber) {
-						PinConfig.PinConfigs[i] = config;
-					}
-				}
-
 				string json = JsonConvert.SerializeObject(PinConfig, Formatting.Indented);
 
 				if (string.IsNullOrEmpty(json)) {
@@ -55,44 +49,6 @@ namespace Assistant.Gpio.Config {
 			}
 			finally {
 				Sync.Release();
-			}
-		}
-
-		/// <summary>
-		/// Saves the pin configuration as a whole.
-		/// </summary>
-		/// <param name="pinConfigCollection">The pin config collection <see cref="PinConfig"/></param>
-		/// <returns>The <see cref="Task"/></returns>
-		public async Task SaveConfig(PinConfig pinConfigCollection) {
-			if (pinConfigCollection == null || pinConfigCollection.PinConfigs.Count <= 0) {
-				return;
-			}
-
-			foreach (Pin pin in pinConfigCollection.PinConfigs) {
-				if (pin == null) {
-					continue;
-				}
-
-				await SaveConfig(pin).ConfigureAwait(false);
-			}
-		}
-
-		/// <summary>
-		/// Saves the pin config collection.
-		/// </summary>
-		/// <param name="pinConfigs">The pin configs <see cref="List{Pin}"/></param>
-		/// <returns>The <see cref="Task"/></returns>
-		public async Task SaveConfig(List<Pin> pinConfigs) {
-			if (pinConfigs == null || pinConfigs.Count <= 0) {
-				return;
-			}
-
-			foreach (Pin pin in pinConfigs) {
-				if (pin == null) {
-					continue;
-				}
-
-				await SaveConfig(pin).ConfigureAwait(false);
 			}
 		}
 
