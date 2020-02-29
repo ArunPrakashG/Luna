@@ -37,6 +37,7 @@ namespace Assistant.Core {
 				.StartPinController()
 				.StartConsoleTitleUpdater()
 				.StartModules()
+				.InitRestServer()
 				.CheckAndUpdate()
 				.InitShell<IShellCommand>()
 				.MarkInitializationCompletion();

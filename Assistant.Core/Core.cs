@@ -8,11 +8,11 @@ namespace Assistant.Core {
 	using Assistant.Gpio;
 	using Assistant.Gpio.Config;
 	using Assistant.Gpio.Controllers;
-	using Assistant.Gpio.Drivers;
 	using Assistant.Logging;
 	using Assistant.Logging.Interfaces;
 	using Assistant.Modules;
 	using Assistant.Pushbullet;
+	using Assistant.Rest;
 	using Assistant.Server.CoreServer;
 	using Assistant.Sound.Speech;
 	using Assistant.Weather;
@@ -106,6 +106,8 @@ namespace Assistant.Core {
 		/// Gets the ModuleWatcher
 		/// </summary>
 		public static IModuleWatcher ModuleWatcher { get; private set; } = new GenericModuleWatcher();
+
+		public static RestCore RestServer { get; private set; }
 
 		/// <summary>
 		/// Gets a value indicating whether CoreInitiationCompleted
@@ -300,6 +302,18 @@ namespace Assistant.Core {
 		/// <returns>The <see cref="Core"/></returns>
 		public Core DisplayASCIILogo() {
 			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
+			return this;
+		}
+
+		[Obsolete("TODO: Add more commands")]
+		public Core InitRestServer() {
+			RestServer = new RestCore();
+			Task.Run(async () => {				
+				await RestServer.InitServer(new Dictionary<string, Func<RequestParameter, RequestResponse>>() {
+				{"example_command", EventManager.RestServerExampleCommand }
+				}).ConfigureAwait(false);
+			});
+
 			return this;
 		}
 

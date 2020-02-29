@@ -1,4 +1,5 @@
 using Assistant.Logging.EventArgs;
+using Assistant.Rest;
 using Assistant.Server.CoreServer.EventArgs;
 using System;
 using System.Collections.Generic;
@@ -107,6 +108,10 @@ namespace Assistant.Core {
 					logger.Log(e.LogMessage, LogLevels.Custom, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
 					break;
 			}
+		}
+
+		internal RequestResponse RestServerExampleCommand(RequestParameter arg) {
+			return new RequestResponse();
 		}
 	}
 }

@@ -67,9 +67,12 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
 	  <ProjectReference Include="..\Assistant.Gpio\Assistant.Gpio.csproj" />
+	  <ProjectReference Include="..\Assistant.Location\Assistant.Location.csproj" />
 	  <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
 	  <ProjectReference Include="..\Assistant.Modules\Assistant.Modules.csproj" />
+	  <ProjectReference Include="..\Assistant.Morse\Assistant.Morse.csproj" />
 	  <ProjectReference Include="..\Assistant.PushBullet\Assistant.Pushbullet.csproj" />
+	  <ProjectReference Include="..\Assistant.Rest\Assistant.Rest.csproj" />
 	  <ProjectReference Include="..\Assistant.Security\Assistant.Security.csproj" />
 	  <ProjectReference Include="..\Assistant.Server\Assistant.Server.csproj" />
 	  <ProjectReference Include="..\Assistant.Sound\Assistant.Sound.csproj" />
