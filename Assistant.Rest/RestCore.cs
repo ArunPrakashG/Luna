@@ -58,6 +58,7 @@ namespace Assistant.Rest {
 			}
 
 			await WebHost.StopAsync().ConfigureAwait(false);
+			WebHost.Dispose();			
 		}
 
 		private static IHostBuilder CreateHostBuilder() {

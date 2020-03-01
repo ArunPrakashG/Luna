@@ -1026,6 +1026,8 @@ namespace Assistant.Core {
 				await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantShutdown).ConfigureAwait(false);
 			}
 
+			Interpreter.ShutdownShell = true;
+			await RestServer.Shutdown().ConfigureAwait(false);
 			Controller?.Shutdown();
 			JobManager.RemoveAllJobs();
 			JobManager.Stop();
@@ -1041,8 +1043,7 @@ namespace Assistant.Core {
 			//	await KestrelServer.Stop().ConfigureAwait(false);
 			//}
 
-			ModuleLoader?.OnCoreShutdown();
-			Interpreter.ShutdownShell = true;
+			ModuleLoader?.OnCoreShutdown();			
 			Config.ProgramLastShutdown = DateTime.Now;
 			await Config.SaveConfig(Config).ConfigureAwait(false);
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -21,6 +22,12 @@ namespace Assistant.Rest {
 			services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
 			services.AddResponseCompression();
 			services.AddCors(builder => builder.AddDefaultPolicy(policyBuilder => policyBuilder.AllowAnyOrigin()));
+			services.AddLogging(builder => {
+				builder.AddFilter("Microsoft", LogLevel.Warning)
+			   .AddFilter("System", LogLevel.Warning)
+			   .AddFilter("NToastNotify", LogLevel.Warning)
+			   .AddConsole();
+			});
 			IMvcBuilder mvc = services.AddControllers();
 			mvc.SetCompatibilityVersion(CompatibilityVersion.Latest);
 			mvc.AddNewtonsoftJson(
