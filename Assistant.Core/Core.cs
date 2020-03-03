@@ -428,7 +428,7 @@ namespace Assistant.Core {
 		/// The SetConsoleTitle
 		/// </summary>
 		private static void SetConsoleTitle() {
-			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()}";
+			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | ";
 			text += PiGpioController.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
 
 			Helpers.SetConsoleTitle(text);
