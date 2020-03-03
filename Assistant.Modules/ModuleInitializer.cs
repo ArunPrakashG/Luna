@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 namespace Assistant.Modules {
 	public class ModuleInitializer : IExternal {
 		private readonly ILogger Logger = new Logger(typeof(ModuleInitializer).Name);
-		public readonly ObservableCollection<IModuleBase> Modules = new ObservableCollection<IModuleBase>();
+		public static readonly ObservableCollection<IModuleBase> Modules = new ObservableCollection<IModuleBase>();
 		public HashSet<Assembly>? AssemblyCollection { get; private set; } = new HashSet<Assembly>();
 		private static readonly SemaphoreSlim ModuleLoaderSemaphore = new SemaphoreSlim(1, 1);
 
@@ -294,82 +294,43 @@ namespace Assistant.Modules {
 
 		public void OnCoreShutdown() => UnloadModulesOfType<IModuleBase>();
 
-		public async Task<bool> ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT context, object? fileEventSender = null, FileSystemEventArgs? fileEventArgs = null) {
-			if (Modules.Count <= 0 || !Modules.OfType<IAsyncEventBase>().Any()) {
-				return false;
+		public static EventResponse ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT context, EventParameter parameters) {
+			if (Modules.Count <= 0 || !Modules.OfType<IEvent>().Any()) {
+				return new EventResponse("failed.", false);
 			}
 
-			foreach (IAsyncEventBase eventMod in Modules.OfType<IAsyncEventBase>()) {
+			foreach (IEvent mod in Modules.OfType<IEvent>()) {
+				if (!mod.IsLoaded) {
+					continue;
+				}
+
 				switch (context) {
 					case MODULE_EXECUTION_CONTEXT.AssistantShutdown:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						return await eventMod.OnAssistantShutdownRequestedAsync().ConfigureAwait(false);
-
+						return mod.OnAssistantShutdownRequestedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.AssistantStartup:
-						return await eventMod.OnAssistantStartedAsync().ConfigureAwait(false);
-
+						return mod.OnAssistantStartedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.WatcherEvent:
-						if (!eventMod.IsLoaded) {
-							continue;
+						if(parameters.Values.Length < 2) {
+							return new EventResponse("Parameters are invalid.", false);
 						}
 
-						if (fileEventArgs == null || fileEventSender == null) {
-							return false;
-						}
-
-						return await eventMod.OnWatcherEventRasiedAsync(fileEventSender, fileEventArgs).ConfigureAwait(false);
-
+						return mod.OnWatcherEventRasiedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.NetworkDisconnected:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						return await eventMod.OnNetworkDisconnectedAsync().ConfigureAwait(false);
-
+						return mod.OnNetworkDisconnectedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.NetworkReconnected:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						return await eventMod.OnNetworkReconnectedAsync().ConfigureAwait(false);
-
+						return mod.OnNetworkReconnectedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.SystemRestart:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						return await eventMod.OnSystemRestartRequestedAsync().ConfigureAwait(false);
-
+						return mod.OnSystemRestartRequestedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.SystemShutdown:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						return await eventMod.OnSystemShutdownRequestedAsync().ConfigureAwait(false);
-
+						return mod.OnSystemShutdownRequestedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.UpdateAvailable:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						return await eventMod.OnUpdateAvailableAsync().ConfigureAwait(false);
-
+						return mod.OnUpdateAvailableAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.UpdateStarted:
-						if (!eventMod.IsLoaded) {
-							continue;
-						}
-
-						return await eventMod.OnUpdateStartedAsync().ConfigureAwait(false);
-
-					default:
-						return false;
+						return mod.OnUpdateStartedAsync().Invoke(parameters);
 				}
 			}
 
-			return false;
+			return new EventResponse("failed.", false);
 		}
 
 		private string GenerateModuleIdentifier() {

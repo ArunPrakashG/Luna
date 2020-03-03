@@ -155,7 +155,7 @@ namespace Assistant.Core {
 		/// <returns>Boolean, when the endless thread block has been interrupted, such as, on exit.</returns>
 		public static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", LogLevels.Trace);
-			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantStartup).ConfigureAwait(false);
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
 
 			if (Config.DisplayStartupMenu) {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
@@ -591,12 +591,12 @@ namespace Assistant.Core {
 						Logger.Log("Test method execution finished successfully!", LogLevels.Green);
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count > 0 && Config.EnableModules:
+					case Constants.ConsoleModuleShutdownKey when ModuleInitializer.Modules.Count > 0 && Config.EnableModules:
 						Logger.Log("Shutting down all modules...", LogLevels.Warn);
 						ModuleLoader.OnCoreShutdown();
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleLoader.Modules.Count <= 0:
+					case Constants.ConsoleModuleShutdownKey when ModuleInitializer.Modules.Count <= 0:
 						Logger.Log("There are no modules to shutdown...");
 						return;
 
@@ -969,7 +969,7 @@ namespace Assistant.Core {
 			try {
 				await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
 				IsNetworkAvailable = false;
-				await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkDisconnected).ConfigureAwait(false);
+				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
 				Constants.ExternelIP = "Internet connection lost.";
 			}
 			finally {
@@ -985,7 +985,7 @@ namespace Assistant.Core {
 			try {
 				await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
 				IsNetworkAvailable = true;
-				await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkReconnected).ConfigureAwait(false);
+				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
 				Constants.ExternelIP = Helpers.GetExternalIp();
 
 				if (Config.AutoUpdates && IsNetworkAvailable) {
@@ -1022,9 +1022,7 @@ namespace Assistant.Core {
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
 
-			if (ModuleLoader != null) {
-				await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantShutdown).ConfigureAwait(false);
-			}
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
 
 			Interpreter.ShutdownShell = true;
 			await RestServer.Shutdown().ConfigureAwait(false);
@@ -1090,7 +1088,7 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemShutdown() {
-			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemShutdown).ConfigureAwait(false);
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemShutdown, default);
 			if (PiGpioController.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Shutting down pi...", LogLevels.Warn);
@@ -1116,7 +1114,7 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemRestart() {
-			await ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemRestart).ConfigureAwait(false);
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemRestart, default);
 			if (PiGpioController.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Restarting pi...", LogLevels.Warn);

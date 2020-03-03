@@ -2,6 +2,7 @@ using Assistant.Core.Watchers.Interfaces;
 using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
+using Assistant.Modules;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -87,7 +88,7 @@ namespace Assistant.Core.Watchers {
 				return;
 			}
 
-			Helpers.InBackground(async () => await Core.ModuleLoader.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.WatcherEvent, sender, e).ConfigureAwait(false));
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.WatcherEvent, new EventParameter(new object[] { sender, e}));
 
 			if (WatcherEvents.Count <= 0) {
 				return;

@@ -1,7 +1,6 @@
 using System;
 
 namespace Assistant.Modules.Interfaces {
-
 	public interface IModuleBase {
 
 		///<summary>

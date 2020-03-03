@@ -1,6 +1,7 @@
 using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
+using Assistant.Modules;
 using FluentScheduler;
 using System;
 using System.IO;
@@ -9,6 +10,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
+using static Assistant.Modules.ModuleInitializer;
 
 namespace Assistant.Core.Update {
 	public class UpdateManager {
@@ -76,7 +78,7 @@ namespace Assistant.Core.Update {
 				Logger.Log($"New version available!", LogLevels.Green);
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...", LogLevels.Warn);
-				await Core.ModuleLoader.ExecuteAsyncEvent(Modules.ModuleInitializer.MODULE_EXECUTION_CONTEXT.UpdateAvailable).ConfigureAwait(false);
+				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.UpdateAvailable, default);
 				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
 				return LatestVersion;
 			}
@@ -152,7 +154,7 @@ namespace Assistant.Core.Update {
 				}
 
 				await Task.Delay(1000).ConfigureAwait(false);
-				await Core.ModuleLoader.ExecuteAsyncEvent(Modules.ModuleInitializer.MODULE_EXECUTION_CONTEXT.UpdateStarted).ConfigureAwait(false);
+				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.UpdateStarted, default);
 				"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash(false);
 				await Core.Restart(5).ConfigureAwait(false);
 				return true;
