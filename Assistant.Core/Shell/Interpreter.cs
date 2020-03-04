@@ -120,7 +120,7 @@ namespace Assistant.Core.Shell {
 				Console.WriteLine("Assistant Shell waiting for your commands!");
 				do {
 					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write($"#~/{Core.AssistantName.Trim()}/$ ]> ");
+					Console.Write($"#~/{Core.AssistantName.Trim()}/$ |> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
 
