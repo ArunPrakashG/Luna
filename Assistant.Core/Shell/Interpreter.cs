@@ -90,8 +90,7 @@ namespace Assistant.Core.Shell {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				await Init.LoadInternalCommandsAsync<T>().ConfigureAwait(false);
-				//await LoadInternalCommandsAsync().ConfigureAwait(false);
+				await Init.LoadInternalCommandsAsync<T>().ConfigureAwait(false);				
 				await Init.LoadCommandsAsync<T>().ConfigureAwait(false);
 
 				InitCompleted = true;
@@ -142,40 +141,7 @@ namespace Assistant.Core.Shell {
 				Logger.Info("Shell has been shutdown.");
 			}
 		}
-
-		/// <summary>
-		/// The LoadInternalCommandsAsync
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
-		private static async Task LoadInternalCommandsAsync() {
-			IShellCommand helpCommand = new HelpCommand();
-			if (!helpCommand.IsInitSuccess) {
-				await helpCommand.InitAsync().ConfigureAwait(false);
-			}
-
-			lock (Commands) {
-				Commands.Add(helpCommand.UniqueId, helpCommand);
-			}
-
-			IShellCommand exitCommand = new ExitCommand();
-			if (!exitCommand.IsInitSuccess) {
-				await exitCommand.InitAsync().ConfigureAwait(false);
-			}
-
-			lock (Commands) {
-				Commands.Add(exitCommand.UniqueId, exitCommand);
-			}
-
-			IShellCommand gpioCommand = new GpioCommand();
-			if (!gpioCommand.IsInitSuccess) {
-				await gpioCommand.InitAsync().ConfigureAwait(false);
-			}
-
-			lock (Commands) {
-				Commands.Add(gpioCommand.UniqueId, gpioCommand);
-			}
-		}
-
+		
 		/// <summary>
 		/// The ExecuteCommandAsync
 		/// </summary>
