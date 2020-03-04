@@ -23,7 +23,48 @@ namespace Assistant.Core.Shell {
 		//TODO: Implement custom dictionary with events for collection changes
 		[Obsolete]
 		private static void OnCommandCollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {
-			Logger.Trace($"Commands collection changed -> {e.Action.ToString()}");
+			Logger.Trace($"Shell command collection changed -> {e.Action.ToString()}");
+		}
+
+		internal async Task<bool> LoadInternalCommandsAsync<T>() where T : IShellCommand {
+			Assembly currentAssembly = Assembly.GetExecutingAssembly();
+			await LoadSync.WaitAsync().ConfigureAwait(false);
+
+			try {
+				ConventionBuilder conventions = new ConventionBuilder();
+				conventions.ForTypesDerivedFrom<T>().Export<T>();
+				IEnumerable<Assembly> psuedoCollection = new HashSet<Assembly>() {
+					currentAssembly
+				};
+
+				ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(psuedoCollection, conventions);
+				using CompositionHost container = configuration.CreateContainer();
+				List<T> list = container.GetExports<T>().ToList();
+
+				if (list.Count <= 0) {
+					return false;
+				}
+
+				foreach (T command in list) {
+					if (await IsExistingCommand<T>(command.UniqueId).ConfigureAwait(false)) {
+						Logger.Warning($"{command.CommandName} shell command is already loaded; skipping from loading process...");
+						continue;
+					}
+
+					await command.InitAsync().ConfigureAwait(false);
+					Interpreter.Commands.Add(command.UniqueId, command);
+					Logger.Info($"Loaded shell command -> {command.CommandName}");
+				}
+
+				return true;
+			}
+			catch(Exception e) {
+				Logger.Exception(e);
+				return false;
+			}
+			finally {
+				LoadSync.Release();
+			}
 		}
 
 		internal async Task<bool> LoadCommandsAsync<T>() where T : IShellCommand {

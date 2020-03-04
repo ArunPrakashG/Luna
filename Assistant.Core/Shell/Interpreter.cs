@@ -10,7 +10,7 @@ namespace Assistant.Core.Shell {
 	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Parameter = Assistant.Extensions.Shared.Shell.Parameter;
+	using Parameter = Extensions.Shared.Shell.Parameter;
 
 	/// <summary>
 	/// The Shell Instance.
@@ -90,7 +90,8 @@ namespace Assistant.Core.Shell {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				await LoadInternalCommandsAsync().ConfigureAwait(false);
+				await Init.LoadInternalCommandsAsync<T>().ConfigureAwait(false);
+				//await LoadInternalCommandsAsync().ConfigureAwait(false);
 				await Init.LoadCommandsAsync<T>().ConfigureAwait(false);
 
 				InitCompleted = true;
@@ -120,7 +121,7 @@ namespace Assistant.Core.Shell {
 				Console.WriteLine("Assistant Shell waiting for your commands!");
 				do {
 					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write($"#~/{Core.AssistantName}/$ -> ");
+					Console.Write($"#~/{Core.AssistantName.Trim()}/$ ]> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
 
@@ -155,6 +156,7 @@ namespace Assistant.Core.Shell {
 			lock (Commands) {
 				Commands.Add(helpCommand.UniqueId, helpCommand);
 			}
+
 			IShellCommand exitCommand = new ExitCommand();
 			if (!exitCommand.IsInitSuccess) {
 				await exitCommand.InitAsync().ConfigureAwait(false);
@@ -162,6 +164,15 @@ namespace Assistant.Core.Shell {
 
 			lock (Commands) {
 				Commands.Add(exitCommand.UniqueId, exitCommand);
+			}
+
+			IShellCommand gpioCommand = new GpioCommand();
+			if (!gpioCommand.IsInitSuccess) {
+				await gpioCommand.InitAsync().ConfigureAwait(false);
+			}
+
+			lock (Commands) {
+				Commands.Add(gpioCommand.UniqueId, gpioCommand);
 			}
 		}
 

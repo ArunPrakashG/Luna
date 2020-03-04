@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Extensions.Shared.Shell.ShellEnum;
 
 namespace Assistant.Extensions.Shared.Shell {
 	/// <summary>
@@ -16,7 +15,7 @@ namespace Assistant.Extensions.Shared.Shell {
 		/// <summary>
 		/// The Command Name
 		/// </summary>
-		string CommandName { get; }		
+		string CommandName { get; }
 
 		/// <summary>
 		/// Representation of the command syntax. <b>(Example)</b>
@@ -50,11 +49,6 @@ namespace Assistant.Extensions.Shared.Shell {
 		string CommandKey { get; }
 
 		/// <summary>
-		/// The Unique command code specifying this command globally.
-		/// </summary>
-		COMMAND_CODE CommandCode { get; }
-
-		/// <summary>
 		/// The Sync semaphore used to sync the function execution across the command object.
 		/// </summary>
 		SemaphoreSlim Sync { get; set; }
@@ -66,9 +60,9 @@ namespace Assistant.Extensions.Shared.Shell {
 		/// <param name="paramsCount">The command parameter count</param>
 		/// <returns>Boolean indicating if its the current context or not</returns>
 		bool IsCurrentCommandContext(string command, int paramsCount) {
-			if(command.Equals("help", StringComparison.OrdinalIgnoreCase) && paramsCount <= 0) {
-				return true;
-			}
+			//if(command.Equals("help", StringComparison.OrdinalIgnoreCase) && paramsCount <= 0) {
+			//	return true;
+			//}
 
 			if (string.IsNullOrEmpty(command) || paramsCount < 0) {
 				return false;
@@ -78,12 +72,17 @@ namespace Assistant.Extensions.Shared.Shell {
 				return false;
 			}
 
-			if (HasParameters && MaxParameterCount == paramsCount) {
-				return true;
-			}
+			//if (HasParameters && MaxParameterCount == paramsCount) {
+			//	return true;
+			//}
 
-			return false;
+			return true;
 		}
+
+		/// <summary>
+		/// Called by HelpCommand user requests help for the specified command.
+		/// </summary>
+		void OnHelpExec(bool quickHelp);
 
 		/// <summary>
 		/// Used to parse the command and see if it is actually the specified command for the current context.

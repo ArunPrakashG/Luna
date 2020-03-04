@@ -47,56 +47,32 @@ namespace Assistant.Core.Shell.InternalCommands {
 					}
 				}
 
-				if (parameter.Parameters == null || parameter.Parameters.Length <= 0) {
-					foreach (var cmd in Interpreter.Commands) {
-						if (string.IsNullOrEmpty(cmd.Value.CommandKey) || string.IsNullOrEmpty(cmd.Value.CommandName)) {
-							continue;
+				switch (parameter.ParameterCount) {
+					case 0:
+						foreach (KeyValuePair<string, IShellCommand> cmd in Interpreter.Commands) {
+							if (string.IsNullOrEmpty(cmd.Value.CommandKey) || string.IsNullOrEmpty(cmd.Value.CommandName)) {
+								continue;
+							}
+
+							cmd.Value.OnHelpExec(true);
+						}
+						return;
+					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]) && parameter.Parameters[0].Equals("all", StringComparison.OrdinalIgnoreCase):
+						PrintAll();
+						return;
+					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
+						IShellCommand shellCmd = await Interpreter.Init.GetCommandWithKeyAsync<IShellCommand>(parameter.Parameters[0]).ConfigureAwait(false);
+						if (shellCmd == null) {
+							ShellOut.Error("Command doesn't exist. use ' help -all ' to check all available commands!");
+							return;
 						}
 
-						ShellOut.Info($"{cmd.Value.CommandKey} - {cmd.Value.CommandName} - {cmd.Value.Representation}");
-						ShellOut.Info("_________________________________________________");
-					}
-
-					return;
-				}
-
-				string? helpCmdKey = parameter.Parameters[0];
-
-				if (string.IsNullOrEmpty(helpCmdKey)) {
-					ShellOut.Error("Argument is invalid.");
-					return;
-				}
-
-				if (helpCmdKey.Equals("all", StringComparison.OrdinalIgnoreCase)) {
-					PrintAll();
-					return;
-				}
-
-				IShellCommand command = await Interpreter.Init.GetCommandWithKeyAsync<IShellCommand>(helpCmdKey).ConfigureAwait(false);
-
-				if (command == null) {
-					ShellOut.Error("Command doesn't exist. use 'help' to check all available commands!");
-					return;
-				}
-
-				ShellOut.Info("--------------------------------------- Command ---------------------------------------");
-				ShellOut.Info($"Command Key: {command.CommandKey}");
-
-				if (string.IsNullOrEmpty(command.CommandName)) {
-					ShellOut.Error("Command name isn't set. Who made this command anyway ?");
-					return;
-				}
-
-				ShellOut.Info($"Command Name: {command.CommandName}");
-				ShellOut.Info($"Syntax: {command.Representation}");
-
-				if (string.IsNullOrEmpty(command.CommandDescription)) {
-					ShellOut.Error("Command description isn't set. Come on...");
-					return;
-				}
-
-				ShellOut.Info($"{command.CommandDescription}");
-				ShellOut.Info("---------------------------------------------------------------------------------------");
+						shellCmd.OnHelpExec(false);
+						return;
+					default:
+						ShellOut.Error("Command seems to be in incorrect syntax.");
+						return;
+				}				
 			}
 			catch (Exception e) {
 				ShellOut.Exception(e);
@@ -113,19 +89,15 @@ namespace Assistant.Core.Shell.InternalCommands {
 				return;
 			}
 
-			ShellOut.Info("--------------------------------------- Commands ---------------------------------------");
+			ShellOut.Info("--------------------------------------- Shell Commands ---------------------------------------");
 			foreach (KeyValuePair<string, IShellCommand> cmd in Interpreter.Commands) {
 				if (string.IsNullOrEmpty(cmd.Key) || cmd.Value == null) {
 					continue;
 				}
 
-				ShellOut.Info($"Command Key: {cmd.Value.CommandKey}");
-				ShellOut.Info($"Command Name: {cmd.Value.CommandName}");
-				ShellOut.Info($"Syntax: {cmd.Value.Representation}");
-				ShellOut.Info($"{cmd.Value.CommandDescription}");
-				ShellOut.Info("********************************************************************************");
+				cmd.Value.OnHelpExec(false);
 			}
-			ShellOut.Info("---------------------------------------------------------------------------------------");
+			ShellOut.Info("----------------------------------------------------------------------------------------------");
 		}
 
 		public async Task InitAsync() {
@@ -139,6 +111,20 @@ namespace Assistant.Core.Shell.InternalCommands {
 			}
 
 			return false;
+		}
+
+		public void OnHelpExec(bool quickHelp) {
+			if (quickHelp) {
+				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | help;");
+				return;
+			}
+
+			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellOut.Info($"|> {CommandDescription}");
+			ShellOut.Info($"Basic Syntax -> ' help; '");
+			ShellOut.Info($"All Commands -> ' help -all; '");
+			ShellOut.Info($"Advanced -> ' help -[command_key]; '");
+			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 	}
 }

@@ -53,19 +53,22 @@ namespace Assistant.Core.Shell.Commands {
 					}
 				}
 
-				string? bashScriptPath = parameter.Parameters[0].Trim();
-				if (string.IsNullOrEmpty(bashScriptPath)) {
-					ShellOut.Error("Specified script file is invalid.");
-					return;
-				}
+				switch (parameter.ParameterCount) {
+					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0].Trim()):
+						string bashScriptPath = parameter.Parameters[0].Trim();
 
-				if (!File.Exists(bashScriptPath)) {
-					ShellOut.Error($"{bashScriptPath} doesn't exist.");
-					return;
-				}
+						if (!File.Exists(bashScriptPath)) {
+							ShellOut.Error($"{bashScriptPath} doesn't exist.");
+							return;
+						}
 
-				ShellOut.Info($"Executing {bashScriptPath} ...");
-				ShellOut.Info(bashScriptPath.ExecuteBash(false));
+						ShellOut.Info($"Executing {bashScriptPath} ...");
+						ShellOut.Info(bashScriptPath.ExecuteBash(false));
+						return;
+					default:
+						ShellOut.Error("Command seems to be in incorrect syntax.");
+						return;
+				}
 			}
 			catch (Exception e) {
 				ShellOut.Exception(e);
@@ -79,6 +82,18 @@ namespace Assistant.Core.Shell.Commands {
 		public async Task InitAsync() {
 			Sync = new SemaphoreSlim(1, 1);
 			IsInitSuccess = true;
+		}
+
+		public void OnHelpExec(bool quickHelp) {
+			if (quickHelp) {
+				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | bash -[bash_script_path];");
+				return;
+			}
+
+			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellOut.Info($"|> {CommandDescription}");
+			ShellOut.Info($"Basic Syntax -> ' bash -[bash_script_path]; '");
+			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 
 		public bool Parse(Parameter parameter) {
