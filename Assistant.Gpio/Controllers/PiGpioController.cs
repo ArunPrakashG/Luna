@@ -54,11 +54,6 @@ namespace Assistant.Gpio.Controllers {
 				case EGPIO_DRIVERS.WiringPiDriver:
 					PinController.InitPinController<WiringPiDriver>(new WiringPiDriver(), NumberingScheme.Logical);
 					break;
-				case EGPIO_DRIVERS.NullDriver:
-				case EGPIO_DRIVERS.Invalid:
-				default:
-					PinController.InitPinController<NullDriver>(new NullDriver(), NumberingScheme.Logical);
-					break;
 			}
 
 			IGpioControllerDriver? driver = PinController.GetDriver();
@@ -110,12 +105,12 @@ namespace Assistant.Gpio.Controllers {
 			ConfigManager = new PinConfigManager().Init(new PinConfig(pinConfigs));
 
 			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
-				EventManager?.RegisterGpioEvent(new GpioPinEventConfig(AvailablePins.OutputPins[i], GpioPinMode.Output, GpioPinEventStates.ALL));
+				EventManager?.RegisterGpioEvent(new EventConfig(AvailablePins.OutputPins[i], GpioPinMode.Output, GpioPinEventStates.ALL));
 				Logger.Trace($"Event registered for {AvailablePins.OutputPins[i]} gpio pin with Output state.");
 			}
 
 			for (int i = 0; i < AvailablePins.InputPins.Length; i++) {
-				EventManager?.RegisterGpioEvent(new GpioPinEventConfig(AvailablePins.InputPins[i], GpioPinMode.Input, GpioPinEventStates.ALL));
+				EventManager?.RegisterGpioEvent(new EventConfig(AvailablePins.InputPins[i], GpioPinMode.Input, GpioPinEventStates.ALL));
 				Logger.Trace($"Event registered for {AvailablePins.InputPins[i]} gpio pin with Input state.");
 			}
 		}

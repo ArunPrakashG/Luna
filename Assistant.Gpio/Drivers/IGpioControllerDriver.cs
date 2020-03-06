@@ -51,7 +51,7 @@ namespace Assistant.Gpio.Drivers {
 			return true;
 		}
 
-		IGpioControllerDriver? CastDriver<T>(T driver) where T : IGpioControllerDriver;
+		IGpioControllerDriver CastDriver<T>(T driver) where T : IGpioControllerDriver;
 
 		/// <summary>
 		/// Get the config of the specified gpio pin. Includes pin mode and pin value.
@@ -100,6 +100,31 @@ namespace Assistant.Gpio.Drivers {
 		bool SetGpioValue(int pin, GpioPinState state);
 
 		/// <summary>
+		/// Toggles the pin into the opposite state of what it is at the present.
+		/// if its in On state, it will be changed to Off state and vice versa.
+		/// </summary>
+		/// <param name="pin">The pin to toggle.</param>
+		/// <returns>Success or failure boolean value.</returns>
+		bool TogglePinState(int pin) {
+			if (!PreExecValidation(pin)) {
+				return false;
+			}
+
+			Pin? pinConfig = GetPinConfig(pin);
+
+			if(pinConfig == null) {
+				return false;
+			}
+
+			if(pinConfig.Mode != GpioPinMode.Output) {
+				Logger.Warning("Cannot toggle the pin as the pin mode is not set to output.");
+				return false;
+			}
+
+			return SetGpioValue(pin, pinConfig.Mode, pinConfig.PinState == GpioPinState.Off ? GpioPinState.On : GpioPinState.Off);
+		}
+
+		/// <summary>
 		/// Sets the specified pin to specified mode and state for duration TimeSpan, after which, the pin will return to its previous state.
 		/// </summary>
 		/// <param name="pin">The pin to configure</param>
@@ -107,7 +132,7 @@ namespace Assistant.Gpio.Drivers {
 		/// <param name="state">The state to set the pin into</param>
 		/// <param name="duration">The TimeSpan duration after which the pin returns to the initial state</param>		
 		/// <returns>Status of the configuration</returns>
-		bool SetGpioWithTimeout(int pin, GpioPinMode mode, GpioPinState state, TimeSpan duration) {
+		bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state, TimeSpan duration) {
 			if (!PreExecValidation(pin)) {
 				return false;
 			}

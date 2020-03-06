@@ -3,9 +3,7 @@ namespace Assistant.Gpio {
 		public enum EGPIO_DRIVERS {
 			RaspberryIODriver,
 			SystemDevicesDriver,
-			WiringPiDriver,
-			NullDriver,
-			Invalid
+			WiringPiDriver
 		}
 
 		public enum PiAudioState {

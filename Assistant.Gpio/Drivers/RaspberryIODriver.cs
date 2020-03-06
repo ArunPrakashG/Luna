@@ -32,7 +32,7 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			if (!PinController.IsValidPin(pinNumber)) {
-				CastDriver<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
+				CastDriver<IGpioControllerDriver>(this).Logger.Log("The specified pin is invalid.");
 				return null;
 			}
 
@@ -45,11 +45,19 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
-			GpioPin.PinMode = (GpioPinDriveMode) mode;
-			CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
-			CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, mode));
-			return true;
+			try {
+				GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
+				GpioPin.PinMode = (GpioPinDriveMode) mode;
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
+				CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, mode));
+				return true;
+			}
+			finally {
+				Pin? pinConfig = GetPinConfig(pin);
+				if (pinConfig != null) {
+					CastDriver<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
+				}
+			}			
 		}
 
 		public bool SetGpioValue(int pin, GpioPinState state) {
@@ -57,16 +65,24 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
+			try {
+				GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
 
-			if (GpioPin.PinMode == GpioPinDriveMode.Output) {
-				GpioPin.Write((GpioPinValue) state);
-				CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state.");
-				CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, state));
-				return true;
+				if (GpioPin.PinMode == GpioPinDriveMode.Output) {
+					GpioPin.Write((GpioPinValue) state);
+					CastDriver<IGpioControllerDriver>(this).Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state.");
+					CastDriver<IGpioControllerDriver>(this).UpdatePinConfig(new Pin(pin, state));
+					return true;
+				}
+
+				return false;
 			}
-
-			return false;
+			finally {
+				Pin? pinConfig = GetPinConfig(pin);
+				if (pinConfig != null) {
+					CastDriver<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
+				}
+			}
 		}
 
 		public bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state) {
@@ -74,19 +90,27 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
-			GpioPin.PinMode = (GpioPinDriveMode) mode;
+			try {
+				GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
+				GpioPin.PinMode = (GpioPinDriveMode) mode;
 
-			if (mode == GpioPinMode.Output) {
-				GpioPin.Write((GpioPinValue) state);
-				CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state with ({mode.ToString()}) mode.");
-				CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, state, mode));
+				if (mode == GpioPinMode.Output) {
+					GpioPin.Write((GpioPinValue) state);
+					CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin to ({state.ToString()}) state with ({mode.ToString()}) mode.");
+					CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, state, mode));
+					return true;
+				}
+
+				CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
+				CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, mode));
 				return true;
 			}
-
-			CastDriver<IGpioControllerDriver>(this)?.Logger.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
-			CastDriver<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, mode));
-			return true;
+			finally {
+				Pin? pinConfig = GetPinConfig(pin);
+				if (pinConfig != null) {
+					CastDriver<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
+				}
+			}
 		}
 
 		public GpioPinState GpioPinStateRead(int pin) {
@@ -95,8 +119,16 @@ namespace Assistant.Gpio.Drivers {
 				return GpioPinState.Off;
 			}
 
-			GpioPin gpioPin = (GpioPin) Pi.Gpio[pin];
-			return (GpioPinState) gpioPin.ReadValue();
+			try {
+				GpioPin gpioPin = (GpioPin) Pi.Gpio[pin];
+				return (GpioPinState) gpioPin.ReadValue();
+			}
+			finally {
+				Pin? pinConfig = GetPinConfig(pin);
+				if (pinConfig != null) {
+					CastDriver<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
+				}
+			}			
 		}
 
 		public bool GpioDigitalRead(int pin) {
@@ -105,8 +137,16 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			GpioPin gpioPin = (GpioPin) Pi.Gpio[pin];
-			return gpioPin.Read();
+			try {
+				GpioPin gpioPin = (GpioPin) Pi.Gpio[pin];
+				return gpioPin.Read();
+			}
+			finally {
+				Pin? pinConfig = GetPinConfig(pin);
+				if (pinConfig != null) {
+					CastDriver<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
+				}
+			}
 		}
 
 		public int GpioPhysicalPinNumber(int bcmPin) {
@@ -119,11 +159,7 @@ namespace Assistant.Gpio.Drivers {
 			return GpioPin.PhysicalPinNumber;
 		}
 
-		public IGpioControllerDriver? CastDriver<T>(T driver) where T : IGpioControllerDriver {
-			if (driver == null) {
-				return null;
-			}
-
+		public IGpioControllerDriver CastDriver<T>(T driver) where T : IGpioControllerDriver {
 			return driver;
 		}
 	}

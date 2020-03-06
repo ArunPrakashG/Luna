@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+	<Import Project="..\Deploy.props"/>
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>netcoreapp3.1</TargetFramework>
@@ -73,32 +73,10 @@
 	  <ProjectReference Include="..\Assistant.Morse\Assistant.Morse.csproj" />
 	  <ProjectReference Include="..\Assistant.PushBullet\Assistant.Pushbullet.csproj" />
 	  <ProjectReference Include="..\Assistant.Rest\Assistant.Rest.csproj" />
-	  <ProjectReference Include="..\Assistant.Security\Assistant.Security.csproj" />
-	  <ProjectReference Include="..\Assistant.Server\Assistant.Server.csproj" />
+	  <ProjectReference Include="..\Assistant.Security\Assistant.Security.csproj" />	  
 	  <ProjectReference Include="..\Assistant.Sound\Assistant.Sound.csproj" />
 	  <ProjectReference Include="..\Assistant.Weather\Assistant.Weather.csproj" />
 	</ItemGroup>
-
-	<PropertyGroup>
-		<SshDeployHost>192.168.1.37</SshDeployHost>
-		<SshDeployClean />
-		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Assistant.Core</SshDeployTargetPath>
-		<SshDeployUsername>pi</SshDeployUsername>
-		<SshDeployPassword>miniprakash</SshDeployPassword>
-		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-		<LangVersion>8.0</LangVersion>
-		<Authors>Arun Prakash (ArunPrakashG)</Authors>
-		<Product>Home Assistant</Product>
-		<Description>Home automation and personal assistant running on raspberry pi using C# .NET Core Framework.</Description>
-		<SignAssembly>false</SignAssembly>
-		<RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
-		<RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
-	</PropertyGroup>
-
-	<Target Condition="$(BuildingInsideSshDeploy) ==''" Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="cd $(ProjectDir)" Condition="'$(Configuration)' == 'Release' " />
-		<Exec Command="dotnet-sshdeploy push" Condition="'$(Configuration)' == 'Release' " />
-	</Target>
 
 	<ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
 

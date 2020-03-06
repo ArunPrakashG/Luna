@@ -13,7 +13,6 @@ namespace Assistant.Core {
 	using Assistant.Modules;
 	using Assistant.Pushbullet;
 	using Assistant.Rest;
-	using Assistant.Server.CoreServer;
 	using Assistant.Sound.Speech;
 	using Assistant.Weather;
 	using CommandLine;
@@ -91,11 +90,6 @@ namespace Assistant.Core {
 		/// Gets the PushbulletClient
 		/// </summary>
 		public static PushbulletClient PushbulletClient { get; private set; } = new PushbulletClient();
-
-		/// <summary>
-		/// Gets the CoreServer
-		/// </summary>
-		public static CoreServerBase CoreServer { get; private set; } = new CoreServerBase();
 
 		/// <summary>
 		/// Gets the FileWatcher
@@ -185,10 +179,7 @@ namespace Assistant.Core {
 			Logging.Logger.OnErrorReceived += EventManager.Logger_OnErrorReceived;
 			Logging.Logger.OnExceptionReceived += EventManager.Logger_OnExceptionReceived;
 			Logging.Logger.OnInputReceived += EventManager.Logger_OnInputReceived;
-			Logging.Logger.OnWarningReceived += EventManager.Logger_OnWarningReceived;
-			CoreServer.ServerStarted += EventManager.CoreServer_ServerStarted;
-			CoreServer.ServerShutdown += EventManager.CoreServer_ServerShutdown;
-			CoreServer.ClientConnected += EventManager.CoreServer_ClientConnected;
+			Logging.Logger.OnWarningReceived += EventManager.Logger_OnWarningReceived;			
 			JobManager.JobException += JobManager_JobException;
 			JobManager.JobStart += JobManager_JobStart;
 			JobManager.JobEnd += JobManager_JobEnd;
@@ -251,20 +242,9 @@ namespace Assistant.Core {
 			Config.ProgramLastStartup = StartupTime;
 			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
-			Controller = new PiGpioController(Gpio.Enums.EGPIO_DRIVERS.RaspberryIODriver,
+			Controller = new PiGpioController(EGPIO_DRIVERS.WiringPiDriver,
 				new AvailablePins(Config.OutputModePins, Config.InputModePins, Constants.BcmGpioPins), true);
 			Console.Title = $"Home Assistant Initializing...";
-			return this;
-		}
-
-		/// <summary>
-		/// The StartTcpServer
-		/// </summary>
-		/// <param name="port">The port<see cref="int"/></param>
-		/// <param name="backlog">The backlog<see cref="int"/></param>
-		/// <returns>The <see cref="Core"/></returns>
-		public Core StartTcpServer(int port, int backlog) {
-			_ = CoreServer.StartAsync(port, backlog).Result;
 			return this;
 		}
 
@@ -308,7 +288,7 @@ namespace Assistant.Core {
 		[Obsolete("TODO: Add more commands")]
 		public Core InitRestServer() {
 			RestServer = new RestCore();
-			Task.Run(async () => {				
+			Task.Run(async () => {
 				await RestServer.InitServer(new Dictionary<string, Func<RequestParameter, RequestResponse>>() {
 				{"example_command", EventManager.RestServerExampleCommand }
 				}).ConfigureAwait(false);
@@ -1033,15 +1013,11 @@ namespace Assistant.Core {
 			FileWatcher.StopWatcher();
 			ModuleWatcher.StopWatcher();
 
-			if (CoreServer.IsServerListerning) {
-				await CoreServer.TryShutdownAsync().ConfigureAwait(false);
-			}
-
 			//if (KestrelServer.IsServerOnline) {
 			//	await KestrelServer.Stop().ConfigureAwait(false);
 			//}
 
-			ModuleLoader?.OnCoreShutdown();			
+			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
 			await Config.SaveConfig(Config).ConfigureAwait(false);
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);

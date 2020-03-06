@@ -73,10 +73,10 @@ namespace Assistant.Gpio {
 			foreach (char character in Morse.ToCharArray()) {
 				switch (character) {
 					case '.':
-						Driver.SetGpioWithTimeout(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300));
+						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300));
 						break;
 					case '-':
-						Driver.SetGpioWithTimeout(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3));
+						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3));
 						break;
 					case '_':
 						await Task.Delay(300).ConfigureAwait(false);

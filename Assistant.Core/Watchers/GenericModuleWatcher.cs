@@ -55,8 +55,6 @@ namespace Assistant.Core.Watchers {
 				Filter = WatcherFilter
 			};
 
-			//TODO: Check for duplicates in the dictionary
-
 			Watcher.Created += OnFileEventRaised;
 			Watcher.Changed += OnFileEventRaised;
 			Watcher.Renamed += OnFileEventRaised;

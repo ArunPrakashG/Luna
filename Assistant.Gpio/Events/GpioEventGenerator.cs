@@ -13,7 +13,7 @@ namespace Assistant.Gpio.Events {
 		private static IGpioControllerDriver? Driver => PinController.GetDriver();
 		private static ILogger Logger => GpioEventManager.Logger;
 		private bool OverrideEventWatcher { get; set; }
-		public GpioPinEventConfig EventPinConfig { get; private set; } = new GpioPinEventConfig();
+		public EventConfig EventPinConfig { get; private set; } = new EventConfig();
 		public bool IsEventRegistered { get; private set; } = false;
 
 		public Thread? PollingThread { get; private set; }
@@ -127,7 +127,7 @@ namespace Assistant.Gpio.Events {
 			}, $"Polling thread {EventPinConfig.GpioPin}", true);
 		}
 
-		public bool StartPinPolling(GpioPinEventConfig config) {
+		public bool StartPinPolling(EventConfig config) {
 			if (Driver == null || !Driver.IsDriverProperlyInitialized) {
 				return false;
 			}

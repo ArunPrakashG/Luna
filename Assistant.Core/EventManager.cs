@@ -1,6 +1,5 @@
 using Assistant.Logging.EventArgs;
 using Assistant.Rest;
-using Assistant.Server.CoreServer.EventArgs;
 using System;
 using System.Collections.Generic;
 using static Assistant.Logging.Enums;
@@ -8,18 +7,6 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Core {
 	internal class EventManager {
 		private static List<NLog.CoreLogger> AssistantLoggers = new List<NLog.CoreLogger>();
-
-		internal void CoreServer_ClientConnected(object sender, OnClientConnectedEventArgs e) {
-
-		}
-
-		internal void CoreServer_ServerShutdown(object sender, OnServerShutdownEventArgs e) {
-
-		}
-
-		internal void CoreServer_ServerStarted(object sender, OnServerStartedListerningEventArgs e) {
-
-		}
 
 		internal void Logger_OnWarningReceived(object sender, EventArgsBase e) { }
 

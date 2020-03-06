@@ -8,7 +8,7 @@ namespace Assistant.Gpio.Events {
 		internal static readonly ILogger Logger = new Logger(typeof(GpioEventManager).Name);
 		public List<GpioEventGenerator> GpioPinEventGenerators = new List<GpioEventGenerator>();
 
-		public bool RegisterGpioEvent(GpioPinEventConfig pinConfig) {
+		public bool RegisterGpioEvent(EventConfig pinConfig) {
 			if (!PinController.IsValidPin(pinConfig.GpioPin)) {
 				Logger.Warning("The specified pin is invalid.");
 				return false;
@@ -24,19 +24,19 @@ namespace Assistant.Gpio.Events {
 			return false;
 		}
 
-		public bool RegisterGpioEvent(List<GpioPinEventConfig> pinDataList) {
+		public bool RegisterGpioEvent(List<EventConfig> pinDataList) {
 			if (pinDataList == null || pinDataList.Count <= 0) {
 				return false;
 			}
 
-			foreach (GpioPinEventConfig pin in pinDataList) {
+			foreach (EventConfig pin in pinDataList) {
 				if (!PinController.IsValidPin(pin.GpioPin)) {
 					Logger.Warning("Invalid pin in the pin list.");
 					return false;
 				}
 			}
 
-			foreach (GpioPinEventConfig pin in pinDataList) {
+			foreach (EventConfig pin in pinDataList) {
 				RegisterGpioEvent(pin);
 			}
 

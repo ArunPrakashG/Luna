@@ -53,9 +53,7 @@ namespace Assistant.Core.Watchers {
 			Watcher = new FileSystemWatcher(WatcherDirectory) {
 				NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
 				Filter = WatcherFilter
-			};
-
-			//TODO: Check for duplicates in the dictionary
+			};			
 
 			Watcher.Created += OnFileEventRaised;
 			Watcher.Changed += OnFileEventRaised;

@@ -210,10 +210,10 @@ namespace Assistant.Server.CoreServer {
 						continue;
 					}
 					
-					if (PreviousRequest != null && PreviousRequest.GetHashCode() == ) {
-						await Task.Delay(1).ConfigureAwait(false);
-						continue;
-					}
+					//if (PreviousRequest != null && PreviousRequest.GetHashCode() == ) {
+					//	await Task.Delay(1).ConfigureAwait(false);
+					//	continue;
+					//}
 
 					PreviousRequest = request;
 					return (true, request);

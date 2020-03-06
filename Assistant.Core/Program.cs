@@ -29,7 +29,6 @@ namespace Assistant.Core {
 				.Versioning()
 				.StartScheduler()
 				.DisplayASCIILogo()
-				.StartTcpServer(2244, 10)
 				.VerifyStartupArgs(args)
 				//.AllowLocalNetworkConnections()				
 				.StartWatcher()
