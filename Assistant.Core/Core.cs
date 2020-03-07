@@ -11,6 +11,8 @@ namespace Assistant.Core {
 	using Assistant.Logging;
 	using Assistant.Logging.Interfaces;
 	using Assistant.Modules;
+	using Assistant.Modules.Interfaces;
+	using Assistant.Modules.Interfaces.EventInterfaces;
 	using Assistant.Pushbullet;
 	using Assistant.Rest;
 	using Assistant.Sound.Speech;
@@ -126,7 +128,7 @@ namespace Assistant.Core {
 		/// Gets or sets a value indicating whether First chance logging must be disabled.
 		/// </summary>
 		public static bool DisableFirstChanceLogWithDebug { get; private set; }
-			   
+
 		/// <summary>
 		/// The assistant name assigned by the user.
 		/// </summary>
@@ -138,7 +140,7 @@ namespace Assistant.Core {
 		/// <returns>Boolean, when the endless thread block has been interrupted, such as, on exit.</returns>
 		public static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", LogLevels.Trace);
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
+			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
 
 			if (Config.DisplayStartupMenu) {
 				await DisplayRelayCycleMenu().ConfigureAwait(false);
@@ -202,8 +204,8 @@ namespace Assistant.Core {
 		/// Loads the core configuration from the json file.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
-		public Core LoadConfiguration() {
-			Task.Run(async () => await Config.LoadConfig().ConfigureAwait(false));
+		public async Task<Core> LoadConfiguration() {
+			await Config.LoadConfig().ConfigureAwait(false);
 			return this;
 		}
 
@@ -236,16 +238,15 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <typeparam name="T">The type of IShellCommand object to use for loading the commands.</typeparam>
 		/// <returns>The <see cref="Core"/></returns>
-		public Core InitShell<T>() where T : IShellCommand {
-			Task.Run(async () => await Interpreter.InitInterpreterAsync<T>().ConfigureAwait(false));
+		public async Task<Core> InitShell<T>() where T : IShellCommand {
+			await Interpreter.InitInterpreterAsync<T>().ConfigureAwait(false);
 			return this;
 		}
 
 		/// <summary>
 		/// Sends current application local ip to a remote server so that connecting via Local network is easier.
 		/// </summary>
-		/// <returns>The <see cref="Core"/></returns>
-		[Obsolete]
+		/// <returns>The <see cref="Core"/></returns>		
 		public Core AllowLocalNetworkConnections() {
 			SendLocalIp();
 			return this;
@@ -256,7 +257,7 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core StartConsoleTitleUpdater() {
-			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.ToRunEvery(1).Seconds());
+			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.WithName("ConsoleUpdater").ToRunEvery(1).Seconds());
 			return this;
 		}
 
@@ -275,12 +276,10 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		[Obsolete("TODO: Add more commands")]
-		public Core InitRestServer() {
-			Task.Run(async () => {
-				await RestServer.InitServer(new Dictionary<string, Func<RequestParameter, RequestResponse>>() {
+		public async Task<Core> InitRestServer() {
+			await RestServer.InitServer(new Dictionary<string, Func<RequestParameter, RequestResponse>>() {
 				{"example_command", EventManager.RestServerExampleCommand }
 				}).ConfigureAwait(false);
-			});
 
 			return this;
 		}
@@ -331,8 +330,8 @@ namespace Assistant.Core {
 		/// Checks for any update available and updates automatically if there is.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
-		public Core CheckAndUpdate() {
-			Task.Run(async () => await Update.CheckAndUpdateAsync(true).ConfigureAwait(false));
+		public async Task<Core> CheckAndUpdate() {
+			await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
 			return this;
 		}
 
@@ -340,12 +339,12 @@ namespace Assistant.Core {
 		/// Loads the modules from the module directory.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
-		public Core StartModules() {
+		public async Task<Core> StartModules<T>() where T: IModuleBase {
 			if (!Config.EnableModules) {
 				return this;
 			}
 
-			Task.Run(async () => await ModuleLoader.LoadAsync().ConfigureAwait(false));
+			await ModuleLoader.LoadAsync<T>().ConfigureAwait(false);
 			return this;
 		}
 
@@ -381,7 +380,7 @@ namespace Assistant.Core {
 			try {
 				await NetworkSync.WaitAsync().ConfigureAwait(false);
 				IsNetworkAvailable = false;
-				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
+				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
 				Constants.ExternelIP = "Internet connection lost.";
 			}
 			finally {
@@ -397,7 +396,7 @@ namespace Assistant.Core {
 			try {
 				await NetworkSync.WaitAsync().ConfigureAwait(false);
 				IsNetworkAvailable = true;
-				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
+				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
 				Constants.ExternelIP = Helpers.GetExternalIp();
 
 				if (Config.AutoUpdates && IsNetworkAvailable) {
@@ -419,7 +418,7 @@ namespace Assistant.Core {
 		public static async Task OnExit() {
 			Logger.Log("Shutting down...");
 
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
+			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
 
 			Interpreter.ShutdownShell = true;
 			await RestServer.Shutdown().ConfigureAwait(false);
@@ -476,7 +475,7 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemShutdown() {
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemShutdown, default);
+			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.SystemShutdown, default);
 			if (PiGpioController.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Shutting down pi...", LogLevels.Warn);
@@ -502,7 +501,7 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Task"/></returns>
 		public static async Task SystemRestart() {
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemRestart, default);
+			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.SystemRestart, default);
 			if (PiGpioController.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Restarting pi...", LogLevels.Warn);
@@ -663,12 +662,12 @@ namespace Assistant.Core {
 						Logger.Log("Test method execution finished successfully!", LogLevels.Green);
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleInitializer.Modules.Count > 0 && Config.EnableModules:
+					case Constants.ConsoleModuleShutdownKey when Modules.Count > 0 && Config.EnableModules:
 						Logger.Log("Shutting down all modules...", LogLevels.Warn);
 						ModuleLoader.OnCoreShutdown();
 						return;
 
-					case Constants.ConsoleModuleShutdownKey when ModuleInitializer.Modules.Count <= 0:
+					case Constants.ConsoleModuleShutdownKey when Modules.Count <= 0:
 						Logger.Log("There are no modules to shutdown...");
 						return;
 
@@ -1062,7 +1061,7 @@ namespace Assistant.Core {
 				return;
 			}
 
-			Helpers.InBackground(async () => await ModuleLoader.LoadAsync().ConfigureAwait(false));
+			Helpers.InBackground(async () => await ModuleLoader.LoadAsync<IModuleBase>().ConfigureAwait(false));
 		}
 
 		private static void SetConsoleTitle() {
@@ -1079,21 +1078,26 @@ namespace Assistant.Core {
 		private static void SendLocalIp() {
 			string? localIp = Helpers.GetLocalIpAddress();
 
-			if (localIp == null || string.IsNullOrEmpty(localIp)) {
+			if (string.IsNullOrEmpty(localIp)) {
 				return;
 			}
 
 			Constants.LocalIP = localIp;
-			RestClient client = new RestClient($"http://{Config.StatisticsServerIP}/api/v1/assistant/ip?ip={Constants.LocalIP}");
-			RestRequest request = new RestRequest(Method.POST);
-			request.AddHeader("cache-control", "no-cache");
-			IRestResponse response = client.Execute(request);
+			int maxTry = 3;
 
-			if (response.StatusCode != HttpStatusCode.OK) {
-				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
+			for (int i = 0; i < maxTry; i++) {
+				RestClient client = new RestClient($"http://{Config.StatisticsServerIP}/api/v1/assistant/ip?ip={Constants.LocalIP}");
+				RestRequest request = new RestRequest(Method.POST);
+				request.AddHeader("cache-control", "no-cache");
+				IRestResponse response = client.Execute(request);
+
+				if (response.StatusCode != HttpStatusCode.OK) {
+					continue;
+				}
+
+				Logger.Log($"{Constants.LocalIP} IP request send!", LogLevels.Trace);
+				break;
 			}
-
-			Logger.Log($"{Constants.LocalIP} IP request send!", LogLevels.Trace);
 		}
 	}
 }

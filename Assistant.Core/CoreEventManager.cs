@@ -103,9 +103,21 @@ namespace Assistant.Core {
 
 		internal void JobManagerOnException(JobExceptionInfo obj) => Logger.Exception(obj.Exception);
 
-		internal void JobManagerOnJobEnd(JobEndInfo obj) => Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
+		internal void JobManagerOnJobEnd(JobEndInfo obj) {
+			if(obj.Name.Equals("ConsoleUpdater", StringComparison.OrdinalIgnoreCase)) {
+				return;
+			}
 
-		internal void JobManagerOnJobStart(JobStartInfo obj) => Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
+			Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
+		}
+
+		internal void JobManagerOnJobStart(JobStartInfo obj) {
+			if (obj.Name.Equals("ConsoleUpdater", StringComparison.OrdinalIgnoreCase)) {
+				return;
+			}
+
+			Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
+		}
 
 		internal RequestResponse RestServerExampleCommand(RequestParameter arg) {
 			return new RequestResponse();

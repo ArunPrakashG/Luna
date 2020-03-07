@@ -1,17 +1,14 @@
 using Assistant.Modules.Interfaces;
-using static Assistant.Modules.ModuleInitializer;
 
 namespace Assistant.Modules {
-	public class ModuleInfo<TModuleObject> where TModuleObject : IModuleBase {
-		public string? ModuleIdentifier { get; set; }
-		public MODULE_TYPE ModuleType { get; set; }		
-		public TModuleObject Module { get; set; }
-		public bool IsLoaded { get; set; }
+	public struct ModuleInfo<T> where T : IModuleBase {
+		public readonly string? ModuleIdentifier;
+		public readonly T Module;
+		public readonly bool IsLoaded;
 
-		public ModuleInfo(string? modId, TModuleObject modObj, MODULE_TYPE modType, bool isLoaded) {
+		public ModuleInfo(string? modId, T modObj, bool isLoaded) {
 			ModuleIdentifier = modId;
 			Module = modObj;
-			ModuleType = modType;
 			IsLoaded = isLoaded;
 		}
 	}

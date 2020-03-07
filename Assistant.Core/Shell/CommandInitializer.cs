@@ -53,7 +53,7 @@ namespace Assistant.Core.Shell {
 
 					await command.InitAsync().ConfigureAwait(false);
 					Interpreter.Commands.Add(command.UniqueId, command);
-					Logger.Info($"Loaded shell command -> {command.CommandName}");
+					Logger.Trace($"Loaded shell command -> {command.CommandName}");
 				}
 
 				return true;

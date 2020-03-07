@@ -1,7 +1,7 @@
 using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
-using Assistant.Modules;
+using Assistant.Modules.Interfaces.EventInterfaces;
 using FluentScheduler;
 using System;
 using System.IO;
@@ -54,7 +54,7 @@ namespace Assistant.Core.Update {
 				IsOnPrerelease = LatestVersion < Constants.Version;
 
 				if (!UpdateAvailable) {
-					if(IsOnPrerelease) {
+					if (IsOnPrerelease) {
 						Logger.Log("Seems like you are on a pre-release channel. please report any bugs you encounter!", LogLevels.Warn);
 					}
 
@@ -78,7 +78,7 @@ namespace Assistant.Core.Update {
 				Logger.Log($"New version available!", LogLevels.Green);
 				Logger.Log($"Latest Version: {LatestVersion} / Local Version: {Constants.Version}");
 				Logger.Log("Automatically updating in 10 seconds...", LogLevels.Warn);
-				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.UpdateAvailable, default);
+				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.UpdateAvailable, default);
 				Helpers.ScheduleTask(async () => await InitUpdate().ConfigureAwait(false), TimeSpan.FromSeconds(10));
 				return LatestVersion;
 			}
@@ -154,7 +154,7 @@ namespace Assistant.Core.Update {
 				}
 
 				await Task.Delay(1000).ConfigureAwait(false);
-				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.UpdateStarted, default);
+				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.UpdateStarted, default);
 				"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash(false);
 				await Core.Restart(5).ConfigureAwait(false);
 				return true;

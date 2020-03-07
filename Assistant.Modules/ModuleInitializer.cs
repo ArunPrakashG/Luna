@@ -18,41 +18,32 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assistant.Modules {
-	public class ModuleInitializer : IExternal {
-		private readonly ILogger Logger = new Logger(typeof(ModuleInitializer).Name);
-		public static readonly ObservableCollection<IModuleBase> Modules = new ObservableCollection<IModuleBase>();
-		public HashSet<Assembly>? AssemblyCollection { get; private set; } = new HashSet<Assembly>();
+	public class ModuleInitializer : IExternal{
+		private readonly ILogger Logger = new Logger(typeof(ModuleInitializer).Name);		
+		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
 		private static readonly SemaphoreSlim ModuleLoaderSemaphore = new SemaphoreSlim(1, 1);
-
 		private readonly List<ModuleInfo<IModuleBase>> ModulesCache = new List<ModuleInfo<IModuleBase>>();
 
-		private static ModuleInfo<T> GenerateDefault<T>() where T : IModuleBase => new ModuleInfo<T>(null, default, MODULE_TYPE.Unknown, false);
+		public static readonly ObservableCollection<IModuleBase> Modules = new ObservableCollection<IModuleBase>();
+		private static ModuleInfo<IModuleBase> GenerateDefault() => new ModuleInfo<IModuleBase>(null, default, false);
 
-		public ModuleInitializer() {
-			Modules.CollectionChanged += OnModuleAdded;
-		}
+		public ModuleInitializer() => Modules.CollectionChanged += OnModuleAdded;
 
 		private void OnModuleAdded(object sender, NotifyCollectionChangedEventArgs e) {
-			if (sender == null || e == null || e.NewItems.Count <= 0) {
+			if (sender == null || e == null || e.NewItems == null || e.NewItems.Count <= 0) {
 				return;
 			}
-
-			foreach (var newItem in e.NewItems) {
-				if (newItem == null) {
-					continue;
-				}
-
-				IModuleBase? module = newItem as IModuleBase;
-
+			
+			foreach (IModuleBase module in e.NewItems) {
 				if (module == null) {
 					continue;
 				}
 
-				Helpers.InBackground(async () => await InitServiceOfTypeAsync<IModuleBase>(module).ConfigureAwait(false));
+				Helpers.InBackground(async () => await InitServiceOfTypeAsync(module).ConfigureAwait(false));
 			}
 		}
 
-		public async Task<bool> LoadAsync() {
+		public async Task<bool> LoadAsync<T>() where T: IModuleBase {
 			AssemblyCollection?.Clear();
 			AssemblyCollection = LoadAssemblies();
 
@@ -65,7 +56,7 @@ namespace Assistant.Modules {
 
 			try {
 				ConventionBuilder conventions = new ConventionBuilder();
-				conventions.ForTypesDerivedFrom<IModuleBase>().Export<IModuleBase>();
+				conventions.ForTypesDerivedFrom<T>().Export<T>();
 				ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(AssemblyCollection, conventions);
 
 				using CompositionHost container = configuration.CreateContainer();
@@ -73,13 +64,10 @@ namespace Assistant.Modules {
 
 				if (list.Count > 0) {
 					foreach (IModuleBase bot in list) {
-						Logger.Trace($"Loading module of type {ParseModuleType(bot.ModuleType)} ...");
+						Logger.Trace($"Loading module {bot.ModuleIdentifier} ...");
 						bot.ModuleIdentifier = GenerateModuleIdentifier();
-						ModuleInfo<IModuleBase> data = new ModuleInfo<IModuleBase>(bot.ModuleIdentifier, bot, ParseModuleType(bot.ModuleType), true) {
-							Module = bot
-						};
-
-						Logger.Trace($"Successfully loaded module with id {bot.ModuleIdentifier} of type {data.ModuleType.ToString()}");
+						ModuleInfo<IModuleBase> data = new ModuleInfo<IModuleBase>(bot.ModuleIdentifier, bot, true);
+						Logger.Trace($"Successfully loaded module with id {bot.ModuleIdentifier} !");
 
 						if (Modules.Count > 0 && !Modules.Contains(bot)) {
 							Modules.Add(bot);
@@ -100,12 +88,12 @@ namespace Assistant.Modules {
 			return true;
 		}
 
-		private async Task<bool> InitServiceOfTypeAsync<TType>(TType module) where TType : IModuleBase {
+		private async Task<bool> InitServiceOfTypeAsync<T>(T module) where T: IModuleBase {
 			if (module == null) {
 				return false;
 			}
 
-			Logger.Trace($"Starting {ParseModuleType(module.ModuleType).ToString()} module... ({module.ModuleIdentifier})");
+			Logger.Trace($"Starting module... ({module.ModuleIdentifier})");
 
 			if (IsExisitingModule(module)) {
 				return false;
@@ -118,7 +106,7 @@ namespace Assistant.Modules {
 			await ModuleLoaderSemaphore.WaitAsync().ConfigureAwait(false);
 			try {
 				if (module.InitModuleService()) {
-					Logger.Info($"Module loaded! {module.ModuleIdentifier}/{ParseModuleType(module.ModuleType).ToString()}");
+					Logger.Info($"Module loaded! {module.ModuleIdentifier}");
 					return true;
 				}
 			}
@@ -129,27 +117,19 @@ namespace Assistant.Modules {
 			return false;
 		}
 
-		private static MODULE_TYPE ParseModuleType(int typeCode) {
-			if (typeCode < 0 || typeCode > 4) {
-				return MODULE_TYPE.Unknown;
-			}
-
-			return (MODULE_TYPE) typeCode;
-		}
-
-		public bool UnloadModulesOfType<TType>() where TType : IModuleBase {
+		public bool UnloadModulesOfType() {
 			if (Modules.Count <= 0) {
 				return false;
 			}
 
-			if (!Modules.OfType<TType>().Any()) {
+			if (!Modules.OfType<IModuleBase>().Any()) {
 				return false;
 			}
 
-			List<TType> unloadedModules = new List<TType>();
-			foreach (TType mod in Modules.OfType<TType>()) {
+			List<IModuleBase> unloadedModules = new List<IModuleBase>();
+			foreach (IModuleBase mod in Modules.OfType<IModuleBase>()) {
 				if (mod.IsLoaded && mod.InitModuleShutdown()) {
-					Logger.Trace($"Module of type {ParseModuleType(mod.ModuleType)} has been unloaded.");
+					Logger.Trace($"Module has been unloaded.");
 					mod.IsLoaded = false;
 					unloadedModules.Add(mod);
 					continue;
@@ -157,10 +137,10 @@ namespace Assistant.Modules {
 			}
 
 			if (unloadedModules.Count > 0) {
-				foreach (TType mod in unloadedModules) {
+				foreach (IModuleBase mod in unloadedModules) {
 					if (Modules[Modules.IndexOf(mod)] != null) {
 						Modules.RemoveAt(Modules.IndexOf(mod));
-						Logger.Trace($"Module of type {ParseModuleType(mod.ModuleType)} has been removed from collection.");
+						Logger.Trace($"Module has been removed from collection.");
 					}
 				}
 			}
@@ -168,13 +148,13 @@ namespace Assistant.Modules {
 			return true;
 		}
 
-		public bool UnloadModuleWithId(string Id) {
-			if (string.IsNullOrEmpty(Id) || Modules.Count <= 0) {
+		public bool UnloadModuleWithId(string id) {
+			if (string.IsNullOrEmpty(id) || Modules.Count <= 0) {
 				return false;
 			}
 
-			IEnumerable<IModuleBase?> modules = Modules.Where(x => x.IsLoaded && x.ModuleIdentifier == Id);
-			IModuleBase? module = modules.FirstOrDefault();
+			IEnumerable<IModuleBase> modules = Modules.Where(x => x.IsLoaded && x.ModuleIdentifier == id);
+			IModuleBase module = modules.FirstOrDefault();
 
 			if (modules == null || modules.Count() <= 0 || module == null) {
 				return false;
@@ -183,22 +163,22 @@ namespace Assistant.Modules {
 			return module.InitModuleShutdown();
 		}
 
-		public ModuleInfo<TType> FindModuleOfType<TType>(string identifier) where TType : IModuleBase {
-			if (string.IsNullOrEmpty(identifier) || ModulesCache.Count <= 0 || !ModulesCache.OfType<TType>().Any()) {
-				return GenerateDefault<TType>();
+		public ModuleInfo<IModuleBase> FindModuleOfType(string identifier) {
+			if (string.IsNullOrEmpty(identifier) || ModulesCache.Count <= 0 || !ModulesCache.OfType<IModuleBase>().Any()) {
+				return GenerateDefault();
 			}
 
-			foreach (ModuleInfo<IModuleBase> mod in ModulesCache) {
+			foreach (ModuleInfo<IModuleBase> mod in ModulesCache.OfType<ModuleInfo<IModuleBase>>()) {
 				if (mod.ModuleIdentifier == identifier) {
-					Logger.Trace($"Module found of type {mod.ModuleType} with identifier {mod.ModuleIdentifier}");
-					return new ModuleInfo<TType>(mod.ModuleIdentifier, (TType) mod.Module, mod.ModuleType, mod.IsLoaded);
+					Logger.Trace($"Module found with identifier {mod.ModuleIdentifier}");
+					return mod;
 				}
 			}
 
-			return GenerateDefault<TType>();
+			return GenerateDefault();
 		}
 
-		private bool IsExisitingModule<TType>(TType module) where TType : IModuleBase {
+		private bool IsExisitingModule(IModuleBase module) {
 			if (module == null) {
 				return false;
 			}
@@ -225,9 +205,8 @@ namespace Assistant.Modules {
 			}
 
 			assemblyPath = Path.GetFullPath(assemblyPath);
-			IEnumerable<IModuleBase?> modules = Modules.Where(x => x.IsLoaded && x.ModulePath == assemblyPath);
-
-			IModuleBase? module = modules.FirstOrDefault();
+			IEnumerable<IModuleBase> modules = Modules.Where(x => x.IsLoaded && x.ModulePath == assemblyPath);
+			IModuleBase module = modules.FirstOrDefault();
 
 			if (modules == null || modules.Count() <= 0 || module == null) {
 				return false;
@@ -292,14 +271,14 @@ namespace Assistant.Modules {
 			return assemblies;
 		}
 
-		public void OnCoreShutdown() => UnloadModulesOfType<IModuleBase>();
+		public void OnCoreShutdown() => UnloadModulesOfType();
 
-		public static EventResponse ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT context, EventParameter parameters) {
-			if (Modules.Count <= 0 || !Modules.OfType<IEvent>().Any()) {
+		public static EventResponse ExecuteAsyncEvent<E>(MODULE_EXECUTION_CONTEXT context, EventParameter parameters) where E : IEvent {
+			if (Modules.Count <= 0 || !Modules.OfType<E>().Any()) {
 				return new EventResponse("failed.", false);
 			}
 
-			foreach (IEvent mod in Modules.OfType<IEvent>()) {
+			foreach (E mod in Modules.OfType<E>()) {
 				if (!mod.IsLoaded) {
 					continue;
 				}
@@ -310,7 +289,7 @@ namespace Assistant.Modules {
 					case MODULE_EXECUTION_CONTEXT.AssistantStartup:
 						return mod.OnAssistantStartedAsync().Invoke(parameters);
 					case MODULE_EXECUTION_CONTEXT.WatcherEvent:
-						if(parameters.Values.Length < 2) {
+						if (parameters.Values.Length < 2) {
 							return new EventResponse("Parameters are invalid.", false);
 						}
 
@@ -358,15 +337,6 @@ namespace Assistant.Modules {
 			SystemShutdown,
 			SystemRestart,
 			WatcherEvent
-		}
-
-		public enum MODULE_TYPE {
-			Discord,
-			Email,
-			Steam,
-			Youtube,
-			Events,
-			Unknown
 		}
 	}
 }

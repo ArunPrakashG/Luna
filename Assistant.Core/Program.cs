@@ -1,6 +1,7 @@
 using Assistant.Extensions.Shared.Shell;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
+using Assistant.Modules.Interfaces;
 using System;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
@@ -24,21 +25,21 @@ namespace Assistant.Core {
 			//NOTE: The order matters, as its going to start one by one.
 			_Core = _Core.PreInitTasks()
 				.RegisterEvents()
-				.LoadConfiguration()
+				.LoadConfiguration().Result
 				.VariableAssignation()
 				.Versioning()
 				.StartScheduler()
 				.DisplayASCIILogo()
 				.VerifyStartupArgs(args)
-				//.AllowLocalNetworkConnections()				
+				.AllowLocalNetworkConnections()				
 				.StartWatcher()
 				.InitPushbulletService()
 				.InitPiGpioController()
 				.StartConsoleTitleUpdater()
-				.StartModules()
-				.InitRestServer()
-				.CheckAndUpdate()
-				.InitShell<IShellCommand>()
+				.StartModules<IModuleBase>().Result
+				.InitRestServer().Result
+				.CheckAndUpdate().Result
+				.InitShell<IShellCommand>().Result
 				.MarkInitializationCompletion();
 
 			//Finally, call the blocking async method to wait endlessly unless its interrupted or canceled manually.
