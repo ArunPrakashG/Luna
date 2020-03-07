@@ -115,15 +115,15 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | help;");
+				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey};");
 				return;
 			}
 
 			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
 			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' help; '");
-			ShellOut.Info($"All Commands -> ' help -all; '");
-			ShellOut.Info($"Advanced -> ' help -[command_key]; '");
+			ShellOut.Info($"Basic Syntax -> ' {CommandKey}; '");
+			ShellOut.Info($"All Commands -> ' {CommandKey} -all; '");
+			ShellOut.Info($"Advanced -> ' {CommandKey} -[command_key]; '");
 			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 	}

@@ -83,14 +83,14 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | exit -[exit_code];");
+				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[exit_code];");
 				return;
 			}
 
 			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
 			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' exit; '");
-			ShellOut.Info($"Advanced -> ' exit -[exit_code]; '");
+			ShellOut.Info($"Basic Syntax -> ' {CommandKey}; '");
+			ShellOut.Info($"Advanced -> ' {CommandKey} -[exit_code]; '");
 			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 

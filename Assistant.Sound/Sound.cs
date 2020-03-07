@@ -2,6 +2,7 @@ using Assistant.Extensions;
 using Assistant.Extensions.Interfaces;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using static Assistant.Logging.Enums;
@@ -16,9 +17,10 @@ namespace Assistant.Sound {
 			IsGloballyMuted = isMuted;
 		}
 
-		public static void PlayNotification(ENOTIFICATION_CONTEXT context = ENOTIFICATION_CONTEXT.NORMAL, bool redirectOutput = false) {
+		public static void PlayNotification(ENOTIFICATION_CONTEXT context = ENOTIFICATION_CONTEXT.NORMAL, bool redirectOutput = false) {			
 			if (Helpers.GetOsPlatform() != OSPlatform.Linux) {
-				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Error);
+				Console.Beep();
+				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Trace);
 				return;
 			}
 

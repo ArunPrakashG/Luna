@@ -178,7 +178,7 @@ namespace Assistant.Core.Shell {
 						continue;
 					}
 
-					//splits the arguments - returns {help}{param1},{param2},{param3}...
+					//splits the arguments - returns [{help}][{param1}{param2}{param3}]...
 					string[] split2 = split[i].Split('-', StringSplitOptions.RemoveEmptyEntries);
 
 					foreach (string val in split2) {
@@ -195,12 +195,28 @@ namespace Assistant.Core.Shell {
 
 					string? commandKey = split2[0].Trim().ToLower();
 					bool doesContainParams = split2.Length > 1 && !string.IsNullOrEmpty(split2[1]);
-					bool doesContainMultipleParams = doesContainParams && split2[1].Trim().Contains(',');
-					string[] parameters = doesContainMultipleParams ?
-						split2[1].Trim().Split(',')
-						: doesContainParams ?
-						new string[] { split2[1].Trim() }
-						: new string[] { };
+					bool multipleParamsExist = doesContainParams && split2.Length > 2;
+					string[] parameters = new string[split2.Length - 1];
+
+					if (multipleParamsExist) {
+						for (int j = 0; j < split2.Length; j++) {
+							split2[j] = split2[j].Trim();
+							if (string.IsNullOrEmpty(split2[j])) {
+								continue;
+							}
+
+							if (split2[j].Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
+								continue;
+							}
+
+							parameters[j - 1] = split2[j];
+						}
+					}
+					else {
+						//TODO: Error: IndexWasOutsideTheBoundsOfTheArray
+						parameters = new string[1];
+						parameters[0] = split2[1].Trim();
+					}					
 
 					if (string.IsNullOrEmpty(commandKey)) {
 						continue;
