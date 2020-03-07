@@ -13,7 +13,7 @@ namespace Assistant.Gpio.Events {
 	internal class Generator {
 		private const int POLL_DELAY = 1; // in ms
 		private static IGpioControllerDriver? Driver => PinController.GetDriver();
-		private static ILogger Logger => GpioEventManager.Logger;
+		private static ILogger Logger => PinEvents.Logger;
 		private bool OverrideEventWatcher;
 		private GpioPinState _previousPinState = GpioPinState.Off;
 		private bool _previousDigitalState = true;
@@ -70,10 +70,8 @@ namespace Assistant.Gpio.Events {
 					case GpioPinEventStates.ON when currentPinState == GpioPinState.On && _previousPinState != currentPinState:
 					case GpioPinEventStates.OFF when currentPinState == GpioPinState.Off && _previousPinState != currentPinState:
 					case GpioPinEventStates.ALL when _previousPinState != currentPinState:
-						OnValueChangedEventArgs eventArgs = new OnValueChangedEventArgs(Config.GpioPin, currentPinState, currentDigitalValue, Config.PinMode);
-						if (Config.Function != null) {
-							Config.Function.Invoke(this, eventArgs);
-						}
+						OnValueChangedEventArgs eventArgs = new OnValueChangedEventArgs(Config.GpioPin, currentPinState, currentDigitalValue, Config.PinMode, _previousPinState, _previousDigitalState);
+						Config.OnFireAction?.Invoke(this, eventArgs);
 						break;
 					case GpioPinEventStates.NONE:
 						OverrideEventWatcher = true;

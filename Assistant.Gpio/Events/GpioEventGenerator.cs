@@ -11,7 +11,7 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Gpio.Events {
 	public sealed class GpioEventGenerator {
 		private static IGpioControllerDriver? Driver => PinController.GetDriver();
-		private static ILogger Logger => GpioEventManager.Logger;
+		private static ILogger Logger => PinEvents.Logger;
 		private bool OverrideEventWatcher { get; set; }
 		public EventConfig EventPinConfig { get; private set; } = new EventConfig();
 		public bool IsEventRegistered { get; private set; } = false;

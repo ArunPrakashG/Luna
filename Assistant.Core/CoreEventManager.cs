@@ -1,18 +1,22 @@
+using Assistant.Logging;
 using Assistant.Logging.EventArgs;
+using Assistant.Logging.Interfaces;
 using Assistant.Rest;
+using FluentScheduler;
 using System;
 using System.Collections.Generic;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
-	internal class EventManager {
+	internal class CoreEventManager {
 		private static List<NLog.CoreLogger> AssistantLoggers = new List<NLog.CoreLogger>();
+		private static ILogger Logger = new Logger(typeof(CoreEventManager).Name);
 
-		internal void Logger_OnWarningReceived(object sender, EventArgsBase e) { }
+		internal void OnWarningReceived(object sender, EventArgsBase e) { }
 
-		internal void Logger_OnInputReceived(object sender, EventArgsBase e) { }
+		internal void OnInputReceived(object sender, EventArgsBase e) { }
 
-		internal void Logger_OnExceptionReceived(object sender, OnExceptionMessageEventArgs e) {
+		internal void OnExceptionOccured(object sender, OnExceptionMessageEventArgs e) {
 			if (AssistantLoggers == null) {
 				AssistantLoggers = new List<NLog.CoreLogger>();
 			}
@@ -27,7 +31,7 @@ namespace Assistant.Core {
 			logger.Log(e.LogException, LogLevels.Exception, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
 		}
 
-		internal void Logger_OnErrorReceived(object sender, EventArgsBase e) {
+		internal void OnErrorReceived(object sender, EventArgsBase e) {
 			if (AssistantLoggers == null) {
 				AssistantLoggers = new List<NLog.CoreLogger>();
 			}
@@ -42,9 +46,9 @@ namespace Assistant.Core {
 			logger.Log(e.LogMessage, LogLevels.Error, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
 		}
 
-		internal void Logger_OnColoredReceived(object sender, WithColorEventArgs e) { }
+		internal void OnColoredReceived(object sender, WithColorEventArgs e) { }
 
-		internal void Logger_LogMessageReceived(object sender, LogMessageEventArgs e) {
+		internal void OnLogMessageReceived(object sender, LogMessageEventArgs e) {
 			if (AssistantLoggers == null) {
 				AssistantLoggers = new List<NLog.CoreLogger>();
 			}
@@ -96,6 +100,12 @@ namespace Assistant.Core {
 					break;
 			}
 		}
+
+		internal void JobManagerOnException(JobExceptionInfo obj) => Logger.Exception(obj.Exception);
+
+		internal void JobManagerOnJobEnd(JobEndInfo obj) => Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
+
+		internal void JobManagerOnJobStart(JobStartInfo obj) => Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
 
 		internal RequestResponse RestServerExampleCommand(RequestParameter arg) {
 			return new RequestResponse();

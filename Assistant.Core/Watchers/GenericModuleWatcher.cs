@@ -1,5 +1,4 @@
 using Assistant.Core.Watchers.Interfaces;
-using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Assistant.Modules;
@@ -86,7 +85,7 @@ namespace Assistant.Core.Watchers {
 				return;
 			}
 
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.WatcherEvent, new EventParameter(new object[] { sender, e}));
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.WatcherEvent, new EventParameter(new object[] { sender, e }));
 
 			if (WatcherEvents.Count <= 0) {
 				return;

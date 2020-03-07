@@ -2,6 +2,7 @@ using Assistant.Extensions;
 using Assistant.Gpio.Config;
 using Assistant.Gpio.Drivers;
 using Assistant.Gpio.Events;
+using Assistant.Gpio.Events.EventArgs;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
@@ -19,7 +20,7 @@ namespace Assistant.Gpio.Controllers {
 		public static AvailablePins AvailablePins { get; private set; }
 		internal static bool IsGracefullShutdownRequested = true;
 		public static bool IsAllowedToExecute => IsPiEnvironment();
-		private static GpioEventManager? EventManager;
+		private static PinEvents? EventManager;
 		private static GpioMorseTranslator? MorseTranslator;
 		private static PiBluetoothController? BluetoothController;
 		private static PiSoundController? SoundController;
@@ -63,7 +64,7 @@ namespace Assistant.Gpio.Controllers {
 				return;
 			}
 
-			EventManager = new GpioEventManager();
+			EventManager = new PinEvents();
 			MorseTranslator = new GpioMorseTranslator();
 			BluetoothController = new PiBluetoothController();
 			SoundController = new PiSoundController();
@@ -105,14 +106,30 @@ namespace Assistant.Gpio.Controllers {
 			ConfigManager = new PinConfigManager().Init(new PinConfig(pinConfigs));
 
 			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
-				EventManager?.RegisterGpioEvent(new EventConfig(AvailablePins.OutputPins[i], GpioPinMode.Output, GpioPinEventStates.ALL));
+				EventManager?.RegisterEvent(new EventConfig(AvailablePins.OutputPins[i], GpioPinMode.Output, GpioPinEventStates.ALL, OutputPinEvents));				
 				Logger.Trace($"Event registered for {AvailablePins.OutputPins[i]} gpio pin with Output state.");
 			}
 
 			for (int i = 0; i < AvailablePins.InputPins.Length; i++) {
-				EventManager?.RegisterGpioEvent(new EventConfig(AvailablePins.InputPins[i], GpioPinMode.Input, GpioPinEventStates.ALL));
+				EventManager?.RegisterEvent(new EventConfig(AvailablePins.InputPins[i], GpioPinMode.Input, GpioPinEventStates.ALL, InputPinEvents));				
 				Logger.Trace($"Event registered for {AvailablePins.InputPins[i]} gpio pin with Input state.");
 			}
+		}
+
+		private void OutputPinEvents(object sender, OnValueChangedEventArgs e) {
+			if(sender == null) {
+				return;
+			}
+
+			Logger.Info($"{e.CurrentMode.ToString()} | {e.Pin} has been set to {e.CurrentState.ToString()} state. ({e.PreviousPinState.ToString()})");
+		}
+
+		private void InputPinEvents(object sender, OnValueChangedEventArgs e) {
+			if (sender == null) {
+				return;
+			}
+
+			Logger.Info($"{e.CurrentMode.ToString()} | {e.Pin} has been set to {e.CurrentState.ToString()} state. ({e.PreviousPinState.ToString()})");
 		}
 
 		public void Shutdown() {
@@ -133,7 +150,7 @@ namespace Assistant.Gpio.Controllers {
 			return false;
 		}
 
-		public static GpioEventManager? GetEventManager() => EventManager;
+		public static PinEvents? GetEventManager() => EventManager;
 		public static GpioMorseTranslator? GetMorseTranslator() => MorseTranslator;
 		public static PiBluetoothController? GetBluetoothController() => BluetoothController;
 		public static PiSoundController? GetSoundController() => SoundController;

@@ -37,111 +37,100 @@ namespace Assistant.Core {
 	/// </summary>
 	public class Core {
 		/// <summary>
-		/// Gets or sets the Logger
+		/// The ILogger instance used for logging.
 		/// </summary>
-		public static ILogger Logger { get; set; } = new Logger(typeof(Core).Name);
+		private static readonly ILogger Logger = new Logger(typeof(Core).Name);
 
 		/// <summary>
-		/// Defines the StartupTime
+		/// Stores all event functions/actions which are called internally.
 		/// </summary>
-		public static DateTime StartupTime;
+		private static readonly CoreEventManager EventManager = new CoreEventManager();
+
+		private static readonly SemaphoreSlim NetworkSync = new SemaphoreSlim(1, 1);
 
 		/// <summary>
-		/// Defines the RefreshConsoleTitleTimer
+		/// The token used to run the KeepAlive() loop.
+		/// When canceled, entire application shuts down.
 		/// </summary>
-		private static Timer? RefreshConsoleTitleTimer;
+		private static CancellationTokenSource KeepAliveToken = new CancellationTokenSource(TimeSpan.FromDays(10));
 
 		/// <summary>
-		/// Defines the EventManager
-		/// </summary>
-		private static readonly EventManager EventManager = new EventManager();
-
-		/// <summary>
-		/// Gets the PiController
+		/// The Raspberry pi Controller instance which helps to control the pi. Including the gpio pins and bluetooth/sound etc.
 		/// </summary>
 		public static PiGpioController? Controller { get; private set; }
 
 		/// <summary>
-		/// Gets the PinController
+		/// Stores the application startup time. (Time when assistant is fully initialized.)
+		/// </summary>
+		public static DateTime StartupTime { get; private set; }
+
+		/// <summary>
+		/// Gets the PinController sub class of the Raspberry pi controller instance.
+		/// Will be null as long as controller hasn't successfully initialized.
 		/// </summary>
 		public static PinController? PinController => PiGpioController.GetPinController();
 
 		/// <summary>
-		/// Gets the Update
+		/// The update manager instance.
 		/// </summary>
+		[Obsolete]
 		public static UpdateManager Update { get; private set; } = new UpdateManager();
 
 		/// <summary>
-		/// Gets or sets the Config
+		/// The core config
 		/// </summary>
-		public static CoreConfig Config { get; set; } = new CoreConfig();
+		public static CoreConfig Config { get; internal set; } = new CoreConfig();
 
 		/// <summary>
-		/// Gets the ModuleLoader
+		/// The modules loader.
+		/// Loads external module .dll files into assistant core.
 		/// </summary>
-		public static ModuleInitializer ModuleLoader { get; private set; } = new ModuleInitializer();
+		public static readonly ModuleInitializer ModuleLoader = new ModuleInitializer();
 
 		/// <summary>
-		/// Gets the WeatherClient
+		/// Weather Instance used to get the weather information of a location.
 		/// </summary>
-		public static WeatherClient WeatherClient { get; private set; } = new WeatherClient();
+		public static readonly WeatherClient WeatherClient = new WeatherClient();
 
 		/// <summary>
-		/// Gets the PushbulletClient
+		/// Push-bullet instance used to send Push to various connected devices.
 		/// </summary>
-		public static PushbulletClient PushbulletClient { get; private set; } = new PushbulletClient();
+		public static readonly PushbulletClient PushbulletClient = new PushbulletClient();
 
 		/// <summary>
-		/// Gets the FileWatcher
+		/// The IFileWatcher instance for watching config directory.
 		/// </summary>
-		public static IFileWatcher FileWatcher { get; private set; } = new GenericFileWatcher();
+		public static readonly IFileWatcher FileWatcher = new GenericFileWatcher();
 
 		/// <summary>
-		/// Gets the ModuleWatcher
+		/// The IFileWatcher instance for watching the module directory.
 		/// </summary>
-		public static IModuleWatcher ModuleWatcher { get; private set; } = new GenericModuleWatcher();
-
-		public static RestCore RestServer { get; private set; }
+		public static readonly IModuleWatcher ModuleWatcher = new GenericModuleWatcher();
 
 		/// <summary>
-		/// Gets a value indicating whether CoreInitiationCompleted
+		/// The Rest HTTP server instance.
+		/// </summary>
+		public static readonly RestCore RestServer = new RestCore();
+
+		/// <summary>
+		/// Gets a value indicating whether Core Initiation process is Completed.
 		/// </summary>
 		public static bool CoreInitiationCompleted { get; private set; }
 
 		/// <summary>
-		/// Gets or sets a value indicating whether IsNetworkAvailable
+		/// Gets or sets a value indicating whether is network connectivity is available.
 		/// </summary>
-		public static bool IsNetworkAvailable { get; set; }
+		public static bool IsNetworkAvailable { get; private set; }
 
 		/// <summary>
-		/// Gets or sets a value indicating whether DisableFirstChanceLogWithDebug
+		/// Gets or sets a value indicating whether First chance logging must be disabled.
 		/// </summary>
-		public static bool DisableFirstChanceLogWithDebug { get; set; }
-
+		public static bool DisableFirstChanceLogWithDebug { get; private set; }
+			   
 		/// <summary>
-		/// Gets the RunningPlatform
-		/// </summary>
-		public static OSPlatform RunningPlatform { get; private set; }
-
-		/// <summary>
-		/// Defines the NetworkSemaphore
-		/// </summary>
-		private static readonly SemaphoreSlim NetworkSemaphore = new SemaphoreSlim(1, 1);
-
-		/// <summary>
-		/// Gets the AssistantName
+		/// The assistant name assigned by the user.
 		/// </summary>
 		public static string AssistantName => !string.IsNullOrEmpty(Config.AssistantDisplayName) ? Config.AssistantDisplayName : "Home Assistant";
-
-		/// <summary>
-		/// Gets the KeepAliveToken
-		/// </summary>
-		public static CancellationTokenSource KeepAliveToken { get; private set; } = new CancellationTokenSource(TimeSpan.FromDays(10));
-
-		/// <summary>
-		/// Defines the JobRegistry
-		/// </summary>
-		public static readonly Registry JobRegistry = new Registry();
 
 		/// <summary>
 		/// Thread blocking method to startup the post init tasks.
@@ -160,7 +149,7 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The VerifyStartupArgs
+		/// Verifies the startup arguments passed when starting assistant process.
 		/// </summary>
 		/// <param name="args">The args<see cref="string[]"/></param>
 		/// <returns>The <see cref="Core"/></returns>
@@ -170,24 +159,25 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The RegisterEvents
+		/// Registers assistant internal events.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core RegisterEvents() {
-			Logging.Logger.LogMessageReceived += EventManager.Logger_LogMessageReceived;
-			Logging.Logger.OnColoredReceived += EventManager.Logger_OnColoredReceived;
-			Logging.Logger.OnErrorReceived += EventManager.Logger_OnErrorReceived;
-			Logging.Logger.OnExceptionReceived += EventManager.Logger_OnExceptionReceived;
-			Logging.Logger.OnInputReceived += EventManager.Logger_OnInputReceived;
-			Logging.Logger.OnWarningReceived += EventManager.Logger_OnWarningReceived;			
-			JobManager.JobException += JobManager_JobException;
-			JobManager.JobStart += JobManager_JobStart;
-			JobManager.JobEnd += JobManager_JobEnd;
+			Logging.Logger.LogMessageReceived += EventManager.OnLogMessageReceived;
+			Logging.Logger.OnColoredReceived += EventManager.OnColoredReceived;
+			Logging.Logger.OnErrorReceived += EventManager.OnErrorReceived;
+			Logging.Logger.OnExceptionReceived += EventManager.OnExceptionOccured;
+			Logging.Logger.OnInputReceived += EventManager.OnInputReceived;
+			Logging.Logger.OnWarningReceived += EventManager.OnWarningReceived;
+			JobManager.JobException += EventManager.JobManagerOnException;
+			JobManager.JobStart += EventManager.JobManagerOnJobStart;
+			JobManager.JobEnd += EventManager.JobManagerOnJobEnd;
 			return this;
 		}
 
 		/// <summary>
-		/// The PreInitTasks
+		/// Called right before the main init process of assistant.
+		/// Normally, to set internal variables and values.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core PreInitTasks() {
@@ -209,7 +199,7 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The LoadConfiguration
+		/// Loads the core configuration from the json file.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core LoadConfiguration() {
@@ -218,27 +208,20 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The StartScheduler
+		/// Starts the internal JobManager FluentScheduler instance.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core StartScheduler() {
-			JobManager.Initialize(JobRegistry);
+			JobManager.Initialize(new Registry());
 			return this;
 		}
 
 		/// <summary>
-		/// The JobManager_JobException
-		/// </summary>
-		/// <param name="obj">The obj<see cref="JobExceptionInfo"/></param>
-		private void JobManager_JobException(JobExceptionInfo obj) => Logger.Exception(obj.Exception);
-
-		/// <summary>
-		/// The VariableAssignation
+		/// Assigns many internal variables.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core VariableAssignation() {
 			StartupTime = DateTime.Now;
-			RunningPlatform = Helpers.GetOsPlatform();
 			Config.ProgramLastStartup = StartupTime;
 			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
@@ -249,9 +232,9 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The InitShell
+		/// Starts the assistant shell interpreter.
 		/// </summary>
-		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="T">The type of IShellCommand object to use for loading the commands.</typeparam>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core InitShell<T>() where T : IShellCommand {
 			Task.Run(async () => await Interpreter.InitInterpreterAsync<T>().ConfigureAwait(false));
@@ -259,35 +242,40 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The AllowLocalNetworkConnections
+		/// Sends current application local ip to a remote server so that connecting via Local network is easier.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
+		[Obsolete]
 		public Core AllowLocalNetworkConnections() {
 			SendLocalIp();
 			return this;
 		}
 
 		/// <summary>
-		/// The StartConsoleTitleUpdater
+		/// Starts the Console title updater job and updates the title every 1 second.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core StartConsoleTitleUpdater() {
-			Helpers.InBackgroundThread(() => SetConsoleTitle(), "Console Title Updater", true);
+			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.ToRunEvery(1).Seconds());
 			return this;
 		}
 
 		/// <summary>
-		/// The DisplayASCIILogo
+		/// Displays the ASCII Logo of the assistant name loaded from the config file.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core DisplayASCIILogo() {
 			Helpers.GenerateAsciiFromText(Config.AssistantDisplayName);
+			Logger.WithColor($"X---------------- Starting {AssistantName} V{Constants.Version} ----------------X", ConsoleColor.Blue);
 			return this;
 		}
 
+		/// <summary>
+		/// Starts the Rest HTTP server of assistant with internal commands.
+		/// </summary>
+		/// <returns>The <see cref="Core"/></returns>
 		[Obsolete("TODO: Add more commands")]
 		public Core InitRestServer() {
-			RestServer = new RestCore();
 			Task.Run(async () => {
 				await RestServer.InitServer(new Dictionary<string, Func<RequestParameter, RequestResponse>>() {
 				{"example_command", EventManager.RestServerExampleCommand }
@@ -298,27 +286,16 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The DisplayASCIILogo
-		/// </summary>
-		/// <param name="text">The text<see cref="string?"/></param>
-		/// <returns>The <see cref="Core"/></returns>
-		public Core DisplayASCIILogo(string? text) {
-			Helpers.GenerateAsciiFromText(text);
-			return this;
-		}
-
-		/// <summary>
-		/// The Versioning
+		/// Saves version related information to version.txt file in the root directory.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core Versioning() {
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
-			Logger.WithColor($"X---------------- Starting {AssistantName} V{Constants.Version} ----------------X", ConsoleColor.Blue);
 			return this;
 		}
 
 		/// <summary>
-		/// The StartWatcher
+		/// Starts the config watcher and module watcher instances.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core StartWatcher() {
@@ -336,7 +313,7 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The InitPushbulletService
+		/// Starts the push bullet service.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core InitPushbulletService() {
@@ -351,16 +328,16 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The CheckAndUpdate
+		/// Checks for any update available and updates automatically if there is.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core CheckAndUpdate() {
-			_ = Update.CheckAndUpdateAsync(true).Result;
+			Task.Run(async () => await Update.CheckAndUpdateAsync(true).ConfigureAwait(false));
 			return this;
 		}
 
 		/// <summary>
-		/// The StartModules
+		/// Loads the modules from the module directory.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core StartModules() {
@@ -373,20 +350,21 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The StartPinController
+		/// Starts the pi controller instance.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
-		public Core StartPinController() {
-			if (!PiGpioController.IsAllowedToExecute) {
+		public Core InitPiGpioController() {
+			if (!PiGpioController.IsAllowedToExecute || Controller == null) {
 				return this;
 			}
 
-			Controller?.InitController();
+			Task.Run(async () => await Controller.InitController().ConfigureAwait(false));
 			return this;
 		}
 
 		/// <summary>
-		/// The MarkInitializationCompletion
+		/// Marks the end of initiation process.
+		/// If not called, Most of the internal functions wont work.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core MarkInitializationCompletion() {
@@ -395,43 +373,157 @@ namespace Assistant.Core {
 			return this;
 		}
 
-		//private static void TcpServerBase_ClientConnected(object sender, OnClientConnectedEventArgs e) {
-		//	lock (ClientManagers) {
-		//		ClientManagers.TryAdd(e.ClientUid, new TcpServerClientManager(e.ClientUid));
-		//	}
-		//}
-
-		//private static void TcpServerBase_ServerStarted(object sender, OnServerStartedListerningEventArgs e) => Logger.Log($"TCP Server listening at {e.ListerningAddress} / {e.ServerPort}");
-
-		//private static void TcpServerBase_ServerShutdown(object sender, OnServerShutdownEventArgs e) => Logger.Log($"TCP shutting down.");
 		/// <summary>
-		/// The SetConsoleTitle
-		/// </summary>
-		private static void SetConsoleTitle() {
-			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | ";
-			text += PiGpioController.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
-
-			Helpers.SetConsoleTitle(text);
-
-			if (RefreshConsoleTitleTimer == null) {
-				RefreshConsoleTitleTimer = new Timer(e => SetConsoleTitle(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
-			}
-		}
-
-		/// <summary>
-		/// The StopConsoleRefresh
-		/// </summary>
-		public void StopConsoleRefresh() {
-			if (RefreshConsoleTitleTimer != null) {
-				RefreshConsoleTitleTimer.Dispose();
-				RefreshConsoleTitleTimer = null;
-			}
-		}
-
-		/// <summary>
-		/// The DisplayConsoleCommandMenu
+		/// Called when network is disconnected.
 		/// </summary>
 		/// <returns>The <see cref="Task"/></returns>
+		public static async Task OnNetworkDisconnected() {
+			try {
+				await NetworkSync.WaitAsync().ConfigureAwait(false);
+				IsNetworkAvailable = false;
+				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
+				Constants.ExternelIP = "Internet connection lost.";
+			}
+			finally {
+				NetworkSync.Release();
+			}
+		}
+
+		/// <summary>
+		/// Called when network is reconnected.
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
+		public static async Task OnNetworkReconnected() {
+			try {
+				await NetworkSync.WaitAsync().ConfigureAwait(false);
+				IsNetworkAvailable = true;
+				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
+				Constants.ExternelIP = Helpers.GetExternalIp();
+
+				if (Config.AutoUpdates && IsNetworkAvailable) {
+					Logger.Log("Checking for any new version...", LogLevels.Trace);
+					File.WriteAllText("version.txt", Constants.Version?.ToString());
+					await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
+				}
+			}
+			finally {
+				NetworkSync.Release();
+			}
+		}
+
+		/// <summary>
+		/// Called when assistant has been requested to exit.
+		/// This method handles gracefully exiting the assistant.
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
+		public static async Task OnExit() {
+			Logger.Log("Shutting down...");
+
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
+
+			Interpreter.ShutdownShell = true;
+			await RestServer.Shutdown().ConfigureAwait(false);
+			Controller?.Shutdown();
+			JobManager.RemoveAllJobs();
+			JobManager.Stop();
+			FileWatcher.StopWatcher();
+			ModuleWatcher.StopWatcher();
+			ModuleLoader?.OnCoreShutdown();
+			Config.ProgramLastShutdown = DateTime.Now;
+
+			await Config.SaveConfig(Config).ConfigureAwait(false);
+			Logger.Log("Finished exit tasks.", LogLevels.Trace);
+		}
+
+		/// <summary>
+		/// The Exit
+		/// </summary>
+		/// <param name="exitCode">The exitCode<see cref="int"/></param>
+		/// <returns>The <see cref="Task"/></returns>
+		public static async Task Exit(int exitCode = 0) {
+			if (exitCode != 0) {
+				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
+			}
+
+			if (exitCode == 0) {
+				await OnExit().ConfigureAwait(false);
+			}
+
+			Logger.Log("Bye, have a good day sir!");
+			NLog.NLog.LoggerOnShutdown();
+			KeepAliveToken.Cancel();
+			Environment.Exit(exitCode);
+		}
+
+		/// <summary>
+		/// The Restart
+		/// </summary>
+		/// <param name="delay">The delay<see cref="int"/></param>
+		/// <returns>The <see cref="Task"/></returns>
+		public static async Task Restart(int delay = 10) {
+			if (!Config.AutoRestart) {
+				Logger.Log("Auto restart is turned off in config.", LogLevels.Warn);
+				return;
+			}
+
+			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
+			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
+			await Exit(0).ConfigureAwait(false);
+		}
+
+		/// <summary>
+		/// The SystemShutdown
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
+		public static async Task SystemShutdown() {
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemShutdown, default);
+			if (PiGpioController.IsAllowedToExecute) {
+				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
+				Logger.Log("Shutting down pi...", LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				await Pi.ShutdownAsync().ConfigureAwait(false);
+				return;
+			}
+
+			if (Helpers.GetOsPlatform() == OSPlatform.Windows) {
+				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
+				Logger.Log("Shutting down system...", LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/s /t 0") {
+					CreateNoWindow = true,
+					UseShellExecute = false
+				};
+				Process.Start(psi);
+			}
+		}
+
+		/// <summary>
+		/// The SystemRestart
+		/// </summary>
+		/// <returns>The <see cref="Task"/></returns>
+		public static async Task SystemRestart() {
+			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemRestart, default);
+			if (PiGpioController.IsAllowedToExecute) {
+				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
+				Logger.Log("Restarting pi...", LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				await Pi.RestartAsync().ConfigureAwait(false);
+				return;
+			}
+
+			if (Helpers.GetOsPlatform() == OSPlatform.Windows) {
+				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
+				Logger.Log("Restarting system...", LogLevels.Warn);
+				await OnExit().ConfigureAwait(false);
+				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/r /t 0") {
+					CreateNoWindow = true,
+					UseShellExecute = false
+				};
+				Process.Start(psi);
+			}
+		}
+
+		[Obsolete]
 		private static async Task DisplayConsoleCommandMenu() {
 			Logger.Log("Displaying console command window", LogLevels.Trace);
 			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", LogLevels.Input);
@@ -591,10 +683,6 @@ namespace Assistant.Core {
 			}
 		}
 
-		/// <summary>
-		/// The KeepAlive
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
 		[Obsolete("Disabled as long as testing of shell is going on.")]
 		private static async Task KeepAlive() {
 			//Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
@@ -615,10 +703,6 @@ namespace Assistant.Core {
 			}
 		}
 
-		/// <summary>
-		/// The ParseStartupArguments
-		/// </summary>
-		/// <param name="args">The args<see cref="string[]"/></param>
 		private static void ParseStartupArguments(string[] args) {
 			if (!args.Any() || args == null) {
 				return;
@@ -652,9 +736,6 @@ namespace Assistant.Core {
 			});
 		}
 
-		/// <summary>
-		/// The DisplayRelayCommandMenu
-		/// </summary>
 		private static void DisplayRelayCommandMenu() {
 			Logger.Log("-------------------- RELAY COMMAND MENU --------------------", LogLevels.Input);
 			Logger.Log("1 | Relay pin 1", LogLevels.Input);
@@ -830,10 +911,6 @@ namespace Assistant.Core {
 			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
 		}
 
-		/// <summary>
-		/// The DisplayRelayCycleMenu
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
 		private static async Task DisplayRelayCycleMenu() {
 			if (!PiGpioController.IsAllowedToExecute) {
 				Logger.Log("You are running on incorrect OS or device. Pi controls are disabled.", LogLevels.Error);
@@ -942,176 +1019,6 @@ namespace Assistant.Core {
 		}
 
 		/// <summary>
-		/// The OnNetworkDisconnected
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
-		public static async Task OnNetworkDisconnected() {
-			try {
-				await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
-				IsNetworkAvailable = false;
-				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
-				Constants.ExternelIP = "Internet connection lost.";
-			}
-			finally {
-				NetworkSemaphore.Release();
-			}
-		}
-
-		/// <summary>
-		/// The OnNetworkReconnected
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
-		public static async Task OnNetworkReconnected() {
-			try {
-				await NetworkSemaphore.WaitAsync().ConfigureAwait(false);
-				IsNetworkAvailable = true;
-				ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
-				Constants.ExternelIP = Helpers.GetExternalIp();
-
-				if (Config.AutoUpdates && IsNetworkAvailable) {
-					Logger.Log("Checking for any new version...", LogLevels.Trace);
-					File.WriteAllText("version.txt", Constants.Version?.ToString());
-					await Update.CheckAndUpdateAsync(true).ConfigureAwait(false);
-				}
-			}
-			finally {
-				NetworkSemaphore.Release();
-			}
-		}
-
-		/// <summary>
-		/// The JobManager_JobEnd
-		/// </summary>
-		/// <param name="obj">The obj<see cref="JobEndInfo"/></param>
-		private void JobManager_JobEnd(JobEndInfo obj) {
-			Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
-		}
-
-		/// <summary>
-		/// The JobManager_JobStart
-		/// </summary>
-		/// <param name="obj">The obj<see cref="JobStartInfo"/></param>
-		private void JobManager_JobStart(JobStartInfo obj) {
-			Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
-		}
-
-		/// <summary>
-		/// The OnExit
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
-		public static async Task OnExit() {
-			Logger.Log("Shutting down...");
-
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
-
-			Interpreter.ShutdownShell = true;
-			await RestServer.Shutdown().ConfigureAwait(false);
-			Controller?.Shutdown();
-			JobManager.RemoveAllJobs();
-			JobManager.Stop();
-			RefreshConsoleTitleTimer?.Dispose();
-			FileWatcher.StopWatcher();
-			ModuleWatcher.StopWatcher();
-
-			//if (KestrelServer.IsServerOnline) {
-			//	await KestrelServer.Stop().ConfigureAwait(false);
-			//}
-
-			ModuleLoader?.OnCoreShutdown();
-			Config.ProgramLastShutdown = DateTime.Now;
-			await Config.SaveConfig(Config).ConfigureAwait(false);
-			Logger.Log("Finished exit tasks.", LogLevels.Trace);
-		}
-
-		/// <summary>
-		/// The Exit
-		/// </summary>
-		/// <param name="exitCode">The exitCode<see cref="int"/></param>
-		/// <returns>The <see cref="Task"/></returns>
-		public static async Task Exit(int exitCode = 0) {
-			if (exitCode != 0) {
-				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
-			}
-
-			if (exitCode == 0) {
-				await OnExit().ConfigureAwait(false);
-			}
-
-			Logger.Log("Bye, have a good day sir!");
-			NLog.NLog.LoggerOnShutdown();
-			KeepAliveToken.Cancel();
-			Environment.Exit(exitCode);
-		}
-
-		/// <summary>
-		/// The Restart
-		/// </summary>
-		/// <param name="delay">The delay<see cref="int"/></param>
-		/// <returns>The <see cref="Task"/></returns>
-		public static async Task Restart(int delay = 10) {
-			if (!Config.AutoRestart) {
-				Logger.Log("Auto restart is turned off in config.", LogLevels.Warn);
-				return;
-			}
-
-			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
-			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
-			await Exit(0).ConfigureAwait(false);
-		}
-
-		/// <summary>
-		/// The SystemShutdown
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
-		public static async Task SystemShutdown() {
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemShutdown, default);
-			if (PiGpioController.IsAllowedToExecute) {
-				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
-				Logger.Log("Shutting down pi...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
-				await Pi.ShutdownAsync().ConfigureAwait(false);
-				return;
-			}
-
-			if (Helpers.GetOsPlatform() == OSPlatform.Windows) {
-				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
-				Logger.Log("Shutting down system...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
-				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/s /t 0") {
-					CreateNoWindow = true,
-					UseShellExecute = false
-				};
-				Process.Start(psi);
-			}
-		}
-
-		/// <summary>
-		/// The SystemRestart
-		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
-		public static async Task SystemRestart() {
-			ModuleInitializer.ExecuteAsyncEvent(MODULE_EXECUTION_CONTEXT.SystemRestart, default);
-			if (PiGpioController.IsAllowedToExecute) {
-				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
-				Logger.Log("Restarting pi...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
-				await Pi.RestartAsync().ConfigureAwait(false);
-				return;
-			}
-
-			if (Helpers.GetOsPlatform() == OSPlatform.Windows) {
-				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
-				Logger.Log("Restarting system...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
-				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/r /t 0") {
-					CreateNoWindow = true,
-					UseShellExecute = false
-				};
-				Process.Start(psi);
-			}
-		}
-
-		/// <summary>
 		/// The OnCoreConfigChangeEvent
 		/// </summary>
 		private void OnCoreConfigChangeEvent() {
@@ -1156,6 +1063,12 @@ namespace Assistant.Core {
 			}
 
 			Helpers.InBackground(async () => await ModuleLoader.LoadAsync().ConfigureAwait(false));
+		}
+
+		private static void SetConsoleTitle() {
+			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | ";
+			text += PiGpioController.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
+			Helpers.SetConsoleTitle(text);
 		}
 
 		/// <summary>

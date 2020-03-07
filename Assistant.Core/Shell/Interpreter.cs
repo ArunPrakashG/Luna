@@ -1,5 +1,4 @@
 namespace Assistant.Core.Shell {
-	using Assistant.Core.Shell.InternalCommands;
 	using Assistant.Extensions;
 	using Assistant.Extensions.Shared.Shell;
 	using Assistant.Logging;
@@ -16,29 +15,10 @@ namespace Assistant.Core.Shell {
 	/// The Shell Instance.
 	/// </summary>
 	public static class Interpreter {
-		/// <summary>
-		/// Defines the Logger
-		/// </summary>
 		private static readonly ILogger Logger = new Logger("INTERPRETER");
-
-		/// <summary>
-		/// Defines the Sync
-		/// </summary>
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
-
-		/// <summary>
-		/// Defines the LoopSync
-		/// </summary>
 		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
-
-		/// <summary>
-		/// Defines the LINE_SPLITTER
-		/// </summary>
 		private const char LINE_SPLITTER = ';';
-
-		/// <summary>
-		/// Defines the InitCompleted
-		/// </summary>
 		private static bool InitCompleted = false;
 
 		/// <summary>
@@ -90,7 +70,7 @@ namespace Assistant.Core.Shell {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				await Init.LoadInternalCommandsAsync<T>().ConfigureAwait(false);				
+				await Init.LoadInternalCommandsAsync<T>().ConfigureAwait(false);
 				await Init.LoadCommandsAsync<T>().ConfigureAwait(false);
 
 				InitCompleted = true;
@@ -141,7 +121,7 @@ namespace Assistant.Core.Shell {
 				Logger.Info("Shell has been shutdown.");
 			}
 		}
-		
+
 		/// <summary>
 		/// The ExecuteCommandAsync
 		/// </summary>
@@ -167,7 +147,7 @@ namespace Assistant.Core.Shell {
 		/// <summary>
 		/// The ParseCommandAsync
 		/// </summary>
-		/// <param name="cmd">The cmd<see cref="string"/></param>
+		/// <param name="cmd">The command <see cref="string"/></param>
 		/// <returns>The <see cref="Task{bool}"/></returns>
 		private static async Task<bool> ParseCommandAsync(string cmd) {
 			if (Commands.Count <= 0) {

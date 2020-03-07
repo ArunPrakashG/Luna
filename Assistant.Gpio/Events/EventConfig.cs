@@ -10,13 +10,21 @@ namespace Assistant.Gpio.Events {
 
 		public readonly GpioPinEventStates PinEventState;
 
-		public readonly Func<object, OnValueChangedEventArgs, bool> Function;
+		public Action<object, OnValueChangedEventArgs> OnFireAction { get; private set; }
 
-		public EventConfig(int _gpioPin, GpioPinMode _pinMode, GpioPinEventStates _pinEventState, Func<object, OnValueChangedEventArgs, bool> _func) {
+		public EventConfig(int _gpioPin, GpioPinMode _pinMode, GpioPinEventStates _pinEventState, Action<object, OnValueChangedEventArgs> _func) {
 			GpioPin = _gpioPin;
 			PinMode = _pinMode;
 			PinEventState = _pinEventState;
-			Function = _func;
+			OnFireAction = _func;
+		}
+
+		public void SetEventAction(Action<object, OnValueChangedEventArgs> action) {
+			if(action == null) {
+				return;
+			}
+
+			OnFireAction = action;
 		}
 	}
 }

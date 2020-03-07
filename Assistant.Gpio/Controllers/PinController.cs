@@ -1,5 +1,4 @@
 using Assistant.Extensions;
-using Assistant.Gpio.Config;
 using Assistant.Gpio.Drivers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;

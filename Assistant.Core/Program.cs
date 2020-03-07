@@ -33,7 +33,7 @@ namespace Assistant.Core {
 				//.AllowLocalNetworkConnections()				
 				.StartWatcher()
 				.InitPushbulletService()
-				.StartPinController()
+				.InitPiGpioController()
 				.StartConsoleTitleUpdater()
 				.StartModules()
 				.InitRestServer()
