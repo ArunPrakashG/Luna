@@ -50,7 +50,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 				if (string.IsNullOrEmpty(Core.Config.OpenWeatherApiKey)) {
 					ShellOut.Error("Weather API key isn't set.");
 
-					apiKey = ShellOut.ShellIn_String("Open Weather Api Key");
+					apiKey = ShellOut.GetString("Open Weather Api Key");
 
 					if (string.IsNullOrEmpty(apiKey)) {
 						ShellOut.Error("Api key is invalid or not set properly.");

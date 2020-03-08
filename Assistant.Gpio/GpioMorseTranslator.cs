@@ -6,14 +6,13 @@ using Assistant.Logging.Interfaces;
 using Assistant.Morse;
 using System;
 using System.Threading.Tasks;
-using static Assistant.Gpio.Config.PinConfig;
 using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
 	public class GpioMorseTranslator {
 		private readonly ILogger Logger = new Logger(typeof(GpioMorseTranslator).Name);
-		private readonly MorseCore MorseCore = new MorseCore();
+		private static readonly MorseCore MorseCore = new MorseCore();
 		private IGpioControllerDriver? Driver => PinController.GetDriver();
 		public readonly bool IsTranslatorOnline;
 
@@ -25,6 +24,8 @@ namespace Assistant.Gpio {
 
 			IsTranslatorOnline = true;
 		}
+
+		public static MorseCore GetCore() => MorseCore;
 
 		public async Task<bool> RelayMorseCycle(string textToConvert, int relayPin) {
 			if (string.IsNullOrEmpty(textToConvert)) {

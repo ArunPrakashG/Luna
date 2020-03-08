@@ -4,7 +4,6 @@ using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Composition.Convention;
 using System.Composition.Hosting;
 using System.IO;
@@ -19,12 +18,6 @@ namespace Assistant.Core.Shell {
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoadSync = new SemaphoreSlim(1, 1);
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
-
-		//TODO: Implement custom dictionary with events for collection changes
-		[Obsolete]
-		private static void OnCommandCollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {
-			Logger.Trace($"Shell command collection changed -> {e.Action.ToString()}");
-		}
 
 		internal async Task<bool> LoadInternalCommandsAsync<T>() where T : IShellCommand {
 			Assembly currentAssembly = Assembly.GetExecutingAssembly();
@@ -47,18 +40,18 @@ namespace Assistant.Core.Shell {
 
 				foreach (T command in list) {
 					if (await IsExistingCommand<T>(command.UniqueId).ConfigureAwait(false)) {
-						Logger.Warning($"{command.CommandName} shell command is already loaded; skipping from loading process...");
+						Logger.Warning($"'{command.CommandName}' shell command is already loaded; skipping from loading process...");
 						continue;
 					}
 
 					await command.InitAsync().ConfigureAwait(false);
-					Interpreter.Commands.Add(command.UniqueId, command);
+					Interpreter.Commands.Add(command.CommandKey, command);
 					Logger.Trace($"Loaded shell command -> {command.CommandName}");
 				}
 
 				return true;
 			}
-			catch(Exception e) {
+			catch (Exception e) {
 				Logger.Exception(e);
 				return false;
 			}
@@ -96,13 +89,13 @@ namespace Assistant.Core.Shell {
 
 				foreach (T command in list) {
 					if (await IsExistingCommand<T>(command.UniqueId).ConfigureAwait(false)) {
-						Logger.Warning($"{command.CommandName} shell command already exists. skipping...");
+						Logger.Warning($"'{command.CommandName}' shell command already exists. skipping...");
 						continue;
 					}
 
 					await command.InitAsync().ConfigureAwait(false);
-					Interpreter.Commands.Add(command.UniqueId, command);
-					Logger.Info($"Loaded shell command -> {command.CommandName}");
+					Interpreter.Commands.Add(command.CommandKey, command);
+					Logger.Info($"Loaded external shell command -> {command.CommandName}");
 				}
 
 				return true;
@@ -182,14 +175,21 @@ namespace Assistant.Core.Shell {
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
+
 			try {
-				foreach (var cmd in Interpreter.Commands) {
-					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
+				foreach (KeyValuePair<string, IShellCommand> commandPair in Interpreter.Commands) {
+					if (string.IsNullOrEmpty(commandPair.Key) || string.IsNullOrEmpty(commandPair.Value.CommandKey)) {
 						continue;
 					}
 
-					if (cmd.Value.CommandKey.Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
-						return (T) cmd.Value;
+					// if user entered only first letter of the command key and the command is unique two just 2, we match those two commands up.
+					if (CommandStartsWithIsUnique(commandKey[0])) {
+						return (T) commandPair.Value;
+					}
+
+					// else, compare both and return the command instance.
+					if (commandPair.Value.CommandKey.Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
+						return (T) commandPair.Value;
 					}
 				}
 
@@ -198,6 +198,17 @@ namespace Assistant.Core.Shell {
 			finally {
 				Sync.Release();
 			}
+		}
+
+		private bool CommandStartsWithIsUnique(char commandKeyChar) {
+			int equalCount = 0;
+			foreach (var command in Interpreter.Commands) {
+				if (command.Value.CommandKey[0].Equals(commandKeyChar)) {
+					equalCount++;
+				}
+			}
+
+			return equalCount == 2;
 		}
 
 		internal async Task<bool> SetOnExecuteFuncAsync<T>(string? id, Func<Parameter, bool> func) where T : IShellCommand {

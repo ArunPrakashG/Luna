@@ -1,5 +1,6 @@
 using Assistant.Extensions;
 using Assistant.Extensions.Shared.Shell;
+using Assistant.Gpio;
 using Assistant.Gpio.Controllers;
 using Assistant.Gpio.Drivers;
 using System;
@@ -96,7 +97,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 					return;
 				}
 
-				switch (parameter.ParameterCount) {
+				switch (parameter.ParameterCount) {					
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
 						ShellOut.Info("Note: as only 1 argument is specified, the default value will be set for the specified pin.");
 
@@ -112,7 +113,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						isSet = driver.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
+						isSet = driver.TogglePinState(pin);
 
 						if (!isSet) {
 							ShellOut.Error($"Failed to configure {pin} gpio pin. Please validate the pin argument.");
@@ -120,6 +121,28 @@ namespace Assistant.Core.Shell.InternalCommands {
 						}
 
 						ShellOut.Info($"Successfully configured {pin} gpio pin.");
+						return;
+					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) &&
+					!string.IsNullOrEmpty(parameter.Parameters[1]) &&
+					parameter.Parameters[0].Equals("relay", StringComparison.OrdinalIgnoreCase):
+						if (!int.TryParse(parameter.Parameters[1], out int relayNum)) {
+							ShellOut.Error("Failed to parse relay number value.");
+							return;
+						}
+
+						if (!PinController.IsValidPin(PiGpioController.AvailablePins.OutputPins[relayNum])) {
+							ShellOut.Error($"The pin ' {PiGpioController.AvailablePins.OutputPins[relayNum]} ' is invalid.");
+							return;
+						}
+
+						isSet = driver.TogglePinState(PiGpioController.AvailablePins.OutputPins[relayNum]);
+
+						if (!isSet) {
+							ShellOut.Error($"Failed to configure {PiGpioController.AvailablePins.OutputPins[relayNum]} gpio pin. Please validate the pin argument.");
+							return;
+						}
+
+						ShellOut.Info($"Successfully configured {PiGpioController.AvailablePins.OutputPins[relayNum]} gpio pin.");
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) &&
 					!string.IsNullOrEmpty(parameter.Parameters[1]):

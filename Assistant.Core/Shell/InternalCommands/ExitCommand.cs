@@ -18,8 +18,6 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 		public string CommandKey => "exit";
 
-		public ShellEnum.COMMAND_CODE CommandCode => ShellEnum.COMMAND_CODE.APP_EXIT;
-
 		public SemaphoreSlim Sync { get; set; }
 
 		public Func<Parameter, bool> OnExecuteFunc { get; set; }

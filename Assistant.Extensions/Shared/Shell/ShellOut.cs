@@ -30,7 +30,7 @@ namespace Assistant.Extensions.Shared.Shell {
 			Console.ResetColor();
 		}
 
-		public static int ShellIn_Integer(string? valueName) {
+		public static int GetInteger(string? valueName) {
 			if (string.IsNullOrEmpty(valueName)) {
 				return -1;
 			}
@@ -65,7 +65,7 @@ namespace Assistant.Extensions.Shared.Shell {
 			return -1;
 		}
 
-		public static string? ShellIn_String(string? valueName) {
+		public static string? GetString(string? valueName) {
 			if (string.IsNullOrEmpty(valueName)) {
 				return null;
 			}

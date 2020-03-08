@@ -594,7 +594,7 @@ namespace Assistant.Core {
 							Logger.Warning("Morse translator is offline or unavailable.");
 							return;
 						}
-
+						
 						await morseTranslator.RelayMorseCycle(morseCycle, Config.OutputModePins[0]).ConfigureAwait(false);
 						return;
 
