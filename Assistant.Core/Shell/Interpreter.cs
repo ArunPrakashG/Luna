@@ -18,7 +18,6 @@ namespace Assistant.Core.Shell {
 		private static readonly ILogger Logger = new Logger("INTERPRETER");
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
-		private const char LINE_SPLITTER = ';';
 		private static bool InitCompleted = false;
 
 		/// <summary>
@@ -87,9 +86,9 @@ namespace Assistant.Core.Shell {
 		}
 
 		/// <summary>
-		/// The ReplAsync
+		/// The REPL Loop. <br>Loops until an external shutdown of the shell as been triggered by the assistant core program.</br>
 		/// </summary>
-		/// <returns>The <see cref="Task"/></returns>
+		/// <returns></returns>
 		private static async Task ReplAsync() {
 			if (!InitCompleted) {
 				return;
@@ -123,10 +122,10 @@ namespace Assistant.Core.Shell {
 		}
 
 		/// <summary>
-		/// The ExecuteCommandAsync
+		/// Executes the received command by first parsing it then executing with the parsed values.
 		/// </summary>
-		/// <param name="command">The command<see cref="string?"/></param>
-		/// <returns>The <see cref="Task{bool}"/></returns>
+		/// <param name="command">The command<see cref="string"/></param>
+		/// <returns>The <see cref="bool"/></returns>
 		private static async Task<bool> ExecuteCommandAsync(string? command) {
 			if (!InitCompleted) {
 				Logger.Warning("Shell isn't initiated properly.");
@@ -145,114 +144,137 @@ namespace Assistant.Core.Shell {
 		}
 
 		/// <summary>
-		/// The ParseCommandAsync
+		/// Parses the raw command string value. <br>Then executes it by calling the Execute() method with the parsed values.</br>
 		/// </summary>
 		/// <param name="cmd">The command <see cref="string"/></param>
-		/// <returns>The <see cref="Task{bool}"/></returns>
+		/// <returns>The <see cref="bool"/></returns>
 		private static async Task<bool> ParseCommandAsync(string cmd) {
 			if (Commands.Count <= 0) {
 				ShellOut.Info("No commands have been loaded into the shell.");
 				return false;
 			}
 
+			if (string.IsNullOrEmpty(cmd)) {
+				ShellOut.Error("Invalid command.");
+				return false;
+			}
+
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				if (!cmd.Contains(LINE_SPLITTER)) {
-					ShellOut.Error($"Command syntax is invalid. maybe you are missing '{LINE_SPLITTER}' at the end ?");
-					return false;
-				}
-
-				//commands - returns {help -argument}
-				string[] split = cmd.Split(LINE_SPLITTER, StringSplitOptions.RemoveEmptyEntries);
-
-				if (split == null || split.Length <= 0) {
-					ShellOut.Error("Failed to parse the command. Please retype in correct syntax!");
-					return false;
-				}
 
 				bool anyExec = false;
-				//for each command
-				for (int i = 0; i < split.Length; i++) {
-					if (string.IsNullOrEmpty(split[i])) {
-						continue;
+				// If there is multiple commands separated by the Multi command delimiter
+				if (cmd.Contains(ShellConstants.MULTI_COMMAND)) {
+					//commands - returns {help -argument}
+					string[] cmdSplit = cmd.Split(ShellConstants.MULTI_COMMAND, StringSplitOptions.RemoveEmptyEntries);
+
+					if (cmdSplit == null || cmdSplit.Length <= 0) {
+						ShellOut.Error("Failed to parse the command. Please retype in correct syntax!");
+						return false;
 					}
 
-					//splits the arguments - returns [{help}][{param1}{param2}{param3}]...
-					string[] split2 = split[i].Split('-', StringSplitOptions.RemoveEmptyEntries);
-
-					foreach (string val in split2) {
-						if (string.IsNullOrEmpty(val)) {
+					// for each -> {help -arg1 -arg2}
+					for (int i = 0; i < cmdSplit.Length; i++) {
+						if (string.IsNullOrEmpty(cmdSplit[i])) {
 							continue;
 						}
 
-						val.Trim();
-					}
+						bool doesContainArgs = cmdSplit[i].Contains(ShellConstants.ARGUMENT_SPLITTER);
+						string[] parameters = new string[0];
+						string? commandKey = null;
 
-					if (split2 == null || split2.Length <= 0) {
+						// If contains arguments
+						if (doesContainArgs) {
+							string[] cmdArgumentSplit = cmdSplit[i].Split(ShellConstants.ARGUMENT_SPLITTER, StringSplitOptions.RemoveEmptyEntries);
+							if (cmdArgumentSplit == null || cmdArgumentSplit.Length <= 0) {
+								continue;
+							}
+
+							parameters = new string[cmdArgumentSplit.Length - 1];
+
+							for (int k = 0; k < cmdArgumentSplit.Length; k++) {
+								if (string.IsNullOrEmpty(cmdArgumentSplit[k])) {
+									continue;
+								}
+
+								cmdArgumentSplit[k] = Replace(cmdArgumentSplit[k].Trim());
+
+								if (string.IsNullOrEmpty(commandKey)) {
+									commandKey = cmdArgumentSplit[k];
+								}
+
+								if (cmdArgumentSplit[k].Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
+									continue;
+								}
+
+								parameters[k - 1] = cmdArgumentSplit[k];
+							}
+						}
+						else {
+							// If no arguments
+							commandKey = Replace(cmdSplit[i].Trim());
+						}
+
+						if (string.IsNullOrEmpty(commandKey)) {
+							continue;
+						}
+
+						if(await Execute(commandKey, parameters))
+							anyExec = true;
 						continue;
 					}
 
-					string? commandKey = split2[0].Trim().ToLower();
-					bool doesContainParams = split2.Length > 1 && !string.IsNullOrEmpty(split2[1]);
-					bool multipleParamsExist = doesContainParams && split2.Length > 2;
-					string[] parameters = new string[split2.Length - 1];
+					if (!anyExec) {
+						ShellOut.Error("Command syntax is invalid. Re-execute the command with correct syntax.");
+						return false;
+					}
 
-					if (multipleParamsExist) {
-						for (int j = 0; j < split2.Length; j++) {
-							split2[j] = split2[j].Trim();
-							if (string.IsNullOrEmpty(split2[j])) {
+					return true;
+				}
+				else {
+					//If there is only single command
+					bool doesContainArgs = cmd.Contains(ShellConstants.ARGUMENT_SPLITTER);
+					string[] parameters = new string[0];
+					string? commandKey = null;
+
+					if (doesContainArgs) {
+						string[] cmdArgumentSplit = cmd.Split(ShellConstants.ARGUMENT_SPLITTER, StringSplitOptions.RemoveEmptyEntries);
+
+						if (cmdArgumentSplit == null || cmdArgumentSplit.Length <= 0) {
+							return false;
+						}
+
+						parameters = new string[cmdArgumentSplit.Length - 1];
+
+						for (int k = 0; k < cmdArgumentSplit.Length; k++) {
+							if (string.IsNullOrEmpty(cmdArgumentSplit[k])) {
 								continue;
 							}
 
-							if (split2[j].Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
+							cmdArgumentSplit[k] = Replace(cmdArgumentSplit[k].Trim());
+
+							if (string.IsNullOrEmpty(commandKey)) {
+								commandKey = cmdArgumentSplit[k];
+							}
+
+							if (cmdArgumentSplit[k].Equals(commandKey, StringComparison.OrdinalIgnoreCase)) {
 								continue;
 							}
 
-							parameters[j - 1] = split2[j];
+							parameters[k - 1] = cmdArgumentSplit[k];
 						}
 					}
 					else {
-						//TODO: Error: IndexWasOutsideTheBoundsOfTheArray
-						parameters = new string[1];
-						parameters[0] = split2[1].Trim();
-					}					
+						commandKey = Replace(cmd.Trim());
+					}
 
 					if (string.IsNullOrEmpty(commandKey)) {
-						continue;
+						return false;
 					}
 
-					IShellCommand command = await Init.GetCommandWithKeyAsync<IShellCommand>(commandKey).ConfigureAwait(false);
-
-					if (command == null) {
-						ShellOut.Error("Command doesn't exist. use 'help' to check all available commands!");
-						continue;
-					}
-
-					if (!command.IsInitSuccess) {
-						await command.InitAsync().ConfigureAwait(false);
-					}
-
-					if (!command.IsCurrentCommandContext(commandKey, parameters.Length)) {
-						ShellOut.Error("Command doesn't match the syntax. Please retype.");
-						continue;
-					}
-
-					if (!command.HasParameters && parameters.Length > 0) {
-						ShellOut.Error("Command doesn't have any parameters and you have few arguments entered. What were you thinking ?");
-						continue;
-					}
-
-					if (parameters.Length > command.MaxParameterCount) {
-						ShellOut.Error("You have specified more than the allowed arguments for this command. Please use the backspace button.");
-						continue;
-					}
-
-					await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
-					command.Dispose();
-					Sound.PlayNotification(Sound.ENOTIFICATION_CONTEXT.ALERT);
-					anyExec = true;
-					continue;
+					if(await Execute(commandKey, parameters))
+						anyExec = true;
 				}
 
 				if (!anyExec) {
@@ -260,7 +282,7 @@ namespace Assistant.Core.Shell {
 					return false;
 				}
 
-				return true;
+				return true;			
 			}
 			catch (Exception e) {
 				Logger.Log(e);
@@ -271,6 +293,59 @@ namespace Assistant.Core.Shell {
 			finally {
 				Sync.Release();
 			}
+		}
+
+		/// <summary>
+		/// Executes the command.
+		/// Searches the command with its command key on the internal command collection.
+		/// Cross checks the result command by verifying its argument count.
+		/// Then executes the command.
+		/// </summary>
+		/// <param name="commandKey">The command key</param>
+		/// <param name="parameters">The parameters</param>
+		/// <returns>Boolean indicating status of the execution</returns>
+		private static async Task<bool> Execute(string commandKey, string[] parameters) {
+			IShellCommand command = await Init.GetCommandWithKeyAsync<IShellCommand>(commandKey).ConfigureAwait(false);
+
+			if (command == null) {
+				ShellOut.Error("Command doesn't exist. use 'help' to check all available commands!");
+				return false;
+			}
+
+			if (!command.IsInitSuccess) {
+				await command.InitAsync().ConfigureAwait(false);
+			}
+
+			if (!command.IsCurrentCommandContext(commandKey, parameters.Length)) {
+				ShellOut.Error("Command doesn't match the syntax. Please retype.");
+				return false;
+			}
+
+			if (!command.HasParameters && parameters.Length > 0) {
+				ShellOut.Error("Command doesn't have any parameters and you have few arguments entered. What were you thinking ?");
+				return false;
+			}
+
+			if (parameters.Length > command.MaxParameterCount) {
+				ShellOut.Error("You have specified more than the allowed arguments for this command. Please use the backspace button.");
+				return false;
+			}
+
+			await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
+			command.Dispose();
+			Sound.PlayNotification(Sound.ENOTIFICATION_CONTEXT.ALERT);
+			return true;
+		}
+
+		/// <summary>
+		/// Backwards compatibility for the old command.
+		/// I always forget i dont need to type in ; anymore.
+		/// Dang it.
+		/// </summary>
+		/// <param name="cmd"></param>
+		/// <returns></returns>
+		private static string Replace(string cmd) {
+			return cmd.Replace(";", "").Replace(",", "");
 		}
 
 		/// <summary>

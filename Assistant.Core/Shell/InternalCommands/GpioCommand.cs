@@ -32,16 +32,16 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_value], -[pin_mode], -[pin_state], -[delay_mins];");
+				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_value] -[pin_mode] -[pin_state] -[delay_mins]");
 				return;
 			}
 
 			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
 			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} -[pin_value]; '");
-			ShellOut.Info($"Basic with Pin Mode -> ' {CommandKey} -[pin_value], -[pin_mode]; '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[pin_value], -[pin_mode], -[pin_state]; '");
-			ShellOut.Info($"Advanced with delay -> ' {CommandKey} -[pin_value], -[pin_mode], -[pin_state], -[delay_mins]; '");
+			ShellOut.Info($"Basic Syntax -> ' {CommandKey} -[pin_value] '");
+			ShellOut.Info($"Basic with Pin Mode -> ' {CommandKey} -[pin_value] -[pin_mode] '");
+			ShellOut.Info($"Advanced -> ' {CommandKey} -[pin_value] -[pin_mode] -[pin_state] '");
+			ShellOut.Info($"Advanced with delay -> ' {CommandKey} -[pin_value] -[pin_mode] -[pin_state] -[delay_mins] '");
 			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 

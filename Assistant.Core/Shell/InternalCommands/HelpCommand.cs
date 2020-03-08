@@ -121,9 +121,9 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
 			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey}; '");
-			ShellOut.Info($"All Commands -> ' {CommandKey} -all; '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[command_key]; '");
+			ShellOut.Info($"Basic Syntax -> ' {CommandKey} '");
+			ShellOut.Info($"All Commands -> ' {CommandKey} -all '");
+			ShellOut.Info($"Advanced -> ' {CommandKey} -[command_key] '");
 			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 	}

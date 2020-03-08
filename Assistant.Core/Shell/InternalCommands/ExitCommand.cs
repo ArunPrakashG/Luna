@@ -12,7 +12,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 		public bool IsInitSuccess { get; set; }
 
-		public int MaxParameterCount => 1;
+		public int MaxParameterCount => 2;
 
 		public string CommandDescription => "Exits assistant process.";
 
@@ -48,19 +48,34 @@ namespace Assistant.Core.Shell.InternalCommands {
 					}
 				}
 
+				int exitCode = 0;				
 				switch (parameter.ParameterCount) {					
 					case 0:
 						ShellOut.Info("Exiting assistant in 5 seconds...");
 						Helpers.ScheduleTask(async () => await Core.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(5));
 						return;
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
-						if (!int.TryParse(parameter.Parameters[0], out int exitCode)) {
+						if (!int.TryParse(parameter.Parameters[0], out exitCode)) {
 							ShellOut.Error("Couldn't parse exit code argument.");
 							return;
 						}
 
 						ShellOut.Info($"Exiting assistant with '{exitCode}' exit code in 5 seconds...");
 						Helpers.ScheduleTask(async () => await Core.Exit(exitCode).ConfigureAwait(false), TimeSpan.FromSeconds(5));
+						return;
+					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]):
+						if (!int.TryParse(parameter.Parameters[0], out exitCode)) {
+							ShellOut.Error("Couldn't parse exit code argument.");
+							return;
+						}
+
+						if (!int.TryParse(parameter.Parameters[1], out int delay)) {
+							ShellOut.Error("Couldn't parse delay argument.");
+							return;
+						}
+
+						ShellOut.Info($"Exiting assistant with '{exitCode}' exit code in '{delay}' seconds...");
+						Helpers.ScheduleTask(async () => await Core.Exit(exitCode).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
 						return;
 					default:
 						ShellOut.Error("Command seems to be in incorrect syntax.");
@@ -83,14 +98,15 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[exit_code];");
+				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[exit_code]");
 				return;
 			}
 
 			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
 			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey}; '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[exit_code]; '");
+			ShellOut.Info($"Basic Syntax -> ' {CommandKey} '");
+			ShellOut.Info($"Advanced -> ' {CommandKey} -[exit_code] '");
+			ShellOut.Info($"Advanced With Delay -> ' {CommandKey} -[exit_code] -[delay_in_seconds] '");
 			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 

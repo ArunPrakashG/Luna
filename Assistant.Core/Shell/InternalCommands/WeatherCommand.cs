@@ -169,15 +169,15 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_code], -[country_code];");
+				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_code] -[country_code]");
 				return;
 			}
 
 			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
 			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} -[pin_code]; '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[pin_code], -[country_code]; '");
-			ShellOut.Info($"Advanced with TTS -> ' {CommandKey} -[pin_code], -[country_code] -[tts (true/false)]; '");
+			ShellOut.Info($"Basic Syntax -> ' {CommandKey} -[pin_code] '");
+			ShellOut.Info($"Advanced -> ' {CommandKey} -[pin_code] -[country_code] '");
+			ShellOut.Info($"Advanced with TTS -> ' {CommandKey} -[pin_code] -[country_code] -[tts (true/false)] '");
 			ShellOut.Info($"----------------- ----------------------------- -----------------");
 		}
 
