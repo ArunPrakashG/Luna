@@ -145,19 +145,20 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
-		internal async Task<T> GetCommandWithIdAsync<T>(string? id) where T : IShellCommand {
-			if (string.IsNullOrEmpty(id) || Interpreter.CommandsCount <= 0) {
+		internal async Task<T> GetCommandWithIdAsync<T>(string? uniqueId) where T : IShellCommand {
+			if (string.IsNullOrEmpty(uniqueId) || Interpreter.CommandsCount <= 0) {
 				return default;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
+
 			try {
-				foreach (var cmd in Interpreter.Commands) {
+				foreach (KeyValuePair<string, IShellCommand> cmd in Interpreter.Commands) {
 					if (string.IsNullOrEmpty(cmd.Key) || string.IsNullOrEmpty(cmd.Value.CommandKey)) {
 						continue;
 					}
 
-					if (cmd.Value.UniqueId.Equals(id)) {
+					if (cmd.Value.UniqueId.Equals(uniqueId)) {
 						return (T) cmd.Value;
 					}
 				}
@@ -182,8 +183,8 @@ namespace Assistant.Core.Shell {
 						continue;
 					}
 
-					// if user entered only first letter of the command key and the command is unique two just 2, we match those two commands up.
-					if (CommandStartsWithIsUnique(commandKey[0])) {
+					// if user entered only first letter of the command key and the command is unique to just 2, we match those two commands up.
+					if (CommandStartsWithIsUnique(commandKey[0], commandPair.Value.CommandKey[0])) {
 						return (T) commandPair.Value;
 					}
 
@@ -200,15 +201,25 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
-		private bool CommandStartsWithIsUnique(char commandKeyChar) {
-			int equalCount = 0;
-			foreach (var command in Interpreter.Commands) {
-				if (command.Value.CommandKey[0].Equals(commandKeyChar)) {
-					equalCount++;
+		private bool CommandStartsWithIsUnique(char commandKeyChar, char targetKeyChar) {
+			if(commandKeyChar != targetKeyChar) {
+				return false;
+			}
+
+			int commandKeyCharCount = 0;
+			int targetKeyCharCount = 0;
+
+			foreach (KeyValuePair<string, IShellCommand> command in Interpreter.Commands) {				
+				if (command.Value.CommandKey[0] == commandKeyChar) {
+					commandKeyCharCount++;
+				}
+
+				if (command.Value.CommandKey[0] == targetKeyChar) {
+					targetKeyCharCount++;
 				}
 			}
 
-			return equalCount == 2;
+			return (commandKeyCharCount == 1) && (targetKeyCharCount == 1);
 		}
 
 		internal async Task<bool> SetOnExecuteFuncAsync<T>(string? id, Func<Parameter, bool> func) where T : IShellCommand {

@@ -60,10 +60,6 @@ namespace Assistant.Extensions.Shared.Shell {
 		/// <param name="paramsCount">The command parameter count</param>
 		/// <returns>Boolean indicating if its the current context or not</returns>
 		bool IsCurrentCommandContext(string command, int paramsCount) {
-			//if(command.Equals("help", StringComparison.OrdinalIgnoreCase) && paramsCount <= 0) {
-			//	return true;
-			//}
-
 			if (string.IsNullOrEmpty(command) || paramsCount < 0) {
 				return false;
 			}
@@ -72,15 +68,11 @@ namespace Assistant.Extensions.Shared.Shell {
 				return false;
 			}
 
-			//if (HasParameters && MaxParameterCount == paramsCount) {
-			//	return true;
-			//}
-
 			return true;
 		}
 
 		/// <summary>
-		/// Called by HelpCommand user requests help for the specified command.
+		/// Called by <b>Help Command</b> when user requests help with a particular IShellCommand.
 		/// </summary>
 		void OnHelpExec(bool quickHelp);
 

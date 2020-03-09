@@ -160,10 +160,9 @@ namespace Assistant.Core.Shell {
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
+			bool anyExec = false;
 
-			try {
-
-				bool anyExec = false;
+			try {				
 				// If there is multiple commands separated by the Multi command delimiter
 				if (cmd.Contains(ShellConstants.MULTI_COMMAND)) {
 					//commands - returns {help -argument}
@@ -224,13 +223,6 @@ namespace Assistant.Core.Shell {
 							anyExec = true;
 						continue;
 					}
-
-					if (!anyExec) {
-						ShellOut.Error("Command syntax is invalid. Re-execute the command with correct syntax.");
-						return false;
-					}
-
-					return true;
 				}
 				else {
 					//If there is only single command
@@ -277,16 +269,15 @@ namespace Assistant.Core.Shell {
 						anyExec = true;
 				}
 
-				if (!anyExec) {
-					ShellOut.Error("Command syntax is invalid. Re-execute the command with correct syntax.");
+				if (!anyExec) {					
 					return false;
 				}
 
-				return true;			
+				return true;
 			}
 			catch (Exception e) {
 				Logger.Log(e);
-				ShellOut.Error("Internal exception occurred. Execution failed forcefully.");
+				ShellOut.Error("Internal exception occurred. Execution failed unexpectedly.");
 				ShellOut.Exception(e);
 				return false;
 			}
@@ -312,29 +303,49 @@ namespace Assistant.Core.Shell {
 				return false;
 			}
 
-			if (!command.IsInitSuccess) {
-				await command.InitAsync().ConfigureAwait(false);
-			}
+			try {
+				if (!command.IsInitSuccess) {
+					await command.InitAsync().ConfigureAwait(false);
+				}
 
-			if (!command.IsCurrentCommandContext(commandKey, parameters.Length)) {
-				ShellOut.Error("Command doesn't match the syntax. Please retype.");
-				return false;
-			}
+				if (!command.IsCurrentCommandContext(command.CommandKey, parameters.Length)) {
+					ShellOut.Error("Command doesn't match the syntax. Please retype.");
+					return false;
+				}
 
-			if (!command.HasParameters && parameters.Length > 0) {
-				ShellOut.Error("Command doesn't have any parameters and you have few arguments entered. What were you thinking ?");
-				return false;
-			}
+				if (!command.HasParameters && parameters.Length > 0) {
+					ShellOut.Info($"'{command.CommandName}' doesn't require any arguments.");
 
-			if (parameters.Length > command.MaxParameterCount) {
-				ShellOut.Error("You have specified more than the allowed arguments for this command. Please use the backspace button.");
-				return false;
-			}
+					string args = string.Empty;
+					for(int i = 0; i < parameters.Length; i++) {
+						if (!string.IsNullOrEmpty(parameters[i])) {
+							args += parameters[i] + ",";
+						}													
+					}
 
-			await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
-			command.Dispose();
-			Sound.PlayNotification(Sound.ENOTIFICATION_CONTEXT.ALERT);
-			return true;
+					ShellOut.Info($"Entered arguments '{args}' will be trimmed out.");
+					parameters = new string[0];
+				}
+
+				if (parameters.Length > command.MaxParameterCount) {
+					ShellOut.Info($"'{command.CommandName}' only supports a maximum of '{command.MaxParameterCount}' arguments. You have entered '{parameters.Length}'");
+
+					string args = string.Empty;
+					for(int i = (parameters.Length - command.MaxParameterCount) - 1; i > parameters.Length - command.MaxParameterCount; i--) {
+						parameters[i] = null;
+					}
+
+					ShellOut.Info($"'{parameters.Length - command.MaxParameterCount}' arguments will be trimmed out.");
+					return false;
+				}
+
+				Sound.PlayNotification(Sound.ENOTIFICATION_CONTEXT.ALERT);
+				await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
+				return true;
+			}
+			finally {
+				command.Dispose();
+			}
 		}
 
 		/// <summary>
@@ -344,9 +355,7 @@ namespace Assistant.Core.Shell {
 		/// </summary>
 		/// <param name="cmd"></param>
 		/// <returns></returns>
-		private static string Replace(string cmd) {
-			return cmd.Replace(";", "").Replace(",", "");
-		}
+		private static string Replace(string cmd) => cmd.Replace(";", "").Replace(",", "");
 
 		/// <summary>
 		/// Defines the EXECUTE_RESULT

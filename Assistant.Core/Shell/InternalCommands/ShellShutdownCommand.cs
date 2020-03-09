@@ -9,7 +9,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 	public class ShellShutdownCommand : IShellCommand, IDisposable {
 		public bool HasParameters => false;
 
-		public string CommandName => "Shutdown shell.";
+		public string CommandName => "Shutdown shell";
 
 		public bool IsInitSuccess { get; set; }
 

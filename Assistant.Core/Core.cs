@@ -421,7 +421,8 @@ namespace Assistant.Core {
 			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
 
 			Interpreter.ShutdownShell = true;
-			await RestServer.Shutdown().ConfigureAwait(false);
+			await Task.Delay(50);
+			await RestServer.Shutdown();
 			Controller?.Shutdown();
 			JobManager.RemoveAllJobs();
 			JobManager.Stop();
@@ -430,7 +431,7 @@ namespace Assistant.Core {
 			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
 
-			await Config.SaveConfig(Config).ConfigureAwait(false);
+			await Config.SaveConfig(Config);
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);
 		}
 
