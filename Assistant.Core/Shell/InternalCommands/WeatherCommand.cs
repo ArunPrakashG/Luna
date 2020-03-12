@@ -84,7 +84,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
 						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
 						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {weather.Data.Temperature}");
+						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
@@ -109,7 +109,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
 						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
 						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {weather.Data.Temperature}");
+						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					case 3 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]) && !string.IsNullOrEmpty(parameter.Parameters[2]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
@@ -146,7 +146,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
 						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
 						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {weather.Data.Temperature}");
+						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					default:
 						ShellOut.Error("Command seems to be in incorrect syntax.");
@@ -160,6 +160,10 @@ namespace Assistant.Core.Shell.InternalCommands {
 			finally {
 				Sync.Release();
 			}
+		}
+
+		private double KelvinToCelsius(double temp) {
+			return Math.Round(temp - 273.15, 3);
 		}
 
 		public async Task InitAsync() {
