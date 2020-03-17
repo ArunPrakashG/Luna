@@ -13,6 +13,8 @@
 *.xml
 *.config
 
+Deploy.props
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
