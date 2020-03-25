@@ -161,7 +161,7 @@ namespace Assistant.Core.Shell {
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 			bool anyExec = false;
-
+			
 			try {				
 				// If there is multiple commands separated by the Multi command delimiter
 				if (cmd.Contains(ShellConstants.MULTI_COMMAND)) {
