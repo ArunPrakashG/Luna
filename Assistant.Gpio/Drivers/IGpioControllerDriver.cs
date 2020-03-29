@@ -1,12 +1,12 @@
 using Assistant.Extensions;
 using Assistant.Gpio.Config;
 using Assistant.Gpio.Controllers;
+using Assistant.Gpio.Interfaces;
 using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using static Assistant.Gpio.Config.PinConfig;
 using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Drivers {
@@ -49,6 +49,25 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			return true;
+		}
+
+		void MapSensor(SensorMap<ISensor> _mapObj) {
+			if (!PinController.IsValidPin(_mapObj.GpioPinNumber)) {
+				Logger.Log("The specified pin is invalid.");
+				return;
+			}
+
+			Pin? pinConfig = GetPinConfig(_mapObj.GpioPinNumber);
+
+			if(pinConfig == null) {
+				return;
+			}
+
+			if(pinConfig.SensorMap.Any(x => x.GpioPinNumber == _mapObj.GpioPinNumber && x.MapEvent == _mapObj.MapEvent)) {
+				return;
+			}
+
+			pinConfig.SensorMap.Add(_mapObj);
 		}
 
 		IGpioControllerDriver CastDriver<T>(T driver) where T : IGpioControllerDriver;
@@ -112,11 +131,11 @@ namespace Assistant.Gpio.Drivers {
 
 			Pin? pinConfig = GetPinConfig(pin);
 
-			if(pinConfig == null) {
+			if (pinConfig == null) {
 				return false;
 			}
 
-			if(pinConfig.Mode != GpioPinMode.Output) {
+			if (pinConfig.Mode != GpioPinMode.Output) {
 				Logger.Warning("Cannot toggle the pin as the pin mode is not set to output.");
 				return false;
 			}
@@ -337,7 +356,7 @@ namespace Assistant.Gpio.Drivers {
 
 				Pin? pinConfig = GetPinConfig(pin);
 
-				if(pinConfig == null) {
+				if (pinConfig == null) {
 					return false;
 				}
 

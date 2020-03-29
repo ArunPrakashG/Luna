@@ -1,5 +1,11 @@
 namespace Assistant.Gpio {
 	public static class Enums {
+		public enum MappingEvent {
+			OnActivated,
+			OnDeactivated,
+			Both
+		}
+
 		public enum EGPIO_DRIVERS {
 			RaspberryIODriver,
 			SystemDevicesDriver,

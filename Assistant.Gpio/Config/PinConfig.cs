@@ -1,7 +1,9 @@
 namespace Assistant.Gpio.Config {
+	using Assistant.Gpio.Interfaces;
 	using Newtonsoft.Json;
 	using System;
 	using System.Collections.Generic;
+	using System.Collections.Immutable;
 	using System.Text;
 	using static Assistant.Gpio.Enums;
 
@@ -39,19 +41,25 @@ namespace Assistant.Gpio.Config {
 		/// Gets or sets the Pin state. (On/Off)
 		/// </summary>
 		[JsonProperty]
-		public GpioPinState PinState { get; set; } = GpioPinState.Off;
+		public GpioPinState PinState = GpioPinState.Off;
 
 		/// <summary>
 		/// Gets or sets the Pin mode. (Output/Input)
 		/// </summary>
 		[JsonProperty]
-		public GpioPinMode Mode { get; set; } = GpioPinMode.Input;
+		public GpioPinMode Mode = GpioPinMode.Input;
+
+		/// <summary>
+		/// Mapping instance which maps the gpio pin with a sensor.
+		/// </summary>
+		[JsonProperty]
+		public SensorMapCollection SensorMap = new SensorMapCollection();
 
 		/// <summary>
 		/// Gets or sets a value indicating whether the pin is available.
 		/// </summary>
 		[JsonProperty]
-		public bool IsAvailable { get; set; } = true;
+		public bool IsAvailable = true;
 
 		/// <summary>
 		/// Gets or sets the Scheduler job name if the pin isn't available.
@@ -110,8 +118,8 @@ namespace Assistant.Gpio.Config {
 			StringBuilder s = new StringBuilder();
 			s.AppendLine("---------------------------");
 			s.AppendLine($"Pin -> {PinNumber}");
-			s.AppendLine($"Pin Value -> {PinState.ToString()}");
-			s.AppendLine($"Pin Mode -> {Mode.ToString()}");
+			s.AppendLine($"Pin Value -> {PinState}");
+			s.AppendLine($"Pin Mode -> {Mode}");
 			s.AppendLine($"Is Tasked -> {!IsAvailable}");
 			s.AppendLine($"Task Name -> {JobName}");
 			s.AppendLine($"Is pin on -> {IsPinOn}");

@@ -9,12 +9,10 @@
 
   <ItemGroup>
     <Compile Remove="Events\EventArgs\GpioPinValueChangedEventArgs.cs" />
-    <Compile Remove="Events\GpioEventGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="Events\EventArgs\GpioPinValueChangedEventArgs.cs" />
-    <None Include="Events\GpioEventGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>

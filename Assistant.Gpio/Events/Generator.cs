@@ -26,12 +26,13 @@ namespace Assistant.Gpio.Events {
 
 		public void OverridePolling() => OverrideEventWatcher = true;
 
+		[Obsolete("Re work to use SensorMapping system.")]
 		public void Poll() => _ = Helpers.InBackgroundThread(async () => await PollAsync(), true);
 
 		/// <summary>
 		/// Thread blocking method to poll the specified gpio pin in the EventConfig of this instance.
 		/// </summary>
-		/// <returns></returns>
+		/// <returns></returns>		
 		private async Task PollAsync() {
 			if (Driver == null || !Driver.IsDriverProperlyInitialized) {
 				Logger.Log("Controller is null. Polling failed.", LogLevels.Warn);
@@ -102,15 +103,10 @@ namespace Assistant.Gpio.Events {
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
-
-			try {
-				_previousPinState = GpioPinState.Off;
-				_previousDigitalState = true;
-				Logger.Trace($"Initial pin event values has been set for {Config.GpioPin} pin.");
-			}
-			finally {
-				Sync.Release();
-			}
+			_previousPinState = GpioPinState.Off;
+			_previousDigitalState = true;
+			Logger.Trace($"Initial pin event values has been set for {Config.GpioPin} pin.");
+			Sync.Release();
 		}
 	}
 }
