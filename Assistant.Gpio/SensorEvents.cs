@@ -1,8 +1,5 @@
 using Assistant.Gpio.Events.EventArgs;
 using Assistant.Logging.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Assistant.Gpio {
 	internal class SensorEvents {
@@ -10,7 +7,7 @@ namespace Assistant.Gpio {
 
 		internal SensorEvents(ILogger _logger) => Logger = _logger;
 
-		internal bool IrSensorEvent(OnValueChangedEventArgs e) {			
+		internal bool IrSensorEvent(OnValueChangedEventArgs e) {
 			Logger.Info($"IR Sensor | '{e.Pin}' -> '{e.CurrentState}' | ({e.PreviousPinState})");
 			return true;
 		}

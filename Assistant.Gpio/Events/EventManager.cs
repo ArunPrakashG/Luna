@@ -19,22 +19,22 @@ namespace Assistant.Gpio.Events {
 				return false;
 			}
 
-			Generator mapGen = new Generator(config, Logger);
+			Generator gen = new Generator(config, Logger);
 
 			for (int i = 0; i < 5; i++) {
-				if (mapGen.Config.IsEventRegistered) {
+				if (gen.Config.IsEventRegistered) {
 					break;
 				}
 
 				Task.Delay(30).Wait();
 			}
 
-			if (!mapGen.Config.IsEventRegistered) {
+			if (!gen.Config.IsEventRegistered) {
 				return false;
 			}
 
-			Events.Add(config.GpioPin, mapGen);
-			return mapGen.Config.IsEventRegistered;
+			Events.Add(config.GpioPin, gen);
+			return gen.Config.IsEventRegistered;
 		}
 
 		public void StopAllEventGenerators() {
