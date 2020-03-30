@@ -1,7 +1,6 @@
 using Assistant.Extensions;
 using Assistant.Gpio.Config;
 using Assistant.Gpio.Controllers;
-using Assistant.Gpio.Interfaces;
 using Assistant.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -15,8 +14,7 @@ namespace Assistant.Gpio.Drivers {
 	/// The Gpio controller driver interface.
 	/// </summary>
 	public interface IGpioControllerDriver {
-
-		ILogger Logger => PinController.Logger;
+		ILogger Logger => IOController.Logger;
 
 		/// <summary>
 		/// Indicates if the driver has been properly initialized
@@ -29,13 +27,15 @@ namespace Assistant.Gpio.Drivers {
 
 		EGPIO_DRIVERS DriverName { get; }
 
+		AvailablePins AvailablePins => GpioController.AvailablePins;
+
 		/// <summary>
 		/// The pin config.
 		/// </summary>
 		PinConfig PinConfig { get; }
 
 		private bool PreExecValidation(int pin) {
-			if (!IsDriverProperlyInitialized || !PiGpioController.IsAllowedToExecute) {
+			if (!IsDriverProperlyInitialized || !GpioController.IsAllowedToExecute) {
 				return false;
 			}
 
@@ -43,7 +43,7 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (!PinController.IsValidPin(pin)) {
+			if (!IOController.IsValidPin(pin)) {
 				Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -51,26 +51,33 @@ namespace Assistant.Gpio.Drivers {
 			return true;
 		}
 
-		void MapSensor(SensorMap<ISensor> _mapObj) {
-			if (!PinController.IsValidPin(_mapObj.GpioPinNumber)) {
+		void MapSensor<T>(SensorMap<T> _mapObj) where T : ISensor {
+			if (!IOController.IsValidPin(_mapObj.GpioPinNumber)) {
 				Logger.Log("The specified pin is invalid.");
 				return;
 			}
 
-			Pin? pinConfig = GetPinConfig(_mapObj.GpioPinNumber);
+			Pin? pin = GetPinConfig(_mapObj.GpioPinNumber);
 
-			if(pinConfig == null) {
+			if (pin == null) {
 				return;
 			}
 
-			if(pinConfig.SensorMap.Any(x => x.GpioPinNumber == _mapObj.GpioPinNumber && x.MapEvent == _mapObj.MapEvent)) {
-				return;
+			IEnumerable<SensorMap<T>> maps = pin.SensorMap.OfType<SensorMap<T>>();
+
+			// Check if the obj already exists
+			for (int i = 0; i < maps.Count(); i++) {
+				SensorMap<T> map = maps.ElementAt(i);
+
+				if(map.GpioPinNumber == _mapObj.GpioPinNumber && map.MapEvent == _mapObj.MapEvent) {
+					return;
+				}
 			}
 
-			pinConfig.SensorMap.Add(_mapObj);
+			pin.SensorMap.Add(_mapObj);
 		}
 
-		IGpioControllerDriver CastDriver<T>(T driver) where T : IGpioControllerDriver;
+		IGpioControllerDriver Cast<T>(T driver) where T : IGpioControllerDriver;
 
 		/// <summary>
 		/// Get the config of the specified gpio pin. Includes pin mode and pin value.
@@ -175,8 +182,8 @@ namespace Assistant.Gpio.Drivers {
 		/// Invokes shutdown on the currently loaded GpioController driver.
 		/// </summary>
 		void ShutdownDriver() {
-			if (PiGpioController.IsGracefullShutdownRequested) {
-				foreach (int pin in PiGpioController.AvailablePins.OutputPins) {
+			if (GpioController.IsGracefullShutdownRequested) {
+				foreach (int pin in GpioController.AvailablePins.OutputPins) {
 					Pin? pinStatus = GetPinConfig(pin);
 
 					if (pinStatus == null) {
@@ -266,7 +273,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
-			if (!PiGpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
+			if (!GpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
 				return false;
 			}
 
@@ -350,7 +357,7 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			foreach (int pin in pins) {
-				if (!PiGpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
+				if (!GpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
 					continue;
 				}
 

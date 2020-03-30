@@ -10,13 +10,13 @@ using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
-	public class GpioMorseTranslator {
-		private readonly ILogger Logger = new Logger(typeof(GpioMorseTranslator).Name);
+	public class MorseRelayTranslator {
+		private readonly ILogger Logger = new Logger(typeof(MorseRelayTranslator).Name);
 		private static readonly MorseCore MorseCore = new MorseCore();
-		private IGpioControllerDriver? Driver => PinController.GetDriver();
+		private IGpioControllerDriver? Driver => IOController.GetDriver();
 		public readonly bool IsTranslatorOnline;
 
-		public GpioMorseTranslator() {
+		public MorseRelayTranslator() {
 			if (Driver == null) {
 				IsTranslatorOnline = false;
 				throw new InvalidOperationException("Cannot start Morse translator as the PinController is null!");
@@ -38,7 +38,7 @@ namespace Assistant.Gpio {
 				return false;
 			}
 
-			if (!PinController.IsValidPin(relayPin)) {
+			if (!IOController.IsValidPin(relayPin)) {
 				Logger.Log("Please specify a valid relay pin to run the cycle.", LogLevels.Warn);
 				return false;
 			}

@@ -12,6 +12,14 @@ namespace Assistant.Gpio {
 			WiringPiDriver
 		}
 
+		public enum SensorType {
+			IRSensor,
+			Relay,
+			Buzzer,
+			SoundSensor,
+			Invalid
+		}
+
 		public enum PiAudioState {
 			Mute,
 			Unmute

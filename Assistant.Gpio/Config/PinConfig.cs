@@ -1,9 +1,8 @@
 namespace Assistant.Gpio.Config {
-	using Assistant.Gpio.Interfaces;
 	using Newtonsoft.Json;
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
-	using System.Collections.Immutable;
 	using System.Text;
 	using static Assistant.Gpio.Enums;
 
@@ -22,9 +21,7 @@ namespace Assistant.Gpio.Config {
 		/// Initializes a new instance of the <see cref="PinConfig"/> class.
 		/// </summary>
 		/// <param name="configs">The configs<see cref="List{Pin}"/></param>
-		public PinConfig(List<Pin> configs) {
-			PinConfigs = configs;
-		}
+		public PinConfig(List<Pin> configs) => PinConfigs = configs;
 	}
 
 	/// <summary>
@@ -50,10 +47,11 @@ namespace Assistant.Gpio.Config {
 		public GpioPinMode Mode = GpioPinMode.Input;
 
 		/// <summary>
-		/// Mapping instance which maps the gpio pin with a sensor.
+		/// Mapping instance which maps the gpio pin with sensors attached to the device.
 		/// </summary>
-		[JsonProperty]
-		public SensorMapCollection SensorMap = new SensorMapCollection();
+		[JsonIgnore]
+		// TODO: Rewrite
+		internal readonly ArrayList SensorMap = new ArrayList();
 
 		/// <summary>
 		/// Gets or sets a value indicating whether the pin is available.
@@ -145,8 +143,6 @@ namespace Assistant.Gpio.Config {
 		/// Gets the hash code of the object.
 		/// </summary>
 		/// <returns></returns>
-		public override int GetHashCode() {
-			return base.GetHashCode();
-		}
+		public override int GetHashCode() => base.GetHashCode();
 	}
 }

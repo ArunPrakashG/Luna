@@ -10,21 +10,20 @@ namespace Assistant.Gpio.Events {
 
 		public readonly GpioPinEventStates PinEventState;
 
-		public Action<object, OnValueChangedEventArgs> OnFireAction { get; private set; }
+		public readonly Enums.SensorType Type;
 
-		public EventConfig(int _gpioPin, GpioPinMode _pinMode, GpioPinEventStates _pinEventState, Action<object, OnValueChangedEventArgs> _func) {
+		public bool IsEventRegistered { get; private set; }
+
+		public EventConfig(int _gpioPin, GpioPinMode _pinMode, GpioPinEventStates _pinEventState, SensorType _type) {
 			GpioPin = _gpioPin;
 			PinMode = _pinMode;
 			PinEventState = _pinEventState;
-			OnFireAction = _func;
+			Type = _type;
+			IsEventRegistered = false;
 		}
 
-		public void SetEventAction(Action<object, OnValueChangedEventArgs> action) {
-			if(action == null) {
-				return;
-			}
-
-			OnFireAction = action;
+		public void SetEventRegisteredStatus(bool _isRegistered) {
+			IsEventRegistered = _isRegistered;
 		}
 	}
 }

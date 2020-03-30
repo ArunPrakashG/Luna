@@ -7,13 +7,13 @@ using System.Linq;
 using Unosquare.RaspberryIO;
 
 namespace Assistant.Gpio.Controllers {
-	public class PinController {
-		internal static readonly ILogger Logger = new Logger(typeof(PinController).Name);
+	public class IOController {
+		internal static readonly ILogger Logger = new Logger(typeof(IOController).Name);
 		private static IGpioControllerDriver CurrentDriver;
 		private static bool IsAlreadyInit;
 
-		public void InitPinController<T>(T driver, Enums.NumberingScheme numberingScheme = Enums.NumberingScheme.Logical) where T : IGpioControllerDriver {
-			if (!PiGpioController.IsAllowedToExecute || IsAlreadyInit) {
+		public void InitIoController<T>(T driver, Enums.NumberingScheme numberingScheme = Enums.NumberingScheme.Logical) where T : IGpioControllerDriver {
+			if (!GpioController.IsAllowedToExecute || IsAlreadyInit) {
 				return;
 			}
 
@@ -27,7 +27,7 @@ namespace Assistant.Gpio.Controllers {
 				return null;
 			}
 
-			if (!PiGpioController.IsAllowedToExecute || !CurrentDriver.IsDriverProperlyInitialized) {
+			if (!GpioController.IsAllowedToExecute || !CurrentDriver.IsDriverProperlyInitialized) {
 				Logger.Warning("Incorrect OS/Driver not initialized; Please initialize correctly.");
 				return null;
 			}
@@ -41,7 +41,7 @@ namespace Assistant.Gpio.Controllers {
 		}
 
 		public static bool IsValidPin(int pin) {
-			if (!PiGpioController.IsAllowedToExecute || !Constants.BcmGpioPins.Contains(pin)) {
+			if (!GpioController.IsAllowedToExecute || !Constants.BcmGpioPins.Contains(pin)) {
 				return false;
 			}
 

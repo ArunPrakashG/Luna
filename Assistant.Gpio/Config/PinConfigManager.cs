@@ -3,7 +3,6 @@ using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,10 +14,10 @@ namespace Assistant.Gpio.Config {
 	public class PinConfigManager {
 		private readonly ILogger Logger = new Logger(typeof(PinConfigManager).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
-		private static PinConfig PinConfig { get; set; }
+		private static PinConfig PinConfig;
 
-		public PinConfigManager Init(PinConfig config) {
-			PinConfig = config;
+		public PinConfigManager Init(PinConfig _config) {
+			PinConfig = _config;
 			return this;
 		}
 
@@ -41,7 +40,7 @@ namespace Assistant.Gpio.Config {
 					return;
 				}
 
-				File.WriteAllText(Constants.GpioConfigDirectory, json);
+				await File.WriteAllTextAsync(Constants.GpioConfigDirectory, json).ConfigureAwait(false);
 			}
 			catch (Exception e) {
 				Logger.Log(e);
@@ -84,6 +83,7 @@ namespace Assistant.Gpio.Config {
 			}
 			catch (Exception e) {
 				Logger.Log(e);
+				return;
 			}
 			finally {
 				Sync.Release();

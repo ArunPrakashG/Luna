@@ -39,7 +39,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
-			MorseCore morseCore = GpioMorseTranslator.GetCore();
+			MorseCore morseCore = MorseRelayTranslator.GetCore();
 			string morse = string.Empty;
 
 			try {
@@ -69,7 +69,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						}
 
 						ShellOut.Info(">>> " + morse);
-						GpioMorseTranslator? translator = PiGpioController.GetMorseTranslator();
+						MorseRelayTranslator? translator = GpioController.GetMorseTranslator();
 
 						if (translator == null || !translator.IsTranslatorOnline) {
 							ShellOut.Error("Morse translator might be offline.");
@@ -81,12 +81,12 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						if (!PinController.IsValidPin(PiGpioController.AvailablePins.OutputPins[relayNumber])) {
+						if (!IOController.IsValidPin(GpioController.AvailablePins.OutputPins[relayNumber])) {
 							ShellOut.Error("The specified pin is invalid.");
 							return;
 						}
 
-						await translator.RelayMorseCycle(morse, PiGpioController.AvailablePins.OutputPins[relayNumber]);
+						await translator.RelayMorseCycle(morse, GpioController.AvailablePins.OutputPins[relayNumber]);
 						ShellOut.Info("Completed!");
 						return;
 					default:

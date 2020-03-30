@@ -10,13 +10,13 @@ namespace Assistant.Gpio.Controllers {
 	/// <summary>
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)
 	/// </summary>
-	public class PiBluetoothController {
-		private readonly ILogger Logger = new Logger(typeof(PiBluetoothController).Name);
-		private IGpioControllerDriver? Driver => PinController.GetDriver();
+	public class BluetoothController {
+		private readonly ILogger Logger = new Logger(typeof(BluetoothController).Name);
+		private IGpioControllerDriver? Driver => IOController.GetDriver();
 		public bool IsBluetoothControllerInitialized { get; private set; }
 
-		public PiBluetoothController InitBluetoothController() {
-			if (Driver == null || !PiGpioController.IsAllowedToExecute) {
+		public BluetoothController InitBluetoothController() {
+			if (Driver == null || !GpioController.IsAllowedToExecute) {
 				IsBluetoothControllerInitialized = false;
 				return this;
 			}

@@ -6,11 +6,11 @@ using Unosquare.RaspberryIO.Computer;
 using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Controllers {
-	public class PiSoundController {
-		private readonly ILogger Logger = new Logger(typeof(PiSoundController).Name);
-		private bool IsAllowedToRun => PinController.GetDriver() != null && PinController.GetDriver().DriverName == EGPIO_DRIVERS.RaspberryIODriver;
+	public class SoundController {
+		private readonly ILogger Logger = new Logger(typeof(SoundController).Name);
+		private bool IsAllowedToRun => IOController.GetDriver() != null && IOController.GetDriver()?.DriverName == EGPIO_DRIVERS.RaspberryIODriver;
 
-		public async Task SetPiAudioState(PiAudioState state) {
+		public async Task SetAudioState(PiAudioState state) {
 			if (!IsAllowedToRun) {
 				return;
 			}
@@ -36,7 +36,7 @@ namespace Assistant.Gpio.Controllers {
 			return await Pi.Audio.GetState().ConfigureAwait(false);
 		}
 
-		public async Task SetPiVolume(int level = 80) {
+		public async Task SetVolume(int level = 80) {
 			if (!IsAllowedToRun) {
 				return;
 			}
@@ -44,7 +44,7 @@ namespace Assistant.Gpio.Controllers {
 			await Pi.Audio.SetVolumePercentage(level).ConfigureAwait(false);
 		}
 
-		public async Task SetPiVolume(float decibels = -1.00f) {
+		public async Task SetVolume(float decibels = -1.00f) {
 			if (!IsAllowedToRun) {
 				return;
 			}
