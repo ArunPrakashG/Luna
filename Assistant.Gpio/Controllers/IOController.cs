@@ -46,6 +46,10 @@ namespace Assistant.Gpio.Controllers {
 			}
 
 			try {
+				if(CurrentDriver.DriverName != Enums.EGPIO_DRIVERS.RaspberryIODriver) {
+					return Constants.BcmGpioPins.Contains(pin);
+				}
+
 				if (!Pi.Gpio.Contains(Pi.Gpio[pin])) {
 					Logger.Warning($"pin {pin} doesn't exist or is not a valid Bcm Gpio pin.");
 					return false;

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\Deploy.props" />
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -13,5 +13,4 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
 	</ItemGroup>
-
 </Project>

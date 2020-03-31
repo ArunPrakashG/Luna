@@ -153,7 +153,28 @@ namespace Assistant.Extensions {
 
 			return pingReply.Status == IPStatus.Success;
 		}
-		
+
+		public static string ExecuteBashCommand(string command) {
+			// according to: https://stackoverflow.com/a/15262019/637142
+			// thans to this we will pass everything as one command
+			command = command.Replace("\"", "\"\"");
+
+			var proc = new Process {
+				StartInfo = new ProcessStartInfo {
+					FileName = "/bin/bash",
+					Arguments = "-c \"" + command + "\"",
+					UseShellExecute = false,
+					RedirectStandardOutput = true,
+					CreateNoWindow = true
+				}
+			};
+
+			proc.Start();
+			proc.WaitForExit();
+
+			return proc.StandardOutput.ReadToEnd();
+		}
+
 		public static string? ExecuteBash(this string cmd, bool sudo) {
 			if(GetOsPlatform() != OSPlatform.Linux) {
 				Logger.Log("Current OS environment isn't Linux.", LogLevels.Error);
@@ -173,19 +194,22 @@ namespace Assistant.Extensions {
 					FileName = "/bin/bash",
 					Arguments = sudo ? argsWithSudo : args,
 					RedirectStandardOutput = true,
+					RedirectStandardError = true,
 					UseShellExecute = false,
 					CreateNoWindow = true,
+					WindowStyle = ProcessWindowStyle.Hidden
 				}
 			};
 
-			string result = string.Empty;
+			StringBuilder result = new StringBuilder();
 
 			if (process.Start()) {
-				result = process.StandardOutput.ReadToEnd();
-				process.WaitForExit(TimeSpan.FromMinutes(4).Milliseconds);
+				result.AppendLine(process.StandardOutput.ReadToEnd());
+				result.AppendLine(process.StandardError.ReadToEnd());
+				process.WaitForExit(TimeSpan.FromMinutes(6).Milliseconds);
 			}
 
-			return result;
+			return result.ToString();
 		}
 		
 		public static string? GetLocalIpAddress() {

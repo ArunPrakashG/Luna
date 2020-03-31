@@ -191,13 +191,7 @@ namespace Assistant.Gpio.Controllers {
 			IOController.GetDriver()?.ShutdownDriver();
 		}
 
-		private static bool IsPiEnvironment() {
-			if (Helpers.GetOsPlatform() == OSPlatform.Linux) {
-				return Pi.Info.RaspberryPiVersion.ToString().Equals("Pi3ModelBEmbest", StringComparison.OrdinalIgnoreCase);
-			}
-
-			return false;
-		}
+		private static bool IsPiEnvironment() => Helpers.GetOsPlatform() == OSPlatform.Linux;
 
 		public static EventManager? GetEventManager() => EventManager;
 		public static MorseRelayTranslator? GetMorseTranslator() => MorseTranslator;

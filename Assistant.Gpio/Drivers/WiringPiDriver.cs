@@ -16,6 +16,7 @@ namespace Assistant.Gpio.Drivers {
 
 		private bool IsWiringPiInstalled() {
 			string? executeResult = "gpio".ExecuteBash(false);
+			Cast<IGpioControllerDriver>(this)?.Logger.Trace("Execute result : " + executeResult);
 
 			if (string.IsNullOrEmpty(executeResult)) {
 				return false;
@@ -56,7 +57,7 @@ namespace Assistant.Gpio.Drivers {
 			return this;
 		}
 
-		public PinConfig PinConfig => throw new NotImplementedException();
+		public PinConfig PinConfig => PinConfigManager.GetConfiguration();
 
 		public IGpioControllerDriver Cast<T>(T driver) where T : IGpioControllerDriver {
 			return driver;
