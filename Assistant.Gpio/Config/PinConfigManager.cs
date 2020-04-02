@@ -1,4 +1,5 @@
 using Assistant.Extensions;
+using Assistant.Gpio.Controllers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
@@ -14,19 +15,19 @@ namespace Assistant.Gpio.Config {
 	public class PinConfigManager {
 		private readonly ILogger Logger = new Logger(typeof(PinConfigManager).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		private readonly GpioController Controller;
 		private static PinConfig PinConfig;
 
-		public PinConfigManager Init(PinConfig _config) {
-			PinConfig = _config;
-			return this;
-		}
+		internal PinConfigManager(GpioController _controller) => Controller = _controller;
+
+		internal void Init(PinConfig _config) => PinConfig = _config;
 
 		/// <summary>
 		/// Saves the pin configuration as a whole.
 		/// </summary>
 		/// <param name="pinConfig">The pin config collection <see cref="PinConfig"/></param>
 		/// <returns>The <see cref="Task"/></returns>
-		public async Task SaveConfig() {
+		internal async Task SaveConfig() {
 			if (PinConfig == null || PinConfig.PinConfigs.Count <= 0) {
 				return;
 			}
@@ -55,19 +56,19 @@ namespace Assistant.Gpio.Config {
 		/// Gets the configuration.
 		/// </summary>
 		/// <returns>The <see cref="PinConfig?"/></returns>
-		public static PinConfig GetConfiguration() => PinConfig;
+		internal static PinConfig GetConfiguration() => PinConfig;
 
 		/// <summary>
 		/// Loads the pin configuration.
 		/// </summary>
 		/// <returns>The <see cref="Task"/></returns>
-		public async Task LoadConfiguration() {
+		internal async Task<bool> LoadConfiguration() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
 			if (!File.Exists(Constants.GpioConfigDirectory)) {
-				return;
+				return false;
 			}
 
 			Logger.Trace("Loading Gpio config...");
@@ -76,14 +77,17 @@ namespace Assistant.Gpio.Config {
 			try {
 				PinConfig = JsonConvert.DeserializeObject<PinConfig>(File.ReadAllText(Constants.GpioConfigDirectory));
 
-				if (PinConfig != null && PinConfig.PinConfigs.Count > 0)
+				if (PinConfig != null && PinConfig.PinConfigs.Count > 0) {
 					Logger.Trace("Pin configuration loaded!");
-				else
-					Logger.Warning("Failed to load pin configuration.");
+					return true;
+				}
+
+				Logger.Warning("Failed to load pin configuration.");
+				return false;
 			}
 			catch (Exception e) {
 				Logger.Log(e);
-				return;
+				return false;
 			}
 			finally {
 				Sync.Release();

@@ -69,24 +69,25 @@ namespace Assistant.Core.Shell.InternalCommands {
 						}
 
 						ShellOut.Info(">>> " + morse);
-						MorseRelayTranslator? translator = GpioController.GetMorseTranslator();
+						int relayNumber;
 
-						if (translator == null || !translator.IsTranslatorOnline) {
-							ShellOut.Error("Morse translator might be offline.");
-							return;
+						try {
+							if (!int.TryParse(parameter.Parameters[1], out relayNumber)) {
+								ShellOut.Error("Relay number argument is invalid.");
+								return;
+							}
 						}
-
-						if (!int.TryParse(parameter.Parameters[1], out int relayNumber)) {
-							ShellOut.Error("Relay number argument is invalid.");
+						catch (IndexOutOfRangeException) {
+							ShellOut.Error("The specified relay number is invalid is greater than all the available relay numbers.");
 							return;
-						}
+						}						
 
-						if (!IOController.IsValidPin(GpioController.AvailablePins.OutputPins[relayNumber])) {
+						if (!PinController.IsValidPin(GpioController.GetAvailablePins().OutputPins[relayNumber])) {
 							ShellOut.Error("The specified pin is invalid.");
 							return;
 						}
 
-						await translator.RelayMorseCycle(morse, GpioController.AvailablePins.OutputPins[relayNumber]);
+						await GpioController.GetMorseTranslator().RelayMorseCycle(morse, GpioController.GetAvailablePins().OutputPins[relayNumber]).ConfigureAwait(false);
 						ShellOut.Info("Completed!");
 						return;
 					default:

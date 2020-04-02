@@ -3,20 +3,26 @@ using Assistant.Gpio.Config;
 using Assistant.Gpio.Controllers;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
+using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Drivers {
-	internal class WiringPiDriver : IGpioControllerDriver {
+	public class WiringPiDriver : IGpioControllerDriver {
 		private const string COMMAND_KEY = "gpio -g";
-		public bool IsDriverProperlyInitialized { get; private set; }
+		public bool IsDriverInitialized { get; private set; }
 
-		public Enums.NumberingScheme NumberingScheme { get; set; }
+		public NumberingScheme NumberingScheme { get; set; }
 
-		public Enums.EGPIO_DRIVERS DriverName => Enums.EGPIO_DRIVERS.WiringPiDriver;
+		public GpioDriver DriverName => GpioDriver.WiringPiDriver;
+
+		private static bool IsLibraryInstalled;
+		private AvailablePins AvailablePins => GpioController.GetAvailablePins();
 
 		private bool IsWiringPiInstalled() {
+			if (IsLibraryInstalled) {
+				return true;
+			}
+
 			string? executeResult = "gpio".ExecuteBash(false);
-			Cast<IGpioControllerDriver>(this)?.Logger.Trace("Execute result : " + executeResult);
 
 			if (string.IsNullOrEmpty(executeResult)) {
 				return false;
@@ -24,55 +30,52 @@ namespace Assistant.Gpio.Drivers {
 
 			// 10/10 hecks
 			if (executeResult.Contains("your", StringComparison.OrdinalIgnoreCase) && executeResult.Contains("service", StringComparison.OrdinalIgnoreCase)) {
+				IsLibraryInstalled = true;
 				return true;
 			}
 
 			return false;
 		}
 
-		public IGpioControllerDriver InitDriver(Enums.NumberingScheme scheme) {
+		public IGpioControllerDriver InitDriver(NumberingScheme scheme) {
 			if (!IsWiringPiInstalled()) {
-				Cast<IGpioControllerDriver>(this)?.Logger.Warning("Failed to initialize Gpio Controller Driver. (Driver isn't allowed to execute.)");
+				Cast<IGpioControllerDriver>(this)?.Logger.Warning("WiringPi Library isn't installed on the system.");
 				return this;
 			}
 
 			if (!GpioController.IsAllowedToExecute) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Warning("Failed to initialize Gpio Controller Driver. (Driver isn't allowed to execute.)");
-				IsDriverProperlyInitialized = false;
+				IsDriverInitialized = false;
 				return this;
 			}
 
 			NumberingScheme = scheme;
-			for (int i = 0; i < GpioController.AvailablePins.OutputPins.Length; i++) {
-				SetMode(GpioController.AvailablePins.OutputPins[i], Enums.GpioPinMode.Output);
-				Task.Delay(10).Wait();
+			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
+				SetMode(AvailablePins.OutputPins[i], GpioPinMode.Output);
 			}
 
-			for (int i = 0; i < GpioController.AvailablePins.InputPins.Length; i++) {
-				SetMode(GpioController.AvailablePins.InputPins[i], Enums.GpioPinMode.Input);
-				Task.Delay(10).Wait();
+			for (int i = 0; i < AvailablePins.InputPins.Length; i++) {
+				SetMode(AvailablePins.InputPins[i], GpioPinMode.Input);
 			}
 
-			IsDriverProperlyInitialized = true;
+			IsDriverInitialized = true;
 			return this;
 		}
 
 		public PinConfig PinConfig => PinConfigManager.GetConfiguration();
 
-		public IGpioControllerDriver Cast<T>(T driver) where T : IGpioControllerDriver {
-			return driver;
-		}
+		public IGpioControllerDriver Cast<T>(T driver) where T : IGpioControllerDriver => driver;
 
 		public Pin? GetPinConfig(int pinNumber) {
 			if (!IsWiringPiInstalled()) {
 				return null;
 			}
 
-			if (!GpioController.IsAllowedToExecute || !IsDriverProperlyInitialized) {
+			if (!GpioController.IsAllowedToExecute || !IsDriverInitialized) {
 				return null;
 			}
 
-			if (!IOController.IsValidPin(pinNumber)) {
+			if (!PinController.IsValidPin(pinNumber)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return null;
 			}
@@ -85,11 +88,11 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (!GpioController.IsAllowedToExecute || !IsDriverProperlyInitialized) {
+			if (!GpioController.IsAllowedToExecute || !IsDriverInitialized) {
 				return false;
 			}
 
-			if (!IOController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -115,11 +118,11 @@ namespace Assistant.Gpio.Drivers {
 				return Enums.GpioPinState.Off;
 			}
 
-			if (!GpioController.IsAllowedToExecute || !IsDriverProperlyInitialized) {
+			if (!GpioController.IsAllowedToExecute || !IsDriverInitialized) {
 				return Enums.GpioPinState.Off;
 			}
 
-			if (!IOController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return Enums.GpioPinState.Off;
 			}
@@ -140,11 +143,11 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (!GpioController.IsAllowedToExecute || !IsDriverProperlyInitialized) {
+			if (!GpioController.IsAllowedToExecute || !IsDriverInitialized) {
 				return false;
 			}
 
-			if (!IOController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -157,7 +160,7 @@ namespace Assistant.Gpio.Drivers {
 				if (pinConfig != null) {
 					Cast<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
 				}
-			}			
+			}
 		}
 
 		public bool SetGpioValue(int pin, Enums.GpioPinMode mode, Enums.GpioPinState state) {
@@ -165,11 +168,11 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (!GpioController.IsAllowedToExecute || !IsDriverProperlyInitialized) {
+			if (!GpioController.IsAllowedToExecute || !IsDriverInitialized) {
 				return false;
 			}
 
-			if (!IOController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -194,11 +197,11 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (!GpioController.IsAllowedToExecute || !IsDriverProperlyInitialized) {
+			if (!GpioController.IsAllowedToExecute || !IsDriverInitialized) {
 				return false;
 			}
 
-			if (!IOController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -230,7 +233,7 @@ namespace Assistant.Gpio.Drivers {
 				return Enums.GpioPinMode.Input;
 			}
 
-			if (GpioController.AvailablePins.OutputPins.Contains(pinNumber)) {
+			if (AvailablePins.OutputPins.Contains(pinNumber)) {
 				return Enums.GpioPinMode.Output;
 			}
 
@@ -238,7 +241,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		private Enums.GpioPinState ReadState(int pinNumber) {
-			if (!IOController.IsValidPin(pinNumber)) {
+			if (!PinController.IsValidPin(pinNumber)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return Enums.GpioPinState.Off;
 			}
@@ -257,7 +260,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		private bool SetMode(int pinNumber, Enums.GpioPinMode mode) {
-			if (!IOController.IsValidPin(pinNumber)) {
+			if (!PinController.IsValidPin(pinNumber)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -268,7 +271,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		private bool WriteValue(int pinNumber, Enums.GpioPinState state) {
-			if (!IOController.IsValidPin(pinNumber)) {
+			if (!PinController.IsValidPin(pinNumber)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -285,7 +288,7 @@ namespace Assistant.Gpio.Drivers {
 		/// <returns></returns>
 		[Obsolete]
 		private bool TogglePin(int pinNumber) {
-			if (!IOController.IsValidPin(pinNumber)) {
+			if (!PinController.IsValidPin(pinNumber)) {
 				Cast<IGpioControllerDriver>(this)?.Logger.Log("The specified pin is invalid.");
 				return false;
 			}

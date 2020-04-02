@@ -2,7 +2,6 @@ using Assistant.Extensions;
 using Assistant.Gpio.Config;
 using Assistant.Gpio.Drivers;
 using Assistant.Gpio.Events;
-using Assistant.Gpio.Events.EventArgs;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System;
@@ -15,110 +14,102 @@ using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Controllers {
 	public class GpioController {
-		private static readonly ILogger Logger = new Logger(typeof(GpioController).Name);
-		public readonly EGPIO_DRIVERS GpioDriver = EGPIO_DRIVERS.RaspberryIODriver;
+		private readonly ILogger Logger = new Logger(typeof(GpioController).Name);
 		private static bool IsAlreadyInit;
-		public static AvailablePins AvailablePins { get; private set; }
-		internal static bool IsGracefullShutdownRequested = true;
-		public static bool IsAllowedToExecute => IsPiEnvironment();
-		private static EventManager? EventManager;
-		private static MorseRelayTranslator? MorseTranslator;
-		private static BluetoothController? BluetoothController;
-		private static SoundController? SoundController;
-		private static IOController? PinController;
-		private static PinConfigManager? ConfigManager;
-		private static readonly SensorEvents SensorEvents = new SensorEvents(Logger);
+		private readonly bool IsGracefullShutdownRequested = true;
+		private static AvailablePins AvailablePins;
 
-		public GpioController(EGPIO_DRIVERS driverToUse, AvailablePins pins, bool shouldShutdownGracefully) {
-			GpioDriver = driverToUse;
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
+		private static EventManager EventManager;
+		private static MorseRelayTranslator MorseTranslator;
+		private static BluetoothController BluetoothController;
+		private static SoundController SoundController;
+		private static PinController PinController;
+		private static PinConfigManager ConfigManager;
+		private static SensorEvents SensorEvents;
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
+
+		public static bool IsAllowedToExecute => IsPiEnvironment();
+
+
+		public GpioController(AvailablePins pins, bool shouldShutdownGracefully = true) {
 			AvailablePins = pins;
 			IsGracefullShutdownRequested = shouldShutdownGracefully;
+			SensorEvents = new SensorEvents(Logger);
 		}
 
-		public async Task InitController() {
+		private void PostInit() {
+			PinController = new PinController(this);
+			EventManager = new EventManager(this);
+			MorseTranslator = new MorseRelayTranslator(this);
+			BluetoothController = new BluetoothController(this);
+			SoundController = new SoundController(this);
+			ConfigManager = new PinConfigManager(this);
+		}
+
+		public async Task InitController<T>(T selectedDriver, NumberingScheme _scheme) where T : IGpioControllerDriver {
 			if (IsAlreadyInit) {
 				return;
 			}
 
+			PostInit();
 			if (!IsAllowedToExecute) {
 				Logger.Warning("Running OS platform is unsupported.");
 				return;
 			}
 
-			PinController = new IOController();
+			PinController.InitPinController<T>(selectedDriver, _scheme);
+			IGpioControllerDriver? driver = PinController.GetDriver();
 
-			switch (GpioDriver) {
-				case EGPIO_DRIVERS.RaspberryIODriver:
-					PinController.InitIoController<RaspberryIODriver>(new RaspberryIODriver(), NumberingScheme.Logical);
-					break;
-				case EGPIO_DRIVERS.SystemDevicesDriver:
-					PinController.InitIoController<SystemDeviceDriver>(new SystemDeviceDriver(), NumberingScheme.Logical);
-					break;
-				case EGPIO_DRIVERS.WiringPiDriver:
-					PinController.InitIoController<WiringPiDriver>(new WiringPiDriver(), NumberingScheme.Logical);
-					break;
-			}
-
-			IGpioControllerDriver? driver = IOController.GetDriver();
-
-			if (driver == null || !driver.IsDriverProperlyInitialized) {
-				Logger.Warning("Failed to initialize pin controller and its drivers.");
+			if (driver == null || !driver.IsDriverInitialized) {
+				Logger.Warning($"{selectedDriver.DriverName} failed to initialize properly. Restart of entire application is recommended.");
 				return;
 			}
 
-			EventManager = new EventManager();
-			MorseTranslator = new MorseRelayTranslator();
-			BluetoothController = new BluetoothController();
-			SoundController = new SoundController();
-
+			await InitPinConfigs().ConfigureAwait(false);
 			SetEvents();
-
-			if (ConfigManager != null && PinConfigManager.GetConfiguration().PinConfigs.Count <= 0) {
-				await ConfigManager.LoadConfiguration().ConfigureAwait(false);
-			}
-
 			IsAlreadyInit = true;
 		}
 
-		private void SetEvents() {
-			if (!IsAllowedToExecute) {
-				Logger.Warning("Running OS platform is unsupported.");
-				return;
+		private async Task InitPinConfigs() {
+			bool isLoadSuccess = await ConfigManager.LoadConfiguration().ConfigureAwait(false);
+
+			if (!isLoadSuccess || PinConfigManager.GetConfiguration() == null || PinConfigManager.GetConfiguration().PinConfigs.Count <= 0 ||
+				(isLoadSuccess && (PinConfigManager.GetConfiguration() == null || PinConfigManager.GetConfiguration().PinConfigs.Count <= 0))) {
+				generateConfigs();
+				await ConfigManager.SaveConfig().ConfigureAwait(false);
 			}
 
-			IGpioControllerDriver? driver = IOController.GetDriver();
+			void generateConfigs() {
+				List<Pin> pinConfigs = new List<Pin>();
+				for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {
+					Pin? config = PinController.GetDriver()?.GetPinConfig(Constants.BcmGpioPins[i]);
 
-			if (driver == null || !driver.IsDriverProperlyInitialized) {
-				Logger.Warning("Failed to set events as drivers are not loaded.");
-				return;
-			}
+					if (config == null) {
+						continue;
+					}
 
-			List<Pin> pinConfigs = new List<Pin>();
-			for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {
-				Pin? config = driver?.GetPinConfig(Constants.BcmGpioPins[i]);
-
-				if (config == null) {
-					continue;
+					pinConfigs.Add(config);
+					Logger.Trace($"Generated pin config for {Pi.Gpio[i].PhysicalPinNumber} gpio pin.");
 				}
 
-				pinConfigs.Add(config);
-				Logger.Trace($"Generated pin config for {Pi.Gpio[i].PhysicalPinNumber} gpio pin.");
+				ConfigManager.Init(new PinConfig(pinConfigs));
 			}
+		}
 
-			ConfigManager = new PinConfigManager().Init(new PinConfig(pinConfigs));
-
+		private async Task SetEvents() {
 			for (int i = 0; i < AvailablePins.InputPins.Length; i++) {
 				EventConfig config = new EventConfig(AvailablePins.InputPins[i], GpioPinMode.Input,
 					GpioPinEventStates.ALL, GetSensorType(AvailablePins.InputPins[i]));
-				EventManager.RegisterEvent(config);
+				await EventManager.RegisterEvent(config).ConfigureAwait(false);
 			}
 
 			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
 				EventConfig config = new EventConfig(AvailablePins.OutputPins[i], GpioPinMode.Output,
 					GpioPinEventStates.ALL, GetSensorType(AvailablePins.OutputPins[i]));
-				EventManager.RegisterEvent(config);
+				await EventManager.RegisterEvent(config).ConfigureAwait(false);
 			}
-			
+
 			MapInternalSensors();
 		}
 
@@ -136,15 +127,15 @@ namespace Assistant.Gpio.Controllers {
 					case SensorType.Invalid:
 						break;
 					case SensorType.IRSensor:
-						IOController.GetDriver()?.MapSensor<IIRSensor>(new SensorMap<IIRSensor>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<IIRSensor>(new SensorMap<IIRSensor>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.IrSensorEvent));
 						break;
 					case SensorType.Relay:
-						IOController.GetDriver()?.MapSensor<IRelaySwitch>(new SensorMap<IRelaySwitch>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<IRelaySwitch>(new SensorMap<IRelaySwitch>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.RelaySwitchEvent));
 						break;
 					case SensorType.SoundSensor:
-						IOController.GetDriver()?.MapSensor<ISoundSensor>(new SensorMap<ISoundSensor>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<ISoundSensor>(new SensorMap<ISoundSensor>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.SoundSensorEvent));
 						break;
 				}
@@ -153,13 +144,13 @@ namespace Assistant.Gpio.Controllers {
 			}
 		}
 
-		public static SensorType GetSensorType(int gpioPin) {
+		private SensorType GetSensorType(int gpioPin) {
 			if (!IsAllowedToExecute) {
 				Logger.Warning("Running OS platform is unsupported.");
 				return SensorType.Invalid;
 			}
 
-			if (!IOController.IsValidPin(gpioPin)) {
+			if (!PinController.IsValidPin(gpioPin)) {
 				Logger.Warning($"Invalid gpio pin. '{gpioPin}'");
 				return SensorType.Invalid;
 			}
@@ -181,22 +172,23 @@ namespace Assistant.Gpio.Controllers {
 			return SensorType.Invalid;
 		}
 
-		public void Shutdown() {
+		public async Task Shutdown() {
 			if (!IsAlreadyInit) {
 				return;
 			}
 
-			ConfigManager?.SaveConfig().ConfigureAwait(false);
-			EventManager?.StopAllEventGenerators();
-			IOController.GetDriver()?.ShutdownDriver();
+			EventManager.StopAllEventGenerators();					
+			PinController.GetDriver()?.ShutdownDriver(IsGracefullShutdownRequested);
+			await ConfigManager.SaveConfig().ConfigureAwait(false);
 		}
 
 		private static bool IsPiEnvironment() => Helpers.GetOsPlatform() == OSPlatform.Linux;
 
-		public static EventManager? GetEventManager() => EventManager;
-		public static MorseRelayTranslator? GetMorseTranslator() => MorseTranslator;
-		public static BluetoothController? GetBluetoothController() => BluetoothController;
-		public static SoundController? GetSoundController() => SoundController;
-		public static IOController? GetPinController() => PinController;
+		public static EventManager GetEventManager() => EventManager;
+		public static MorseRelayTranslator GetMorseTranslator() => MorseTranslator;
+		public static BluetoothController GetBluetoothController() => BluetoothController;
+		public static SoundController GetSoundController() => SoundController;
+		public static PinController GetPinController() => PinController;
+		public static AvailablePins GetAvailablePins() => AvailablePins;
 	}
 }

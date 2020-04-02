@@ -19,6 +19,7 @@ namespace Assistant.Core.Shell {
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
 		private static bool InitCompleted = false;
+		internal static bool PauseShell { get; private set; } = false;
 
 		/// <summary>
 		/// The external command loader instance.<br>Used to load commands onto shell instance.</br>
@@ -85,6 +86,10 @@ namespace Assistant.Core.Shell {
 			}
 		}
 
+		internal static void Pause() => PauseShell = true;
+
+		internal static void Resume() => PauseShell = false;
+
 		/// <summary>
 		/// The REPL Loop. <br>Loops until an external shutdown of the shell as been triggered by the assistant core program.</br>
 		/// </summary>
@@ -96,8 +101,23 @@ namespace Assistant.Core.Shell {
 
 			await LoopSync.WaitAsync().ConfigureAwait(false);
 			try {
-				Console.WriteLine("Assistant Shell waiting for your commands!");
+				Console.WriteLine("Assistant Command Shell has been loaded!");
+				bool isDisplayed = false;
+
 				do {
+					if (PauseShell) {
+						if (!isDisplayed) {
+							Logger.Trace("Shell is in 'Paused' state.");
+							isDisplayed = true;
+						}
+
+						await Task.Delay(1).ConfigureAwait(false);
+						continue;
+					}
+
+					Logger.Trace("Shell is in 'Running' state.");
+					Console.WriteLine();
+					ShellOut.Info("Type in the command! Use 'help' / 'h' for help regarding the available commands.");
 					Console.ForegroundColor = ConsoleColor.Green;
 					Console.Write($"#~/{Core.AssistantName.Trim()}/$ |> ");
 					Console.ResetColor();
@@ -109,10 +129,13 @@ namespace Assistant.Core.Shell {
 					}
 
 					await ExecuteCommandAsync(command).ConfigureAwait(false);
+					Console.WriteLine();
+					Pause();
 				} while (!ShutdownShell);
 			}
 			catch (Exception e) {
 				Logger.Exception(e);
+				Logger.Error("Fatal exception has occured internally. Shell cannot continue.");
 				return;
 			}
 			finally {

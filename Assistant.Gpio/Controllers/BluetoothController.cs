@@ -11,27 +11,14 @@ namespace Assistant.Gpio.Controllers {
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)
 	/// </summary>
 	public class BluetoothController {
-		private readonly ILogger Logger = new Logger(typeof(BluetoothController).Name);
-		private IGpioControllerDriver? Driver => IOController.GetDriver();
-		public bool IsBluetoothControllerInitialized { get; private set; }
+		private readonly ILogger Logger = new Logger(typeof(BluetoothController).Name);		
+		private bool IsAble => PinController.GetDriver() != null && GpioController.IsAllowedToExecute && PinController.GetDriver()?.DriverName == Enums.GpioDriver.RaspberryIODriver;
+		private readonly GpioController Controller;
 
-		public BluetoothController InitBluetoothController() {
-			if (Driver == null || !GpioController.IsAllowedToExecute) {
-				IsBluetoothControllerInitialized = false;
-				return this;
-			}
-
-			if (!Driver.IsDriverProperlyInitialized || Driver.DriverName != Enums.EGPIO_DRIVERS.RaspberryIODriver) {
-				IsBluetoothControllerInitialized = false;
-				return this;
-			}
-
-			IsBluetoothControllerInitialized = true;
-			return this;
-		}
+		internal BluetoothController(GpioController _controller) => Controller = _controller;
 
 		public async Task<bool> FetchControllers() {
-			if (!IsBluetoothControllerInitialized) {
+			if (!IsAble) {
 				return false;
 			}
 
@@ -46,7 +33,7 @@ namespace Assistant.Gpio.Controllers {
 		}
 
 		public async Task<bool> FetchDevices() {
-			if (!IsBluetoothControllerInitialized) {
+			if (!IsAble) {
 				return false;
 			}
 
@@ -61,7 +48,7 @@ namespace Assistant.Gpio.Controllers {
 		}
 
 		public async Task<bool> TurnOnBluetooth() {
-			if (!IsBluetoothControllerInitialized) {
+			if (!IsAble) {
 				return false;
 			}
 
@@ -75,7 +62,7 @@ namespace Assistant.Gpio.Controllers {
 		}
 
 		public async Task<bool> TurnOffBluetooth() {
-			if (!IsBluetoothControllerInitialized) {
+			if (!IsAble) {
 				return false;
 			}
 

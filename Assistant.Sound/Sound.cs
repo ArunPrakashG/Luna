@@ -43,10 +43,10 @@ namespace Assistant.Sound {
 						return;
 					}
 
-					if(redirectOutput)
-						Logger.Info($"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/ && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(false));
+					if (redirectOutput)
+						Helpers.InBackgroundThread(() => Logger.Info($"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/ && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(false)));						
 					else
-						Logger.Trace($"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/ && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(false));
+						Helpers.InBackgroundThread(() => $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/ && play {Constants.ALERT_SOUND_PATH} -q".ExecuteBash(false));
 					break;
 				case ENOTIFICATION_CONTEXT.ERROR:
 					break;

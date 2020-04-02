@@ -2,7 +2,22 @@
   "profiles": {
     "HomeAssistant": {
       "commandName": "Project",
-      "nativeDebugging": false
+      "commandLineArgs": "",
+      "executablePath": "",
+      "launchBrowser": false,
+      "nativeDebugging": false,
+      "externalUrlConfiguration": false,
+      "use64Bit": false
+    },
+    "raspberrypi": {
+      "commandName": "Executable",
+      "commandLineArgs": "deploy raspberrypi --configuration $(ConfigurationName) --auth-type UserSecrets ",
+      "executablePath": "dotnet-ssh",
+      "workingDirectory": "I:\\Projects\\HomeAssistant\\Assistant.Core",
+      "launchBrowser": false,
+      "nativeDebugging": false,
+      "externalUrlConfiguration": false,
+      "use64Bit": false
     }
   }
 }

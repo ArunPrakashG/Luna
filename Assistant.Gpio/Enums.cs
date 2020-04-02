@@ -1,18 +1,18 @@
 namespace Assistant.Gpio {
 	public static class Enums {
-		public enum MappingEvent {
+		internal enum MappingEvent {
 			OnActivated,
 			OnDeactivated,
 			Both
 		}
 
-		public enum EGPIO_DRIVERS {
+		public enum GpioDriver {
 			RaspberryIODriver,
 			SystemDevicesDriver,
 			WiringPiDriver
 		}
 
-		public enum SensorType {
+		internal enum SensorType {
 			IRSensor,
 			Relay,
 			Buzzer,
@@ -47,7 +47,7 @@ namespace Assistant.Gpio {
 			Off = 1
 		}
 
-		public enum GpioPinEventStates : byte {
+		internal enum GpioPinEventStates : byte {
 			ON,
 			OFF,
 			ALL,

@@ -6,11 +6,14 @@ using System.Threading.Tasks;
 
 namespace Assistant.Gpio.Events {
 	public class EventManager {
-		private static readonly ILogger Logger = new Logger(typeof(EventManager).Name);
-		private static readonly Dictionary<int, Generator> Events = new Dictionary<int, Generator>();
+		private readonly ILogger Logger = new Logger(typeof(EventManager).Name);
+		private readonly Dictionary<int, Generator> Events = new Dictionary<int, Generator>();
+		private readonly GpioController Controller;
 
-		public bool RegisterEvent(EventConfig config) {
-			if (!IOController.IsValidPin(config.GpioPin)) {
+		internal EventManager(GpioController _controller) => Controller = _controller;
+
+		internal async Task<bool> RegisterEvent(EventConfig config) {
+			if (!PinController.IsValidPin(config.GpioPin)) {
 				Logger.Warning("The specified pin is invalid.");
 				return false;
 			}
@@ -26,7 +29,7 @@ namespace Assistant.Gpio.Events {
 					break;
 				}
 
-				Task.Delay(30).Wait();
+				await Task.Delay(30).ConfigureAwait(false);
 			}
 
 			if (!gen.Config.IsEventRegistered) {
@@ -37,15 +40,15 @@ namespace Assistant.Gpio.Events {
 			return gen.Config.IsEventRegistered;
 		}
 
-		public void StopAllEventGenerators() {
+		internal void StopAllEventGenerators() {
 			for(int i = 0; i < Events.Count; i++) {
 				Events[i].OverrideGeneration();
 				Logger.Trace($"Stopped pin polling for '{Events[i].Config.GpioPin}' pin");
 			}
 		}
 
-		public void StopEventGeneratorForPin(int pin) {
-			if (!IOController.IsValidPin(pin)) {
+		internal void StopEventGeneratorForPin(int pin) {
+			if (!PinController.IsValidPin(pin)) {
 				return;
 			}
 

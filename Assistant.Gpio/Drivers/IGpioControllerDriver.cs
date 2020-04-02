@@ -14,20 +14,20 @@ namespace Assistant.Gpio.Drivers {
 	/// The Gpio controller driver interface.
 	/// </summary>
 	public interface IGpioControllerDriver {
-		ILogger Logger => IOController.Logger;
+		ILogger Logger => PinController.GetLogger();
 
 		/// <summary>
-		/// Indicates if the driver has been properly initialized
+		/// Indicates if the driver has been initialized
 		/// </summary>
-		bool IsDriverProperlyInitialized { get; }
+		bool IsDriverInitialized { get; }
 
-		IGpioControllerDriver InitDriver(NumberingScheme scheme);
+		public IGpioControllerDriver InitDriver(NumberingScheme scheme);
 
 		NumberingScheme NumberingScheme { get; set; }
 
-		EGPIO_DRIVERS DriverName { get; }
+		GpioDriver DriverName { get; }
 
-		AvailablePins AvailablePins => GpioController.AvailablePins;
+		AvailablePins AvailablePins => GpioController.GetAvailablePins();
 
 		/// <summary>
 		/// The pin config.
@@ -35,7 +35,7 @@ namespace Assistant.Gpio.Drivers {
 		PinConfig PinConfig { get; }
 
 		private bool PreExecValidation(int pin) {
-			if (!IsDriverProperlyInitialized || !GpioController.IsAllowedToExecute) {
+			if (!IsDriverInitialized || !GpioController.IsAllowedToExecute) {
 				return false;
 			}
 
@@ -43,7 +43,7 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (!IOController.IsValidPin(pin)) {
+			if (!PinController.IsValidPin(pin)) {
 				Logger.Log("The specified pin is invalid.");
 				return false;
 			}
@@ -52,7 +52,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		void MapSensor<T>(SensorMap<T> _mapObj) where T : ISensor {
-			if (!IOController.IsValidPin(_mapObj.GpioPinNumber)) {
+			if (!PinController.IsValidPin(_mapObj.GpioPinNumber)) {
 				Logger.Log("The specified pin is invalid.");
 				return;
 			}
@@ -69,7 +69,7 @@ namespace Assistant.Gpio.Drivers {
 			for (int i = 0; i < maps.Count(); i++) {
 				SensorMap<T> map = maps.ElementAt(i);
 
-				if(map.GpioPinNumber == _mapObj.GpioPinNumber && map.MapEvent == _mapObj.MapEvent) {
+				if (map.GpioPinNumber == _mapObj.GpioPinNumber && map.MapEvent == _mapObj.MapEvent) {
 					return;
 				}
 			}
@@ -181,19 +181,21 @@ namespace Assistant.Gpio.Drivers {
 		/// <summary>
 		/// Invokes shutdown on the currently loaded GpioController driver.
 		/// </summary>
-		void ShutdownDriver() {
-			if (GpioController.IsGracefullShutdownRequested) {
-				foreach (int pin in GpioController.AvailablePins.OutputPins) {
-					Pin? pinStatus = GetPinConfig(pin);
+		void ShutdownDriver(bool _gracefullShutdownRequested = true) {
+			if (!_gracefullShutdownRequested) {
+				return;
+			}
 
-					if (pinStatus == null) {
-						continue;
-					}
+			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
+				Pin? pinStatus = GetPinConfig(AvailablePins.OutputPins[i]);
 
-					if (pinStatus.IsPinOn) {
-						SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
-						Logger.Log($"Closed pin {pin} as part of shutdown process.");
-					}
+				if (pinStatus == null) {
+					continue;
+				}
+
+				if (pinStatus.IsPinOn) {
+					SetGpioValue(pinStatus.PinNumber, GpioPinMode.Output, GpioPinState.Off);
+					Logger.Log($"Closed pin '{pinStatus.PinNumber}'");
 				}
 			}
 		}
@@ -273,7 +275,7 @@ namespace Assistant.Gpio.Drivers {
 		}
 
 		async Task<bool> RelaySingle(int pin = 0, int delayInMs = 8000) {
-			if (!GpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
+			if (!AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
 				return false;
 			}
 
@@ -292,19 +294,16 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			//make sure all relay is off
-			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 30);
+			// make sure all relay is off
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 100);
 
 			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.On, 400);
-			await Task.Delay(500).ConfigureAwait(false);
-
-			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 150);
-			await Task.Delay(700).ConfigureAwait(false);
-
-			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.On, 200);
-			await Task.Delay(500).ConfigureAwait(false);
-
-			return await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 120);
+			await Task.Delay(1000).ConfigureAwait(false);
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 200);
+			await Task.Delay(1000).ConfigureAwait(false);
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.On, 800);
+			await Task.Delay(1000).ConfigureAwait(false);
+			return await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 200);
 		}
 
 		async Task<bool> RelayOneOne(IEnumerable<int> relayPins) {
@@ -313,14 +312,14 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			//make sure all relay is off
-			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 50);
+			// make sure all relay is off
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 100);
 
-			foreach (int pin in relayPins) {
-				SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
+			for (int i = 0; i < relayPins.Count(); i++) {
+				SetGpioValue(relayPins.ElementAt(i), GpioPinMode.Output, GpioPinState.On);
+				await Task.Delay(1000).ConfigureAwait(false);
+				SetGpioValue(relayPins.ElementAt(i), GpioPinMode.Output, GpioPinState.Off);
 				await Task.Delay(500).ConfigureAwait(false);
-				SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
-				await Task.Delay(100).ConfigureAwait(false);
 			}
 
 			return true;
@@ -332,17 +331,20 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			//make sure all relay is off
-			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 50);
+			// make sure all relay is off
+			await ExecuteOnEachPin(relayPins, GpioPinMode.Output, GpioPinState.Off, 100);
 
-			foreach (int pin in relayPins) {
+			for (int i = 0; i < relayPins.Count(); i++) {
+				int pin = relayPins.ElementAt(i);
+
 				SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
 
-				for (int i = 0; i <= 5; i++) {
-					await Task.Delay(200).ConfigureAwait(false);
+				for (int j = 0; j < 5; j++) {
+					await Task.Delay(500).ConfigureAwait(false);
 					SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
 					await Task.Delay(500).ConfigureAwait(false);
 					SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
+					await Task.Delay(500).ConfigureAwait(false);
 				}
 
 				SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
@@ -357,7 +359,7 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			foreach (int pin in pins) {
-				if (!GpioController.AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
+				if (!AvailablePins.OutputPins.Contains(pin) || !PreExecValidation(pin)) {
 					continue;
 				}
 

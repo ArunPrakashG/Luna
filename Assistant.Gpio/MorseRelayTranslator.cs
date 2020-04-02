@@ -10,68 +10,72 @@ using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio {
+	public struct MorseCycleResult {
+		internal readonly bool Status;
+		internal readonly string BaseText;
+		internal readonly string Morse;
+
+		public MorseCycleResult(bool _status, string _base, string _morse) {
+			Status = _status;
+			BaseText = _base;
+			Morse = _morse;
+		}
+	}
+
 	public class MorseRelayTranslator {
 		private readonly ILogger Logger = new Logger(typeof(MorseRelayTranslator).Name);
 		private static readonly MorseCore MorseCore = new MorseCore();
-		private IGpioControllerDriver? Driver => IOController.GetDriver();
-		public readonly bool IsTranslatorOnline;
+		private readonly GpioController Controller;
+		private IGpioControllerDriver? Driver => PinController.GetDriver();
 
-		public MorseRelayTranslator() {
-			if (Driver == null) {
-				IsTranslatorOnline = false;
-				throw new InvalidOperationException("Cannot start Morse translator as the PinController is null!");
-			}
-
-			IsTranslatorOnline = true;
-		}
+		internal MorseRelayTranslator(GpioController _controller) => Controller = _controller;
 
 		public static MorseCore GetCore() => MorseCore;
 
-		public async Task<bool> RelayMorseCycle(string textToConvert, int relayPin) {
+		public async Task<MorseCycleResult> RelayMorseCycle(string textToConvert, int relayPin) {
 			if (string.IsNullOrEmpty(textToConvert)) {
-				Logger.Log("The specified text is either null or empty.", LogLevels.Warn);
-				return false;
+				Logger.Log("The specified text is empty.", LogLevels.Warn);
+				return new MorseCycleResult(false, null, null);
 			}
 
 			if (Driver == null) {
-				Logger.Log("Malfunctioning PinController.", LogLevels.Warn);
-				return false;
+				Logger.Log("Driver isn't started yet.", LogLevels.Warn);
+				return new MorseCycleResult(false, null, null);
 			}
 
-			if (!IOController.IsValidPin(relayPin)) {
-				Logger.Log("Please specify a valid relay pin to run the cycle.", LogLevels.Warn);
-				return false;
+			Logger.Trace($"Converting to Morse...");
+			string morse = MorseCore.ConvertToMorseCode(textToConvert);
+
+			if (string.IsNullOrEmpty(morse)) {
+				Logger.Log("Conversion to Morse failed. Cannot proceed.", LogLevels.Warn);
+				return new MorseCycleResult(false, null, null);
 			}
 
-			Logger.Log($"Converting to Morse...", LogLevels.Info);
-			string Morse = MorseCore.ConvertToMorseCode(textToConvert);
+			Logger.Trace($"TEXT >> {textToConvert}");
+			Logger.Trace($"MORSE >> {morse}");
 
-			if (string.IsNullOrEmpty(Morse)) {
-				Logger.Log("Conversion to Morse failed. cannot proceed.", LogLevels.Warn);
-				return false;
+			Pin? beforePinStatus = Driver.GetPinConfig(relayPin);
+
+			if(beforePinStatus == null) {
+				return new MorseCycleResult(false, null, null);
 			}
-
-			Logger.Log($"TEXT >> {textToConvert}");
-			Logger.Log($"MORSE >> {Morse}");
-
-			Pin beforePinStatus = Driver.GetPinConfig(relayPin);
 
 			if (beforePinStatus.IsPinOn) {
 				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
 			}
 
-			if (!MorseCore.IsValidMorse(Morse)) {
+			if (!MorseCore.IsValidMorse(morse)) {
 				Logger.Log("The specified Morse is invalid!", LogLevels.Warn);
-				return false;
+				return new MorseCycleResult(false, null, null);
 			}
 
 			string pauseBetweenLetters = "_";     // One Time Unit
 			string pauseBetweenWords = "_______"; // Seven Time Unit
 
-			Morse = Morse.Replace("  ", pauseBetweenWords);
-			Morse = Morse.Replace(" ", pauseBetweenLetters);
+			morse = morse.Replace("  ", pauseBetweenWords);
+			morse = morse.Replace(" ", pauseBetweenLetters);
 
-			foreach (char character in Morse.ToCharArray()) {
+			foreach (char character in morse.ToCharArray()) {
 				switch (character) {
 					case '.':
 						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300));
@@ -85,13 +89,17 @@ namespace Assistant.Gpio {
 				}
 			}
 
-			Pin afterPinStatus = Driver.GetPinConfig(relayPin);
+			Pin? afterPinStatus = Driver.GetPinConfig(relayPin);
+
+			if (afterPinStatus == null) {
+				return new MorseCycleResult(false, null, null);
+			}
 
 			if (afterPinStatus.IsPinOn) {
 				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
 			}
 
-			return true;
+			return new MorseCycleResult(false, textToConvert, morse);
 		}
 	}
 }

@@ -22,6 +22,9 @@ namespace Assistant.Gpio.Config {
 		/// </summary>
 		/// <param name="configs">The configs<see cref="List{Pin}"/></param>
 		public PinConfig(List<Pin> configs) => PinConfigs = configs;
+
+		[JsonConstructor]
+		public PinConfig() { }
 	}
 
 	/// <summary>
@@ -107,6 +110,9 @@ namespace Assistant.Gpio.Config {
 			IsAvailable = available;
 			JobName = jobName;
 		}
+
+		[JsonConstructor]
+		public Pin() { }
 
 		/// <summary>
 		/// Gets a summary of the pin configuration this object holds.

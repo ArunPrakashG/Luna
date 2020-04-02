@@ -5,18 +5,18 @@ using System;
 namespace Assistant.Gpio {
 	public struct SensorMap<T> where T : ISensor {
 		[JsonProperty]
-		public readonly int GpioPinNumber;
+		internal readonly int GpioPinNumber;
 
 		[JsonProperty]
-		public readonly Enums.MappingEvent MapEvent;
+		internal readonly Enums.MappingEvent MapEvent;
 
 		[JsonProperty]
-		public readonly Enums.SensorType SensorType;
+		internal readonly Enums.SensorType SensorType;
 
 		[JsonProperty]
-		public readonly Func<OnValueChangedEventArgs, bool> OnFired;
+		internal readonly Func<OnValueChangedEventArgs, bool> OnFired;
 
-		public SensorMap(int _gpioPinNumber, Enums.MappingEvent _mapEvent, Enums.SensorType _sensorType, Func<OnValueChangedEventArgs, bool> _onFired) {
+		internal SensorMap(int _gpioPinNumber, Enums.MappingEvent _mapEvent, Enums.SensorType _sensorType, Func<OnValueChangedEventArgs, bool> _onFired) {
 			GpioPinNumber = _gpioPinNumber;
 			MapEvent = _mapEvent;
 			SensorType = _sensorType;

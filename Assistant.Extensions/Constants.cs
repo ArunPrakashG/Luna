@@ -48,7 +48,7 @@ namespace Assistant.Extensions {
 		public const string TTSAlertFileName = "tts_alert.mp3";
 		public const string AlarmFileName = "alarm.mp3";
 
-		public const char ConsoleCommandMenuKey = 'c';
+		public const char SHELL_KEY = 'c';
 		public const char ConsoleShutdownKey = 'q';
 		public const char ConsoleQuickShutdownKey = 'e';
 		public const char ConsoleRelayCommandMenuKey = 'g';

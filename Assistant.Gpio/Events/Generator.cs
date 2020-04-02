@@ -38,14 +38,14 @@ namespace Assistant.Gpio.Events {
 
 	internal class Generator {
 		private const int POLL_DELAY = 1; // in ms
-		private static IGpioControllerDriver? Driver => IOController.GetDriver();
+		private static IGpioControllerDriver? Driver => PinController.GetDriver();
 		private readonly ILogger Logger;
 		private bool OverridePolling;
 		private readonly GeneratedValue PreviousValue = new GeneratedValue();
 		private readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 
 		internal readonly EventConfig Config;
-		private bool IsAvailable => !Config.IsEventRegistered && Driver != null && Driver.IsDriverProperlyInitialized;
+		private bool IsAvailable => !Config.IsEventRegistered && Driver != null && Driver.IsDriverInitialized;
 
 		internal Generator(EventConfig _config, ILogger _logger) {
 			Logger = _logger;
@@ -56,6 +56,11 @@ namespace Assistant.Gpio.Events {
 		internal void OverrideGeneration() => OverridePolling = true;
 
 		private void Init() {
+			if(Driver == null) {
+				Logger.Warning("Driver isn't started yet.");
+				return;
+			}
+
 			if (!IsAvailable) {
 				Logger.Log("An error occured. Check if the specified pin is valid.", LogLevels.Warn);
 				return;

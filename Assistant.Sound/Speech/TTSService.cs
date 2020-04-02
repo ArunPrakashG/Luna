@@ -93,8 +93,7 @@ namespace Assistant.Sound.Speech {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q".ExecuteBash(false);
-					Logger.Log(playingResult, LogLevels.Trace);
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.StartupFileName} -q".ExecuteBash(false);					
 					break;
 				case ESPEECH_CONTEXT.AssistantShutdown:
 					if (!File.Exists(Constants.ShutdownSpeechFilePath)) {
@@ -103,8 +102,7 @@ namespace Assistant.Sound.Speech {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.ShutdownFileName} -q".ExecuteBash(false);
-					Logger.Log(playingResult, LogLevels.Trace);
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.ShutdownFileName} -q".ExecuteBash(false);					
 					break;
 				case ESPEECH_CONTEXT.NewEmaiNotification:
 					if (!File.Exists(Constants.NewMailSpeechFilePath)) {
@@ -113,8 +111,7 @@ namespace Assistant.Sound.Speech {
 						break;
 					}
 
-					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.NewMailFileName} -q".ExecuteBash(false);
-					Logger.Log(playingResult, LogLevels.Trace);
+					playingResult = $"cd /home/pi/Desktop/HomeAssistant/Assistant.Core/{Constants.TextToSpeechDirectory} && play {Constants.NewMailFileName} -q".ExecuteBash(false);					
 					break;
 				default:
 					break;

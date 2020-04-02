@@ -8,6 +8,7 @@ namespace Assistant.Core {
 	using Assistant.Gpio;
 	using Assistant.Gpio.Config;
 	using Assistant.Gpio.Controllers;
+	using Assistant.Gpio.Drivers;
 	using Assistant.Logging;
 	using Assistant.Logging.Interfaces;
 	using Assistant.Modules;
@@ -70,7 +71,7 @@ namespace Assistant.Core {
 		/// Gets the PinController sub class of the Raspberry pi controller instance.
 		/// Will be null as long as controller hasn't successfully initialized.
 		/// </summary>
-		public static IOController? PinController => GpioController.GetPinController();
+		public static PinController PinController => GpioController.GetPinController();
 
 		/// <summary>
 		/// The update manager instance.
@@ -223,11 +224,12 @@ namespace Assistant.Core {
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
 		public Core VariableAssignation() {
+			Console.Title = $"Home Assistant Initializing...";
 			StartupTime = DateTime.Now;
 			Config.ProgramLastStartup = StartupTime;
 			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
-			Controller = new GpioController(EGPIO_DRIVERS.WiringPiDriver,
+			Controller = new GpioController(
 				new AvailablePins (
 					Config.OutputModePins,
 					Config.InputModePins,
@@ -235,8 +237,7 @@ namespace Assistant.Core {
 					Config.RelayPins,
 					Config.IRSensorPins,
 					Config.SoundSensorPins
-					), true);
-			Console.Title = $"Home Assistant Initializing...";
+					), true);			
 			return this;
 		}
 
@@ -246,6 +247,7 @@ namespace Assistant.Core {
 		/// <typeparam name="T">The type of IShellCommand object to use for loading the commands.</typeparam>
 		/// <returns>The <see cref="Core"/></returns>
 		public async Task<Core> InitShell<T>() where T : IShellCommand {
+			Interpreter.Pause();
 			await Interpreter.InitInterpreterAsync<T>().ConfigureAwait(false);
 			return this;
 		}
@@ -359,12 +361,13 @@ namespace Assistant.Core {
 		/// Starts the pi controller instance.
 		/// </summary>
 		/// <returns>The <see cref="Core"/></returns>
-		public Core InitPiGpioController() {
+		public async Task<Core> InitPiGpioController<T>(T driver, NumberingScheme numberingScheme = NumberingScheme.Logical) where T: IGpioControllerDriver {
 			if (!GpioController.IsAllowedToExecute || Controller == null) {
+				Logger.Warning("Raspberry pi GPIO functions cannot run due to incompatability with the system.");
 				return this;
 			}
 
-			Task.Run(async () => await Controller.InitController().ConfigureAwait(false));
+			await Controller.InitController<T>(driver, numberingScheme).ConfigureAwait(false);
 			return this;
 		}
 
@@ -428,8 +431,7 @@ namespace Assistant.Core {
 			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
 
 			Interpreter.ShutdownShell = true;
-			await Task.Delay(50);
-			await RestServer.Shutdown();
+			await RestServer.Shutdown().ConfigureAwait(false);
 			Controller?.Shutdown();
 			JobManager.RemoveAllJobs();
 			JobManager.Stop();
@@ -438,7 +440,7 @@ namespace Assistant.Core {
 			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
 
-			await Config.SaveConfig(Config);
+			await Config.SaveConfig(Config).ConfigureAwait(false);
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);
 		}
 
@@ -561,7 +563,7 @@ namespace Assistant.Core {
 
 			while (true) {
 				if (failedTriesCount > maxTries) {
-					Logger.Log($"Multiple wrong inputs. please start the command menu again  by pressing {Constants.ConsoleCommandMenuKey} key.", LogLevels.Warn);
+					Logger.Log($"Multiple wrong inputs. please start the command menu again  by pressing {Constants.SHELL_KEY} key.", LogLevels.Warn);
 					return;
 				}
 
@@ -596,9 +598,9 @@ namespace Assistant.Core {
 
 						Logger.Log("Enter text to convert to Morse: ");
 						string morseCycle = Console.ReadLine();
-						MorseRelayTranslator? morseTranslator = GpioController.GetMorseTranslator();
+						MorseRelayTranslator morseTranslator = GpioController.GetMorseTranslator();
 
-						if (morseTranslator == null || !morseTranslator.IsTranslatorOnline) {
+						if (morseTranslator == null) {
 							Logger.Warning("Morse translator is offline or unavailable.");
 							return;
 						}
@@ -689,24 +691,28 @@ namespace Assistant.Core {
 				}
 			}
 		}
-
-		[Obsolete("Disabled as long as testing of shell is going on.")]
+		
 		private static async Task KeepAlive() {
-			//Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
-
+			Logger.Log($"Press {Constants.SHELL_KEY} for shell execution.", LogLevels.Green);
 			while (!KeepAliveToken.Token.IsCancellationRequested) {
-				await Task.Delay(50).ConfigureAwait(false);
-				//char pressedKey = Console.ReadKey().KeyChar;
+				try {
+					if (Interpreter.PauseShell) {
+						char pressedKey = Console.ReadKey().KeyChar;
 
-				//switch (pressedKey) {
-				//	case Constants.ConsoleCommandMenuKey:
-				//		await DisplayConsoleCommandMenu().ConfigureAwait(false);
-				//		break;
+						switch (pressedKey) {
+							case Constants.SHELL_KEY:
+								Interpreter.Resume();
+								continue;
 
-				//	default:
-				//		Logger.Log("Unknown key pressed during KeepAlive() command", LogLevels.Trace);
-				//		continue;
-				//}
+							default:
+								Logger.Log($"Unknown key pressed during KeepAlive() command ({pressedKey})", LogLevels.Trace);
+								continue;
+						}
+					}
+				}
+				finally {
+					await Task.Delay(1).ConfigureAwait(false);
+				}				
 			}
 		}
 
@@ -762,7 +768,7 @@ namespace Assistant.Core {
 			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
 				Logger.Log("Could not parse the input key. please try again!", LogLevels.Error);
 				Logger.Log("Command menu closed.");
-				Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
+				Logger.Log($"Press {Constants.SHELL_KEY} for the console command menu.", LogLevels.Green);
 				return;
 			}
 
@@ -771,18 +777,18 @@ namespace Assistant.Core {
 					return;
 				}
 
-				Pin? pinStatus = IOController.GetDriver()?.GetPinConfig(pin);
+				Pin? pinStatus = PinController.GetDriver()?.GetPinConfig(pin);
 
 				if (pinStatus == null) {
 					return;
 				}
 
 				if (pinStatus.IsPinOn) {
-					IOController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
+					PinController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
 					Logger.Log($"Successfully set {pin} pin to OFF.", LogLevels.Green);
 				}
 				else {
-					IOController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
+					PinController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
 					Logger.Log($"Successfully set {pin} pin to ON.", LogLevels.Green);
 				}
 			}
@@ -863,7 +869,7 @@ namespace Assistant.Core {
 						return;
 					}
 
-					var driver = IOController.GetDriver();
+					var driver = PinController.GetDriver();
 
 					if (driver == null) {
 						return;
@@ -915,7 +921,7 @@ namespace Assistant.Core {
 			}
 
 			Logger.Log("Command menu closed.");
-			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for the console command menu.", LogLevels.Green);
+			Logger.Log($"Press {Constants.SHELL_KEY} for the console command menu.", LogLevels.Green);
 		}
 
 		private static async Task DisplayRelayCycleMenu() {
@@ -938,7 +944,7 @@ namespace Assistant.Core {
 
 			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
 				Logger.Log("Could not parse the input key. please try again!", LogLevels.Error);
-				Logger.Log($"Press {Constants.ConsoleCommandMenuKey} for command menu.", LogLevels.Info);
+				Logger.Log($"Press {Constants.SHELL_KEY} for command menu.", LogLevels.Info);
 				return;
 			}
 
@@ -947,7 +953,7 @@ namespace Assistant.Core {
 			}
 
 			bool Configured;
-			var driver = IOController.GetDriver();
+			var driver = PinController.GetDriver();
 
 			if (driver == null) {
 				return;
@@ -1022,7 +1028,7 @@ namespace Assistant.Core {
 			Logger.Log(Configured ? "Test successful!" : "Test Failed!");
 
 			Logger.Log("Relay menu closed.");
-			Logger.Log($"Press {Constants.ConsoleCommandMenuKey} to display command menu.");
+			Logger.Log($"Press {Constants.SHELL_KEY} to display command menu.");
 		}
 
 		/// <summary>

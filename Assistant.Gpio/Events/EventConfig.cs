@@ -1,20 +1,18 @@
-using Assistant.Gpio.Events.EventArgs;
-using System;
 using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Events {
-	public struct EventConfig {
-		public readonly int GpioPin;
+	internal struct EventConfig {
+		internal readonly int GpioPin;
 
-		public readonly GpioPinMode PinMode;
+		internal readonly GpioPinMode PinMode;
 
-		public readonly GpioPinEventStates PinEventState;
+		internal readonly GpioPinEventStates PinEventState;
 
-		public readonly Enums.SensorType Type;
+		internal readonly Enums.SensorType Type;
 
-		public bool IsEventRegistered { get; private set; }
+		internal bool IsEventRegistered { get; private set; }
 
-		public EventConfig(int _gpioPin, GpioPinMode _pinMode, GpioPinEventStates _pinEventState, SensorType _type) {
+		internal EventConfig(int _gpioPin, GpioPinMode _pinMode, GpioPinEventStates _pinEventState, SensorType _type) {
 			GpioPin = _gpioPin;
 			PinMode = _pinMode;
 			PinEventState = _pinEventState;
@@ -22,7 +20,7 @@ namespace Assistant.Gpio.Events {
 			IsEventRegistered = false;
 		}
 
-		public void SetEventRegisteredStatus(bool _isRegistered) {
+		internal void SetEventRegisteredStatus(bool _isRegistered) {
 			IsEventRegistered = _isRegistered;
 		}
 	}

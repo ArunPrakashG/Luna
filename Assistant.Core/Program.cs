@@ -1,10 +1,13 @@
+using Assistant.Extensions;
 using Assistant.Extensions.Shared.Shell;
+using Assistant.Gpio.Drivers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Assistant.Modules.Interfaces;
 using System;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
@@ -21,6 +24,10 @@ namespace Assistant.Core {
 			AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
 			Console.CancelKeyPress += OnForceQuitAssistant;
 
+			if(Helpers.GetOsPlatform() == OSPlatform.Linux) {
+				"clear".ExecuteBash(false);
+			}
+
 			//Start assistant step-by-step.
 			//NOTE: The order matters, as its going to start one by one.
 			_Core = _Core.PreInitTasks()
@@ -34,7 +41,7 @@ namespace Assistant.Core {
 				.AllowLocalNetworkConnections()				
 				.StartWatcher()
 				.InitPushbulletService()
-				.InitPiGpioController()
+				.InitPiGpioController<SystemDeviceDriver>(new SystemDeviceDriver(), Gpio.Enums.NumberingScheme.Logical).Result
 				.StartConsoleTitleUpdater()
 				.StartModules<IModuleBase>().Result
 				.InitRestServer().Result

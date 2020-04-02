@@ -1,82 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\Deploy.props" />
+  <Import Project="..\Deploy.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyVersion>8.17.0.0</AssemblyVersion>
+    <FileVersion>8.17.0.0</FileVersion>
+    <Version>8.2.0.0</Version>
+    <Authors>Arun</Authors>
+    <Company>Arun Prakash</Company>
+    <Copyright>Copyright © Home Assistant 2019-2020</Copyright>
+    <PackageProjectUrl>https://github.com/ArunPrakashG/HomeAssistant</PackageProjectUrl>
+    <RepositoryType>Git</RepositoryType>
+    <RepositoryUrl>https://github.com/ArunPrakashG/HomeAssistant.git</RepositoryUrl>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <RuntimeIdentifiers>linux-arm;win-x64</RuntimeIdentifiers>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>52367d6c-af58-4069-a9ec-da7c31a8f861</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.7.82" />
+    <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Figgle" Version="0.3.0" />
+    <PackageReference Include="FluentScheduler" Version="5.3.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.7.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="NLog" Version="4.6.8" />
+    <PackageReference Include="System.Composition" Version="1.4.0" />
+    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
+    <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Commands\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Update="Config\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Modules\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Config\SteamBots\" />
+    <Folder Include="Commands\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
+    <ProjectReference Include="..\Assistant.Gpio\Assistant.Gpio.csproj" />
+    <ProjectReference Include="..\Assistant.Location\Assistant.Location.csproj" />
+    <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
+    <ProjectReference Include="..\Assistant.Modules\Assistant.Modules.csproj" />
+    <ProjectReference Include="..\Assistant.Morse\Assistant.Morse.csproj" />
+    <ProjectReference Include="..\Assistant.Pushbullet\Assistant.Pushbullet.csproj" />
+    <ProjectReference Include="..\Assistant.Rest\Assistant.Rest.csproj" />
+    <ProjectReference Include="..\Assistant.Security\Assistant.Security.csproj" />
+    <ProjectReference Include="..\Assistant.Sound\Assistant.Sound.csproj" />
+    <ProjectReference Include="..\Assistant.Weather\Assistant.Weather.csproj" />
+  </ItemGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties />
+    </VisualStudio>
+  </ProjectExtensions>
+
+	<!--
 	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
-		<AssemblyVersion>8.17.0.0</AssemblyVersion>
-		<FileVersion>8.17.0.0</FileVersion>
-		<Version>8.2.0.0</Version>
-		<Authors>Arun</Authors>
-		<Company>Arun Prakash</Company>
-		<Copyright>Copyright © Home Assistant 2019-2020</Copyright>
-		<PackageProjectUrl>https://github.com/ArunPrakashG/HomeAssistant</PackageProjectUrl>
-		<RepositoryType>Git</RepositoryType>
-		<RepositoryUrl>https://github.com/ArunPrakashG/HomeAssistant.git</RepositoryUrl>
-		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
-		<ServerGarbageCollection>false</ServerGarbageCollection>
-		<RuntimeIdentifiers>linux-arm;win-x64</RuntimeIdentifiers>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>				
-		<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
-		<Nullable>enable</Nullable>
+		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Assitant.Core</SshDeployTargetPath>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="CommandLineParser" Version="2.7.82" />
-		<PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="Figgle" Version="0.3.0" />
-		<PackageReference Include="FluentScheduler" Version="5.3.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.7.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-		<PackageReference Include="NLog" Version="4.6.8" />
-		<PackageReference Include="System.Composition" Version="1.4.0" />
-		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
-		<PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
-		
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="Commands\**">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>		
-		<None Update="Config\**">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Modules\**">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="NLog.config">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Resources\**">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>		
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Config\SteamBots\" />
-	  <Folder Include="Commands\" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
-	  <ProjectReference Include="..\Assistant.Gpio\Assistant.Gpio.csproj" />
-	  <ProjectReference Include="..\Assistant.Location\Assistant.Location.csproj" />
-	  <ProjectReference Include="..\Assistant.Logging\Assistant.Logging.csproj" />
-	  <ProjectReference Include="..\Assistant.Modules\Assistant.Modules.csproj" />
-	  <ProjectReference Include="..\Assistant.Morse\Assistant.Morse.csproj" />
-	  <ProjectReference Include="..\Assistant.Pushbullet\Assistant.Pushbullet.csproj" />
-	  <ProjectReference Include="..\Assistant.Rest\Assistant.Rest.csproj" />
-	  <ProjectReference Include="..\Assistant.Security\Assistant.Security.csproj" />	  
-	  <ProjectReference Include="..\Assistant.Sound\Assistant.Sound.csproj" />
-	  <ProjectReference Include="..\Assistant.Weather\Assistant.Weather.csproj" />
-	</ItemGroup>
-
-	<ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
+	-->
 </Project>
