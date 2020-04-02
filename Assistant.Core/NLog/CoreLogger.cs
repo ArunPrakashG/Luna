@@ -152,11 +152,10 @@ namespace Assistant.Core.NLog {
 					Debug(message, p, c, q);
 					break;
 				case LogLevels.Info:
-					Info($"[{Helpers.GetFileName(q)} | {c}] " + message, p, c, q);
+					Info(message, p, c, q);
 					break;
 				case LogLevels.Warn:
-					//Warn(message, p, c, q);
-					Warn($"[{Helpers.GetFileName(q)} | {c}] " + message, p, c, q);
+					Warn(message, p, c, q);					
 					break;
 				case LogLevels.Custom:
 					Console.WriteLine(message);

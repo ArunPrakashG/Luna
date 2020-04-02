@@ -49,7 +49,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 					case 0:
 					default:
 						ShellOut.Info("After this process, you wont be able to execute shell commands in assistant...");
-						Interpreter.ShutdownShell = true;
+						Interpreter.ExitShell();
 						ShellOut.Info("Shutdown process started!");
 						return;
 				}

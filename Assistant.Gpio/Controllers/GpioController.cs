@@ -31,7 +31,6 @@ namespace Assistant.Gpio.Controllers {
 
 		public static bool IsAllowedToExecute => IsPiEnvironment();
 
-
 		public GpioController(AvailablePins pins, bool shouldShutdownGracefully = true) {
 			AvailablePins = pins;
 			IsGracefullShutdownRequested = shouldShutdownGracefully;

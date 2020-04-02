@@ -9,20 +9,16 @@ using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
-	public class CoreConfig : IEquatable<CoreConfig> {
-		[JsonProperty] public bool AutoRestart { get; set; } = false;
+	[Serializable]
+	public class CoreConfig {
+		[JsonProperty]
+		public bool AutoUpdates { get; set; } = true;
 
-		[JsonProperty] public bool AutoUpdates { get; set; } = true;
+		[JsonProperty]
+		public bool EnableModules { get; set; } = true;
 
-		[JsonProperty] public bool EnableConfigWatcher { get; set; } = true;
-
-		[JsonProperty] public bool EnableModules { get; set; } = true;
-
-		[JsonProperty] public int UpdateIntervalInHours { get; set; } = 5;
-
-		[JsonProperty] public int ServerAuthCode { get; set; } = 3033;
-
-		[JsonProperty] public bool GpioSafeMode { get; set; } = false;
+		[JsonProperty]
+		public bool GpioSafeMode { get; set; } = false;
 
 		[JsonProperty]
 		public int[] OutputModePins = new int[]
@@ -50,42 +46,31 @@ namespace Assistant.Core {
 			2, 3, 4, 17, 27, 22, 10, 9
 		};
 
-		[JsonProperty] public bool DisplayStartupMenu { get; set; } = false;
+		[JsonProperty]
+		public bool Debug { get; set; } = false;
 
-		[JsonProperty] public bool EnableGpioControl { get; set; } = true;
+		[JsonProperty]
+		public string? StatisticsServerIP { get; set; }
 
-		[JsonProperty] public bool Debug { get; set; } = false;
+		[JsonProperty]
+		public string? OpenWeatherApiKey { get; set; }
 
-		[JsonProperty] public string? StatisticsServerIP { get; set; }
+		[JsonProperty]
+		public string? PushBulletApiKey { get; set; }
 
-		[JsonProperty] public string? OwnerEmailAddress { get; set; } = "arun.prakash.456789@gmail.com";
+		[JsonProperty]
+		public string AssistantDisplayName { get; set; } = "Home Assistant";
 
-		[JsonProperty] public bool EnableFirstChanceLog { get; set; } = false;
+		[JsonProperty]
+		public DateTime ProgramLastStartup { get; set; }
 
-		[JsonProperty] public bool EnableTextToSpeech { get; set; } = true;
-
-		[JsonProperty] public bool MuteAssistant { get; set; } = false;
-
-		[JsonProperty] public string? OpenWeatherApiKey { get; set; }
-
-		[JsonProperty] public string? PushBulletApiKey { get; set; }
-
-		[JsonProperty] public string? AssistantEmailId { get; set; }
-
-		[JsonProperty] public string AssistantDisplayName { get; set; } = "Home Assistant";
-
-		[JsonProperty] public string? AssistantEmailPassword { get; set; }
-
-		[JsonProperty(Required = Required.Default)] public DateTime ProgramLastStartup { get; set; }
-
-		[JsonProperty(Required = Required.Default)] public DateTime ProgramLastShutdown { get; set; }
-
-		[JsonProperty] public bool CloseRelayOnShutdown { get; set; } = false;
+		[JsonProperty]
+		public DateTime ProgramLastShutdown { get; set; }
 
 		private static readonly ILogger Logger = new Logger(typeof(CoreConfig).Name);
 		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 
-		public async Task<CoreConfig?> SaveConfig(CoreConfig config) {
+		public static async Task<CoreConfig?> SaveConfig(CoreConfig config) {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
@@ -135,7 +120,7 @@ namespace Assistant.Core {
 			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 
 			try {
-				Logger.Log("Loading core config...", LogLevels.Trace);					
+				Logger.Log("Loading core config...", LogLevels.Trace);
 				using StreamReader streamReader = new StreamReader(new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read));
 				Core.Config = JsonConvert.DeserializeObject<CoreConfig>(streamReader.ReadToEnd());
 				Logger.Log("Core configuration loaded successfully!", LogLevels.Trace);
@@ -191,69 +176,10 @@ namespace Assistant.Core {
 				return false;
 			}
 
-			if (ReferenceEquals(this, obj)) {
-				return true;
-			}
-
-			if (obj.GetType() != this.GetType()) {
-				return false;
-			}
-
-			return Equals((CoreConfig) obj);
-		}
-
-		public override int GetHashCode() {
-			unchecked {
-				int hashCode = AutoRestart.GetHashCode();
-				hashCode = (hashCode * 397) ^ AutoUpdates.GetHashCode();
-				hashCode = (hashCode * 397) ^ EnableConfigWatcher.GetHashCode();
-				hashCode = (hashCode * 397) ^ UpdateIntervalInHours;
-				hashCode = (hashCode * 397) ^ GpioSafeMode.GetHashCode();
-				hashCode = (hashCode * 397) ^ (OutputModePins != null ? OutputModePins.GetHashCode() : 0);
-				hashCode = (hashCode * 397) ^ (InputModePins != null ? InputModePins.GetHashCode() : 0);
-				hashCode = (hashCode * 397) ^ DisplayStartupMenu.GetHashCode();
-				hashCode = (hashCode * 397) ^ EnableGpioControl.GetHashCode();
-				hashCode = (hashCode * 397) ^ Debug.GetHashCode();
-				hashCode = (hashCode * 397) ^ EnableFirstChanceLog.GetHashCode();
-				hashCode = (hashCode * 397) ^ EnableTextToSpeech.GetHashCode();
-				hashCode = (hashCode * 397) ^ MuteAssistant.GetHashCode();
-				hashCode = (hashCode * 397) ^ CloseRelayOnShutdown.GetHashCode();
-				hashCode = (hashCode * 397) ^ ServerAuthCode;
-				hashCode = (hashCode * 397) ^ (OwnerEmailAddress != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(OwnerEmailAddress) : 0);
-				hashCode = (hashCode * 397) ^ (AssistantEmailId != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailId) : 0);
-				hashCode = (hashCode * 397) ^ (AssistantEmailPassword != null ? StringComparer.OrdinalIgnoreCase.GetHashCode(AssistantEmailPassword) : 0);
-				hashCode = (hashCode * 397) ^ ProgramLastStartup.GetHashCode();
-				hashCode = (hashCode * 397) ^ ProgramLastShutdown.GetHashCode();
-				return hashCode;
-			}
+			return this == (CoreConfig) obj;
 		}
 
 		public override string? ToString() => base.ToString();
-
-		public bool Equals(CoreConfig other) {
-			if (ReferenceEquals(null, other)) {
-				return false;
-			}
-
-			if (ReferenceEquals(this, other)) {
-				return true;
-			}
-
-			return AutoRestart == other.AutoRestart && AutoUpdates == other.AutoUpdates &&
-				   EnableConfigWatcher == other.EnableConfigWatcher &&
-				   UpdateIntervalInHours == other.UpdateIntervalInHours &&
-				   GpioSafeMode == other.GpioSafeMode &&
-				   Equals(OutputModePins, other.OutputModePins) && Equals(InputModePins, other.InputModePins) &&
-				   DisplayStartupMenu == other.DisplayStartupMenu && EnableGpioControl == other.EnableGpioControl &&
-				   Debug == other.Debug && EnableFirstChanceLog == other.EnableFirstChanceLog &&
-				   EnableTextToSpeech == other.EnableTextToSpeech && MuteAssistant == other.MuteAssistant &&
-				   CloseRelayOnShutdown == other.CloseRelayOnShutdown && ServerAuthCode == other.ServerAuthCode &&
-				   string.Equals(OwnerEmailAddress, other.OwnerEmailAddress, StringComparison.OrdinalIgnoreCase) &&
-				   string.Equals(AssistantEmailId, other.AssistantEmailId, StringComparison.OrdinalIgnoreCase) &&
-				   string.Equals(AssistantEmailPassword, other.AssistantEmailPassword, StringComparison.OrdinalIgnoreCase) &&
-				   ProgramLastStartup.Equals(other.ProgramLastStartup) &&
-				   ProgramLastShutdown.Equals(other.ProgramLastShutdown);
-		}
 
 		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
 

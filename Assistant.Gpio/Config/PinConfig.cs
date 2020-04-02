@@ -11,6 +11,9 @@ namespace Assistant.Gpio.Config {
 	/// </summary>
 	[Serializable]
 	public class PinConfig {
+		[JsonProperty]
+		public bool SafeMode { get; set; } = false;
+
 		/// <summary>
 		/// Defines the PinConfigs
 		/// </summary>
@@ -25,11 +28,14 @@ namespace Assistant.Gpio.Config {
 
 		[JsonConstructor]
 		public PinConfig() { }
+
+		public Pin this[int index] => PinConfigs[index];
 	}
 
 	/// <summary>
 	/// Defines the pin configuration of the pin it holds.
 	/// </summary>
+	[Serializable]
 	public class Pin {
 		/// <summary>
 		/// The pin.

@@ -142,11 +142,6 @@ namespace Assistant.Core {
 		public static async Task PostInitTasks() {
 			Logger.Log("Running post-initiation tasks...", LogLevels.Trace);
 			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
-
-			if (Config.DisplayStartupMenu) {
-				await DisplayRelayCycleMenu().ConfigureAwait(false);
-			}
-
 			await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
 			await KeepAlive().ConfigureAwait(false);
 		}
@@ -430,7 +425,7 @@ namespace Assistant.Core {
 
 			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
 
-			Interpreter.ShutdownShell = true;
+			Interpreter.ExitShell();
 			await RestServer.Shutdown().ConfigureAwait(false);
 			Controller?.Shutdown();
 			JobManager.RemoveAllJobs();
@@ -440,7 +435,7 @@ namespace Assistant.Core {
 			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
 
-			await Config.SaveConfig(Config).ConfigureAwait(false);
+			await CoreConfig.SaveConfig(Config).ConfigureAwait(false);
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);
 		}
 
@@ -470,11 +465,6 @@ namespace Assistant.Core {
 		/// <param name="delay">The delay<see cref="int"/></param>
 		/// <returns>The <see cref="Task"/></returns>
 		public static async Task Restart(int delay = 10) {
-			if (!Config.AutoRestart) {
-				Logger.Log("Auto restart is turned off in config.", LogLevels.Warn);
-				return;
-			}
-
 			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			await Exit(0).ConfigureAwait(false);
@@ -532,166 +522,6 @@ namespace Assistant.Core {
 			}
 		}
 
-		[Obsolete]
-		private static async Task DisplayConsoleCommandMenu() {
-			Logger.Log("Displaying console command window", LogLevels.Trace);
-			Logger.Log($"------------------------- COMMAND WINDOW -------------------------", LogLevels.Input);
-			Logger.Log($"{Constants.ConsoleShutdownKey} - Shutdown assistant.", LogLevels.Input);
-
-			if (GpioController.IsAllowedToExecute) {
-				Logger.Log($"{Constants.ConsoleRelayCommandMenuKey} - Display relay pin control menu.", LogLevels.Input);
-				Logger.Log($"{Constants.ConsoleRelayCycleMenuKey} - Display relay cycle control menu.", LogLevels.Input);
-
-				if (Config.EnableModules) {
-					Logger.Log($"{Constants.ConsoleModuleShutdownKey} - Invoke shutdown method on all currently running modules.", LogLevels.Input);
-				}
-
-				Logger.Log($"{Constants.ConsoleMorseCodeKey} - Morse code generator for the specified text.", LogLevels.Input);
-			}
-
-			Logger.Log($"{Constants.ConsoleTestMethodExecutionKey} - Run preconfigured test methods or tasks.", LogLevels.Input);
-
-			if (WeatherClient != null) {
-				Logger.Log($"{Constants.ConsoleWeatherInfoKey} - Get weather info of the specified location based on the pin code.", LogLevels.Input);
-			}
-
-			Logger.Log($"-------------------------------------------------------------------", LogLevels.Input);
-			Logger.Log("Awaiting user input: \n", LogLevels.Input);
-
-			int failedTriesCount = 0;
-			int maxTries = 3;
-
-			while (true) {
-				if (failedTriesCount > maxTries) {
-					Logger.Log($"Multiple wrong inputs. please start the command menu again  by pressing {Constants.SHELL_KEY} key.", LogLevels.Warn);
-					return;
-				}
-
-				char pressedKey = Console.ReadKey().KeyChar;
-
-				switch (pressedKey) {
-					case Constants.ConsoleShutdownKey:
-						Logger.Log("Shutting down assistant...", LogLevels.Warn);
-						await Task.Delay(1000).ConfigureAwait(false);
-						await Exit(0).ConfigureAwait(false);
-						return;
-
-					case Constants.ConsoleRelayCommandMenuKey when GpioController.IsAllowedToExecute:
-						Logger.Log("Displaying relay command menu...", LogLevels.Warn);
-						DisplayRelayCommandMenu();
-						return;
-
-					case Constants.ConsoleRelayCycleMenuKey when GpioController.IsAllowedToExecute:
-						Logger.Log("Displaying relay cycle menu...", LogLevels.Warn);
-						await DisplayRelayCycleMenu().ConfigureAwait(false);
-						return;
-
-					case Constants.ConsoleRelayCommandMenuKey when !GpioController.IsAllowedToExecute:
-					case Constants.ConsoleRelayCycleMenuKey when !GpioController.IsAllowedToExecute:
-						Logger.Log("Assistant is running in an Operating system/Device which doesn't support GPIO pin controlling functionality.", LogLevels.Warn);
-						return;
-
-					case Constants.ConsoleMorseCodeKey when GpioController.IsAllowedToExecute:
-						if (Controller == null) {
-							return;
-						}
-
-						Logger.Log("Enter text to convert to Morse: ");
-						string morseCycle = Console.ReadLine();
-						MorseRelayTranslator morseTranslator = GpioController.GetMorseTranslator();
-
-						if (morseTranslator == null) {
-							Logger.Warning("Morse translator is offline or unavailable.");
-							return;
-						}
-						
-						await morseTranslator.RelayMorseCycle(morseCycle, Config.OutputModePins[0]).ConfigureAwait(false);
-						return;
-
-					case Constants.ConsoleWeatherInfoKey:
-						Logger.Log("Please enter the pin code of the location: ");
-						int counter = 0;
-
-						int pinCode;
-						while (true) {
-							if (counter > 4) {
-								Logger.Log("Failed multiple times. aborting...");
-								return;
-							}
-
-							try {
-								pinCode = Convert.ToInt32(Console.ReadLine());
-								break;
-							}
-							catch {
-								counter++;
-								Logger.Log("Please try again!", LogLevels.Warn);
-								continue;
-							}
-						}
-
-						if (string.IsNullOrEmpty(Config.OpenWeatherApiKey)) {
-							Logger.Warning("Weather api key cannot be null.");
-							return;
-						}
-
-						if (WeatherClient == null) {
-							Logger.Warning("Weather client is not initiated.");
-							return;
-						}
-
-						WeatherResponse? response = await WeatherClient.GetWeather(Config.OpenWeatherApiKey, pinCode, "in").ConfigureAwait(false);
-
-						if (response == null) {
-							Logger.Warning("Failed to fetch weather response.");
-							return;
-						}
-
-						Logger.Log($"------------ Weather information for {pinCode}/{response.LocationName} ------------", LogLevels.Green);
-
-						if (response.Data != null) {
-							Logger.Log($"Temperature: {response.Data.Temperature}", LogLevels.Green);
-							Logger.Log($"Humidity: {response.Data.Humidity}", LogLevels.Green);
-							Logger.Log($"Pressure: {response.Data.Pressure}", LogLevels.Green);
-						}
-
-						if (response.Wind != null) {
-							Logger.Log($"Wind speed: {response.Wind.Speed}", LogLevels.Green);
-						}
-
-						if (response.Location != null) {
-							Logger.Log($"Latitude: {response.Location.Latitude}", LogLevels.Green);
-							Logger.Log($"Longitude: {response.Location.Longitude}", LogLevels.Green);
-							Logger.Log($"Location name: {response.LocationName}", LogLevels.Green);
-						}
-
-						return;
-
-					case Constants.ConsoleTestMethodExecutionKey:
-						Logger.Log("Executing test methods/tasks", LogLevels.Warn);
-						Logger.Log("Test method execution finished successfully!", LogLevels.Green);
-						return;
-
-					case Constants.ConsoleModuleShutdownKey when Modules.Count > 0 && Config.EnableModules:
-						Logger.Log("Shutting down all modules...", LogLevels.Warn);
-						ModuleLoader.OnCoreShutdown();
-						return;
-
-					case Constants.ConsoleModuleShutdownKey when Modules.Count <= 0:
-						Logger.Log("There are no modules to shutdown...");
-						return;
-
-					default:
-						if (failedTriesCount > maxTries) {
-							Logger.Log($"Unknown key was pressed. ({maxTries - failedTriesCount} tries left)", LogLevels.Warn);
-						}
-
-						failedTriesCount++;
-						continue;
-				}
-			}
-		}
-		
 		private static async Task KeepAlive() {
 			Logger.Log($"Press {Constants.SHELL_KEY} for shell execution.", LogLevels.Green);
 			while (!KeepAliveToken.Token.IsCancellationRequested) {
@@ -705,7 +535,6 @@ namespace Assistant.Core {
 								continue;
 
 							default:
-								Logger.Log($"Unknown key pressed during KeepAlive() command ({pressedKey})", LogLevels.Trace);
 								continue;
 						}
 					}
@@ -732,16 +561,6 @@ namespace Assistant.Core {
 					Config.GpioSafeMode = true;
 				}
 
-				if (x.EnableFirstChance) {
-					Logger.Log("First chance exception logging is enabled.", LogLevels.Warn);
-					Config.EnableFirstChanceLog = true;
-				}
-
-				if (x.TextToSpeech) {
-					Logger.Log("Enabled text to speech service via startup arguments.", LogLevels.Warn);
-					Config.EnableTextToSpeech = true;
-				}
-
 				if (x.DisableFirstChance) {
 					Logger.Log("Disabling first chance exception logging with debug mode.", LogLevels.Warn);
 					DisableFirstChanceLogWithDebug = true;
@@ -749,291 +568,6 @@ namespace Assistant.Core {
 			});
 		}
 
-		private static void DisplayRelayCommandMenu() {
-			Logger.Log("-------------------- RELAY COMMAND MENU --------------------", LogLevels.Input);
-			Logger.Log("1 | Relay pin 1", LogLevels.Input);
-			Logger.Log("2 | Relay pin 2", LogLevels.Input);
-			Logger.Log("3 | Relay pin 3", LogLevels.Input);
-			Logger.Log("4 | Relay pin 4", LogLevels.Input);
-			Logger.Log("5 | Relay pin 5", LogLevels.Input);
-			Logger.Log("6 | Relay pin 6", LogLevels.Input);
-			Logger.Log("7 | Relay pin 7", LogLevels.Input);
-			Logger.Log("8 | Relay pin 8", LogLevels.Input);
-			Logger.Log("9 | Schedule task for specified relay pin", LogLevels.Input);
-			Logger.Log("0 | Exit menu", LogLevels.Input);
-			Logger.Log("Press any key (between 0 - 9) for their respective option.\n", LogLevels.Input);
-			ConsoleKeyInfo key = Console.ReadKey();
-			Logger.Log("\n", LogLevels.Input);
-
-			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
-				Logger.Log("Could not parse the input key. please try again!", LogLevels.Error);
-				Logger.Log("Command menu closed.");
-				Logger.Log($"Press {Constants.SHELL_KEY} for the console command menu.", LogLevels.Green);
-				return;
-			}
-
-			static void set(int pin) {
-				if (Controller == null || PinController == null) {
-					return;
-				}
-
-				Pin? pinStatus = PinController.GetDriver()?.GetPinConfig(pin);
-
-				if (pinStatus == null) {
-					return;
-				}
-
-				if (pinStatus.IsPinOn) {
-					PinController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.Off);
-					Logger.Log($"Successfully set {pin} pin to OFF.", LogLevels.Green);
-				}
-				else {
-					PinController.GetDriver()?.SetGpioValue(pin, GpioPinMode.Output, GpioPinState.On);
-					Logger.Log($"Successfully set {pin} pin to ON.", LogLevels.Green);
-				}
-			}
-
-			switch (SelectedValue) {
-				case 1:
-					set(Config.RelayPins[0]);
-					break;
-
-				case 2:
-					set(Config.RelayPins[1]);
-					break;
-
-				case 3:
-					set(Config.RelayPins[2]);
-					break;
-
-				case 4:
-					set(Config.RelayPins[3]);
-					break;
-
-				case 5:
-					set(Config.RelayPins[4]);
-					break;
-
-				case 6:
-					set(Config.RelayPins[5]);
-					break;
-
-				case 7:
-					set(Config.RelayPins[6]);
-					break;
-
-				case 8:
-					set(Config.RelayPins[7]);
-					break;
-
-				case 9:
-					Logger.Log("Please enter the pin u want to configure: ", LogLevels.Input);
-					string pinNumberKey = Console.ReadLine();
-
-					if (!int.TryParse(pinNumberKey, out int pinNumber) || Convert.ToInt32(pinNumberKey) <= 0) {
-						Logger.Log("Your entered pin number is incorrect. please enter again.", LogLevels.Input);
-
-						pinNumberKey = Console.ReadLine();
-						if (!int.TryParse(pinNumberKey, out pinNumber) || Convert.ToInt32(pinNumberKey) <= 0) {
-							Logger.Log("Your entered pin number is incorrect again. press m for menu, and start again!", LogLevels.Input);
-							return;
-						}
-					}
-
-					Logger.Log("Please enter the amount of delay you want in between the task. (in minutes)", LogLevels.Input);
-					string delayInMinuteskey = Console.ReadLine();
-					if (!int.TryParse(delayInMinuteskey, out int delay) || Convert.ToInt32(delayInMinuteskey) <= 0) {
-						Logger.Log("Your entered delay is incorrect. please enter again.", LogLevels.Input);
-
-						delayInMinuteskey = Console.ReadLine();
-						if (!int.TryParse(delayInMinuteskey, out delay) || Convert.ToInt32(delayInMinuteskey) <= 0) {
-							Logger.Log("Your entered pin is incorrect again. press m for menu, and start again!", LogLevels.Input);
-							return;
-						}
-					}
-
-					Logger.Log("Please enter the status u want the task to configure: (0 = OFF, 1 = ON)", LogLevels.Input);
-
-					string pinStatuskey = Console.ReadLine();
-					if (!int.TryParse(pinStatuskey, out int pinStatus) || (Convert.ToInt32(pinStatuskey) != 0 && Convert.ToInt32(pinStatus) != 1)) {
-						Logger.Log("Your entered pin status is incorrect. please enter again.", LogLevels.Input);
-
-						pinStatuskey = Console.ReadLine();
-						if (!int.TryParse(pinStatuskey, out pinStatus) || (Convert.ToInt32(pinStatuskey) != 0 && Convert.ToInt32(pinStatus) != 1)) {
-							Logger.Log("Your entered pin status is incorrect again. press m for menu, and start again!", LogLevels.Input);
-							return;
-						}
-					}
-
-					if (Controller == null || PinController == null) {
-						return;
-					}
-
-					var driver = PinController.GetDriver();
-
-					if (driver == null) {
-						return;
-					}
-
-					Pin status = driver.GetPinConfig(pinNumber);
-
-					if (status == null) {
-						return;
-					}
-
-					if (status.IsPinOn && pinStatus.Equals(1)) {
-						Logger.Log("Pin is already configured to be in ON State. Command doesn't make any sense.");
-						return;
-					}
-
-					if (!status.IsPinOn && pinStatus.Equals(0)) {
-						Logger.Log("Pin is already configured to be in OFF State. Command doesn't make any sense.");
-						return;
-					}
-
-					if (Config.IRSensorPins.Any() && Config.IRSensorPins.Contains(pinNumber)) {
-						Logger.Log("Sorry, the specified pin is preconfigured for IR Sensor. cannot modify!");
-						return;
-					}
-
-					if (!Config.RelayPins.Contains(pinNumber)) {
-						Logger.Log("Sorry, the specified pin doesn't exist in the relay pin category.");
-						return;
-					}
-
-					Helpers.ScheduleTask(() => {
-						if (status.IsPinOn && pinStatus.Equals(0)) {
-							driver.SetGpioValue(pinNumber, GpioPinMode.Output, GpioPinState.Off);
-							Logger.Log($"Successfully finished execution of the task: {pinNumber} pin set to OFF.", LogLevels.Green);
-						}
-
-						if (!status.IsPinOn && pinStatus.Equals(1)) {
-							driver.SetGpioValue(pinNumber, GpioPinMode.Output, GpioPinState.On);
-							Logger.Log($"Successfully finished execution of the task: {pinNumber} pin set to ON.", LogLevels.Green);
-						}
-					}, TimeSpan.FromMinutes(delay));
-
-					Logger.Log(
-						pinStatus.Equals(0)
-							? $"Successfully scheduled a task: set {pinNumber} pin to OFF"
-							: $"Successfully scheduled a task: set {pinNumber} pin to ON", LogLevels.Green);
-					break;
-			}
-
-			Logger.Log("Command menu closed.");
-			Logger.Log($"Press {Constants.SHELL_KEY} for the console command menu.", LogLevels.Green);
-		}
-
-		private static async Task DisplayRelayCycleMenu() {
-			if (!GpioController.IsAllowedToExecute) {
-				Logger.Log("You are running on incorrect OS or device. Pi controls are disabled.", LogLevels.Error);
-				return;
-			}
-
-			Logger.Log("--------------------MODE MENU--------------------", LogLevels.Input);
-			Logger.Log("1 | Relay Cycle", LogLevels.Input);
-			Logger.Log("2 | Relay OneMany", LogLevels.Input);
-			Logger.Log("3 | Relay OneOne", LogLevels.Input);
-			Logger.Log("4 | Relay OneTwo", LogLevels.Input);
-			Logger.Log("5 | Relay Single", LogLevels.Input);
-			Logger.Log("6 | Relay Default", LogLevels.Input);
-			Logger.Log("0 | Exit", LogLevels.Input);
-			Logger.Log("Press any key (between 0 - 6) for their respective option.\n", LogLevels.Input);
-			ConsoleKeyInfo key = Console.ReadKey();
-			Logger.Log("\n", LogLevels.Input);
-
-			if (!int.TryParse(key.KeyChar.ToString(), out int SelectedValue)) {
-				Logger.Log("Could not parse the input key. please try again!", LogLevels.Error);
-				Logger.Log($"Press {Constants.SHELL_KEY} for command menu.", LogLevels.Info);
-				return;
-			}
-
-			if (Controller == null || PinController == null) {
-				return;
-			}
-
-			bool Configured;
-			var driver = PinController.GetDriver();
-
-			if (driver == null) {
-				return;
-			}
-
-			switch (SelectedValue) {
-				case 1:
-					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.Cycle).ConfigureAwait(false);
-
-					if (!Configured) {
-						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
-					}
-
-					break;
-
-				case 2:
-					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.OneMany).ConfigureAwait(false);
-
-					if (!Configured) {
-						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
-					}
-
-					break;
-
-				case 3:
-					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.OneOne).ConfigureAwait(false);
-					if (!Configured) {
-						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
-					}
-					break;
-
-				case 4:
-					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.OneTwo).ConfigureAwait(false);
-
-					if (!Configured) {
-						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
-					}
-					break;
-
-				case 5:
-					Logger.Log("\nPlease select the channel (3, 4, 17, 2, 27, 10, 22, 9, etc): ", LogLevels.Input);
-					string singleKey = Console.ReadLine();
-
-					if (!int.TryParse(singleKey, out int selectedsingleKey)) {
-						Logger.Log("Could not parse the input key. please try again!", LogLevels.Error);
-						goto case 5;
-					}
-
-					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.Single, selectedsingleKey).ConfigureAwait(false);
-
-					if (!Configured) {
-						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
-					}
-					break;
-
-				case 6:
-					Configured = await driver.RelayTestAsync(Config.RelayPins, GpioCycles.Default).ConfigureAwait(false);
-
-					if (!Configured) {
-						Logger.Log("Could not configure the setting. please try again!", LogLevels.Warn);
-					}
-					break;
-
-				case 0:
-					Logger.Log("Exiting from menu...", LogLevels.Input);
-					return;
-
-				default:
-					goto case 0;
-			}
-
-			Logger.Log(Configured ? "Test successful!" : "Test Failed!");
-
-			Logger.Log("Relay menu closed.");
-			Logger.Log($"Press {Constants.SHELL_KEY} to display command menu.");
-		}
-
-		/// <summary>
-		/// The OnCoreConfigChangeEvent
-		/// </summary>
 		private void OnCoreConfigChangeEvent() {
 			if (!File.Exists(Constants.CoreConfigPath)) {
 				Logger.Log("The core config file has been deleted.", LogLevels.Warn);
@@ -1045,22 +579,12 @@ namespace Assistant.Core {
 			Helpers.InBackgroundThread(async () => await Config.LoadConfig().ConfigureAwait(false));
 		}
 
-		/// <summary>
-		/// The OnDiscordConfigChangeEvent
-		/// </summary>
 		private void OnDiscordConfigChangeEvent() {
 		}
 
-		/// <summary>
-		/// The OnMailConfigChangeEvent
-		/// </summary>
 		private void OnMailConfigChangeEvent() {
 		}
 
-		/// <summary>
-		/// The OnModuleDirectoryChangeEvent
-		/// </summary>
-		/// <param name="absoluteFileName">The absoluteFileName<see cref="string?"/></param>
 		private void OnModuleDirectoryChangeEvent(string? absoluteFileName) {
 			if (string.IsNullOrEmpty(absoluteFileName)) {
 				return;

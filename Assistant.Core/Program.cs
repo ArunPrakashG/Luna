@@ -24,7 +24,7 @@ namespace Assistant.Core {
 			AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
 			Console.CancelKeyPress += OnForceQuitAssistant;
 
-			if(Helpers.GetOsPlatform() == OSPlatform.Linux) {
+			if (Helpers.GetOsPlatform() == OSPlatform.Linux) {
 				"clear".ExecuteBash(false);
 			}
 
@@ -38,10 +38,10 @@ namespace Assistant.Core {
 				.StartScheduler()
 				.DisplayASCIILogo()
 				.VerifyStartupArgs(args)
-				.AllowLocalNetworkConnections()				
+				.AllowLocalNetworkConnections()
 				.StartWatcher()
 				.InitPushbulletService()
-				.InitPiGpioController<SystemDeviceDriver>(new SystemDeviceDriver(), Gpio.Enums.NumberingScheme.Logical).Result
+				.InitPiGpioController<RaspberryIODriver>(new RaspberryIODriver(), Gpio.Enums.NumberingScheme.Logical).Result
 				.StartConsoleTitleUpdater()
 				.StartModules<IModuleBase>().Result
 				.InitRestServer().Result
@@ -60,15 +60,16 @@ namespace Assistant.Core {
 				return;
 			}
 
-			Logger.Log($"{e.Exception.ToString()}", LogLevels.Trace);
+			Logger.Log($"{e.Exception}", LogLevels.Trace);
+			e.SetObserved();
 		}
 
 		public static void HandleFirstChanceExceptions(object? sender, FirstChanceExceptionEventArgs e) {
 			if (!Core.Config.Debug || Core.DisableFirstChanceLogWithDebug) {
 				return;
 			}
-
-			Logger.Log(e.Exception.Message, Core.Config.EnableFirstChanceLog ? LogLevels.Error : LogLevels.Trace);
+			
+			Logger.Log(e.Exception.Message, Core.DisableFirstChanceLogWithDebug ? LogLevels.Trace : LogLevels.Error);
 		}
 
 		private static void HandleUnhandledExceptions(object? sender, UnhandledExceptionEventArgs e) {
@@ -111,6 +112,7 @@ namespace Assistant.Core {
 		}
 
 		private static void OnEnvironmentExit(object? sender, EventArgs e) {
+
 		}
 	}
 }

@@ -34,7 +34,7 @@ namespace Assistant.Core.Shell {
 		/// <summary>
 		/// Positive value will start shutdown process on the shell.
 		/// </summary>
-		internal static bool ShutdownShell = false;
+		private static bool ShutdownShell = false;
 
 		/// <summary>
 		/// Gets the CurrentCommand
@@ -90,6 +90,8 @@ namespace Assistant.Core.Shell {
 
 		internal static void Resume() => PauseShell = false;
 
+		internal static void ExitShell() => ShutdownShell = true;
+
 		/// <summary>
 		/// The REPL Loop. <br>Loops until an external shutdown of the shell as been triggered by the assistant core program.</br>
 		/// </summary>
@@ -129,7 +131,7 @@ namespace Assistant.Core.Shell {
 					}
 
 					await ExecuteCommandAsync(command).ConfigureAwait(false);
-					Console.WriteLine();
+					Console.WriteLine("Completed!");
 					Pause();
 				} while (!ShutdownShell);
 			}
@@ -242,7 +244,7 @@ namespace Assistant.Core.Shell {
 							continue;
 						}
 
-						if(await Execute(commandKey, parameters))
+						if(await Execute(commandKey, parameters).ConfigureAwait(false))
 							anyExec = true;
 						continue;
 					}
@@ -288,7 +290,7 @@ namespace Assistant.Core.Shell {
 						return false;
 					}
 
-					if(await Execute(commandKey, parameters))
+					if(await Execute(commandKey, parameters).ConfigureAwait(false))
 						anyExec = true;
 				}
 
@@ -379,35 +381,5 @@ namespace Assistant.Core.Shell {
 		/// <param name="cmd"></param>
 		/// <returns></returns>
 		private static string Replace(string cmd) => cmd.Replace(";", "").Replace(",", "");
-
-		/// <summary>
-		/// Defines the EXECUTE_RESULT
-		/// </summary>
-		public enum EXECUTE_RESULT : byte {
-			/// <summary>
-			/// Defines the Success
-			/// </summary>
-			Success = 0x01,
-
-			/// <summary>
-			/// Defines the Failed
-			/// </summary>
-			Failed = 0x00,
-
-			/// <summary>
-			/// Defines the InvalidArgs
-			/// </summary>
-			InvalidArgs = 0x002,
-
-			/// <summary>
-			/// Defines the InvalidCommand
-			/// </summary>
-			InvalidCommand = 0x003,
-
-			/// <summary>
-			/// Defines the DoesntExist
-			/// </summary>
-			DoesntExist = 0x004
-		}
 	}
 }

@@ -1,6 +1,5 @@
 using Assistant.Extensions;
 using Assistant.Extensions.Shared.Shell;
-using Assistant.Gpio;
 using Assistant.Gpio.Controllers;
 using Assistant.Gpio.Drivers;
 using System;
@@ -97,7 +96,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 					return;
 				}
 
-				switch (parameter.ParameterCount) {					
+				switch (parameter.ParameterCount) {
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
 						ShellOut.Info("Note: as only 1 argument is specified, the default value will be set for the specified pin.");
 
@@ -229,7 +228,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						if (!int.TryParse(parameter.Parameters[2], out int delayValue)) {
+						if (!int.TryParse(parameter.Parameters[3], out int delayValue)) {
 							ShellOut.Error("Failed to parse gpio pin state value.");
 							return;
 						}
