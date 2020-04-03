@@ -241,7 +241,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						isSet = driver.SetGpioValue(pin, pinMode, pinState, TimeSpan.FromMinutes(delayValue));
+						isSet = driver.SetGpioValue(pin, pinMode, pinState, TimeSpan.FromMinutes(delayValue), false);
 
 						if (!isSet) {
 							ShellOut.Error($"Failed to configure {pin} gpio pin. Please validate the pin argument.");

@@ -30,14 +30,14 @@ namespace Assistant.Gpio.Drivers {
 			return this;
 		}
 
-		public Pin? GetPinConfig(int pinNumber) {
+		public Pin GetPinConfig(int pinNumber) {
 			if (!Controllers.GpioController.IsAllowedToExecute || !IsDriverInitialized) {
-				return null;
+				return new Pin();
 			}
 
 			if (!PinController.IsValidPin(pinNumber)) {
 				Logger?.Log("The specified pin is invalid.");
-				return null;
+				return new Pin();
 			}
 
 			GpioPin pin = (GpioPin) Pi.Gpio[pinNumber];
@@ -57,10 +57,7 @@ namespace Assistant.Gpio.Drivers {
 				return true;
 			}
 			finally {
-				Pin? pinConfig = GetPinConfig(pin);
-				if (pinConfig != null) {
-					Cast<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
-				}
+				Cast<IGpioControllerDriver>(this).UpdatePinConfig(GetPinConfig(pin));
 			}			
 		}
 
@@ -82,10 +79,7 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 			finally {
-				Pin? pinConfig = GetPinConfig(pin);
-				if (pinConfig != null) {
-					Cast<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
-				}
+				Cast<IGpioControllerDriver>(this).UpdatePinConfig(GetPinConfig(pin));
 			}
 		}
 
@@ -110,10 +104,7 @@ namespace Assistant.Gpio.Drivers {
 				return true;
 			}
 			finally {
-				Pin? pinConfig = GetPinConfig(pin);
-				if (pinConfig != null) {
-					Cast<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
-				}
+				Cast<IGpioControllerDriver>(this).UpdatePinConfig(GetPinConfig(pin));
 			}
 		}
 
@@ -128,10 +119,7 @@ namespace Assistant.Gpio.Drivers {
 				return (GpioPinState) gpioPin.ReadValue();
 			}
 			finally {
-				Pin? pinConfig = GetPinConfig(pin);
-				if (pinConfig != null) {
-					Cast<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
-				}
+				Cast<IGpioControllerDriver>(this).UpdatePinConfig(GetPinConfig(pin));
 			}			
 		}
 
@@ -146,10 +134,7 @@ namespace Assistant.Gpio.Drivers {
 				return gpioPin.Read();
 			}
 			finally {
-				Pin? pinConfig = GetPinConfig(pin);
-				if (pinConfig != null) {
-					Cast<IGpioControllerDriver>(this).UpdatePinConfig(pinConfig);
-				}
+				Cast<IGpioControllerDriver>(this).UpdatePinConfig(GetPinConfig(pin));
 			}
 		}
 

@@ -66,7 +66,7 @@ namespace Assistant.Gpio.Controllers {
 			}
 
 			await InitPinConfigs().ConfigureAwait(false);
-			SetEvents();
+			await SetEvents().ConfigureAwait(false);
 			IsAlreadyInit = true;
 		}
 
@@ -114,27 +114,26 @@ namespace Assistant.Gpio.Controllers {
 
 		private void MapInternalSensors() {
 			for (int i = 0; i < PinConfigManager.GetConfiguration().PinConfigs.Count; i++) {
-				Pin? config = PinConfigManager.GetConfiguration().PinConfigs[i];
-
-				if (config == null) {
-					continue;
-				}
+				Pin config = PinConfigManager.GetConfiguration().PinConfigs[i];
 
 				SensorType sensorType = GetSensorType(Constants.BcmGpioPins[i]);
 				switch (sensorType) {
 					case SensorType.Buzzer:
+						PinController.GetDriver()?.MapSensor<BuzzerModule>(new SensorMap<BuzzerModule>(config.PinNumber,
+							MappingEvent.Both, sensorType, SensorEvents.IrSensorEvent));
+						break;
 					case SensorType.Invalid:
 						break;
 					case SensorType.IRSensor:
-						PinController.GetDriver()?.MapSensor<IIRSensor>(new SensorMap<IIRSensor>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<IRSensor>(new SensorMap<IRSensor>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.IrSensorEvent));
 						break;
 					case SensorType.Relay:
-						PinController.GetDriver()?.MapSensor<IRelaySwitch>(new SensorMap<IRelaySwitch>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<RelaySwitch>(new SensorMap<RelaySwitch>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.RelaySwitchEvent));
 						break;
 					case SensorType.SoundSensor:
-						PinController.GetDriver()?.MapSensor<ISoundSensor>(new SensorMap<ISoundSensor>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<SoundSensor>(new SensorMap<SoundSensor>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.SoundSensorEvent));
 						break;
 				}

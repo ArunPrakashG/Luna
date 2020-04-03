@@ -57,11 +57,7 @@ namespace Assistant.Gpio.Drivers {
 				return;
 			}
 
-			Pin? pin = GetPinConfig(_mapObj.GpioPinNumber);
-
-			if (pin == null) {
-				return;
-			}
+			Pin pin = GetPinConfig(_mapObj.GpioPinNumber);
 
 			IEnumerable<SensorMap<T>> maps = pin.SensorMap.OfType<SensorMap<T>>();
 
@@ -84,7 +80,7 @@ namespace Assistant.Gpio.Drivers {
 		/// </summary>
 		/// <param name="pinNumber">The pin to configure</param>
 		/// <returns></returns>
-		Pin? GetPinConfig(int pinNumber);
+		Pin GetPinConfig(int pinNumber);
 
 		/// <summary>
 		/// Sets the GpioPinMode of the specified pin.
@@ -152,25 +148,34 @@ namespace Assistant.Gpio.Drivers {
 
 		/// <summary>
 		/// Sets the specified pin to specified mode and state for duration TimeSpan, after which, the pin will return to its previous state.
+		/// <br><b>NOTE: This will block the calling thread until the timespan expires.</b></br>
 		/// </summary>
 		/// <param name="pin">The pin to configure</param>
 		/// <param name="mode">The mode to set the pin into</param>
 		/// <param name="state">The state to set the pin into</param>
-		/// <param name="duration">The TimeSpan duration after which the pin returns to the initial state</param>		
+		/// <param name="duration">The TimeSpan duration after which the pin returns to the initial state</param>
+		/// <param name="shouldBlockThread">Specifies if the method should wait until the duration expires.</param>
 		/// <returns>Status of the configuration</returns>
-		bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state, TimeSpan duration) {
+		bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state, TimeSpan duration, bool shouldBlockThread = false) {
 			if (!PreExecValidation(pin)) {
 				return false;
 			}
 
 			if (SetGpioValue(pin, mode, state)) {
 				UpdatePinConfig(new Pin(pin, state, mode));
+				bool set = false;
 
 				Helpers.ScheduleTask(() => {
 					if (SetGpioValue(pin, mode, GpioPinState.Off)) {
 						UpdatePinConfig(new Pin(pin, GpioPinState.Off, mode));
 					}
+
+					set = true;
 				}, duration);
+
+				while (shouldBlockThread && !set) {
+					Task.Delay(1).Wait();
+				}
 
 				return true;
 			}

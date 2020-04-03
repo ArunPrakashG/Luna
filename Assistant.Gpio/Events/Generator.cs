@@ -76,10 +76,6 @@ namespace Assistant.Gpio.Events {
 				return;
 			}
 
-			if (Config.PinMode == GpioPinMode.Output) {
-				Driver.SetGpioValue(Config.GpioPin, GpioPinState.Off);
-			}
-
 			SetInitalValue();
 			Helpers.InBackgroundThread(async () => await PollAsync().ConfigureAwait(false), true);
 		}
@@ -111,7 +107,6 @@ namespace Assistant.Gpio.Events {
 
 		private void OnValueReceived(bool currentValue, GpioPinState currentState) {
 			if (!IsAvailable) {
-				Logger.Log("An error occured. Check if the specified pin is valid.", LogLevels.Warn);
 				return;
 			}
 			
@@ -120,24 +115,20 @@ namespace Assistant.Gpio.Events {
 				case GpioPinEventStates.OFF when currentState == GpioPinState.Off && PreviousValue.PinState != currentState:
 				case GpioPinEventStates.ALL when PreviousValue.PinState != currentState:
 					OnValueChangedEventArgs eventArgs = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue, Config.PinMode, PreviousValue.PinState, PreviousValue.DigitalValue);					
-					Pin? pinConfig = Driver?.GetPinConfig(Config.GpioPin);
-
-					if(pinConfig == null) {
-						return;
-					}
+					Pin pinConfig = Driver.GetPinConfig(Config.GpioPin);
 
 					switch (Config.Type) {
 						case SensorType.IRSensor:
-							InvokeOnAllOfType<IIRSensor>(pinConfig, eventArgs);
+							InvokeOnAllOfType<IRSensor>(pinConfig, eventArgs);
 							break;
 						case SensorType.Relay:
-							InvokeOnAllOfType<IRelaySwitch>(pinConfig, eventArgs);
+							InvokeOnAllOfType<RelaySwitch>(pinConfig, eventArgs);
 							break;
 						case SensorType.SoundSensor:
-							InvokeOnAllOfType<ISoundSensor>(pinConfig, eventArgs);
+							InvokeOnAllOfType<SoundSensor>(pinConfig, eventArgs);
 							break;
 						case SensorType.Buzzer:
-							InvokeOnAllOfType<IBuzzer>(pinConfig, eventArgs);
+							InvokeOnAllOfType<BuzzerModule>(pinConfig, eventArgs);
 							break;
 						default:
 							// TODO: Implement functionality to dynamically handle other sensors
@@ -157,7 +148,7 @@ namespace Assistant.Gpio.Events {
 		}
 
 		private void InvokeOnAllOfType<T>(Pin pin, OnValueChangedEventArgs args) where T: ISensor {
-			if(pin == null || pin.SensorMap.Count <= 0) {
+			if(pin.SensorMap.Count <= 0) {
 				return;
 			}
 
@@ -185,6 +176,10 @@ namespace Assistant.Gpio.Events {
 			if (!IsAvailable) {
 				Logger.Log("An error occured. Check if the specified pin is valid.", LogLevels.Warn);
 				return;
+			}
+
+			if (Config.PinMode == GpioPinMode.Output) {
+				Driver.SetGpioValue(Config.GpioPin, GpioPinState.Off);
 			}
 
 			PreviousValue.Set(GpioPinState.Off, true);

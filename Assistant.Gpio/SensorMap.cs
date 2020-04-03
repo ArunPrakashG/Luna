@@ -1,6 +1,7 @@
 using Assistant.Gpio.Events.EventArgs;
 using Newtonsoft.Json;
 using System;
+using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio {
 	public struct SensorMap<T> where T : ISensor {
@@ -8,15 +9,15 @@ namespace Assistant.Gpio {
 		internal readonly int GpioPinNumber;
 
 		[JsonProperty]
-		internal readonly Enums.MappingEvent MapEvent;
+		internal readonly MappingEvent MapEvent;
 
 		[JsonProperty]
-		internal readonly Enums.SensorType SensorType;
+		internal readonly SensorType SensorType;
 
 		[JsonProperty]
 		internal readonly Func<OnValueChangedEventArgs, bool> OnFired;
 
-		internal SensorMap(int _gpioPinNumber, Enums.MappingEvent _mapEvent, Enums.SensorType _sensorType, Func<OnValueChangedEventArgs, bool> _onFired) {
+		internal SensorMap(int _gpioPinNumber, MappingEvent _mapEvent, SensorType _sensorType, Func<OnValueChangedEventArgs, bool> _onFired) {
 			GpioPinNumber = _gpioPinNumber;
 			MapEvent = _mapEvent;
 			SensorType = _sensorType;

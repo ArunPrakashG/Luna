@@ -4,8 +4,8 @@ using System.Text;
 
 namespace Assistant.Gpio {
 	public interface ISensor { }
-	internal interface ISoundSensor : ISensor { }
-	internal interface IRelaySwitch : ISensor { }
-	internal interface IIRSensor : ISensor { }
-	internal interface IBuzzer : ISensor { }
+	internal class SoundSensor : ISensor { }
+	internal class RelaySwitch : ISensor { }
+	internal class IRSensor : ISensor { }
+	internal class BuzzerModule : ISensor { }
 }

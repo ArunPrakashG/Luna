@@ -56,7 +56,7 @@ namespace Assistant.Gpio {
 
 			Pin? beforePinStatus = Driver.GetPinConfig(relayPin);
 
-			if(beforePinStatus == null) {
+			if (beforePinStatus == null) {
 				return new MorseCycleResult(false, null, null);
 			}
 
@@ -75,17 +75,21 @@ namespace Assistant.Gpio {
 			morse = morse.Replace("  ", pauseBetweenWords);
 			morse = morse.Replace(" ", pauseBetweenLetters);
 
-			foreach (char character in morse.ToCharArray()) {
-				switch (character) {
+			char[] morseCharArray = morse.ToCharArray();
+
+			for (int i = 0; i < morseCharArray.Length; i++) {
+				char charecter = morseCharArray[i];
+
+				switch (charecter) {
 					case '.':
-						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300));
-						break;
+						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300), true);
+						continue;
 					case '-':
-						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3));
-						break;
+						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3), true);
+						continue;
 					case '_':
 						await Task.Delay(300).ConfigureAwait(false);
-						break;
+						continue;
 				}
 			}
 
