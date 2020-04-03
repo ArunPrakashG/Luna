@@ -52,13 +52,13 @@ namespace Assistant.Gpio.Drivers {
 			try {
 				GpioPin GpioPin = (GpioPin) Pi.Gpio[pin];
 				GpioPin.PinMode = (GpioPinDriveMode) mode;
-				Logger?.Trace($"Configured ({pin}) gpio pin with ({mode.ToString()}) mode.");
+				Logger?.Trace($"Configured ({pin}) gpio pin with ({mode}) mode.");
 				Cast<IGpioControllerDriver>(this)?.UpdatePinConfig(new Pin(pin, mode));
 				return true;
 			}
 			finally {
 				Cast<IGpioControllerDriver>(this).UpdatePinConfig(GetPinConfig(pin));
-			}			
+			}
 		}
 
 		public bool SetGpioValue(int pin, GpioPinState state) {
@@ -120,7 +120,7 @@ namespace Assistant.Gpio.Drivers {
 			}
 			finally {
 				Cast<IGpioControllerDriver>(this).UpdatePinConfig(GetPinConfig(pin));
-			}			
+			}
 		}
 
 		public bool GpioDigitalRead(int pin) {

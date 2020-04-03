@@ -39,7 +39,7 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			if (PinConfig == null || PinConfig.PinConfigs.Count != Constants.BcmGpioPins.Length) {
+			if (PinConfig.PinConfigs.Count != Constants.BcmGpioPins.Length) {
 				return false;
 			}
 
@@ -51,26 +51,24 @@ namespace Assistant.Gpio.Drivers {
 			return true;
 		}
 
-		void MapSensor<T>(SensorMap<T> _mapObj) where T : ISensor {
+		void MapSensor(PinMap _mapObj) {
 			if (!PinController.IsValidPin(_mapObj.GpioPinNumber)) {
 				Logger.Log("The specified pin is invalid.");
 				return;
 			}
 
-			Pin pin = GetPinConfig(_mapObj.GpioPinNumber);
-
-			IEnumerable<SensorMap<T>> maps = pin.SensorMap.OfType<SensorMap<T>>();
-
 			// Check if the obj already exists
+			Pin pin = GetPinConfig(_mapObj.GpioPinNumber);
+			List<PinMap> maps = pin.GetMapsOfType(_mapObj.PinType);			
 			for (int i = 0; i < maps.Count(); i++) {
-				SensorMap<T> map = maps.ElementAt(i);
+				PinMap map = maps[i];
 
 				if (map.GpioPinNumber == _mapObj.GpioPinNumber && map.MapEvent == _mapObj.MapEvent) {
 					return;
 				}
 			}
 
-			pin.SensorMap.Add(_mapObj);
+			pin.PinMap.Add(_mapObj);
 		}
 
 		IGpioControllerDriver Cast<T>(T driver) where T : IGpioControllerDriver;
@@ -132,11 +130,7 @@ namespace Assistant.Gpio.Drivers {
 				return false;
 			}
 
-			Pin? pinConfig = GetPinConfig(pin);
-
-			if (pinConfig == null) {
-				return false;
-			}
+			Pin pinConfig = GetPinConfig(pin);
 
 			if (pinConfig.Mode != GpioPinMode.Output) {
 				Logger.Warning("Cannot toggle the pin as the pin mode is not set to output.");
@@ -192,11 +186,7 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
-				Pin? pinStatus = GetPinConfig(AvailablePins.OutputPins[i]);
-
-				if (pinStatus == null) {
-					continue;
-				}
+				Pin pinStatus = GetPinConfig(AvailablePins.OutputPins[i]);
 
 				if (pinStatus.IsPinOn) {
 					SetGpioValue(pinStatus.PinNumber, GpioPinMode.Output, GpioPinState.Off);
@@ -210,16 +200,12 @@ namespace Assistant.Gpio.Drivers {
 		/// </summary>
 		/// <param name="pin">The pin configuration object.</param>
 		void UpdatePinConfig(Pin pinValue) {
-			if (pinValue == null) {
-				return;
-			}
-
 			if (!PreExecValidation(pinValue.PinNumber)) {
 				return;
 			}
 
 			for (int i = 0; i < PinConfig.PinConfigs.Count; i++) {
-				if (PinConfig.PinConfigs[i] == null || PinConfig.PinConfigs[i].PinNumber != pinValue.PinNumber) {
+				if (PinConfig.PinConfigs[i].PinNumber != pinValue.PinNumber) {
 					continue;
 				}
 
@@ -368,11 +354,7 @@ namespace Assistant.Gpio.Drivers {
 					continue;
 				}
 
-				Pin? pinConfig = GetPinConfig(pin);
-
-				if (pinConfig == null) {
-					return false;
-				}
+				Pin pinConfig = GetPinConfig(pin);
 
 				if (pinConfig.Mode != setMode) {
 					SetGpioValue(pin, setMode);

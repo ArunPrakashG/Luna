@@ -1,5 +1,4 @@
 namespace Assistant.Gpio.Config {
-	using Newtonsoft.Json;
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
@@ -8,15 +7,13 @@ namespace Assistant.Gpio.Config {
 	/// <summary>
 	/// Defines pin configuration collection.
 	/// </summary>
-	[Serializable]
 	public struct PinConfig {
-		[JsonProperty]
+
 		public bool SafeMode;
 
 		/// <summary>
 		/// Defines the PinConfigs
-		/// </summary>
-		[JsonProperty]
+		/// </summary>		
 		public readonly List<Pin> PinConfigs;
 
 		/// <summary>
@@ -33,51 +30,42 @@ namespace Assistant.Gpio.Config {
 
 	/// <summary>
 	/// Defines the pin configuration of the pin it holds.
-	/// </summary>
-	[Serializable]
+	/// </summary>	
 	public struct Pin {
 		/// <summary>
 		/// The pin.
-		/// </summary>
-		[JsonProperty]
+		/// </summary>		
 		public readonly int PinNumber;
 
 		/// <summary>
 		/// Gets or sets the Pin state. (On/Off)
-		/// </summary>
-		[JsonProperty]
+		/// </summary>		
 		public GpioPinState PinState;
 
 		/// <summary>
 		/// Gets or sets the Pin mode. (Output/Input)
-		/// </summary>
-		[JsonProperty]
+		/// </summary>		
 		public GpioPinMode Mode;
 
 		/// <summary>
 		/// Mapping instance which maps the gpio pin with sensors attached to the device.
 		/// </summary>
-		[JsonIgnore]
-		// TODO: Rewrite
-		internal readonly List<SensorMap<ISensor>> SensorMap;
+		internal readonly List<PinMap> PinMap;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether the pin is available.
-		/// </summary>
-		[JsonProperty]
+		/// </summary>		
 		public bool IsAvailable;
 
 		/// <summary>
 		/// Gets or sets the Scheduler job name if the pin isn't available.
-		/// </summary>
-		[JsonProperty]
+		/// </summary>		
 		public string? JobName { get; set; }
 
 		/// <summary>
 		/// Gets a value indicating whether IsPinOn
 		/// Gets a value indicating the pin current state. <see cref="PinState"/>
-		/// </summary>
-		[JsonProperty]
+		/// </summary>		
 		public bool IsPinOn => PinState == GpioPinState.On;
 
 		/// <summary>
@@ -94,7 +82,7 @@ namespace Assistant.Gpio.Config {
 			Mode = mode;
 			IsAvailable = available;
 			JobName = jobName;
-			SensorMap = new List<SensorMap<ISensor>>();
+			PinMap = new List<PinMap>();
 		}
 
 		public Pin(int pin, GpioPinMode mode, bool available = true, string? jobName = null) {
@@ -103,7 +91,7 @@ namespace Assistant.Gpio.Config {
 			Mode = mode;
 			IsAvailable = available;
 			JobName = jobName;
-			SensorMap = new List<SensorMap<ISensor>>();
+			PinMap = new List<PinMap>();
 		}
 
 		public Pin(int pin, GpioPinState state, bool available = true, string? jobName = null) {
@@ -112,8 +100,10 @@ namespace Assistant.Gpio.Config {
 			Mode = GpioPinMode.Input;
 			IsAvailable = available;
 			JobName = jobName;
-			SensorMap = new List<SensorMap<ISensor>>();
+			PinMap = new List<PinMap>();
 		}
+
+		public List<PinMap> GetMapsOfType(SensorType type) => PinMap.FindAll(x => x.PinType == type);
 
 		/// <summary>
 		/// Gets a summary of the pin configuration this object holds.

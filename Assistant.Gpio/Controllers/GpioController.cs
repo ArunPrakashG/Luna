@@ -73,8 +73,8 @@ namespace Assistant.Gpio.Controllers {
 		private async Task InitPinConfigs() {
 			bool isLoadSuccess = await ConfigManager.LoadConfiguration().ConfigureAwait(false);
 
-			if (!isLoadSuccess || PinConfigManager.GetConfiguration() == null || PinConfigManager.GetConfiguration().PinConfigs.Count <= 0 ||
-				(isLoadSuccess && (PinConfigManager.GetConfiguration() == null || PinConfigManager.GetConfiguration().PinConfigs.Count <= 0))) {
+			if (!isLoadSuccess || PinConfigManager.GetConfiguration().PinConfigs.Count <= 0 ||
+				(isLoadSuccess && PinConfigManager.GetConfiguration().PinConfigs.Count <= 0)) {
 				generateConfigs();
 				await ConfigManager.SaveConfig().ConfigureAwait(false);
 			}
@@ -82,17 +82,13 @@ namespace Assistant.Gpio.Controllers {
 			void generateConfigs() {
 				List<Pin> pinConfigs = new List<Pin>();
 				for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {
-					Pin? config = PinController.GetDriver()?.GetPinConfig(Constants.BcmGpioPins[i]);
-
-					if (config == null) {
-						continue;
-					}
+					Pin config = PinController.GetDriver().GetPinConfig(Constants.BcmGpioPins[i]);
 
 					pinConfigs.Add(config);
 					Logger.Trace($"Generated pin config for {Pi.Gpio[i].PhysicalPinNumber} gpio pin.");
 				}
 
-				ConfigManager.Init(new PinConfig(pinConfigs));
+				ConfigManager.Init(new PinConfig(pinConfigs, false));
 			}
 		}
 
@@ -119,21 +115,21 @@ namespace Assistant.Gpio.Controllers {
 				SensorType sensorType = GetSensorType(Constants.BcmGpioPins[i]);
 				switch (sensorType) {
 					case SensorType.Buzzer:
-						PinController.GetDriver()?.MapSensor<BuzzerModule>(new SensorMap<BuzzerModule>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<TBuzzerModule>(new PinMap<TBuzzerModule>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.IrSensorEvent));
 						break;
 					case SensorType.Invalid:
 						break;
 					case SensorType.IRSensor:
-						PinController.GetDriver()?.MapSensor<IRSensor>(new SensorMap<IRSensor>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<TIrSensor>(new PinMap<TIrSensor>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.IrSensorEvent));
 						break;
 					case SensorType.Relay:
-						PinController.GetDriver()?.MapSensor<RelaySwitch>(new SensorMap<RelaySwitch>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<TRelaySwitch>(new PinMap<TRelaySwitch>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.RelaySwitchEvent));
 						break;
 					case SensorType.SoundSensor:
-						PinController.GetDriver()?.MapSensor<SoundSensor>(new SensorMap<SoundSensor>(config.PinNumber,
+						PinController.GetDriver()?.MapSensor<TSoundSensor>(new PinMap<TSoundSensor>(config.PinNumber,
 							MappingEvent.Both, sensorType, SensorEvents.SoundSensorEvent));
 						break;
 				}

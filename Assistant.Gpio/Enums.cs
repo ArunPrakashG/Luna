@@ -12,7 +12,7 @@ namespace Assistant.Gpio {
 			WiringPiDriver
 		}
 
-		internal enum SensorType {
+		public enum SensorType {
 			IRSensor,
 			Relay,
 			Buzzer,

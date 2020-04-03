@@ -4,7 +4,7 @@ using System;
 using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio {
-	public struct SensorMap<T> where T : ISensor {
+	public struct PinMap {
 		[JsonProperty]
 		internal readonly int GpioPinNumber;
 
@@ -12,15 +12,15 @@ namespace Assistant.Gpio {
 		internal readonly MappingEvent MapEvent;
 
 		[JsonProperty]
-		internal readonly SensorType SensorType;
+		internal readonly SensorType PinType;
 
 		[JsonProperty]
 		internal readonly Func<OnValueChangedEventArgs, bool> OnFired;
 
-		internal SensorMap(int _gpioPinNumber, MappingEvent _mapEvent, SensorType _sensorType, Func<OnValueChangedEventArgs, bool> _onFired) {
+		internal PinMap(int _gpioPinNumber, MappingEvent _mapEvent, SensorType _sensorType, Func<OnValueChangedEventArgs, bool> _onFired) {
 			GpioPinNumber = _gpioPinNumber;
 			MapEvent = _mapEvent;
-			SensorType = _sensorType;
+			PinType = _sensorType;
 			OnFired = _onFired;
 		}
 	}

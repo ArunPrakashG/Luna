@@ -119,16 +119,16 @@ namespace Assistant.Gpio.Events {
 
 					switch (Config.Type) {
 						case SensorType.IRSensor:
-							InvokeOnAllOfType<IRSensor>(pinConfig, eventArgs);
+							InvokeOnAllOfType(pinConfig, eventArgs);
 							break;
 						case SensorType.Relay:
-							InvokeOnAllOfType<RelaySwitch>(pinConfig, eventArgs);
+							InvokeOnAllOfType(pinConfig, eventArgs);
 							break;
 						case SensorType.SoundSensor:
-							InvokeOnAllOfType<SoundSensor>(pinConfig, eventArgs);
+							InvokeOnAllOfType(pinConfig, eventArgs);
 							break;
 						case SensorType.Buzzer:
-							InvokeOnAllOfType<BuzzerModule>(pinConfig, eventArgs);
+							InvokeOnAllOfType(pinConfig, eventArgs);
 							break;
 						default:
 							// TODO: Implement functionality to dynamically handle other sensors
@@ -147,15 +147,15 @@ namespace Assistant.Gpio.Events {
 			PreviousValue.Set(currentState, currentValue);
 		}
 
-		private void InvokeOnAllOfType<T>(Pin pin, OnValueChangedEventArgs args) where T: ISensor {
-			if(pin.SensorMap.Count <= 0) {
+		private void InvokeOnAllOfType(Pin pin, OnValueChangedEventArgs args) {
+			if(pin.PinMap.Count <= 0) {
 				return;
 			}
 
-			IEnumerable<SensorMap<T>> maps = pin.SensorMap.OfType<SensorMap<T>>();
+			List<PinMap> maps = pin.GetMapsOfType(Config.Type);
 
 			for(int i = 0; i < maps.Count(); i++) {
-				SensorMap<T> map = maps.ElementAt(i);
+				PinMap map = maps[i];
 
 				switch (map.MapEvent) {					
 					case MappingEvent.OnActivated when args.CurrentState == GpioPinState.On:

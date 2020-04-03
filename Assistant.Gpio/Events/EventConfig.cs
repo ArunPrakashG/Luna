@@ -8,7 +8,7 @@ namespace Assistant.Gpio.Events {
 
 		internal readonly GpioPinEventStates PinEventState;
 
-		internal readonly Enums.SensorType Type;
+		internal readonly SensorType Type;
 
 		internal bool IsEventRegistered { get; private set; }
 
