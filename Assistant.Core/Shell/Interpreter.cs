@@ -137,7 +137,7 @@ namespace Assistant.Core.Shell {
 			}
 			catch (Exception e) {
 				Logger.Exception(e);
-				Logger.Error("Fatal exception has occured internally. Shell cannot continue.");
+				Logger.Error("Fatal exception has occurred internally. Shell cannot continue.");
 				return;
 			}
 			finally {

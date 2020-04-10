@@ -527,9 +527,13 @@ namespace Assistant.Core {
 			while (!KeepAliveToken.Token.IsCancellationRequested) {
 				try {
 					if (Interpreter.PauseShell) {
-						char pressedKey = Console.ReadKey().KeyChar;
+						if (!Console.KeyAvailable) {
+							continue;
+						}
 
-						switch (pressedKey) {
+						ConsoleKeyInfo pressedKey = Console.ReadKey(true);
+
+						switch (pressedKey.Key) {
 							case Constants.SHELL_KEY:
 								Interpreter.Resume();
 								continue;
