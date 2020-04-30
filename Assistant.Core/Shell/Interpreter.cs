@@ -7,6 +7,7 @@ namespace Assistant.Core.Shell {
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
+	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Parameter = Extensions.Shared.Shell.Parameter;
@@ -103,7 +104,7 @@ namespace Assistant.Core.Shell {
 
 			await LoopSync.WaitAsync().ConfigureAwait(false);
 			try {
-				Console.WriteLine("Assistant Command Shell has been loaded!");
+				Console.WriteLine("Command Shell has been loaded!");
 				bool isDisplayed = false;
 
 				do {
@@ -121,12 +122,12 @@ namespace Assistant.Core.Shell {
 					Console.WriteLine();
 					ShellOut.Info("Type in the command! Use 'help' / 'h' for help regarding the available commands.");
 					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write($"#~/{Core.AssistantName.Trim()}/$ |> ");
+					Console.Write($"#~{Path.GetFullPath(Assembly.GetExecutingAssembly().Location)}/{Core.AssistantName.Trim()}/$ >> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
 
 					if (string.IsNullOrEmpty(command) || string.IsNullOrWhiteSpace(command)) {
-						ShellOut.Error("Please input a valid command.");
+						ShellOut.Error("Invalid command.");
 						continue;
 					}
 
