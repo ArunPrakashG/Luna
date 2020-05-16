@@ -37,7 +37,7 @@ namespace Assistant.Gpio.Controllers {
 			SensorEvents = new SensorEvents(Logger);
 		}
 
-		private void PostInit() {
+		private void PreInit() {
 			PinController = new PinController(this);
 			EventManager = new EventManager(this);
 			MorseTranslator = new MorseRelayTranslator(this);
@@ -51,7 +51,7 @@ namespace Assistant.Gpio.Controllers {
 				return;
 			}
 
-			PostInit();
+			PreInit();
 			if (!IsAllowedToExecute) {
 				Logger.Warning("Running OS platform is unsupported.");
 				return;

@@ -7,7 +7,7 @@ namespace Assistant.Gpio.Config {
 	/// <summary>
 	/// Defines pin configuration collection.
 	/// </summary>
-	public struct PinConfig {
+	public class PinConfig {
 
 		public bool SafeMode;
 
@@ -31,7 +31,7 @@ namespace Assistant.Gpio.Config {
 	/// <summary>
 	/// Defines the pin configuration of the pin it holds.
 	/// </summary>	
-	public struct Pin {
+	public class Pin {
 		/// <summary>
 		/// The pin.
 		/// </summary>		
