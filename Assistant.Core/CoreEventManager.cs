@@ -8,15 +8,27 @@ using System.Collections.Generic;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
-	internal class CoreEventManager {
+	internal static class CoreEventManager {
 		private static List<NLog.CoreLogger> AssistantLoggers = new List<NLog.CoreLogger>();
-		private static ILogger Logger = new Logger(typeof(CoreEventManager).Name);
+		private static readonly ILogger Logger = new Logger(typeof(CoreEventManager).Name);
 
-		internal void OnWarningReceived(object sender, EventArgsBase e) { }
+		static CoreEventManager() {
+			Logging.Logger.LogMessageReceived += OnLogMessageReceived;
+			Logging.Logger.OnColoredReceived += OnColoredReceived;
+			Logging.Logger.OnErrorReceived += OnErrorReceived;
+			Logging.Logger.OnExceptionReceived += OnExceptionOccured;
+			Logging.Logger.OnInputReceived += OnInputReceived;
+			Logging.Logger.OnWarningReceived += OnWarningReceived;
+			JobManager.JobException += JobManagerOnException;
+			JobManager.JobStart += JobManagerOnJobStart;
+			JobManager.JobEnd += JobManagerOnJobEnd;
+		}
 
-		internal void OnInputReceived(object sender, EventArgsBase e) { }
+		internal static void OnWarningReceived(object sender, EventArgsBase e) { }
 
-		internal void OnExceptionOccured(object sender, OnExceptionMessageEventArgs e) {
+		internal static void OnInputReceived(object sender, EventArgsBase e) { }
+
+		internal static void OnExceptionOccured(object sender, OnExceptionMessageEventArgs e) {
 			if (AssistantLoggers == null) {
 				AssistantLoggers = new List<NLog.CoreLogger>();
 			}
@@ -31,7 +43,7 @@ namespace Assistant.Core {
 			logger.Log(e.LogException, LogLevels.Exception, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
 		}
 
-		internal void OnErrorReceived(object sender, EventArgsBase e) {
+		internal static void OnErrorReceived(object sender, EventArgsBase e) {
 			if (AssistantLoggers == null) {
 				AssistantLoggers = new List<NLog.CoreLogger>();
 			}
@@ -46,9 +58,9 @@ namespace Assistant.Core {
 			logger.Log(e.LogMessage, LogLevels.Error, e.CallerMemberName, e.CallerLineNumber, e.CallerFilePath);
 		}
 
-		internal void OnColoredReceived(object sender, WithColorEventArgs e) { }
+		internal static void OnColoredReceived(object sender, WithColorEventArgs e) { }
 
-		internal void OnLogMessageReceived(object sender, LogMessageEventArgs e) {
+		internal static void OnLogMessageReceived(object sender, LogMessageEventArgs e) {
 			if (AssistantLoggers == null) {
 				AssistantLoggers = new List<NLog.CoreLogger>();
 			}
@@ -101,9 +113,9 @@ namespace Assistant.Core {
 			}
 		}
 
-		internal void JobManagerOnException(JobExceptionInfo obj) => Logger.Exception(obj.Exception);
+		internal static void JobManagerOnException(JobExceptionInfo obj) => Logger.Exception(obj.Exception);
 
-		internal void JobManagerOnJobEnd(JobEndInfo obj) {
+		internal static void JobManagerOnJobEnd(JobEndInfo obj) {
 			if(obj.Name.Equals("ConsoleUpdater", StringComparison.OrdinalIgnoreCase)) {
 				return;
 			}
@@ -111,7 +123,7 @@ namespace Assistant.Core {
 			Logger.Trace($"A job has ended -> {obj.Name} / {obj.StartTime.ToString()}");
 		}
 
-		internal void JobManagerOnJobStart(JobStartInfo obj) {
+		internal static void JobManagerOnJobStart(JobStartInfo obj) {
 			if (obj.Name.Equals("ConsoleUpdater", StringComparison.OrdinalIgnoreCase)) {
 				return;
 			}
@@ -119,7 +131,7 @@ namespace Assistant.Core {
 			Logger.Trace($"A job has started -> {obj.Name} / {obj.StartTime.ToString()}");
 		}
 
-		internal RequestResponse RestServerExampleCommand(RequestParameter arg) {
+		internal static RequestResponse RestServerExampleCommand(RequestParameter arg) {
 			return new RequestResponse();
 		}
 	}

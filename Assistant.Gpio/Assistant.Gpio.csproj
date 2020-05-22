@@ -8,6 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Controllers\GpioController.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Controllers\GpioController.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2019.1.3" />
     <PackageReference Include="System.Device.Gpio" Version="1.0.0" />
     <PackageReference Include="Unosquare.Raspberry.Abstractions" Version="0.4.0" />

@@ -60,10 +60,9 @@ namespace Assistant.Core.Shell {
 
 		/// <summary>
 		/// Loads the internally defined shell commands, then loads the external commands libraries, then starts the shell instance.
-		/// </summary>
-		/// <typeparam name="T">The Shell command type. <b>(IShellCommand)</b></typeparam>
-		/// <returns>Boolean, indicating if the startup was successful.</returns>
-		public static async Task<bool> InitInterpreterAsync<T>() where T : IShellCommand {
+		/// </summary>		
+		/// <returns>Boolean, indicating if the process was successful.</returns>
+		public static async Task<bool> InitInterpreterAsync() {
 			if (InitCompleted) {
 				return false;
 			}
@@ -71,8 +70,8 @@ namespace Assistant.Core.Shell {
 			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
-				await Init.LoadInternalCommandsAsync<T>().ConfigureAwait(false);
-				await Init.LoadCommandsAsync<T>().ConfigureAwait(false);
+				await Init.LoadInternalCommandsAsync<IShellCommand>().ConfigureAwait(false);
+				await Init.LoadCommandsAsync<IShellCommand>().ConfigureAwait(false);
 
 				InitCompleted = true;
 				Helpers.InBackground(async () => await ReplAsync().ConfigureAwait(false));

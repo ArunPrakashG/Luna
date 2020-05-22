@@ -69,7 +69,7 @@ namespace Assistant.Core.Watchers {
 				return;
 			}
 
-			if (!Core.CoreInitiationCompleted) {
+			if (!Core.IsBaseInitiationCompleted) {
 				return;
 			}
 

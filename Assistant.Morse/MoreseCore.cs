@@ -59,7 +59,7 @@ namespace Assistant.Morse {
 		}
 
 		public void PlayMorseTone(string morseStringOrSentence) {
-			if (!Helpers.GetOsPlatform().Equals(OSPlatform.Windows)) {
+			if (!Helpers.GetPlatform().Equals(OSPlatform.Windows)) {
 				Logger.Log("Cannot play the Morse tone as the OS platform is not windows.");
 				return;
 			}

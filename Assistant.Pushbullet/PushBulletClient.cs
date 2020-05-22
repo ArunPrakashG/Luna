@@ -1,4 +1,5 @@
 using Assistant.Extensions;
+using Assistant.Extensions.Attributes;
 using Assistant.Extensions.Interfaces;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
@@ -13,58 +14,66 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 using static Assistant.Pushbullet.PushEnums;
 
 namespace Assistant.Pushbullet {
-	public class PushbulletClient : IExternal {
+	public class PushbulletClient : IExternal, IDisposable {
+		private static int RequestFailedCount = 0;
+
+		private const int MAX_TRIES = 2;
+		private const int DELAY_BETWEEN_FAILED_REQUEST = 30; // secs
+		private const int DELAY_BETWEEN_REQUEST = 10; // secs
 		private const int RATE_LIMITED_DELAY = 10; // In minutes
 		private const string API_BASE_URL_NO_VERSION = "https://api.pushbullet.com/";
 		private const string API_BASE_VERSION = "v2/";
 		private const string API_BASE_URL = API_BASE_URL_NO_VERSION + API_BASE_VERSION;
 		private const int MAX_REQUEST_FAILED_COUNT = 3;
+		private readonly ILogger Logger = new Logger(typeof(PushbulletClient).Name);
 
-		private static RestClient? RestClient = new RestClient();
-		internal static readonly ILogger Logger = new Logger(typeof(PushbulletClient).Name);
-		public string? ClientAccessToken { get; set; }
+		private static DateTime LastRequestTime = DateTime.Now.AddMinutes(-RATE_LIMITED_DELAY);
+		private static readonly SemaphoreSlim RequestSync = new SemaphoreSlim(1, 1);
+
+		private readonly ClientConfig Config;
+		private readonly HttpClientHandler HttpClientHandler;
+		private readonly HttpClient HttpClient;
+
 		public bool IsServiceLoaded { get; private set; }
-		private static int RequestFailedCount = 0;
-		public bool RequestInSleepMode { get; private set; }
-		public static DateTime LastRequestTime { get; private set; }
 
-		private static readonly SemaphoreSlim RequestSemaphore = new SemaphoreSlim(1, 1);
+		public PushbulletClient(ClientConfig _config, HttpClientHandler _clientHandler = null) {
+			Config = _config;
 
-		public PushbulletClient InitPushbulletClient(string? apiKey) {
-			if (string.IsNullOrEmpty(apiKey)) {
-				Logger.Log("No api key specified or the specified api key is invalid.", LogLevels.Error);
-				IsServiceLoaded = false;
-				throw new IncorrectAccessTokenException();
-			}
+			HttpClientHandler = _clientHandler != null
+				? _clientHandler
+				: new HttpClientHandler() {
+					Proxy = Config.ShouldUseProxy ? Config.Proxy : null,
+					UseProxy = Config.ShouldUseProxy,
+					AllowAutoRedirect = false
+				};
 
-			ClientAccessToken = apiKey;
-			IsServiceLoaded = true;
-			SetClient();
-			return this;
+			HttpClient = new HttpClient(HttpClientHandler);
+			HttpClient.DefaultRequestHeaders.Add("Access-Token", Config.AccessToken);
+			HttpClient.DefaultRequestHeaders.Add("Content-Type", "application/json");
+			IsServiceLoaded = true;			
 		}
 
 		public async Task<DevicesBase[]?> GetDevicesAsync() {
-			if (ClientAccessToken == null || string.IsNullOrEmpty(ClientAccessToken)) {
-				throw new IncorrectAccessTokenException();
-			}
-
 			string requestUrl = API_BASE_URL + GetRoute(EPUSH_ROUTES.GET_DEVICES);
-			ResponseBase? response = await GetResponseAsync(requestUrl, Method.GET, null, null).ConfigureAwait(false);
+			ResponseBase result = await InternalRequestToJsonObject<ResponseBase>(requestUrl, HttpMethod.Get, null).ConfigureAwait(false);
 
-			if (response == null || response.Devices == null) {
+			if (result == null || result.Devices == null) {
 				throw new RequestFailedException();
 			}
 
 			Logger.Log(nameof(GetDevicesAsync) + " Successful.", LogLevels.Trace);
-			return response.Devices;
+			return result.Devices;
 		}
 
+		[TODO]
 		public async Task<PushesBase[]?> Push(PushRequestContent pushRequestContent) {
 			if (pushRequestContent == null) {
 				throw new ParameterValueIsNullException("pushMessageValues value is null.");
@@ -175,6 +184,7 @@ namespace Assistant.Pushbullet {
 			return response.Pushes;
 		}
 
+		[TODO]
 		public async Task<SubscriptionsBase[]?> GetSubscriptions() {
 			if (string.IsNullOrEmpty(ClientAccessToken)) {
 				throw new IncorrectAccessTokenException();
@@ -191,6 +201,7 @@ namespace Assistant.Pushbullet {
 			return response.Subscriptions;
 		}
 
+		[TODO]
 		public async Task<PushDeleteStatusCode> DeletePush(string pushIdentifier) {
 			if (string.IsNullOrEmpty(pushIdentifier)) {
 				throw new ParameterValueIsNullException("pushIdentifier");
@@ -210,6 +221,7 @@ namespace Assistant.Pushbullet {
 			return response.IsDeleteRequestSuccess ? PushDeleteStatusCode.Success : PushDeleteStatusCode.Unknown;
 		}
 
+		[TODO]
 		public async Task<PushesBase[]?> GetAllPushes(PushListRequestContent requestParams) {
 			if (requestParams == null) {
 				throw new ParameterValueIsNullException("listPushParams is null.");
@@ -248,6 +260,7 @@ namespace Assistant.Pushbullet {
 			return response.Pushes;
 		}
 
+		[TODO]
 		public async Task<ChannelInfoBase?> GetChannelInfo(string channelTag, bool dontRecentPushes = false) {
 			if (ClientAccessToken == null || string.IsNullOrEmpty(ClientAccessToken)) {
 				throw new IncorrectAccessTokenException();
@@ -271,7 +284,7 @@ namespace Assistant.Pushbullet {
 
 			Logger.Log(nameof(GetChannelInfo) + " successful.", LogLevels.Trace);
 			return response;
-		}
+		}		
 
 		private async Task<TType> GetResponseAsync<TType>(
 			string requestUrl,
@@ -292,7 +305,7 @@ namespace Assistant.Pushbullet {
 				SetClient();
 			}
 
-			await RequestSemaphore.WaitAsync().ConfigureAwait(false);
+			await RequestSync.WaitAsync().ConfigureAwait(false);
 
 			try {
 				if (RestClient == null) {
@@ -378,7 +391,7 @@ namespace Assistant.Pushbullet {
 				return default;
 			}
 			finally {
-				RequestSemaphore.Release();
+				RequestSync.Release();
 			}
 		}
 
@@ -396,7 +409,7 @@ namespace Assistant.Pushbullet {
 				SetClient();
 			}
 
-			await RequestSemaphore.WaitAsync().ConfigureAwait(false);
+			await RequestSync.WaitAsync().ConfigureAwait(false);
 
 			try {
 				if (RestClient == null) {
@@ -489,17 +502,8 @@ namespace Assistant.Pushbullet {
 				return default;
 			}
 			finally {
-				RequestSemaphore.Release();
+				RequestSync.Release();
 			}
-		}
-
-		private void SetClient() {
-			if (RestClient != null) {
-				RestClient = null;
-			}
-
-			RestClient = new RestClient(API_BASE_URL);
-			Logger.Log("RestClient has been set.", LogLevels.Trace);
 		}
 
 		private string GetRoute(EPUSH_ROUTES route) {
@@ -541,44 +545,70 @@ namespace Assistant.Pushbullet {
 			return request;
 		}
 
-		private async Task<T> Request<T>(Func<Task<T>> function) {
-			try {
-				await RequestSemaphore.WaitAsync().ConfigureAwait(false);
-
-				if ((DateTime.Now - LastRequestTime).TotalSeconds <= 2) {
-					await Task.Delay(TimeSpan.FromMinutes(RATE_LIMITED_DELAY)).ConfigureAwait(false);
-				}
-
-				LastRequestTime = DateTime.Now;
-				return await function().ConfigureAwait(false);
-			}
-			catch (Exception e) {
-				Logger.Log($"Request Exception -> {e.Message}", LogLevels.Warn);
-				Console.WriteLine(e.Message);
+		private async Task<T> InternalRequestToJsonObject<T>(string requestUrl, HttpMethod method, Dictionary<string, string> data, int maxTries = MAX_TRIES) {
+			if (string.IsNullOrEmpty(requestUrl)) {
 				return default;
 			}
-			finally {
-				RequestSemaphore.Release();
+
+			bool success = false;
+			for (int i = 0; i < maxTries; i++) {
+				try {
+					using (HttpRequestMessage request = new HttpRequestMessage(method, requestUrl)) {
+
+						if(data != null && data.Count > 0) {
+							request.Content = new FormUrlEncodedContent(data);
+						}						
+
+						using (HttpResponseMessage response = await ExecuteRequest(async () => await HttpClient.SendAsync(request).ConfigureAwait(false)).ConfigureAwait(false)) {
+							if (!response.IsSuccessStatusCode) {
+								continue;
+							}
+
+							using (HttpContent responseContent = response.Content) {
+								string jsonContent = await responseContent.ReadAsStringAsync().ConfigureAwait(false);
+
+								if (string.IsNullOrEmpty(jsonContent)) {
+									continue;
+								}
+
+								success = true;
+								return JsonConvert.DeserializeObject<T>(jsonContent);
+							}
+						}
+					}
+				}
+				catch (Exception e) {
+					Logger.Exception(e);
+					success = false;
+					continue;
+				}
+				finally {
+					if (!success) {
+						await Task.Delay(TimeSpan.FromSeconds(DELAY_BETWEEN_FAILED_REQUEST)).ConfigureAwait(false);
+					}
+				}
 			}
+
+			if (!success) {
+				Logger.Error("Internal request failed.");
+			}
+
+			return default;
 		}
 
-		private T Request<T>(Func<T> function) {
-			try {
-				RequestSemaphore.Wait();
-
-				if ((DateTime.Now - LastRequestTime).TotalSeconds <= 3) {
-					Task.Delay(TimeSpan.FromMinutes(RATE_LIMITED_DELAY)).Wait();
-				}
-
-				LastRequestTime = DateTime.Now;
-				return function();
-			}
-			catch (Exception e) {
-				Logger.Log($"Request Exception -> {e.Message}", LogLevels.Warn);
+		private async Task<T> ExecuteRequest<T>(Func<Task<T>> function) {
+			if (function == null) {
 				return default;
 			}
+
+			await RequestSync.WaitAsync().ConfigureAwait(false);
+
+			try {
+				return await function().ConfigureAwait(false);
+			}
 			finally {
-				RequestSemaphore.Release();
+				await Task.Delay(TimeSpan.FromSeconds(DELAY_BETWEEN_REQUEST));
+				RequestSync.Release();
 			}
 		}
 

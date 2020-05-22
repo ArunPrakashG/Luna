@@ -96,6 +96,5 @@ namespace Assistant.Weather {
 			[JsonProperty("icon")]
 			public string? Icon { get; set; }
 		}
-
 	}
 }

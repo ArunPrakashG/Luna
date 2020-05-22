@@ -31,7 +31,7 @@ namespace Assistant.Gpio.Config {
 	/// <summary>
 	/// Defines the pin configuration of the pin it holds.
 	/// </summary>	
-	public class Pin {
+	public struct Pin {
 		/// <summary>
 		/// The pin.
 		/// </summary>		
@@ -46,11 +46,6 @@ namespace Assistant.Gpio.Config {
 		/// Gets or sets the Pin mode. (Output/Input)
 		/// </summary>		
 		public GpioPinMode Mode;
-
-		/// <summary>
-		/// Mapping instance which maps the gpio pin with sensors attached to the device.
-		/// </summary>
-		internal readonly List<PinMap> PinMap;
 
 		/// <summary>
 		/// Gets or sets a value indicating whether the pin is available.
@@ -75,14 +70,13 @@ namespace Assistant.Gpio.Config {
 		/// <param name="state">The state <see cref="GpioPinState"/></param>
 		/// <param name="mode">The mode <see cref="GpioPinMode"/></param>
 		/// <param name="available">The status if the pin is currently available <see cref="bool"/></param>
-		/// <param name="jobName">The jobName of the scheduler if the pin isn't available atm <see cref="string?"/></param>
+		/// <param name="jobName">The jobName of the scheduler if the pin isn't available at the moment.<see cref="string?"/></param>
 		public Pin(int pin, GpioPinState state, GpioPinMode mode, bool available = true, string? jobName = null) {
 			PinNumber = pin;
 			PinState = state;
 			Mode = mode;
 			IsAvailable = available;
 			JobName = jobName;
-			PinMap = new List<PinMap>();
 		}
 
 		public Pin(int pin, GpioPinMode mode, bool available = true, string? jobName = null) {
@@ -91,7 +85,6 @@ namespace Assistant.Gpio.Config {
 			Mode = mode;
 			IsAvailable = available;
 			JobName = jobName;
-			PinMap = new List<PinMap>();
 		}
 
 		public Pin(int pin, GpioPinState state, bool available = true, string? jobName = null) {
@@ -100,10 +93,7 @@ namespace Assistant.Gpio.Config {
 			Mode = GpioPinMode.Input;
 			IsAvailable = available;
 			JobName = jobName;
-			PinMap = new List<PinMap>();
 		}
-
-		public List<PinMap> GetMapsOfType(SensorType type) => PinMap.FindAll(x => x.PinType == type);
 
 		/// <summary>
 		/// Gets a summary of the pin configuration this object holds.

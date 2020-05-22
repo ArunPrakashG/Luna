@@ -8,9 +8,9 @@ namespace Assistant.Gpio.Events {
 	public class EventManager {
 		private readonly ILogger Logger = new Logger(typeof(EventManager).Name);
 		private readonly Dictionary<int, Generator> Events = new Dictionary<int, Generator>();
-		private readonly GpioController Controller;
+		private readonly GpioCore Core;
 
-		internal EventManager(GpioController _controller) => Controller = _controller;
+		internal EventManager(GpioCore _core) => Core = _core;
 
 		internal async Task<bool> RegisterEvent(EventConfig config) {
 			if (!PinController.IsValidPin(config.GpioPin)) {
@@ -22,18 +22,10 @@ namespace Assistant.Gpio.Events {
 				return false;
 			}
 
-			Generator gen = new Generator(config, Logger);
+			Generator gen = new Generator(Core, config, Logger);
 
-			for (int i = 0; i < 5; i++) {
-				if (gen.Config.IsEventRegistered) {
-					break;
-				}
-
-				await Task.Delay(30).ConfigureAwait(false);
-			}
-
-			if (!gen.Config.IsEventRegistered) {
-				return false;
+			while (!gen.Config.IsEventRegistered) {
+				await Task.Delay(1).ConfigureAwait(false);
 			}
 
 			Events.Add(config.GpioPin, gen);
@@ -41,9 +33,8 @@ namespace Assistant.Gpio.Events {
 		}
 
 		internal void StopAllEventGenerators() {
-			for(int i = 0; i < Events.Count; i++) {
-				Events[i].OverrideGeneration();
-				Logger.Trace($"Stopped pin polling for '{Events[i].Config.GpioPin}' pin");
+			foreach(KeyValuePair<int, Generator> pair in Events) {
+				StopEventGeneratorForPin(pair.Key);
 			}
 		}
 
@@ -52,14 +43,12 @@ namespace Assistant.Gpio.Events {
 				return;
 			}
 
-			for (int i = 0; i < Events.Count; i++) {
-				if(Events[i].Config.GpioPin != pin) {
-					continue;
-				}
-
-				Events[i].OverrideGeneration();
-				Logger.Trace($"Stopped pin polling for '{Events[i].Config.GpioPin}' pin");
+			if(!Events.TryGetValue(pin, out Generator? generator) || generator == null) {
+				return;
 			}
+
+			generator.OverrideEventPolling();
+			Logger.Trace($"Stopped pin polling for '{pin}' pin");
 		}
 	}
 }

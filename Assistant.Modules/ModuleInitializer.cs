@@ -43,7 +43,7 @@ namespace Assistant.Modules {
 			}
 		}
 
-		public async Task<bool> LoadAsync<T>() where T: IModuleBase {
+		public async Task<bool> LoadAsync() {
 			AssemblyCollection?.Clear();
 			AssemblyCollection = LoadAssemblies();
 
@@ -56,7 +56,7 @@ namespace Assistant.Modules {
 
 			try {
 				ConventionBuilder conventions = new ConventionBuilder();
-				conventions.ForTypesDerivedFrom<T>().Export<T>();
+				conventions.ForTypesDerivedFrom<IModuleBase>().Export<IModuleBase>();
 				ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(AssemblyCollection, conventions);
 
 				using CompositionHost container = configuration.CreateContainer();

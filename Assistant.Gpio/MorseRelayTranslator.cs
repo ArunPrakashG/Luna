@@ -12,10 +12,10 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Gpio {
 	public struct MorseCycleResult {
 		internal readonly bool Status;
-		internal readonly string BaseText;
-		internal readonly string Morse;
+		internal readonly string? BaseText;
+		internal readonly string? Morse;
 
-		public MorseCycleResult(bool _status, string _base, string _morse) {
+		public MorseCycleResult(bool _status, string? _base, string? _morse) {
 			Status = _status;
 			BaseText = _base;
 			Morse = _morse;
@@ -25,10 +25,10 @@ namespace Assistant.Gpio {
 	public class MorseRelayTranslator {
 		private readonly ILogger Logger = new Logger(typeof(MorseRelayTranslator).Name);
 		private static readonly MorseCore MorseCore = new MorseCore();
-		private readonly GpioController Controller;
+		private readonly GpioCore Controller;
 		private IGpioControllerDriver? Driver => PinController.GetDriver();
 
-		internal MorseRelayTranslator(GpioController _controller) => Controller = _controller;
+		internal MorseRelayTranslator(GpioCore _controller) => Controller = _controller;
 
 		public static MorseCore GetCore() => MorseCore;
 
@@ -54,11 +54,7 @@ namespace Assistant.Gpio {
 			Logger.Trace($"TEXT >> {textToConvert}");
 			Logger.Trace($"MORSE >> {morse}");
 
-			Pin? beforePinStatus = Driver.GetPinConfig(relayPin);
-
-			if (beforePinStatus == null) {
-				return new MorseCycleResult(false, null, null);
-			}
+			Pin beforePinStatus = Driver.GetPinConfig(relayPin);
 
 			if (beforePinStatus.IsPinOn) {
 				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
@@ -93,11 +89,7 @@ namespace Assistant.Gpio {
 				}
 			}
 
-			Pin? afterPinStatus = Driver.GetPinConfig(relayPin);
-
-			if (afterPinStatus == null) {
-				return new MorseCycleResult(false, null, null);
-			}
+			Pin afterPinStatus = Driver.GetPinConfig(relayPin);
 
 			if (afterPinStatus.IsPinOn) {
 				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);

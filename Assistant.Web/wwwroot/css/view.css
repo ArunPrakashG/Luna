@@ -1,0 +1,19 @@
+.heading {
+	color: CaptionText;
+	font-weight: 700;
+	text-align: left;
+	font-variant: small-caps;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.rule_line {
+	color: black;
+	border-color: darkorange;
+}
+
+.description {
+	font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+	color: grey;
+	font-size: small;
+	text-align: left;
+}

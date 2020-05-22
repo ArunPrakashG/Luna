@@ -19,6 +19,10 @@ namespace Assistant.Core.Watchers.Interfaces {
 
 		FileSystemWatcher? Watcher { get; set; }
 
+		void Pause();
+
+		void Resume();
+
 		DateTime LastRead { get; set; }
 
 		void InitWatcher(string? dir, Dictionary<string, Action> watcherFileEvents, List<string> ignoreList, string? filter = "*.json", bool includeSubs = false);

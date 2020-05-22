@@ -8,15 +8,40 @@ using System;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
 	public class Program {
 		private static readonly ILogger Logger = new Logger(typeof(Program).Name);
-		private static Core _Core = new Core();
+		private static Mutex? InstanceIdentifier;
+		private static Core CoreInstance; 
 
 		private static async Task Main(string[] args) {
+			try {
+				const string _identifierName = "HomeAssistant";
+				if (Mutex.TryOpenExisting(_identifierName, out Mutex? _existingInstance) && _existingInstance != null) {
+					Console.WriteLine("Multiple instances running...");
+					Console.WriteLine("Existing current instance in 5 seconds...");
+					await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+					Environment.Exit(-1);
+					return;
+				}
+				
+				InstanceIdentifier = new Mutex(true, _identifierName);
+			}
+			catch (Exception e) {
+				Console.WriteLine("Fatal exception occurred.");
+				Console.WriteLine(e);
+				Console.WriteLine("Existing current instance in 20 seconds...");
+				Task.Delay(TimeSpan.FromSeconds(20)).Wait();
+				Environment.Exit(-1);
+				return;
+			}
+
+			InstanceIdentifier.WaitOne();
+
 			TaskScheduler.UnobservedTaskException += HandleTaskExceptions;
 			AppDomain.CurrentDomain.UnhandledException += HandleUnhandledExceptions;
 			AppDomain.CurrentDomain.FirstChanceException += HandleFirstChanceExceptions;
@@ -24,36 +49,24 @@ namespace Assistant.Core {
 			AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
 			Console.CancelKeyPress += OnForceQuitAssistant;
 
-			if (Helpers.GetOsPlatform() == OSPlatform.Linux) {
-				"clear".ExecuteBash(false);
+			try {
+				if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+					"clear".ExecuteBash(false);
+				}
+
+				// All init processes takes place in this constructor
+				CoreInstance = new Core(args);
+
+				//Finally, call the blocking async method to wait endlessly unless its interrupted or canceled manually.
+				await CoreInstance.KeepAlive().ConfigureAwait(false);
 			}
-
-			//Start assistant step-by-step.
-			//NOTE: The order matters, as its going to start one by one.
-			_Core = _Core.PreInitTasks()
-				.RegisterEvents()
-				.LoadConfiguration().Result
-				.VariableAssignation()
-				.Versioning()
-				.StartScheduler()
-				.DisplayASCIILogo()
-				.VerifyStartupArgs(args)
-				.AllowLocalNetworkConnections()
-				.StartWatcher()
-				.InitPushbulletService()
-				.InitPiGpioController<RaspberryIODriver>(new RaspberryIODriver(), Gpio.Enums.NumberingScheme.Logical).Result
-				.StartConsoleTitleUpdater()
-				.StartModules<IModuleBase>().Result
-				.InitRestServer().Result
-				.CheckAndUpdate().Result
-				.InitShell<IShellCommand>().Result
-				.MarkInitializationCompletion();
-
-			//Finally, call the blocking async method to wait endlessly unless its interrupted or canceled manually.
-			await Core.PostInitTasks().ConfigureAwait(false);
+			finally {
+				InstanceIdentifier.ReleaseMutex();
+				InstanceIdentifier.Dispose();
+			}
 		}
 
-		private static async void OnForceQuitAssistant(object? sender, ConsoleCancelEventArgs e) => await Core.Exit(-1).ConfigureAwait(false);
+		private static async void OnForceQuitAssistant(object? sender, ConsoleCancelEventArgs e) => await CoreInstance.Exit(-1).ConfigureAwait(false);
 
 		public static void HandleTaskExceptions(object? sender, UnobservedTaskExceptionEventArgs e) {
 			if (sender == null || e == null || e.Exception == null) {
@@ -65,47 +78,47 @@ namespace Assistant.Core {
 		}
 
 		public static void HandleFirstChanceExceptions(object? sender, FirstChanceExceptionEventArgs e) {
-			if (!Core.Config.Debug || Core.DisableFirstChanceLogWithDebug) {
+			if (!CoreInstance.GetCoreConfig().Debug || CoreInstance.DisableFirstChanceLogWithDebug) {
 				return;
 			}
 			
-			Logger.Log(e.Exception.Message, Core.DisableFirstChanceLogWithDebug ? LogLevels.Trace : LogLevels.Error);
+			Logger.Log(e.Exception.Message, CoreInstance.DisableFirstChanceLogWithDebug ? LogLevels.Trace : LogLevels.Error);
 		}
 
 		private static void HandleUnhandledExceptions(object? sender, UnhandledExceptionEventArgs e) {
 			Logger.Log(e.ExceptionObject as Exception);
 
 			if (e.IsTerminating) {
-				Task.Run(async () => await Core.Exit(-1).ConfigureAwait(false));
+				Task.Run(async () => await CoreInstance.Exit(-1).ConfigureAwait(false));
 			}
 		}
 
 		private static async Task NetworkReconnect() {
-			if (!Core.IsNetworkAvailable) {
+			if (!CoreInstance.IsNetworkAvailable) {
 				return;
 			}
 
 			Logger.Log("Network is back online, reconnecting!");
-			await Core.OnNetworkReconnected().ConfigureAwait(false);
+			await CoreInstance.OnNetworkReconnected().ConfigureAwait(false);
 		}
 
 		private static async Task NetworkDisconnect() {
-			if (Core.IsNetworkAvailable) {
+			if (CoreInstance.IsNetworkAvailable) {
 				return;
 			}
 
 			Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
 			Logger.Log("Disconnecting all methods which uses a stable Internet connection in order to prevent errors.", LogLevels.Error);
-			await Core.OnNetworkDisconnected().ConfigureAwait(false);
+			await CoreInstance.OnNetworkDisconnected().ConfigureAwait(false);
 		}
 
 		private static async void AvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e) {
-			if (e.IsAvailable && !Core.IsNetworkAvailable) {
+			if (e.IsAvailable && !CoreInstance.IsNetworkAvailable) {
 				await NetworkReconnect().ConfigureAwait(false);
 				return;
 			}
 
-			if (!e.IsAvailable && Core.IsNetworkAvailable) {
+			if (!e.IsAvailable && CoreInstance.IsNetworkAvailable) {
 				await NetworkDisconnect().ConfigureAwait(false);
 				return;
 			}

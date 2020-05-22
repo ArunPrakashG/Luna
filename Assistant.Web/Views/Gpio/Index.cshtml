@@ -1,0 +1,31 @@
+
+@{
+	ViewData["Title"] = "Gpio Controller";
+	Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+<div class="view_header_div">
+	<h1 class="heading">@ViewData["Title"]</h1>
+	<label class="description">Allows to control General Purpose Input/Output functions, including turning off relay's and sensors</label>
+	<hr class="rule_line" />
+</div>
+
+<div class="gpio_relay_control_div">
+	<p>TODO RELAY CONTROL</p>
+</div>
+
+<div class="gpio_pin_control_div">
+	<h2 class="heading">Configure Gpio Pin</h2>
+	<label class="description">Manually configure various gpio pins</label>
+	<hr class="rule_line" />
+
+	<div>
+		<label class="description">Enter Gpio pin you want to configure</label>
+		<div>
+			<input type="number" inputmode="numeric" maxlength="40" min="1" max="40" />
+			<button class="btn" type="button">CONFIGURE</button>
+		</div>
+		
+	</div>
+</div>

@@ -1,4 +1,3 @@
-using Assistant.Gpio.Drivers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using System.Threading.Tasks;
@@ -11,11 +10,11 @@ namespace Assistant.Gpio.Controllers {
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)
 	/// </summary>
 	public class BluetoothController {
-		private readonly ILogger Logger = new Logger(typeof(BluetoothController).Name);		
-		private bool IsAble => PinController.GetDriver() != null && GpioController.IsAllowedToExecute && PinController.GetDriver()?.DriverName == Enums.GpioDriver.RaspberryIODriver;
-		private readonly GpioController Controller;
+		private readonly ILogger Logger = new Logger(typeof(BluetoothController).Name);
+		private bool IsAble => PinController.GetDriver() != null && GpioCore.IsAllowedToExecute && PinController.GetDriver()?.DriverName == Enums.GpioDriver.RaspberryIODriver;
+		private readonly GpioCore Controller;
 
-		internal BluetoothController(GpioController _controller) => Controller = _controller;
+		internal BluetoothController(GpioCore _controller) => Controller = _controller;
 
 		public async Task<bool> FetchControllers() {
 			if (!IsAble) {

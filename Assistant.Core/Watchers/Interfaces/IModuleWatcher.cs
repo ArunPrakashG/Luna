@@ -21,6 +21,10 @@ namespace Assistant.Core.Watchers.Interfaces
 
 		FileSystemWatcher? Watcher { get; set; }
 
+		void Pause();
+
+		void Resume();
+
 		DateTime LastRead { get; set; }
 
 		void InitWatcher(string? dir, List<Action<string>> watcherFileEvents, List<string> ignoreList, string? filter = "*.dll", bool includeSubs = false);

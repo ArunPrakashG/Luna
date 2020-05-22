@@ -82,12 +82,12 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}						
 
-						if (!PinController.IsValidPin(GpioController.GetAvailablePins().OutputPins[relayNumber])) {
+						if (!PinController.IsValidPin(Core.Controller.GetAvailablePins().OutputPins[relayNumber])) {
 							ShellOut.Error("The specified pin is invalid.");
 							return;
 						}
 
-						await GpioController.GetMorseTranslator().RelayMorseCycle(morse, GpioController.GetAvailablePins().OutputPins[relayNumber]).ConfigureAwait(false);
+						await Core.Controller.GetMorseTranslator().RelayMorseCycle(morse, Core.Controller.GetAvailablePins().OutputPins[relayNumber]).ConfigureAwait(false);
 						ShellOut.Info("Completed!");
 						return;
 					default:

@@ -3,66 +3,45 @@ using Assistant.Gpio.Config;
 using Assistant.Gpio.Controllers;
 using Assistant.Gpio.Drivers;
 using Assistant.Gpio.Events.EventArgs;
+using Assistant.Gpio.Exceptions;
 using Assistant.Logging.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Gpio.Events {
-	internal struct GeneratedValue {
-		internal GpioPinState PinState { get; private set; }
-		internal bool DigitalValue { get; private set; }
-
-		internal GeneratedValue(GpioPinState _state, bool _digitalValue) {
-			PinState = _state;
-			DigitalValue = _digitalValue;
-		}
-
-		internal void SetState(GpioPinState _state) {
-			PinState = _state;
-		}
-
-		internal void SetDigitalValue(bool _digitalValue) {
-			DigitalValue = _digitalValue;
-		}
-
-		internal void Set(GpioPinState _state, bool _digitalValue) {
-			PinState = _state;
-			DigitalValue = _digitalValue;
-		}
-	}
-
 	internal class Generator {
-		private const int POLL_DELAY = 1; // in ms
-		private static IGpioControllerDriver? Driver => PinController.GetDriver();
+		private const int POLL_DELAY = 1; // in ms		
 		private readonly ILogger Logger;
-		private bool OverridePolling;
+		private readonly GpioCore Core;
 		private readonly GeneratedValue PreviousValue = new GeneratedValue();
 		private readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		private readonly IGpioControllerDriver Driver;
+
+		private bool OverridePolling;
+		private bool IsPossible => !Config.IsEventRegistered && Driver != null && Driver.IsDriverInitialized;
 
 		internal readonly EventConfig Config;
-		private bool IsAvailable => !Config.IsEventRegistered && Driver != null && Driver.IsDriverInitialized;
 
-		internal Generator(EventConfig _config, ILogger _logger) {
+		internal Generator(GpioCore _core, EventConfig _config, ILogger _logger) {
 			Logger = _logger;
+			Core = _core;
 			Config = _config;
+			Driver = PinController.GetDriver() ?? throw new DriverNotInitializedException();
 			Init();
 		}
 
-		internal void OverrideGeneration() => OverridePolling = true;
+		internal void OverrideEventPolling() => OverridePolling = true;
 
 		private void Init() {
-			if(Driver == null) {
-				Logger.Warning("Driver isn't started yet.");
-				return;
+			if (Driver == null) {
+				throw new DriverNotInitializedException();
 			}
 
-			if (!IsAvailable) {
-				Logger.Log("An error occured. Check if the specified pin is valid.", LogLevels.Warn);
+			if (!IsPossible) {
+				Logger.Log("An error occurred. Check if the specified pin is valid.", LogLevels.Warn);
 				return;
 			}
 
@@ -81,8 +60,8 @@ namespace Assistant.Gpio.Events {
 		}
 
 		private async Task PollAsync() {
-			if (!IsAvailable) {
-				Logger.Log("An error occured. Check if the specified pin is valid.", LogLevels.Warn);
+			if (!IsPossible) {
+				Logger.Log("An error occurred. Check if the specified pin is valid.", LogLevels.Warn);
 				return;
 			}
 
@@ -94,7 +73,7 @@ namespace Assistant.Gpio.Events {
 				do {
 					bool currentValue = Driver.GpioDigitalRead(Config.GpioPin);
 					GpioPinState currentState = currentValue ? GpioPinState.Off : GpioPinState.On;
-					OnValueReceived(currentValue, currentState);
+					OnPollResult(currentValue, currentState);
 					await Task.Delay(POLL_DELAY);
 				} while (!OverridePolling);
 			}
@@ -105,76 +84,40 @@ namespace Assistant.Gpio.Events {
 			}
 		}
 
-		private void OnValueReceived(bool currentValue, GpioPinState currentState) {
-			if (!IsAvailable) {
+		private void OnPollResult(bool currentValue, GpioPinState currentState) {
+			if (!IsPossible) {
 				return;
 			}
-			
-			switch (Config.PinEventState) {
-				case GpioPinEventStates.ON when currentState == GpioPinState.On && PreviousValue.PinState != currentState:
-				case GpioPinEventStates.OFF when currentState == GpioPinState.Off && PreviousValue.PinState != currentState:
-				case GpioPinEventStates.ALL when PreviousValue.PinState != currentState:
-					OnValueChangedEventArgs eventArgs = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue, Config.PinMode, PreviousValue.PinState, PreviousValue.DigitalValue);					
-					Pin pinConfig = Driver.GetPinConfig(Config.GpioPin);
 
-					switch (Config.Type) {
-						case SensorType.IRSensor:
-							InvokeOnAllOfType(pinConfig, eventArgs);
-							break;
-						case SensorType.Relay:
-							InvokeOnAllOfType(pinConfig, eventArgs);
-							break;
-						case SensorType.SoundSensor:
-							InvokeOnAllOfType(pinConfig, eventArgs);
-							break;
-						case SensorType.Buzzer:
-							InvokeOnAllOfType(pinConfig, eventArgs);
-							break;
-						default:
-							// TODO: Implement functionality to dynamically handle other sensors
-							break;
-					}
-					
+			bool isSame = PreviousValue.PinState == currentState;
+			Pin pinConfig = Driver.GetPinConfig(Config.GpioPin);
+			OnValueChangedEventArgs args;
+
+			switch (Config.PinEventState) {
+				case PinEventStates.Activated when currentState == GpioPinState.On && !isSame:
+					args = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue,
+					Config.PinMode, PinEventStates.Activated, PreviousValue.PinState, PreviousValue.DigitalValue);
+					Config.OnEvent?.Invoke(args);
 					break;
-				case GpioPinEventStates.NONE:
-					OverrideGeneration();
-					Logger.Log($"Stopping event polling for pin -> {Config.GpioPin} ...", LogLevels.Trace);
+
+				case PinEventStates.Deactivated when currentState == GpioPinState.Off && !isSame:
+					args = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue,
+					Config.PinMode, PinEventStates.Deactivated, PreviousValue.PinState, PreviousValue.DigitalValue);
+					Config.OnEvent?.Invoke(args);
 					break;
-				default:
+				case PinEventStates.Both when PreviousValue.PinState != currentState:
+					args = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue,
+					Config.PinMode, PinEventStates.Both, PreviousValue.PinState, PreviousValue.DigitalValue);
+					Config.OnEvent?.Invoke(args);
 					break;
 			}
 
 			PreviousValue.Set(currentState, currentValue);
 		}
 
-		private void InvokeOnAllOfType(Pin pin, OnValueChangedEventArgs args) {
-			if(pin.PinMap.Count <= 0) {
-				return;
-			}
-
-			List<PinMap> maps = pin.GetMapsOfType(Config.Type);
-
-			for(int i = 0; i < maps.Count(); i++) {
-				PinMap map = maps[i];
-
-				switch (map.MapEvent) {					
-					case MappingEvent.OnActivated when args.CurrentState == GpioPinState.On:
-						map.OnFired.Invoke(args);
-						break;
-					case MappingEvent.OnDeactivated when args.CurrentState == GpioPinState.Off:
-						map.OnFired.Invoke(args);
-						break;
-					default:
-					case MappingEvent.Both:
-						map.OnFired.Invoke(args);
-						break;
-				}				
-			}
-		}
-
 		private void SetInitalValue() {
-			if (!IsAvailable) {
-				Logger.Log("An error occured. Check if the specified pin is valid.", LogLevels.Warn);
+			if (!IsPossible) {
+				Logger.Log("An error occurred. Check if the specified pin is valid.", LogLevels.Warn);
 				return;
 			}
 

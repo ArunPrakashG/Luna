@@ -203,7 +203,7 @@ namespace Assistant.Core.NLog {
 				return;
 			}
 
-			if (!Core.CoreInitiationCompleted || !Core.IsNetworkAvailable) {
+			if (!Core.IsBaseInitiationCompleted || !Core.IsNetworkAvailable) {
 				return;
 			}
 

@@ -1,5 +1,4 @@
 using Assistant.Extensions;
-using Assistant.Gpio.Controllers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
 using Newtonsoft.Json;
@@ -15,10 +14,10 @@ namespace Assistant.Gpio.Config {
 	public class PinConfigManager {
 		private readonly ILogger Logger = new Logger(typeof(PinConfigManager).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
-		private readonly GpioController Controller;
+		private readonly GpioCore Controller;
 		private static PinConfig PinConfig;
 
-		internal PinConfigManager(GpioController _controller) => Controller = _controller;
+		internal PinConfigManager(GpioCore _controller) => Controller = _controller;
 
 		internal void Init(PinConfig _config) => PinConfig = _config;
 

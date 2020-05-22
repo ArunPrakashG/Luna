@@ -10,74 +10,52 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assistant.Weather {
-	public class WeatherClient : IExternal {
+	public class WeatherClient : IExternal, IDisposable {
 		private const int MAX_RETRY_COUNT = 3;
-		public WeatherResponse Response { get; private set; } = new WeatherResponse();
 		private readonly ILogger Logger = new Logger(typeof(WeatherClient).Name);
-		private static readonly HttpClient Client = new HttpClient();
-		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
+		private readonly HttpClient Client = new HttpClient();
+		private readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 
-		private string? GenerateRequestUrl(string apiKey, int pinCode, string countryCode = "in") {
-			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
-				return null;
-			}
+		private readonly string AccessToken;
+		private readonly int LocationCode;
+		private readonly string CountryCode;
 
-			return $"https://api.openweathermap.org/data/2.5/weather?zip={pinCode},{countryCode}&appid={apiKey}";
+		public WeatherClient(string accessToken, int locPinCode, string countryCode = "in") {
+			AccessToken = accessToken ?? throw new ArgumentNullException(nameof(accessToken) + " cannot be null!");
+			LocationCode = locPinCode > 0 ? locPinCode : throw new ArgumentOutOfRangeException(nameof(locPinCode) + " should be greater than 0, and must be a valid pin code!");
+			CountryCode = countryCode ?? throw new ArgumentNullException(nameof(countryCode) + " country code cannot be null!");
 		}
 
-		public async Task<WeatherResponse?> GetWeather(string? apiKey, int pinCode, string? countryCode = "in") {
+		private string GenerateRequestUrl() => $"https://api.openweathermap.org/data/2.5/weather?zip={LocationCode},{CountryCode}&appid={AccessToken}";
+
+		public async Task<WeatherResponse?> ResponseAsync() {
 			if (!Helpers.IsNetworkAvailable()) {
 				Logger.Warning("Networking isn't available.");
-				return null;
-			}
-
-			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
-				return null;
-			}
-
-			return await Request(apiKey, pinCode, countryCode).ConfigureAwait(false);
-		}
-
-		private async Task<WeatherResponse?> Request(string apiKey, int pinCode = 689653, string countryCode = "in") {
-			if (!Helpers.IsNetworkAvailable()) {
-				Logger.Warning("Networking isn't available.");
-				return null;
-			}
-
-			if (string.IsNullOrEmpty(apiKey) || pinCode <= 0 || string.IsNullOrEmpty(countryCode)) {
 				return null;
 			}
 
 			await Sync.WaitAsync().ConfigureAwait(false);
-			WeatherResponse? response = default;
+
 			try {
-				int requestCount = 0;
-				while (requestCount < MAX_RETRY_COUNT) {
-					HttpResponseMessage httpResponse = await Client.GetAsync(GenerateRequestUrl(apiKey, pinCode, countryCode)).ConfigureAwait(false);
+				for (int i = 0; i < MAX_RETRY_COUNT; i++) {
+					using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, GenerateRequestUrl())) {
+						using (HttpResponseMessage response = await Client.SendAsync(request).ConfigureAwait(false)) {
+							if (response.StatusCode == HttpStatusCode.GatewayTimeout || response.StatusCode == HttpStatusCode.RequestTimeout) {
+								continue;
+							}
 
-					if (httpResponse == null || httpResponse.StatusCode != HttpStatusCode.OK) {
-						requestCount++;
-						continue;
+							string responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+							if (string.IsNullOrEmpty(responseString)) {
+								continue;
+							}
+
+							return JsonConvert.DeserializeObject<WeatherResponse>(responseString);
+						}
 					}
-
-					string? responseString = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-					if (string.IsNullOrEmpty(responseString)) {
-						requestCount++;
-						continue;
-					}
-
-					response = JsonConvert.DeserializeObject<WeatherResponse>(responseString);
-					break;
 				}
 
-				if (response != null) {
-					Logger.Trace("Weather data request success!");
-					return response;
-				}
-
-				Logger.Warning($"Weather request failed after {requestCount} tries.");
-				return null;
+				return default;
 			}
 			catch (Exception e) {
 				Logger.Log(e);
@@ -89,5 +67,10 @@ namespace Assistant.Weather {
 		}
 
 		public void RegisterLoggerEvent(object eventHandler) => LoggerExtensions.RegisterLoggerEvent(eventHandler);
+
+		public void Dispose() {
+			Client?.Dispose();
+			Sync?.Dispose();
+		}
 	}
 }

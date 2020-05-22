@@ -9,9 +9,9 @@ namespace Assistant.Gpio.Controllers {
 	public class SoundController {
 		private readonly ILogger Logger = new Logger(typeof(SoundController).Name);
 		private bool IsAllowedToRun => PinController.GetDriver() != null && PinController.GetDriver()?.DriverName == GpioDriver.RaspberryIODriver;
-		private readonly GpioController Controller;
+		private readonly GpioCore Controller;
 
-		internal SoundController(GpioController _controller) => Controller = _controller;
+		internal SoundController(GpioCore _controller) => Controller = _controller;
 
 		public async Task SetAudioState(PiAudioState state) {
 			if (!IsAllowedToRun) {

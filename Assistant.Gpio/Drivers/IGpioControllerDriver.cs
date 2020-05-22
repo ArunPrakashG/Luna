@@ -9,33 +9,55 @@ using System.Threading.Tasks;
 using static Assistant.Gpio.Enums;
 
 namespace Assistant.Gpio.Drivers {
-
 	/// <summary>
 	/// The Gpio controller driver interface.
 	/// </summary>
 	public interface IGpioControllerDriver {
-		ILogger Logger => PinController.GetLogger();
+		/// <summary>
+		/// Internal Logger instance.
+		/// </summary>
+		ILogger Logger { get; }
 
 		/// <summary>
 		/// Indicates if the driver has been initialized
 		/// </summary>
 		bool IsDriverInitialized { get; }
 
-		public IGpioControllerDriver InitDriver(NumberingScheme scheme);
+		/// <summary>
+		/// All the available pins on the device.
+		/// </summary>
+		AvailablePins AvailablePins { get; }
 
-		NumberingScheme NumberingScheme { get; set; }
+		/// <summary>
+		/// The numbering scheme to use for the supported drivers.
+		/// </summary>
+		NumberingScheme NumberingScheme { get; }
 
+		/// <summary>
+		/// The driver name.
+		/// </summary>
 		GpioDriver DriverName { get; }
-
-		AvailablePins AvailablePins => GpioController.GetAvailablePins();
 
 		/// <summary>
 		/// The pin config.
 		/// </summary>
 		PinConfig PinConfig { get; }
 
+		/// <summary>
+		/// Initializes the gpio driver.
+		/// </summary>
+		/// /// <param name="_availablePins">The available pins on the device.</param>
+		/// <param name="_scheme">The numbering scheme to use.</param>
+		/// <returns>The driver.</returns>
+		public IGpioControllerDriver InitDriver(ILogger _logger, AvailablePins _availablePins, NumberingScheme _scheme);
+
+		/// <summary>
+		/// Some validation which have to ran before any of the pin related functions execute in the driver.
+		/// </summary>
+		/// <param name="pin"></param>
+		/// <returns></returns>
 		private bool PreExecValidation(int pin) {
-			if (!IsDriverInitialized || !GpioController.IsAllowedToExecute) {
+			if (!IsDriverInitialized || !GpioCore.IsAllowedToExecute) {
 				return false;
 			}
 
@@ -44,33 +66,18 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			if (!PinController.IsValidPin(pin)) {
-				Logger.Log("The specified pin is invalid.");
 				return false;
 			}
 
 			return true;
 		}
 
-		void MapSensor(PinMap _mapObj) {
-			if (!PinController.IsValidPin(_mapObj.GpioPinNumber)) {
-				Logger.Log("The specified pin is invalid.");
-				return;
-			}
-
-			// Check if the obj already exists
-			Pin pin = GetPinConfig(_mapObj.GpioPinNumber);
-			List<PinMap> maps = pin.GetMapsOfType(_mapObj.PinType);			
-			for (int i = 0; i < maps.Count(); i++) {
-				PinMap map = maps[i];
-
-				if (map.GpioPinNumber == _mapObj.GpioPinNumber && map.MapEvent == _mapObj.MapEvent) {
-					return;
-				}
-			}
-
-			pin.PinMap.Add(_mapObj);
-		}
-
+		/// <summary>
+		/// Recasts the driver.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="driver"></param>
+		/// <returns></returns>
 		IGpioControllerDriver Cast<T>(T driver) where T : IGpioControllerDriver;
 
 		/// <summary>
@@ -133,7 +140,6 @@ namespace Assistant.Gpio.Drivers {
 			Pin pinConfig = GetPinConfig(pin);
 
 			if (pinConfig.Mode != GpioPinMode.Output) {
-				Logger.Warning("Cannot toggle the pin as the pin mode is not set to output.");
 				return false;
 			}
 
@@ -156,21 +162,14 @@ namespace Assistant.Gpio.Drivers {
 			}
 
 			if (SetGpioValue(pin, mode, state)) {
-				UpdatePinConfig(new Pin(pin, state, mode));
 				bool set = false;
 
 				Helpers.ScheduleTask(() => {
-					if (SetGpioValue(pin, mode, GpioPinState.Off)) {
-						UpdatePinConfig(new Pin(pin, GpioPinState.Off, mode));
-					}
-
+					SetGpioValue(pin, mode, GpioPinState.Off);
 					set = true;
 				}, duration);
 
-				while (shouldBlockThread && !set) {
-					Task.Delay(1).Wait();
-				}
-
+				Helpers.WaitWhile(() => shouldBlockThread && !set);
 				return true;
 			}
 
@@ -185,32 +184,12 @@ namespace Assistant.Gpio.Drivers {
 				return;
 			}
 
-			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
-				Pin pinStatus = GetPinConfig(AvailablePins.OutputPins[i]);
+			for (int i = 0; i < AvailablePins.GpioPins.Length; i++) {
+				Pin pinStatus = GetPinConfig(AvailablePins.GpioPins[i]);
 
 				if (pinStatus.IsPinOn) {
 					SetGpioValue(pinStatus.PinNumber, GpioPinMode.Output, GpioPinState.Off);
-					Logger.Log($"Closed pin '{pinStatus.PinNumber}'");
 				}
-			}
-		}
-
-		/// <summary>
-		/// Updates the pin configuration of the specified pin
-		/// </summary>
-		/// <param name="pin">The pin configuration object.</param>
-		void UpdatePinConfig(Pin pinValue) {
-			if (!PreExecValidation(pinValue.PinNumber)) {
-				return;
-			}
-
-			for (int i = 0; i < PinConfig.PinConfigs.Count; i++) {
-				if (PinConfig.PinConfigs[i].PinNumber != pinValue.PinNumber) {
-					continue;
-				}
-
-				PinConfig.PinConfigs[i] = pinValue;
-				return;
 			}
 		}
 

@@ -1,5 +1,6 @@
 using Assistant.Extensions;
 using Assistant.Extensions.Shared.Shell;
+using Assistant.Gpio;
 using Assistant.Gpio.Controllers;
 using Assistant.Gpio.Drivers;
 using System;
@@ -50,7 +51,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 				return;
 			}
 
-			if (!Core.CoreInitiationCompleted) {
+			if (!Core.IsBaseInitiationCompleted) {
 				ShellOut.Error("Cannot execute as the core hasn't been successfully started yet.");
 				return;
 			}
@@ -60,7 +61,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 				return;
 			}
 
-			if (!GpioController.IsAllowedToExecute) {
+			if (!GpioCore.IsAllowedToExecute) {
 				ShellOut.Error("Gpio functions are not allowed to execute.");
 				ShellOut.Info("Gpio pin controlling functions are only available on raspberry pi with an OS such as Raspbian.");
 				return;
@@ -129,19 +130,19 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						if (!PinController.IsValidPin(GpioController.GetAvailablePins().OutputPins[relayNum])) {
-							ShellOut.Error($"The pin ' {GpioController.GetAvailablePins().OutputPins[relayNum]} ' is invalid.");
+						if (!PinController.IsValidPin(Core.Controller.GetAvailablePins().OutputPins[relayNum])) {
+							ShellOut.Error($"The pin ' {Core.Controller.GetAvailablePins().OutputPins[relayNum]} ' is invalid.");
 							return;
 						}
 
-						isSet = driver.TogglePinState(GpioController.GetAvailablePins().OutputPins[relayNum]);
+						isSet = driver.TogglePinState(Core.Controller.GetAvailablePins().OutputPins[relayNum]);
 
 						if (!isSet) {
-							ShellOut.Error($"Failed to configure {GpioController.GetAvailablePins().OutputPins[relayNum]} gpio pin. Please validate the pin argument.");
+							ShellOut.Error($"Failed to configure {Core.Controller.GetAvailablePins().OutputPins[relayNum]} gpio pin. Please validate the pin argument.");
 							return;
 						}
 
-						ShellOut.Info($"Successfully configured {GpioController.GetAvailablePins().OutputPins[relayNum]} gpio pin.");
+						ShellOut.Info($"Successfully configured {Core.Controller.GetAvailablePins().OutputPins[relayNum]} gpio pin.");
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) &&
 					!string.IsNullOrEmpty(parameter.Parameters[1]):

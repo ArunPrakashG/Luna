@@ -11,14 +11,14 @@ namespace Assistant.Sound {
 	public class Sound : IExternal {
 		private static readonly ILogger Logger = new Logger(typeof(Sound).Name);
 		public static bool IsGloballyMuted = false;
-		public static bool IsSoundAllowed => !IsGloballyMuted && Helpers.GetOsPlatform() == OSPlatform.Linux;
+		public static bool IsSoundAllowed => !IsGloballyMuted && Helpers.GetPlatform() == OSPlatform.Linux;
 
 		public Sound(bool isMuted) {
 			IsGloballyMuted = isMuted;
 		}
 
 		public static void PlayNotification(ENOTIFICATION_CONTEXT context = ENOTIFICATION_CONTEXT.NORMAL, bool redirectOutput = false) {			
-			if (Helpers.GetOsPlatform() != OSPlatform.Linux) {
+			if (Helpers.GetPlatform() != OSPlatform.Linux) {
 				Console.Beep();
 				Logger.Log("Cannot proceed as the running operating system is unknown.", LogLevels.Trace);
 				return;

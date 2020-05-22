@@ -23,6 +23,65 @@ namespace Assistant.Extensions {
 
 		private static string FileSeperator { get; set; } = @"\";
 
+		public static void WaitForCompletion(params Task[] tasks) {
+			if(tasks == null || tasks.Length <= 0) {
+				return;
+			}
+
+			Task.WaitAll(tasks);
+		}
+
+		public static Dictionary<string, IPAddress> GetAllLocalNetworks() {
+			Dictionary<string, IPAddress> address = new Dictionary<string, IPAddress>();
+			foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+				foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses) {					
+					if (!ip.IsDnsEligible && ip.Address.AddressFamily == AddressFamily.InterNetwork) {
+						try {
+							address.TryAdd(Dns.GetHostEntry(ip.Address).HostName, ip.Address);
+						}
+						catch {	}										
+					}
+				}
+			}
+
+			return address;
+		}
+
+		public static IPAddress GetNetworkByHostName(string hostName) {
+			if (string.IsNullOrEmpty(hostName)) {
+				return default;
+			}
+
+			Dictionary<string, IPAddress> addresses = GetAllLocalNetworks();
+			foreach(KeyValuePair<string, IPAddress> pair in addresses) {
+				if(string.IsNullOrEmpty(pair.Key) || pair.Value == null) {
+					continue;
+				}
+
+				if(pair.Key.Equals(hostName, StringComparison.OrdinalIgnoreCase)) {
+					return pair.Value;
+				}
+			}
+
+			return default;
+		}
+
+		/// <summary>
+		/// Blocks the calling thread until the referred boolean value is set to true.
+		/// </summary>
+		/// <param name="_value">Referred boolean value</param>
+		public static void WaitWhile(Func<bool> condition, int interval = 25) {
+			while (!condition()) {
+				Task.Delay(interval).Wait();
+			}
+		}
+
+		public static async Task WaitUntilCancellation(CancellationToken _token, int interval = 25) {
+			while (!_token.IsCancellationRequested) {
+				await Task.Delay(interval).ConfigureAwait(false);
+			}
+		}
+
 		public static void SetFileSeperator() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				FileSeperator = "//";
@@ -79,7 +138,7 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		public static OSPlatform GetOsPlatform() {
+		public static OSPlatform GetPlatform() {
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				return OSPlatform.Windows;
 			}
@@ -176,7 +235,7 @@ namespace Assistant.Extensions {
 		}
 
 		public static string? ExecuteBash(this string cmd, bool sudo) {
-			if(GetOsPlatform() != OSPlatform.Linux) {
+			if(GetPlatform() != OSPlatform.Linux) {
 				Logger.Log("Current OS environment isn't Linux.", LogLevels.Error);
 				return null;
 			}
@@ -249,7 +308,7 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		public static void GenerateAsciiFromText(string? text) {
+		public static void ASCIIFromText(string? text) {
 			if (string.IsNullOrEmpty(text)) {				
 				return;
 			}
@@ -369,7 +428,7 @@ namespace Assistant.Extensions {
 				return string.Empty;
 			}
 
-			if (GetOsPlatform().Equals(OSPlatform.Windows)) {
+			if (GetPlatform().Equals(OSPlatform.Windows)) {
 				return Path.GetFileName(path) ?? string.Empty;
 			}
 
@@ -467,7 +526,7 @@ namespace Assistant.Extensions {
 		}
 
 		public static void ExecuteCommand(string command, bool redirectOutput = false, string fileName = "/bin/bash") {
-			if (GetOsPlatform() != OSPlatform.Linux && fileName == "/bin/bash") {
+			if (GetPlatform() != OSPlatform.Linux && fileName == "/bin/bash") {
 				Logger.Log($"Current OS environment isn't Linux.", LogLevels.Error);
 				return;
 			}
@@ -597,7 +656,7 @@ namespace Assistant.Extensions {
 					Logger.Log("> Press Y to close them and continue executing current process.");
 					Logger.Log("> Press N to close current process and continue with the others.");
 
-					char input = Console.ReadKey().KeyChar;
+					char input = Console.ReadKey(true).KeyChar;
 
 					switch (input) {
 						case 'y':
@@ -622,6 +681,8 @@ namespace Assistant.Extensions {
 					}
 				}
 			}
+
+			Console.Clear();
 		}
 	}
 }

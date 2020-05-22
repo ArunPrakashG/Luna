@@ -1,3 +1,4 @@
+using Assistant.Core.Watchers.Interfaces;
 using Assistant.Extensions;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
@@ -5,7 +6,7 @@ using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
+using static Assistant.Gpio.Enums;
 using static Assistant.Logging.Enums;
 
 namespace Assistant.Core {
@@ -62,30 +63,43 @@ namespace Assistant.Core {
 		public string AssistantDisplayName { get; set; } = "Home Assistant";
 
 		[JsonProperty]
+		public GpioDriver GpioDriverProvider { get; set; } = GpioDriver.RaspberryIODriver;
+
+		[JsonProperty]
+		public NumberingScheme PinNumberingScheme { get; set; } = NumberingScheme.Logical;
+
+		[JsonProperty]
 		public DateTime ProgramLastStartup { get; set; }
 
 		[JsonProperty]
 		public DateTime ProgramLastShutdown { get; set; }
 
-		private static readonly ILogger Logger = new Logger(typeof(CoreConfig).Name);
-		private static readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
+		private readonly ILogger Logger = new Logger(typeof(CoreConfig).Name);
+		private readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
+		private readonly Core Core;
 
-		public static async Task<CoreConfig?> SaveConfig(CoreConfig config) {
+		internal CoreConfig(Core _core) => Core = _core ?? throw new ArgumentNullException(nameof(_core));
+
+		internal void Save() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
+			ConfigSemaphore.Wait();
+			Core.GetFileWatcher().Pause();
+
 			Logger.Log("Saving core config...", LogLevels.Trace);
-			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 
 			try {
 				string filePath = Constants.CoreConfigPath;
-				string json = JsonConvert.SerializeObject(config, Formatting.Indented);
+				string json = JsonConvert.SerializeObject(this, Formatting.Indented);
 				string newFilePath = filePath + ".new";
 
-				Core.FileWatcher.IsOnline = false;
-				File.WriteAllText(newFilePath, json);
+				using (StreamWriter writer = new StreamWriter(newFilePath)) {
+					writer.Write(json);
+					writer.Flush();
+				}
 
 				if (File.Exists(filePath)) {
 					File.Replace(newFilePath, filePath, null);
@@ -96,18 +110,17 @@ namespace Assistant.Core {
 			}
 			catch (Exception e) {
 				Logger.Log(e);
-				return null;
+				return;
 			}
 			finally {
 				ConfigSemaphore.Release();
-				Core.FileWatcher.IsOnline = true;
+				Core.GetFileWatcher().Resume();
 			}
 
 			Logger.Log("Saved core config!", LogLevels.Trace);
-			return config;
 		}
 
-		public async Task LoadConfig() {
+		internal void Load() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
@@ -117,45 +130,48 @@ namespace Assistant.Core {
 				return;
 			}
 
-			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
+			ConfigSemaphore.Wait();
 
 			try {
 				Logger.Log("Loading core config...", LogLevels.Trace);
-				using StreamReader streamReader = new StreamReader(new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read));
-				Core.Config = JsonConvert.DeserializeObject<CoreConfig>(streamReader.ReadToEnd());
+				using (StreamReader reader = new StreamReader(new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read))) {
+					string jsonContent = reader.ReadToEnd();
+
+					if (string.IsNullOrEmpty(jsonContent)) {
+						return;
+					}
+
+					CoreConfig config = JsonConvert.DeserializeObject<CoreConfig>(jsonContent);
+
+					this.AssistantDisplayName = config.AssistantDisplayName;
+					this.AutoUpdates = config.AutoUpdates;
+					this.Debug = config.Debug;
+					this.EnableModules = config.EnableModules;
+					this.GpioSafeMode = config.GpioSafeMode;
+					this.InputModePins = config.InputModePins;
+					this.IRSensorPins = config.IRSensorPins;
+					this.OpenWeatherApiKey = config.OpenWeatherApiKey;
+					this.OutputModePins = config.OutputModePins;
+					this.ProgramLastShutdown = config.ProgramLastShutdown;
+					this.ProgramLastStartup = config.ProgramLastStartup;
+					this.PushBulletApiKey = config.PushBulletApiKey;
+					this.RelayPins = config.RelayPins;
+					this.SoundSensorPins = config.SoundSensorPins;
+					this.StatisticsServerIP = config.StatisticsServerIP;
+				}
+
 				Logger.Log("Core configuration loaded successfully!", LogLevels.Trace);
 			}
 			catch (Exception e) {
 				Logger.Log(e);
+				return;
 			}
 			finally {
 				ConfigSemaphore.Release();
 			}
 		}
 
-		public bool GenerateDefaultConfig() {
-			Logger.Log("Core config file doesn't exist. press c to continue generating default config or q to quit.");
-
-			ConsoleKeyInfo? Key = Helpers.FetchUserInputSingleChar(TimeSpan.FromMinutes(1));
-
-			if (!Key.HasValue) {
-				Logger.Log("No value has been entered, continuing to run the program...");
-			}
-			else {
-				switch (Key.Value.KeyChar) {
-					case 'c':
-						break;
-
-					case 'q':
-						Task.Run(async () => await Core.Exit().ConfigureAwait(false));
-						return false;
-
-					default:
-						Logger.Log("Unknown value entered! continuing to run the Core...");
-						break;
-				}
-			}
-
+		internal bool GenerateDefaultConfig() {
 			Logger.Log("Generating default Config...");
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Logger.Log("Config directory doesn't exist, creating one...");
@@ -166,11 +182,10 @@ namespace Assistant.Core {
 				return true;
 			}
 
-			CoreConfig Config = new CoreConfig();
-			Helpers.InBackgroundThread(async () => await SaveConfig(new CoreConfig()).ConfigureAwait(false));
+			Save();
 			return true;
 		}
-
+		
 		public override bool Equals(object? obj) {
 			if (obj is null) {
 				return false;
@@ -180,6 +195,10 @@ namespace Assistant.Core {
 		}
 
 		public override string? ToString() => base.ToString();
+
+		public override int GetHashCode() {
+			return base.GetHashCode();
+		}
 
 		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
 
