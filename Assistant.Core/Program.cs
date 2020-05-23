@@ -16,7 +16,8 @@ namespace Assistant.Core {
 	public class Program {
 		private static readonly ILogger Logger = new Logger(typeof(Program).Name);
 		private static Mutex? InstanceIdentifier;
-		private static Core CoreInstance; 
+
+		internal static Core CoreInstance; 
 
 		private static async Task Main(string[] args) {
 			try {
@@ -53,6 +54,10 @@ namespace Assistant.Core {
 				if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 					"clear".ExecuteBash(false);
 				}
+				else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+					Console.Clear();
+					Console.ResetColor();
+				}
 
 				// All init processes takes place in this constructor
 				CoreInstance = new Core(args);
@@ -77,55 +82,34 @@ namespace Assistant.Core {
 			e.SetObserved();
 		}
 
-		public static void HandleFirstChanceExceptions(object? sender, FirstChanceExceptionEventArgs e) {
-			if (!CoreInstance.GetCoreConfig().Debug || CoreInstance.DisableFirstChanceLogWithDebug) {
-				return;
-			}
-			
-			Logger.Log(e.Exception.Message, CoreInstance.DisableFirstChanceLogWithDebug ? LogLevels.Trace : LogLevels.Error);
-		}
+		public static void HandleFirstChanceExceptions(object? sender, FirstChanceExceptionEventArgs e)=> Logger.Trace(e.Exception.Message);
 
 		private static void HandleUnhandledExceptions(object? sender, UnhandledExceptionEventArgs e) {
-			Logger.Log(e.ExceptionObject as Exception);
+			Logger.Log(e.ExceptionObject as Exception);			
 
 			if (e.IsTerminating) {
+				InstanceIdentifier?.ReleaseMutex();
 				Task.Run(async () => await CoreInstance.Exit(-1).ConfigureAwait(false));
 			}
 		}
 
-		private static async Task NetworkReconnect() {
-			if (!CoreInstance.IsNetworkAvailable) {
-				return;
-			}
-
-			Logger.Log("Network is back online, reconnecting!");
-			await CoreInstance.OnNetworkReconnected().ConfigureAwait(false);
-		}
-
-		private static async Task NetworkDisconnect() {
-			if (CoreInstance.IsNetworkAvailable) {
-				return;
-			}
-
-			Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
-			Logger.Log("Disconnecting all methods which uses a stable Internet connection in order to prevent errors.", LogLevels.Error);
-			await CoreInstance.OnNetworkDisconnected().ConfigureAwait(false);
-		}
-
-		private static async void AvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e) {
+		private static void AvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e) {
 			if (e.IsAvailable && !CoreInstance.IsNetworkAvailable) {
-				await NetworkReconnect().ConfigureAwait(false);
+				Logger.Log("Network is back online, reconnecting!");
+				CoreInstance.OnNetworkReconnected();
 				return;
 			}
 
 			if (!e.IsAvailable && CoreInstance.IsNetworkAvailable) {
-				await NetworkDisconnect().ConfigureAwait(false);
+				Logger.Log("Internet connection has been disconnected or disabled.", LogLevels.Error);
+				Logger.Log("Disconnecting all methods which uses a stable Internet connection in order to prevent errors.", LogLevels.Error);
+				CoreInstance.OnNetworkDisconnected();
 				return;
 			}
 		}
 
 		private static void OnEnvironmentExit(object? sender, EventArgs e) {
-
+			InstanceIdentifier?.ReleaseMutex();
 		}
 	}
 }

@@ -17,18 +17,25 @@ namespace Assistant.Core.Update {
 		private const string JOB_NAME = "GITHUB_UPDATER";
 		private readonly ILogger Logger = new Logger(typeof(UpdateManager).Name);
 		private readonly GitHub Github = new GitHub();
-		public bool UpdateAvailable { get; private set; } = false;
-		public bool IsOnPrerelease { get; private set; } = false;
+		private readonly SemaphoreSlim UpdateSemaphore = new SemaphoreSlim(1, 1);
+		private readonly HttpClient Client = new HttpClient();
+		private readonly Core Core;
+
+		public bool UpdateAvailable { get; private set; }
+		public bool IsOnPrerelease { get; private set; }
+
 		public DateTime NextUpdateCheck => JobManager.GetSchedule(JOB_NAME).NextRun;
-		private static readonly SemaphoreSlim UpdateSemaphore = new SemaphoreSlim(1, 1);
-		private static readonly HttpClient Client = new HttpClient();
+
+		public UpdateManager(Core _core) {
+			Core = _core ?? throw new ArgumentNullException(nameof(_core));
+		}
 
 		public async Task<Version?> CheckAndUpdateAsync(bool withTimer) {
 			if (!Core.IsNetworkAvailable) {
 				return null;
 			}
 
-			if (!Core.Config.AutoUpdates) {
+			if (!Core.GetCoreConfig().AutoUpdates) {
 				Logger.Log("Updates are disabled.", LogLevels.Trace);
 				return null;
 			}

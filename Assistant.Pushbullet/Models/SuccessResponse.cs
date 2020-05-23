@@ -1,13 +1,9 @@
-using Assistant.Pushbullet.Responses.Chats;
-using Assistant.Pushbullet.Responses.Devices;
-using Assistant.Pushbullet.Responses.Pushes;
-using Assistant.Pushbullet.Responses.Subscriptions;
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Pushbullet.Responses {
+namespace Assistant.Pushbullet.Models {
 	[Serializable]
-	public class ResponseBase {
+	public class Response {
 		[JsonIgnore]
 		public bool IsDeleteRequestSuccess { get; set; }
 
@@ -21,7 +17,7 @@ namespace Assistant.Pushbullet.Responses {
 		public object[]? Channels { get; set; }
 
 		[JsonProperty("chats", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public ChatsBase[]? Chats { get; set; }
+		public Chat[] Chats { get; set; } = new Chat[] { };
 
 		[JsonProperty("clients", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
 		public object[]? Clients { get; set; }
@@ -30,19 +26,19 @@ namespace Assistant.Pushbullet.Responses {
 		public object[]? Contacts { get; set; }
 
 		[JsonProperty("devices", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public DevicesBase[]? Devices { get; set; }
+		public Device[] Devices { get; set; } = new Device[] { };
 
 		[JsonProperty("grants", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
 		public object[]? Grants { get; set; }
 
 		[JsonProperty("pushes", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public PushesBase[]? Pushes { get; set; }
+		public Push[] Pushes { get; set; } = new Push[] { };
 
 		[JsonProperty("profiles", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
 		public object[]? Profiles { get; set; }
 
 		[JsonProperty("subscriptions", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
-		public SubscriptionsBase[]? Subscriptions { get; set; }
+		public Subscription[] Subscriptions { get; set; } = new Subscription[] { };
 
 		[JsonProperty("texts", NullValueHandling = NullValueHandling.Ignore, Required = Required.Default)]
 		public object[]? Texts { get; set; }

@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 
-namespace Assistant.Pushbullet.Responses {
-	public class ChannelInfoBase {
+namespace Assistant.Pushbullet.Models {
+	public class ChannelInfo {
 		[JsonProperty("active")]
 		public bool Active { get; set; }
 

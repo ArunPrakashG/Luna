@@ -1,9 +1,9 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Pushbullet.Responses.Chats {
+namespace Assistant.Pushbullet.Models {
 	[Serializable]
-	public class ChatsBase {
+	public class Chat {
 		[JsonProperty("active")]
 		public bool IsActive { get; set; }
 
@@ -17,10 +17,10 @@ namespace Assistant.Pushbullet.Responses.Chats {
 		public float Modified { get; set; }
 
 		[JsonProperty("with")]
-		public With? WithObject { get; set; }
+		public WithObject With { get; set; } = new WithObject();
 
 		[Serializable]
-		public class With {
+		public class WithObject {
 			[JsonProperty("type")]
 			public string? Type { get; set; }
 

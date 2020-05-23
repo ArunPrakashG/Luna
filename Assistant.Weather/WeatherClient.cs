@@ -28,7 +28,7 @@ namespace Assistant.Weather {
 
 		private string GenerateRequestUrl() => $"https://api.openweathermap.org/data/2.5/weather?zip={LocationCode},{CountryCode}&appid={AccessToken}";
 
-		public async Task<WeatherResponse?> ResponseAsync() {
+		public async Task<WeatherResponse?> GetAsync() {
 			if (!Helpers.IsNetworkAvailable()) {
 				Logger.Warning("Networking isn't available.");
 				return null;

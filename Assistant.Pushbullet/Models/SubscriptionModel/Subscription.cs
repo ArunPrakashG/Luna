@@ -1,14 +1,14 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Pushbullet.Responses.Subscriptions {
+namespace Assistant.Pushbullet.Models {
 	[Serializable]
-	public class SubscriptionsBase {
+	public class Subscription {
 		[JsonProperty("active")]
 		public bool Active { get; set; }
 
 		[JsonProperty("Channel")]
-		public ChannelObject? Channel { get; set; }
+		public ChannelObject Channel { get; set; } = new ChannelObject();
 
 		[JsonProperty("created")]
 		public float Created { get; set; }

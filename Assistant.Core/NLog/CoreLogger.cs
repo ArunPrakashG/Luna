@@ -92,7 +92,6 @@ namespace Assistant.Core.NLog {
 
 			LogModule?.Warn($"{previousMethodName}() {message}");
 			PushbulletLog($"{previousMethodName}() {message}");
-			DiscordLogToChannel($"{message}");
 		}
 
 		private void NullError(string? nullObjectName,
@@ -116,8 +115,7 @@ namespace Assistant.Core.NLog {
 
 			switch (level) {
 				case LogLevels.Exception:
-					Error($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.TargetSite}", previousMethodName);
-					DiscordLogToChannel($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.StackTrace}");
+					Error($"[{Helpers.GetFileName(calledFilePath)} | {callermemberlineNo}] " + $"{e.Message} | {e.TargetSite}", previousMethodName);					
 					break;
 				case LogLevels.Fatal:
 					Exception(e, previousMethodName);
@@ -196,29 +194,6 @@ namespace Assistant.Core.NLog {
 			}
 
 			//TODO: Pushbullet logging
-		}
-
-		public void DiscordLogToChannel(string message) {
-			if (string.IsNullOrEmpty(message)) {
-				return;
-			}
-
-			if (!Core.IsBaseInitiationCompleted || !Core.IsNetworkAvailable) {
-				return;
-			}
-
-			Log("Logging to discord is currently turned off. [WIP]", LogLevels.Info);
-
-			//if (Core.ModuleLoader != null && Core.ModuleLoader.Modules != null && Core.ModuleLoader.Modules.OfType<IDiscordClient>().Count() > 0) {
-			//	foreach (IDiscordClient bot in Core.ModuleLoader.Modules.OfType<IDiscordClient>()) {
-			//		if (bot.IsServerOnline && bot.BotConfig.EnableDiscordBot &&
-			//			bot.Module.BotConfig.DiscordLogChannelID != 0 && bot.Module.BotConfig.DiscordLog) {
-			//			Helpers.InBackgroundThread(async () => {
-			//				await bot.Module.LogToChannel(message).ConfigureAwait(false);
-			//			});
-			//		}
-			//	}
-			//}
 		}
 	}
 }

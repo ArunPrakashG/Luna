@@ -1,14 +1,11 @@
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Assistant.Pushbullet.Responses {
+namespace Assistant.Pushbullet.Models {
 	[Serializable]
 	public class InvalidResponse {
-
 		[JsonProperty("error")]
-		public Error? ErrorObject { get; set; }
+		public Error ErrorObject { get; set; } = new Error();
 
 		public class Error {
 			[JsonProperty("cat")]

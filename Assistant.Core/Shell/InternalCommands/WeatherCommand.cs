@@ -1,6 +1,7 @@
 using Assistant.Extensions;
 using Assistant.Extensions.Shared.Shell;
 using Assistant.Sound.Speech;
+using Assistant.Weather;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,7 +48,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 				}
 
 				string? apiKey;
-				if (string.IsNullOrEmpty(Core.Config.OpenWeatherApiKey)) {
+				if (string.IsNullOrEmpty(Program.CoreInstance.GetCoreConfig().OpenWeatherApiKey)) {
 					ShellOut.Error("Weather API key isn't set.");
 
 					apiKey = ShellOut.GetString("Open Weather Api Key");
@@ -58,9 +59,9 @@ namespace Assistant.Core.Shell.InternalCommands {
 					}
 				}
 
-				apiKey = Core.Config.OpenWeatherApiKey;
+				apiKey = Program.CoreInstance.GetCoreConfig().OpenWeatherApiKey;
 				int pinCode;
-				Weather.WeatherResponse? weather;
+				WeatherResponse? weather;
 
 				switch (parameter.ParameterCount) {
 					case 0:
@@ -72,7 +73,9 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						weather = await Core.WeatherClient.GetWeather(apiKey, pinCode, "in").ConfigureAwait(false);
+						using(WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
+							weather = await client.GetAsync().ConfigureAwait(false);
+						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
 							ShellOut.Error("Weather request failed.");
@@ -97,7 +100,9 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						weather = await Core.WeatherClient.GetWeather(apiKey, pinCode, parameter.Parameters[1]).ConfigureAwait(false);
+						using (WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
+							weather = await client.GetAsync().ConfigureAwait(false);
+						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
 							ShellOut.Error("Weather request failed.");
@@ -127,7 +132,9 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						weather = await Core.WeatherClient.GetWeather(apiKey, pinCode, parameter.Parameters[1]).ConfigureAwait(false);
+						using (WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
+							weather = await client.GetAsync().ConfigureAwait(false);
+						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
 							ShellOut.Error("Weather request failed.");

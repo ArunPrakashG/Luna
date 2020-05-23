@@ -50,7 +50,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 				switch (parameter.ParameterCount) {					
 					case 0:
 						ShellOut.Info("Exiting assistant in 5 seconds...");
-						Helpers.ScheduleTask(async () => await Core.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(5));
+						Helpers.ScheduleTask(async () => await Program.CoreInstance.Exit(0).ConfigureAwait(false), TimeSpan.FromSeconds(5));
 						return;
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
 						if (!int.TryParse(parameter.Parameters[0], out exitCode)) {
@@ -59,7 +59,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						}
 
 						ShellOut.Info($"Exiting assistant with '{exitCode}' exit code in 5 seconds...");
-						Helpers.ScheduleTask(async () => await Core.Exit(exitCode).ConfigureAwait(false), TimeSpan.FromSeconds(5));
+						Helpers.ScheduleTask(async () => await Program.CoreInstance.Exit(exitCode).ConfigureAwait(false), TimeSpan.FromSeconds(5));
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]):
 						if (!int.TryParse(parameter.Parameters[0], out exitCode)) {
@@ -73,7 +73,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						}
 
 						ShellOut.Info($"Exiting assistant with '{exitCode}' exit code in '{delay}' seconds...");
-						Helpers.ScheduleTask(async () => await Core.Exit(exitCode).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
+						Helpers.ScheduleTask(async () => await Program.CoreInstance.Exit(exitCode).ConfigureAwait(false), TimeSpan.FromSeconds(delay));
 						return;
 					default:
 						ShellOut.Error("Command seems to be in incorrect syntax.");

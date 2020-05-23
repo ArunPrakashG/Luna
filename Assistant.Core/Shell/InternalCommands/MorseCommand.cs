@@ -80,14 +80,14 @@ namespace Assistant.Core.Shell.InternalCommands {
 						catch (IndexOutOfRangeException) {
 							ShellOut.Error("The specified relay number is invalid is greater than all the available relay numbers.");
 							return;
-						}						
+						}
 
-						if (!PinController.IsValidPin(Core.Controller.GetAvailablePins().OutputPins[relayNumber])) {
+						if (!PinController.IsValidPin(Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNumber])) {
 							ShellOut.Error("The specified pin is invalid.");
 							return;
 						}
 
-						await Core.Controller.GetMorseTranslator().RelayMorseCycle(morse, Core.Controller.GetAvailablePins().OutputPins[relayNumber]).ConfigureAwait(false);
+						await Program.CoreInstance.GetGpioCore().GetMorseTranslator().RelayMorseCycle(morse, Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNumber]).ConfigureAwait(false);
 						ShellOut.Info("Completed!");
 						return;
 					default:

@@ -1,11 +1,5 @@
 namespace Assistant.Pushbullet {
 	public class PushEnums {
-		public enum PushType {
-			Note,
-			Link,
-			File
-		}
-
 		public enum PushTarget {
 			Device,
 			Email,

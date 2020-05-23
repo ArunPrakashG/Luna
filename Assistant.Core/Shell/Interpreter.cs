@@ -121,7 +121,7 @@ namespace Assistant.Core.Shell {
 					Console.WriteLine();
 					ShellOut.Info("Type in the command! Use 'help' / 'h' for help regarding the available commands.");
 					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write($"#~{Path.GetFullPath(Assembly.GetExecutingAssembly().Location)}/{Core.AssistantName.Trim()}/$ >> ");
+					Console.Write($"#~{Path.GetFullPath(Assembly.GetExecutingAssembly().Location)}/{Program.CoreInstance.AssistantName.Trim()}/$ >> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
 
@@ -186,8 +186,8 @@ namespace Assistant.Core.Shell {
 
 			await Sync.WaitAsync().ConfigureAwait(false);
 			bool anyExec = false;
-			
-			try {				
+
+			try {
 				// If there is multiple commands separated by the Multi command delimiter
 				if (cmd.Contains(ShellConstants.MULTI_COMMAND)) {
 					//commands - returns {help -argument}
@@ -244,7 +244,7 @@ namespace Assistant.Core.Shell {
 							continue;
 						}
 
-						if(await Execute(commandKey, parameters).ConfigureAwait(false))
+						if (await Execute(commandKey, parameters).ConfigureAwait(false))
 							anyExec = true;
 						continue;
 					}
@@ -290,11 +290,11 @@ namespace Assistant.Core.Shell {
 						return false;
 					}
 
-					if(await Execute(commandKey, parameters).ConfigureAwait(false))
+					if (await Execute(commandKey, parameters).ConfigureAwait(false))
 						anyExec = true;
 				}
 
-				if (!anyExec) {					
+				if (!anyExec) {
 					return false;
 				}
 
@@ -342,10 +342,10 @@ namespace Assistant.Core.Shell {
 					ShellOut.Info($"'{command.CommandName}' doesn't require any arguments.");
 
 					string args = string.Empty;
-					for(int i = 0; i < parameters.Length; i++) {
+					for (int i = 0; i < parameters.Length; i++) {
 						if (!string.IsNullOrEmpty(parameters[i])) {
 							args += parameters[i] + ",";
-						}													
+						}
 					}
 
 					ShellOut.Info($"Entered arguments '{args}' will be trimmed out.");
@@ -356,7 +356,7 @@ namespace Assistant.Core.Shell {
 					ShellOut.Info($"'{command.CommandName}' only supports a maximum of '{command.MaxParameterCount}' arguments. You have entered '{parameters.Length}'");
 
 					string args = string.Empty;
-					for(int i = (parameters.Length - command.MaxParameterCount) - 1; i > parameters.Length - command.MaxParameterCount; i--) {
+					for (int i = (parameters.Length - command.MaxParameterCount) - 1; i > parameters.Length - command.MaxParameterCount; i--) {
 						parameters[i] = null;
 					}
 

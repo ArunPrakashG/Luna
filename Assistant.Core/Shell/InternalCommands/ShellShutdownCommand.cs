@@ -32,7 +32,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 				return;
 			}
 
-			if (!Core.IsBaseInitiationCompleted) {
+			if (!Program.CoreInstance.IsBaseInitiationCompleted) {
 				ShellOut.Error("Cannot execute as the core hasn't been successfully started yet.");
 				return;
 			}

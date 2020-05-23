@@ -5,25 +5,20 @@ namespace Assistant.Core {
 	using Assistant.Core.Watchers.Interfaces;
 	using Assistant.Extensions;
 	using Assistant.Extensions.Attributes;
-	using Assistant.Extensions.Shared.Shell;
 	using Assistant.Gpio;
 	using Assistant.Gpio.Drivers;
 	using Assistant.Logging;
 	using Assistant.Logging.Interfaces;
 	using Assistant.Modules;
-	using Assistant.Modules.Interfaces;
 	using Assistant.Modules.Interfaces.EventInterfaces;
-	using Assistant.Pushbullet;
 	using Assistant.Rest;
 	using Assistant.Sound.Speech;
-	using Assistant.Weather;
 	using FluentScheduler;
 	using RestSharp;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
-	using System.Linq;
 	using System.Net;
 	using System.Runtime.InteropServices;
 	using System.Threading;
@@ -34,20 +29,19 @@ namespace Assistant.Core {
 	using static Assistant.Modules.ModuleInitializer;
 
 	public class Core {
-		private readonly ILogger Logger = new Logger(typeof(Core).Name);
-		private readonly SemaphoreSlim NetworkSync = new SemaphoreSlim(1, 1);		
-		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();		
+		private readonly ILogger Logger = new Logger(nameof(Core));
+		private readonly IWatcher InternalFileWatcher;
+		private readonly IWatcher InternalModuleWatcher;
+		private readonly SemaphoreSlim NetworkSync = new SemaphoreSlim(1, 1);
+		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
 		private readonly GpioCore Controller;
 		private readonly UpdateManager Updater;
 		private readonly CoreConfig Config;
 		private readonly ModuleInitializer ModuleLoader;
-		private readonly IFileWatcher FileWatcher;
-		private readonly IModuleWatcher ModuleWatcher;
 		private readonly RestCore RestServer;
-
 		private readonly DateTime StartupTime;
-		private readonly bool IsBaseInitiationCompleted;
 
+		internal readonly bool IsBaseInitiationCompleted;
 		internal readonly bool DisableFirstChanceLogWithDebug;
 		internal readonly bool InitiationCompleted;
 
@@ -74,7 +68,7 @@ namespace Assistant.Core {
 			Config.ProgramLastStartup = StartupTime;
 
 			Helpers.SetFileSeperator();
-			Helpers.CheckMultipleProcess();			
+			Helpers.CheckMultipleProcess();
 			IsNetworkAvailable = Helpers.IsNetworkAvailable();
 			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
@@ -93,10 +87,8 @@ namespace Assistant.Core {
 					Config.IRSensorPins,
 					Config.SoundSensorPins
 					), true);
-			Updater = new UpdateManager();
-			ModuleLoader = new ModuleInitializer();		
-			FileWatcher = new GenericFileWatcher();
-			ModuleWatcher = new GenericModuleWatcher();
+			Updater = new UpdateManager(this);
+			ModuleLoader = new ModuleInitializer();
 			RestServer = new RestCore();
 
 			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.WithName("ConsoleUpdater").ToRunEvery(1).Seconds());
@@ -104,6 +96,17 @@ namespace Assistant.Core {
 			Logger.WithColor($"X---------------- Starting {AssistantName} V{Constants.Version} ----------------X", ConsoleColor.Blue);
 			IsBaseInitiationCompleted = true;
 			PostInitiation();
+
+			InternalFileWatcher = new GenericWatcher(this, "*.json", Constants.ConfigDirectory, false, null, new Dictionary<string, Action<string>>(3) {
+				{ "Assistant.json", OnCoreConfigChangeEvent },
+				{ "DiscordBot.json", OnDiscordConfigChangeEvent },
+				{ "MailConfig.json", OnMailConfigChangeEvent }
+			});
+
+			InternalModuleWatcher = new GenericWatcher(this, "*.dll", Constants.ModuleDirectory, false, null, new Dictionary<string, Action<string>>(1) {
+				{ "*", OnModuleDirectoryChangeEvent }
+			});
+
 			InitiationCompleted = true;
 		}
 
@@ -138,16 +141,6 @@ namespace Assistant.Core {
 
 			Task checkAndUpdateTask = new Task(async () => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false));
 
-			Task fileWatcherInitTask = new Task(() => FileWatcher.InitWatcher(Constants.ConfigDirectory, new Dictionary<string, Action>() {
-				{ "Assistant.json", new Action(OnCoreConfigChangeEvent) },
-				{ "DiscordBot.json", new Action(OnDiscordConfigChangeEvent) },
-				{ "MailConfig.json", new Action(OnMailConfigChangeEvent) }
-			}, new List<string>(), "*.json", false));
-
-			Task moduleWatcherInitTask = new Task(() => ModuleWatcher.InitWatcher(Constants.ModuleDirectory, new List<Action<string>>() {
-				new Action<string>((x) => OnModuleDirectoryChangeEvent(x))
-			}, new List<string>(), "*.dll", false));
-
 			Task shellInitTask = new Task(async () => {
 				Interpreter.Pause();
 				await Interpreter.InitInterpreterAsync().ConfigureAwait(false);
@@ -161,50 +154,22 @@ namespace Assistant.Core {
 			Helpers.WaitForCompletion(
 				checkAndUpdateTask,
 				moduleLoaderTask,
-				fileWatcherInitTask,
-				moduleWatcherInitTask,
 				gpioInitTask,
 				shellInitTask,
 				endInitTask
 			);
 		}
-
-		[TODO]
-		internal Core AllowLocalNetworkConnections() {
-			SendLocalIp();
-			return this;
+		
+		internal void OnNetworkDisconnected() {
+			IsNetworkAvailable = false;
+			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
+			Constants.ExternelIP = "Internet connection lost.";
 		}
-
-		[TODO]
-		internal async Task OnNetworkDisconnected() {
-			try {
-				await NetworkSync.WaitAsync().ConfigureAwait(false);
-				IsNetworkAvailable = false;
-				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
-				Constants.ExternelIP = "Internet connection lost.";
-			}
-			finally {
-				NetworkSync.Release();
-			}
-		}
-
-		[TODO]
-		internal async Task OnNetworkReconnected() {
-			try {
-				await NetworkSync.WaitAsync().ConfigureAwait(false);
-				IsNetworkAvailable = true;
-				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
-				Constants.ExternelIP = Helpers.GetExternalIp();
-
-				if (Config.AutoUpdates && IsNetworkAvailable) {
-					Logger.Log("Checking for any new version...", LogLevels.Trace);
-					File.WriteAllText("version.txt", Constants.Version?.ToString());
-					await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
-				}
-			}
-			finally {
-				NetworkSync.Release();
-			}
+		
+		internal void OnNetworkReconnected() {
+			IsNetworkAvailable = true;
+			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
+			Constants.ExternelIP = Helpers.GetExternalIp();
 		}
 
 		internal async Task OnExit() {
@@ -217,8 +182,8 @@ namespace Assistant.Core {
 			Controller?.Shutdown();
 			JobManager.RemoveAllJobs();
 			JobManager.Stop();
-			FileWatcher.StopWatcher();
-			ModuleWatcher.StopWatcher();
+			InternalFileWatcher.StopWatcher();
+			InternalModuleWatcher.StopWatcher();
 			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
 			Config.Save();
@@ -318,7 +283,7 @@ namespace Assistant.Core {
 			}
 		}
 
-		private void OnCoreConfigChangeEvent() {
+		private void OnCoreConfigChangeEvent(string? fileName) {
 			if (!File.Exists(Constants.CoreConfigPath)) {
 				Logger.Log("The core config file has been deleted.", LogLevels.Warn);
 				Logger.Log("Fore quitting assistant.", LogLevels.Warn);
@@ -329,10 +294,10 @@ namespace Assistant.Core {
 			Helpers.InBackgroundThread(Config.Load);
 		}
 
-		private void OnDiscordConfigChangeEvent() {
+		private void OnDiscordConfigChangeEvent(string? fileName) {
 		}
 
-		private void OnMailConfigChangeEvent() {
+		private void OnMailConfigChangeEvent(string? fileName) {
 		}
 
 		private void OnModuleDirectoryChangeEvent(string? absoluteFileName) {
@@ -364,13 +329,13 @@ namespace Assistant.Core {
 
 		public CoreConfig GetCoreConfig() => Config;
 
-		public ModuleInitializer GetModuleInitializer() => ModuleLoader;
-
-		public IFileWatcher GetFileWatcher() => FileWatcher;
-
-		public IModuleWatcher GetModuleWatcher() => ModuleWatcher;
+		public ModuleInitializer GetModuleInitializer() => ModuleLoader;		
 
 		public RestCore GetRestCore() => RestServer;
+
+		internal IWatcher GetFileWatcher() => InternalFileWatcher;
+
+		internal IWatcher GetModuleWatcher() => InternalModuleWatcher;
 
 		/// <summary>
 		/// The method sends the current working local ip to an central server which i personally use for such tasks and for authentication etc.

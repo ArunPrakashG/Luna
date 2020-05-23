@@ -51,7 +51,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 				return;
 			}
 
-			if (!Core.IsBaseInitiationCompleted) {
+			if (!Program.CoreInstance.IsBaseInitiationCompleted) {
 				ShellOut.Error("Cannot execute as the core hasn't been successfully started yet.");
 				return;
 			}
@@ -108,7 +108,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 						ShellOut.Info($"{pin} will be set to Output mode and configured in On state.");
 
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Core.Config.OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}
@@ -130,19 +130,19 @@ namespace Assistant.Core.Shell.InternalCommands {
 							return;
 						}
 
-						if (!PinController.IsValidPin(Core.Controller.GetAvailablePins().OutputPins[relayNum])) {
-							ShellOut.Error($"The pin ' {Core.Controller.GetAvailablePins().OutputPins[relayNum]} ' is invalid.");
+						if (!PinController.IsValidPin(Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNum])) {
+							ShellOut.Error($"The pin ' {Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNum]} ' is invalid.");
 							return;
 						}
 
-						isSet = driver.TogglePinState(Core.Controller.GetAvailablePins().OutputPins[relayNum]);
+						isSet = driver.TogglePinState(Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNum]);
 
 						if (!isSet) {
-							ShellOut.Error($"Failed to configure {Core.Controller.GetAvailablePins().OutputPins[relayNum]} gpio pin. Please validate the pin argument.");
+							ShellOut.Error($"Failed to configure {Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNum]} gpio pin. Please validate the pin argument.");
 							return;
 						}
 
-						ShellOut.Info($"Successfully configured {Core.Controller.GetAvailablePins().OutputPins[relayNum]} gpio pin.");
+						ShellOut.Info($"Successfully configured {Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNum]} gpio pin.");
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) &&
 					!string.IsNullOrEmpty(parameter.Parameters[1]):
@@ -160,7 +160,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 
 						ShellOut.Info($"{pin} will be set to {pinMode.ToString()} mode and configured in On state.");
 
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Core.Config.OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}
@@ -196,7 +196,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						pinState = (GpioPinState) stateVal;
 						ShellOut.Info($"{pin} will be set to {pinMode.ToString()} mode and configured in {pinState} state.");
 
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Core.Config.OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}
@@ -237,7 +237,7 @@ namespace Assistant.Core.Shell.InternalCommands {
 						pinMode = (GpioPinMode) modeValue;
 						pinState = (GpioPinState) stateValue;
 						ShellOut.Info($"{pin} will be set to {pinMode.ToString()} mode and configured in {pinState} state and set back by a delay of {delayValue} minutes.");
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Core.Config.OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}

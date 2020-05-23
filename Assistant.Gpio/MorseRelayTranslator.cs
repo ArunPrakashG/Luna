@@ -37,7 +37,7 @@ namespace Assistant.Gpio {
 				Logger.Log("The specified text is empty.", LogLevels.Warn);
 				return new MorseCycleResult(false, null, null);
 			}
-
+			
 			if (Driver == null) {
 				Logger.Log("Driver isn't started yet.", LogLevels.Warn);
 				return new MorseCycleResult(false, null, null);
