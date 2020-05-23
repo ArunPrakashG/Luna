@@ -187,15 +187,7 @@ namespace Assistant.Core {
 
 			Save();
 			return true;
-		}
-		
-		public override bool Equals(object? obj) {
-			if (obj is null) {
-				return false;
-			}
-
-			return this == (CoreConfig) obj;
-		}
+		}		
 
 		public override string? ToString() => base.ToString();
 
