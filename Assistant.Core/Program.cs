@@ -15,42 +15,42 @@ using static Assistant.Logging.Enums;
 namespace Assistant.Core {
 	public class Program {
 		private static readonly ILogger Logger = new Logger(typeof(Program).Name);
-		private static Mutex? InstanceIdentifier;
+		private static Mutex? InstanceIdentifierMutex;
 
 		internal static Core CoreInstance; 
 
 		private static async Task Main(string[] args) {
+			const string _mutexName = "HomeAssistant";
+			InstanceIdentifierMutex = new Mutex(false, _mutexName);
+
+			Logger.Warning("Trying to acquire instance Mutex...");
+			var mutexAcquired = false;
+
 			try {
-				const string _identifierName = "HomeAssistant";
-				if (Mutex.TryOpenExisting(_identifierName, out Mutex? _existingInstance) && _existingInstance != null) {
-					Console.WriteLine("Multiple instances running...");
-					Console.WriteLine("Existing current instance in 5 seconds...");
-					await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-					Environment.Exit(-1);
-					return;
-				}
-				
-				InstanceIdentifier = new Mutex(true, _identifierName);
+				mutexAcquired = InstanceIdentifierMutex.WaitOne(60000);
 			}
-			catch (Exception e) {
-				Console.WriteLine("Fatal exception occurred.");
-				Console.WriteLine(e);
-				Console.WriteLine("Existing current instance in 20 seconds...");
-				Task.Delay(TimeSpan.FromSeconds(20)).Wait();
-				Environment.Exit(-1);
+			catch (AbandonedMutexException) {
+				mutexAcquired = true;
+			}
+
+			if (!mutexAcquired) {
+				Logger.Error("Failed to acquire instance mutex.");
+				Logger.Error("You might be running multiple instances of the same process.");
+				Logger.Error("Running multiple instances can cause unavoidable errors. Exiting now...");
+				await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
 				return;
 			}
 
-			InstanceIdentifier.WaitOne();
-
-			TaskScheduler.UnobservedTaskException += HandleTaskExceptions;
-			AppDomain.CurrentDomain.UnhandledException += HandleUnhandledExceptions;
-			AppDomain.CurrentDomain.FirstChanceException += HandleFirstChanceExceptions;
-			NetworkChange.NetworkAvailabilityChanged += AvailabilityChanged;
-			AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
-			Console.CancelKeyPress += OnForceQuitAssistant;
-
 			try {
+				CoreEventManager.Init();
+
+				TaskScheduler.UnobservedTaskException += HandleTaskExceptions;
+				AppDomain.CurrentDomain.UnhandledException += HandleUnhandledExceptions;
+				AppDomain.CurrentDomain.FirstChanceException += HandleFirstChanceExceptions;
+				NetworkChange.NetworkAvailabilityChanged += AvailabilityChanged;
+				AppDomain.CurrentDomain.ProcessExit += OnEnvironmentExit;
+				Console.CancelKeyPress += OnForceQuitAssistant;
+
 				if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 					"clear".ExecuteBash(false);
 				}
@@ -66,8 +66,7 @@ namespace Assistant.Core {
 				await CoreInstance.KeepAlive().ConfigureAwait(false);
 			}
 			finally {
-				InstanceIdentifier.ReleaseMutex();
-				InstanceIdentifier.Dispose();
+				InstanceIdentifierMutex.ReleaseMutex();
 			}
 		}
 
@@ -88,7 +87,6 @@ namespace Assistant.Core {
 			Logger.Log(e.ExceptionObject as Exception);			
 
 			if (e.IsTerminating) {
-				InstanceIdentifier?.ReleaseMutex();
 				Task.Run(async () => await CoreInstance.Exit(-1).ConfigureAwait(false));
 			}
 		}
@@ -108,8 +106,8 @@ namespace Assistant.Core {
 			}
 		}
 
-		private static void OnEnvironmentExit(object? sender, EventArgs e) {
-			InstanceIdentifier?.ReleaseMutex();
+		private static void OnEnvironmentExit(object? sender, EventArgs e) {			
+			
 		}
 	}
 }

@@ -68,7 +68,6 @@ namespace Assistant.Core {
 			Config.ProgramLastStartup = StartupTime;
 
 			Helpers.SetFileSeperator();
-			Helpers.CheckMultipleProcess();
 			IsNetworkAvailable = Helpers.IsNetworkAvailable();
 			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
@@ -151,7 +150,7 @@ namespace Assistant.Core {
 				await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
 			});
 
-			Helpers.WaitForCompletion(
+			Task.WaitAll(
 				checkAndUpdateTask,
 				moduleLoaderTask,
 				gpioInitTask,

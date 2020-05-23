@@ -78,6 +78,9 @@ namespace Assistant.Core {
 		private readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 		private readonly Core Core;
 
+		[JsonConstructor]
+		internal CoreConfig() { }
+
 		internal CoreConfig(Core _core) => Core = _core ?? throw new ArgumentNullException(nameof(_core));
 
 		internal void Save() {

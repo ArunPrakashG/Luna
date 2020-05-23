@@ -24,6 +24,8 @@ namespace Assistant.Core {
 			JobManager.JobEnd += JobManagerOnJobEnd;
 		}
 
+		internal static void Init() { }
+
 		internal static void OnWarningReceived(object sender, EventArgsBase e) { }
 
 		internal static void OnInputReceived(object sender, EventArgsBase e) { }

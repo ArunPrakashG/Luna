@@ -621,17 +621,6 @@ namespace Assistant.Extensions {
 			}
 		}
 
-		public static bool IsNetworkAvailable(bool usingWebClient) {
-			try {
-				using WebClient client = new WebClient();
-				using Stream stream = client.OpenRead("http://www.google.com");
-				return true;
-			}
-			catch (Exception) {
-				return false;
-			}
-		}
-
 		public static void CloseProcess(string processName) {
 			if (string.IsNullOrEmpty(processName) || string.IsNullOrWhiteSpace(processName)) {
 				return;
@@ -644,45 +633,6 @@ namespace Assistant.Extensions {
 				worker.WaitForExit();
 				worker.Dispose();
 			}
-		}
-
-		public static void CheckMultipleProcess() {
-			string RunningProcess = Process.GetCurrentProcess().ProcessName;
-			Process[] processes = Process.GetProcessesByName(RunningProcess);
-
-			if (processes.Length > 1) {
-				while (true) {
-					Logger.Log("There are multiple instance of current program running.", LogLevels.Warn);
-					Logger.Log("> Press Y to close them and continue executing current process.");
-					Logger.Log("> Press N to close current process and continue with the others.");
-
-					char input = Console.ReadKey(true).KeyChar;
-
-					switch (input) {
-						case 'y':
-							int procCounter = 0;
-							foreach (Process proc in processes) {
-								if (proc.Id != Process.GetCurrentProcess().Id) {
-									proc.Kill();
-									procCounter++;
-									Logger.Log($"Killed {procCounter} processes.", LogLevels.Warn);
-								}
-							}
-							return;
-
-						case 'n':
-							Logger.Log("Exiting current process as another instance of same application is running...");
-							Process.GetCurrentProcess().Kill();
-							return;
-
-						default:
-							Logger.Log("Unknown key pressed... try again!", LogLevels.Warn);
-							continue;
-					}
-				}
-			}
-
-			Console.Clear();
 		}
 	}
 }
