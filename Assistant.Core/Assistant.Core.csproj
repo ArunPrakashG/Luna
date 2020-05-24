@@ -78,10 +78,4 @@
       <UserProperties />
     </VisualStudio>
   </ProjectExtensions>
-
-	<!--
-	<PropertyGroup>
-		<SshDeployTargetPath>/home/pi/Desktop/HomeAssistant/Assitant.Core</SshDeployTargetPath>
-	</PropertyGroup>
-	-->
 </Project>

@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace Assistant.Modules {
 	public class ModuleInitializer : IExternal{
-		private readonly ILogger Logger = new Logger(typeof(ModuleInitializer).Name);		
+		private readonly ILogger Logger = new Logger(nameof(ModuleInitializer));
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
 		private static readonly SemaphoreSlim ModuleLoaderSemaphore = new SemaphoreSlim(1, 1);
 		private readonly List<ModuleInfo<IModuleBase>> ModulesCache = new List<ModuleInfo<IModuleBase>>();
@@ -43,7 +43,11 @@ namespace Assistant.Modules {
 			}
 		}
 
-		public async Task<bool> LoadAsync() {
+		public async Task<bool> LoadAsync(bool isEnabled) {
+			if (!isEnabled) {
+				return false;
+			}
+
 			AssemblyCollection?.Clear();
 			AssemblyCollection = LoadAssemblies();
 

@@ -103,7 +103,7 @@ namespace Assistant.Core.Shell {
 
 			await LoopSync.WaitAsync().ConfigureAwait(false);
 			try {
-				Console.WriteLine("Command Shell has been loaded!");
+				Logger.Info("Command Shell has been loaded!");
 				bool isDisplayed = false;
 
 				do {

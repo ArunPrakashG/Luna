@@ -4,7 +4,6 @@ namespace Assistant.Core {
 	using Assistant.Core.Watchers;
 	using Assistant.Core.Watchers.Interfaces;
 	using Assistant.Extensions;
-	using Assistant.Extensions.Attributes;
 	using Assistant.Gpio;
 	using Assistant.Gpio.Drivers;
 	using Assistant.Logging;
@@ -69,7 +68,7 @@ namespace Assistant.Core {
 			Config.ProgramLastStartup = StartupTime;
 
 			Helpers.SetFileSeperator();
-			IsNetworkAvailable = Helpers.IsNetworkAvailable();
+			IsNetworkAvailable = Helpers.IsNetworkAvailable("www.google.com");
 			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
 
@@ -77,7 +76,7 @@ namespace Assistant.Core {
 				Logger.Log("No Internet connection.", LogLevels.Warn);
 				Logger.Log($"Starting {AssistantName} in offline mode...");
 			}
-			
+
 			Controller = new GpioCore(new AvailablePins(
 					Config.OutputModePins,
 					Config.InputModePins,
@@ -112,84 +111,52 @@ namespace Assistant.Core {
 		private async Task PostInitiation() {
 			// TODO Init Assistant.Web
 
-			await ModuleLoader.LoadAsync().ConfigureAwait(false);
-			await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
+			Action moduleLoaderAction = async () => await ModuleLoader.LoadAsync(Config.EnableModules).ConfigureAwait(false);
 
-			IGpioControllerDriver? _driver = default;
+			Action checkAndUpdateAction = async () => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
-			switch (Config.GpioDriverProvider) {
-				case GpioDriver.RaspberryIODriver:
-					_driver = new RaspberryIODriver();
-					break;
-				case GpioDriver.SystemDevicesDriver:
-					_driver = new SystemDeviceDriver();
-					break;
-				case GpioDriver.WiringPiDriver:
-					_driver = new WiringPiDriver();
-					break;
-			}
+			Action gpioControllerInitAction = async () => {
+				IGpioControllerDriver? _driver = default;
 
-			await Controller.InitController(_driver, OS.IsUnix, Config.PinNumberingScheme).ConfigureAwait(false);
+				switch (Config.GpioDriverProvider) {
+					case GpioDriver.RaspberryIODriver:
+						_driver = new RaspberryIODriver();
+						break;
+					case GpioDriver.SystemDevicesDriver:
+						_driver = new SystemDeviceDriver();
+						break;
+					case GpioDriver.WiringPiDriver:
+						_driver = new WiringPiDriver();
+						break;
+				}
+
+				await Controller.InitController(_driver, OS.IsUnix, Config.PinNumberingScheme).ConfigureAwait(false);
+			};
+
+			Action endStartupAction = async () => {
+				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
+				await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
+			};
+
+			Parallel.Invoke(new ParallelOptions() {
+				MaxDegreeOfParallelism = 10
+			},
+				moduleLoaderAction,
+				checkAndUpdateAction,
+				gpioControllerInitAction,
+				endStartupAction
+			);
 
 			Interpreter.Pause();
 			await Interpreter.InitInterpreterAsync().ConfigureAwait(false);
-
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
-			await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
-
-			//Task moduleLoaderTask = new Task(async () => {
-			//	if (!Config.EnableModules) {
-			//		return;
-			//	}
-
-			//	await ModuleLoader.LoadAsync().ConfigureAwait(false);
-			//});
-
-			//Task gpioInitTask = new Task(async () => {
-			//	IGpioControllerDriver? _driver = default;
-
-			//	switch (Config.GpioDriverProvider) {
-			//		case GpioDriver.RaspberryIODriver:
-			//			_driver = new RaspberryIODriver();
-			//			break;
-			//		case GpioDriver.SystemDevicesDriver:
-			//			_driver = new SystemDeviceDriver();
-			//			break;
-			//		case GpioDriver.WiringPiDriver:
-			//			_driver = new WiringPiDriver();
-			//			break;
-			//	}
-
-			//	await Controller.InitController(_driver, OS.IsUnix, Config.PinNumberingScheme).ConfigureAwait(false);
-			//});
-
-			//Task checkAndUpdateTask = new Task(async () => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false));
-
-			//Task shellInitTask = new Task(async () => {
-			//	Interpreter.Pause();
-			//	await Interpreter.InitInterpreterAsync().ConfigureAwait(false);
-			//});
-
-			//Task endInitTask = new Task(async () => {
-			//	ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
-			//	await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
-			//});
-
-			//Task.WaitAll(
-			//	checkAndUpdateTask,
-			//	moduleLoaderTask,
-			//	gpioInitTask,
-			//	shellInitTask,
-			//	endInitTask
-			//);
 		}
-		
+
 		internal void OnNetworkDisconnected() {
 			IsNetworkAvailable = false;
 			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
 			Constants.ExternelIP = "Internet connection lost.";
 		}
-		
+
 		internal void OnNetworkReconnected() {
 			IsNetworkAvailable = true;
 			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
@@ -338,7 +305,7 @@ namespace Assistant.Core {
 				return;
 			}
 
-			Helpers.InBackground(async () => await ModuleLoader.LoadAsync().ConfigureAwait(false));
+			Helpers.InBackground(async () => await ModuleLoader.LoadAsync(Config.EnableModules).ConfigureAwait(false));
 		}
 
 		private void SetConsoleTitle() {
@@ -353,7 +320,7 @@ namespace Assistant.Core {
 
 		public CoreConfig GetCoreConfig() => Config;
 
-		public ModuleInitializer GetModuleInitializer() => ModuleLoader;		
+		public ModuleInitializer GetModuleInitializer() => ModuleLoader;
 
 		public RestCore GetRestCore() => RestServer;
 

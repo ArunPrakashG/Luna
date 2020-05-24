@@ -392,37 +392,6 @@ namespace Assistant.Extensions {
 			return response.Content;
 		}
 
-		public static byte[]? GetUrlToBytes(string url, Method method, string userAgent, string? headerName = null, string? headerValue = null) {
-			if (!IsNetworkAvailable()) {
-				Logger.Log("Cannot process, network is unavailable.", LogLevels.Warn);
-				return new byte[0];
-			}
-
-			if (url == null) {
-				throw new ArgumentNullException(nameof(url));
-			}
-
-			RestClient client = new RestClient(url);
-			RestRequest request = new RestRequest(method);
-			client.UserAgent = userAgent;
-			request.AddHeader("cache-control", "no-cache");
-
-			if (!string.IsNullOrEmpty(headerName) && !string.IsNullOrEmpty(headerValue)) {
-				request.AddHeader(headerName, headerValue);
-			}
-
-			Logger.Log("Downloading bytes...", LogLevels.Trace);
-			IRestResponse response = client.Execute(request);
-
-			if (response.StatusCode != HttpStatusCode.OK) {
-				Logger.Log("Failed to download. Status Code: " + response.StatusCode + "/" + response.ResponseStatus);
-				return null;
-			}
-
-			Logger.Log("Successfully downloaded", LogLevels.Trace);
-			return response.RawBytes;
-		}
-
 		public static string GetFileName(string? path) {
 			if (string.IsNullOrEmpty(path)) {
 				return string.Empty;
@@ -605,10 +574,10 @@ namespace Assistant.Extensions {
 			await Task.WhenAll(tasks).ConfigureAwait(false);
 		}
 
-		public static bool IsNetworkAvailable() {
+		public static bool IsNetworkAvailable(string _host = null) {
 			try {
 				Ping myPing = new Ping();
-				string host = "8.8.8.8";
+				string host = _host ?? "8.8.8.8";
 				byte[] buffer = new byte[32];
 				int timeout = 1000;
 				PingOptions pingOptions = new PingOptions();
