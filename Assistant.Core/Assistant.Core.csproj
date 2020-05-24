@@ -46,7 +46,7 @@
     <None Update="Config\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Modules\**">
+    <None Update="InternalModules\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="NLog.config">
@@ -59,6 +59,7 @@
   <ItemGroup>
     <Folder Include="Config\SteamBots\" />
     <Folder Include="Commands\" />
+    <Folder Include="InternalModules\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Assistant.Extensions\Assistant.Extensions.csproj" />
