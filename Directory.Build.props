@@ -1,8 +1,7 @@
  <Project>
 	 <!-- Add settings here which have to be applied to all the projects in this solution -->
 	 <PropertyGroup>
-		<IP>192.168.1.37</IP>
-		<Authors>Arun</Authors>
+		<Authors>Arun Prakash</Authors>
 		<Company>Arun Prakash</Company>
 		<Copyright>Copyright © Home Assistant 2019-2020</Copyright>
 		<PackageProjectUrl>https://github.com/ArunPrakashG/HomeAssistant</PackageProjectUrl>
