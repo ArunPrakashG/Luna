@@ -13,12 +13,10 @@ namespace Assistant.Core {
 	using Assistant.Rest;
 	using Assistant.Sound.Speech;
 	using FluentScheduler;
-	using RestSharp;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
-	using System.Net;
 	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -29,10 +27,9 @@ namespace Assistant.Core {
 
 	public class Core {
 		private readonly ILogger Logger = new Logger(nameof(Core));
+		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
 		private readonly IWatcher InternalFileWatcher;
 		private readonly IWatcher InternalModuleWatcher;
-		private readonly SemaphoreSlim NetworkSync = new SemaphoreSlim(1, 1);
-		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
 		private readonly GpioCore Controller;
 		private readonly UpdateManager Updater;
 		private readonly CoreConfig Config;
@@ -68,7 +65,7 @@ namespace Assistant.Core {
 			Config.ProgramLastStartup = StartupTime;
 
 			Helpers.SetFileSeperator();
-			IsNetworkAvailable = Helpers.IsNetworkAvailable("www.google.com");
+			IsNetworkAvailable = Helpers.IsNetworkAvailable();
 			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
 			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
 
@@ -309,7 +306,7 @@ namespace Assistant.Core {
 		}
 
 		private void SetConsoleTitle() {
-			string text = $"http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | ";
+			string text = $"{AssistantName} v{Constants.Version} | http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | ";
 			text += GpioCore.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
 			Helpers.SetConsoleTitle(text);
 		}
@@ -327,37 +324,5 @@ namespace Assistant.Core {
 		internal IWatcher GetFileWatcher() => InternalFileWatcher;
 
 		internal IWatcher GetModuleWatcher() => InternalModuleWatcher;
-
-		/// <summary>
-		/// The method sends the current working local ip to an central server which i personally use for such tasks and for authentication etc.
-		/// You have to specify such a server manually else contact me personally for my server IP.
-		/// We use this so that the mobile controller app of the assistant can connect to the assistant running on the connected local interface.
-		/// </summary>
-		[Obsolete]
-		private void SendLocalIp() {
-			Helpers.GetNetworkByHostName("raspberrypi");
-			string? localIp = Helpers.GetLocalIpAddress();
-
-			if (string.IsNullOrEmpty(localIp)) {
-				return;
-			}
-
-			Constants.LocalIP = localIp;
-			int maxTry = 3;
-
-			for (int i = 0; i < maxTry; i++) {
-				RestClient client = new RestClient($"http://{Config.StatisticsServerIP}/api/v1/assistant/ip?ip={Constants.LocalIP}");
-				RestRequest request = new RestRequest(Method.POST);
-				request.AddHeader("cache-control", "no-cache");
-				IRestResponse response = client.Execute(request);
-
-				if (response.StatusCode != HttpStatusCode.OK) {
-					continue;
-				}
-
-				Logger.Log($"{Constants.LocalIP} IP request send!", LogLevels.Trace);
-				break;
-			}
-		}
 	}
 }
