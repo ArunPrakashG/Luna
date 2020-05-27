@@ -51,6 +51,9 @@ namespace Assistant.Core {
 		public bool Debug { get; set; } = false;
 
 		[JsonProperty]
+		public int RestServerPort { get; set; } = 7577;
+
+		[JsonProperty]
 		public string? StatisticsServerIP { get; set; }
 
 		[JsonProperty]

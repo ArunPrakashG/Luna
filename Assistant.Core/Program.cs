@@ -1,9 +1,6 @@
 using Assistant.Extensions;
-using Assistant.Extensions.Shared.Shell;
-using Assistant.Gpio.Drivers;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
-using Assistant.Modules.Interfaces;
 using System;
 using System.Net.NetworkInformation;
 using System.Runtime.ExceptionServices;
@@ -12,19 +9,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Assistant.Logging.Enums;
 
-namespace Assistant.Core {
+namespace Assistant.Core {	
 	public class Program {
 		private static readonly ILogger Logger = new Logger(typeof(Program).Name);
 		private static Mutex? InstanceIdentifierMutex;
 
-		internal static Core CoreInstance; 
+		internal static Core CoreInstance;
 
 		private static async Task Main(string[] args) {
 			const string _mutexName = "HomeAssistant";
 			InstanceIdentifierMutex = new Mutex(false, _mutexName);
 
 			Logger.Warning("Trying to acquire instance Mutex...");
-			var mutexAcquired = false;
+			bool mutexAcquired = false;
 
 			try {
 				mutexAcquired = InstanceIdentifierMutex.WaitOne(60000);
@@ -40,6 +37,8 @@ namespace Assistant.Core {
 				await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
 				return;
 			}
+
+			InstanceIdentifierMutex.WaitOne();
 
 			try {
 				CoreEventManager.Init();
@@ -70,7 +69,7 @@ namespace Assistant.Core {
 			}
 		}
 
-		private static async void OnForceQuitAssistant(object? sender, ConsoleCancelEventArgs e) => await CoreInstance.Exit(-1).ConfigureAwait(false);
+		private static void OnForceQuitAssistant(object? sender, ConsoleCancelEventArgs e) => CoreInstance.Exit(-1);
 
 		public static void HandleTaskExceptions(object? sender, UnobservedTaskExceptionEventArgs e) {
 			if (sender == null || e == null || e.Exception == null) {
@@ -81,13 +80,13 @@ namespace Assistant.Core {
 			e.SetObserved();
 		}
 
-		public static void HandleFirstChanceExceptions(object? sender, FirstChanceExceptionEventArgs e)=> Logger.Trace(e.Exception.Message);
+		public static void HandleFirstChanceExceptions(object? sender, FirstChanceExceptionEventArgs e) => Logger.Trace(e.Exception.Message);
 
 		private static void HandleUnhandledExceptions(object? sender, UnhandledExceptionEventArgs e) {
-			Logger.Log(e.ExceptionObject as Exception);			
+			Logger.Log(e.ExceptionObject as Exception);
 
 			if (e.IsTerminating) {
-				Task.Run(async () => await CoreInstance.Exit(-1).ConfigureAwait(false));
+				CoreInstance.Exit(-1);
 			}
 		}
 
@@ -106,8 +105,8 @@ namespace Assistant.Core {
 			}
 		}
 
-		private static void OnEnvironmentExit(object? sender, EventArgs e) {			
-			
+		private static void OnEnvironmentExit(object? sender, EventArgs e) {
+
 		}
 	}
 }

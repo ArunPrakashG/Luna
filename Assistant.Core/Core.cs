@@ -1,4 +1,5 @@
 namespace Assistant.Core {
+	using Assistant.Core.Server;
 	using Assistant.Core.Shell;
 	using Assistant.Core.Update;
 	using Assistant.Core.Watchers;
@@ -10,7 +11,6 @@ namespace Assistant.Core {
 	using Assistant.Logging.Interfaces;
 	using Assistant.Modules;
 	using Assistant.Modules.Interfaces.EventInterfaces;
-	using Assistant.Rest;
 	using Assistant.Sound.Speech;
 	using FluentScheduler;
 	using System;
@@ -34,8 +34,8 @@ namespace Assistant.Core {
 		private readonly UpdateManager Updater;
 		private readonly CoreConfig Config;
 		private readonly ModuleInitializer ModuleLoader;
-		private readonly RestCore RestServer;
 		private readonly DateTime StartupTime;
+		private readonly RestCore RestServer;
 
 		internal readonly bool IsBaseInitiationCompleted;
 		internal readonly bool DisableFirstChanceLogWithDebug;
@@ -84,11 +84,11 @@ namespace Assistant.Core {
 					), true);
 			Updater = new UpdateManager(this);
 			ModuleLoader = new ModuleInitializer();
-			RestServer = new RestCore();
+			RestServer = new RestCore(Config.RestServerPort, Config.Debug);
 
 			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.WithName("ConsoleUpdater").ToRunEvery(1).Seconds());
 			Helpers.ASCIIFromText(Config.AssistantDisplayName);
-			Logger.WithColor($"X---------------- Starting {AssistantName} V{Constants.Version} ----------------X", ConsoleColor.Blue);
+			Logger.WithColor($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", ConsoleColor.Blue);
 			IsBaseInitiationCompleted = true;
 			PostInitiation().Wait();
 
@@ -106,13 +106,11 @@ namespace Assistant.Core {
 		}
 
 		private async Task PostInitiation() {
-			// TODO Init Assistant.Web
+			async void moduleLoaderAction() => await ModuleLoader.LoadAsync(Config.EnableModules).ConfigureAwait(false);
 
-			Action moduleLoaderAction = async () => await ModuleLoader.LoadAsync(Config.EnableModules).ConfigureAwait(false);
+			async void checkAndUpdateAction() => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
-			Action checkAndUpdateAction = async () => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
-
-			Action gpioControllerInitAction = async () => {
+			async void gpioControllerInitAction() {
 				IGpioControllerDriver? _driver = default;
 
 				switch (Config.GpioDriverProvider) {
@@ -128,19 +126,20 @@ namespace Assistant.Core {
 				}
 
 				await Controller.InitController(_driver, OS.IsUnix, Config.PinNumberingScheme).ConfigureAwait(false);
-			};
+			}
 
-			Action endStartupAction = async () => {
+			async void restServerInitAction() => await RestServer.InitServerAsync().ConfigureAwait(false);
+
+			static async void endStartupAction() {
 				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
 				await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
-			};
+			}
 
-			Parallel.Invoke(new ParallelOptions() {
-				MaxDegreeOfParallelism = 10
-			},
+			Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = 10 },
 				moduleLoaderAction,
 				checkAndUpdateAction,
 				gpioControllerInitAction,
+				restServerInitAction,
 				endStartupAction
 			);
 
@@ -160,32 +159,37 @@ namespace Assistant.Core {
 			Constants.ExternelIP = Helpers.GetExternalIp();
 		}
 
-		internal async Task OnExit() {
+		internal void OnExit() {
 			Logger.Log("Shutting down...");
-
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default);
-
-			Interpreter.ExitShell();
-			await RestServer.Shutdown().ConfigureAwait(false);
-			Controller?.Shutdown();
-			JobManager.RemoveAllJobs();
-			JobManager.Stop();
-			InternalFileWatcher.StopWatcher();
-			InternalModuleWatcher.StopWatcher();
-			ModuleLoader?.OnCoreShutdown();
 			Config.ProgramLastShutdown = DateTime.Now;
-			Config.Save();
+
+			Parallel.Invoke(
+				new ParallelOptions() {
+					MaxDegreeOfParallelism = 10
+				},
+				async () => await RestServer.ShutdownServer().ConfigureAwait(false),
+				() => ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default),
+				() => Interpreter.ExitShell(),
+				() => RestServer.Dispose(),
+				() => Controller?.Shutdown(),
+				() => JobManager.RemoveAllJobs(),
+				() => JobManager.Stop(),
+				() => InternalFileWatcher.StopWatcher(),
+				() => InternalModuleWatcher.StopWatcher(),
+				() => ModuleLoader?.OnCoreShutdown(),
+				() => Config.Save()
+			);
 
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);
 		}
 
-		internal async Task Exit(int exitCode = 0) {
+		internal void Exit(int exitCode = 0) {
 			if (exitCode != 0) {
 				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
 			}
 
 			if (exitCode == 0) {
-				await OnExit().ConfigureAwait(false);
+				OnExit();
 			}
 
 			Logger.Log("Bye, have a good day sir!");
@@ -197,7 +201,7 @@ namespace Assistant.Core {
 		internal async Task Restart(int delay = 10) {
 			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
-			await Exit(0).ConfigureAwait(false);
+			Exit(0);
 		}
 
 		internal async Task SystemShutdown() {
@@ -205,7 +209,7 @@ namespace Assistant.Core {
 			if (GpioCore.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Shutting down pi...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
+				OnExit();
 				await Pi.ShutdownAsync().ConfigureAwait(false);
 				return;
 			}
@@ -213,7 +217,7 @@ namespace Assistant.Core {
 			if (Helpers.GetPlatform() == OSPlatform.Windows) {
 				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
 				Logger.Log("Shutting down system...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
+				OnExit();
 				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/s /t 0") {
 					CreateNoWindow = true,
 					UseShellExecute = false
@@ -227,7 +231,7 @@ namespace Assistant.Core {
 			if (GpioCore.IsAllowedToExecute) {
 				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
 				Logger.Log("Restarting pi...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
+				OnExit();
 				await Pi.RestartAsync().ConfigureAwait(false);
 				return;
 			}
@@ -235,7 +239,7 @@ namespace Assistant.Core {
 			if (Helpers.GetPlatform() == OSPlatform.Windows) {
 				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
 				Logger.Log("Restarting system...", LogLevels.Warn);
-				await OnExit().ConfigureAwait(false);
+				OnExit();
 				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/r /t 0") {
 					CreateNoWindow = true,
 					UseShellExecute = false
@@ -275,7 +279,7 @@ namespace Assistant.Core {
 			if (!File.Exists(Constants.CoreConfigPath)) {
 				Logger.Log("The core config file has been deleted.", LogLevels.Warn);
 				Logger.Log("Fore quitting assistant.", LogLevels.Warn);
-				Task.Run(async () => await Exit(0).ConfigureAwait(false));
+				Exit(0);
 			}
 
 			Logger.Log("Updating core config as the local config file as been updated...");
@@ -306,7 +310,7 @@ namespace Assistant.Core {
 		}
 
 		private void SetConsoleTitle() {
-			string text = $"{AssistantName} v{Constants.Version} | http://{Constants.LocalIP}:9090/ | {DateTime.Now.ToLongTimeString()} | ";
+			string text = $"{AssistantName} v{Constants.Version} | https://{Constants.LocalIP}:{Config.RestServerPort + 1}/ | {DateTime.Now.ToLongTimeString()} | ";
 			text += GpioCore.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
 			Helpers.SetConsoleTitle(text);
 		}
@@ -318,8 +322,6 @@ namespace Assistant.Core {
 		public CoreConfig GetCoreConfig() => Config;
 
 		public ModuleInitializer GetModuleInitializer() => ModuleLoader;
-
-		public RestCore GetRestCore() => RestServer;
 
 		internal IWatcher GetFileWatcher() => InternalFileWatcher;
 
