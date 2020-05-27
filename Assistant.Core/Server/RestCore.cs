@@ -14,6 +14,7 @@ namespace Assistant.Core.Server {
 		private readonly Logging.Interfaces.ILogger Logger = new Logger(nameof(RestCore));
 		private readonly CancellationTokenSource ShutdownTokenSource = new CancellationTokenSource();
 		private readonly Mutex ServerInstanceMutex;
+		private readonly object LockObject = new object();
 		private readonly int Port;
 		private readonly IHost ServerHost;
 		private readonly bool IsMutexLocked;
@@ -22,29 +23,31 @@ namespace Assistant.Core.Server {
 		private readonly string ContentRootDirectory;
 
 		internal RestCore(int _port, bool _isDebugMode = false) {
-			string _mutexName = $"RestServerInstance-{_port}";
-			ServerInstanceMutex = new Mutex(false, _mutexName);
-			Logger.Info("Locking into server Mutex...");
-			
-			bool mutexAcquired = false;
+			lock (LockObject) {
+				string _mutexName = $"RestServerInstance-{_port}";
+				ServerInstanceMutex = new Mutex(false, _mutexName);
+				Logger.Info("Locking into server Mutex...");
 
-			try {
-				mutexAcquired = ServerInstanceMutex.WaitOne(60000);
-			}
-			catch (AbandonedMutexException) {
-				mutexAcquired = true;
-			}
-			
-			if (!mutexAcquired) {
-				Logger.Error("Failed to acquire server lock.");
-				Logger.Error($"This indicates another instance of the server is running on the same port '{_port}' !");
-				Logger.Error("Please close that instance in order to initiate REST HTTP server!");
-				IsMutexLocked = false;
-				return;
-			}
+				bool mutexAcquired = false;
 
-			ServerInstanceMutex.WaitOne();
-			IsMutexLocked = true;
+				try {
+					mutexAcquired = ServerInstanceMutex.WaitOne(60000);
+				}
+				catch (AbandonedMutexException) {
+					mutexAcquired = true;
+				}
+
+				if (!mutexAcquired) {
+					Logger.Error("Failed to acquire server lock.");
+					Logger.Error($"This indicates another instance of the server is running on the same port '{_port}' !");
+					Logger.Error("Please close that instance in order to initiate REST HTTP server!");
+					IsMutexLocked = false;
+					return;
+				}
+
+				ServerInstanceMutex.WaitOne();
+				IsMutexLocked = true;
+			}
 
 			Port = _port;
 			IsDebuggingMode = _isDebugMode;
@@ -60,7 +63,6 @@ namespace Assistant.Core.Server {
 				throw new InvalidOperationException(nameof(ServerHost) + " is not assigned or is null!");
 			}
 
-
 			await ServerHost.StartAsync(ShutdownTokenSource.Token).ConfigureAwait(false);
 			Logger.Info($"Server started at '{Port}' port.");
 		}
@@ -70,18 +72,18 @@ namespace Assistant.Core.Server {
 				return;
 			}
 
-			if(ShutdownTokenSource != null && !ShutdownTokenSource.IsCancellationRequested) {
+			if (ShutdownTokenSource != null && !ShutdownTokenSource.IsCancellationRequested) {
 				ShutdownTokenSource.Cancel();
 			}
 
 			await ServerHost.StopAsync().ConfigureAwait(false);
 
-			if(ServerInstanceMutex != null) {
-				lock (ServerInstanceMutex) {
+			if (ServerInstanceMutex != null) {
+				lock (LockObject) {
 					ServerInstanceMutex.ReleaseMutex();
-				}				
+				}
 			}
-			
+
 			Logger.Info($"Server running at '{Port}' has been shutdown.");
 		}
 
@@ -94,7 +96,7 @@ namespace Assistant.Core.Server {
 			ServerHost?.Dispose();
 
 			if (ServerInstanceMutex != null) {
-				lock (ServerInstanceMutex) {
+				lock (LockObject) {
 					ServerInstanceMutex.ReleaseMutex();
 				}
 
@@ -114,9 +116,6 @@ namespace Assistant.Core.Server {
 					webBuilder.UseUrls($"http://*:{Port}", $"https://*:{Port + 1}");
 					webBuilder.UseKestrel(k => {
 						k.AddServerHeader = true;
-						k.ConfigureEndpointDefaults((l) => {
-							l.Protocols = HttpProtocols.Http1AndHttp2;
-						});
 					});
 					webBuilder.UseStartup<Init>();
 					webBuilder.UseIIS();
