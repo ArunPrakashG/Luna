@@ -25,7 +25,7 @@ namespace Assistant.Core.Server {
 			string _mutexName = $"RestServerInstance-{_port}";
 			ServerInstanceMutex = new Mutex(false, _mutexName);
 			Logger.Info("Locking into server Mutex...");
-
+			
 			bool mutexAcquired = false;
 
 			try {
@@ -70,19 +70,36 @@ namespace Assistant.Core.Server {
 				return;
 			}
 
-			ShutdownTokenSource?.Cancel();
+			if(ShutdownTokenSource != null && !ShutdownTokenSource.IsCancellationRequested) {
+				ShutdownTokenSource.Cancel();
+			}
+
 			await ServerHost.StopAsync().ConfigureAwait(false);
-			ServerHost.Dispose();
-			ServerInstanceMutex?.ReleaseMutex();
+
+			if(ServerInstanceMutex != null) {
+				lock (ServerInstanceMutex) {
+					ServerInstanceMutex.ReleaseMutex();
+				}				
+			}
+			
 			Logger.Info($"Server running at '{Port}' has been shutdown.");
 		}
 
 		public void Dispose() {
-			ServerInstanceMutex?.ReleaseMutex();
-			ServerInstanceMutex?.Dispose();
-			ShutdownTokenSource?.Cancel();
+			if (ShutdownTokenSource != null && !ShutdownTokenSource.IsCancellationRequested) {
+				ShutdownTokenSource.Cancel();
+			}
+
 			ShutdownTokenSource?.Dispose();
 			ServerHost?.Dispose();
+
+			if (ServerInstanceMutex != null) {
+				lock (ServerInstanceMutex) {
+					ServerInstanceMutex.ReleaseMutex();
+				}
+
+				ServerInstanceMutex.Dispose();
+			}
 		}
 
 		private HostBuilder GenerateHostBuilder() {

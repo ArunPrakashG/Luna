@@ -6,7 +6,7 @@ namespace Assistant.Core.Server.Controllers {
 		private readonly ILogger<DashboardController> _logger;
 
 		public DashboardController(ILogger<DashboardController> logger) {
-			_logger = logger;
+			_logger = logger;			
 		}
 
 		public IActionResult Index() {
