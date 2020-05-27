@@ -34,7 +34,7 @@ namespace Assistant.Core.Server {
 			catch (AbandonedMutexException) {
 				mutexAcquired = true;
 			}
-
+			
 			if (!mutexAcquired) {
 				Logger.Error("Failed to acquire server lock.");
 				Logger.Error($"This indicates another instance of the server is running on the same port '{_port}' !");
