@@ -1,5 +1,3 @@
-using Assistant.Extensions;
-using Assistant.Extensions.Attributes;
 using Assistant.Extensions.Interfaces;
 using Assistant.Logging;
 using Assistant.Logging.Interfaces;
@@ -8,19 +6,16 @@ using Assistant.Pushbullet.Models;
 using Assistant.Pushbullet.Parameters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Logging.Enums;
 using static Assistant.Pushbullet.PushEnums;
 
 namespace Assistant.Pushbullet {
 	public class PushbulletClient : IExternal, IDisposable {
-		private static int RequestFailedCount = 0;
+		private static readonly int RequestFailedCount = 0;
 
 		private const int MAX_TRIES = 2;
 		private const int DELAY_BETWEEN_FAILED_REQUEST = 30; // secs
@@ -42,13 +37,11 @@ namespace Assistant.Pushbullet {
 		public PushbulletClient(ClientConfig _config, HttpClientHandler _clientHandler = null) {
 			Config = _config;
 
-			HttpClientHandler = _clientHandler != null
-				? _clientHandler
-				: new HttpClientHandler() {
-					Proxy = Config.ShouldUseProxy ? Config.Proxy : null,
-					UseProxy = Config.ShouldUseProxy,
-					AllowAutoRedirect = false
-				};
+			HttpClientHandler = _clientHandler ?? new HttpClientHandler() {
+				Proxy = Config.ShouldUseProxy ? Config.Proxy : null,
+				UseProxy = Config.ShouldUseProxy,
+				AllowAutoRedirect = false
+			};
 
 			HttpClient = new HttpClient(HttpClientHandler);
 			HttpClient.DefaultRequestHeaders.Add("Access-Token", Config.AccessToken);
@@ -59,7 +52,7 @@ namespace Assistant.Pushbullet {
 		public async IAsyncEnumerable<Device> GetDevicesAsync() {
 			string requestUrl = API_BASE_URL + GetRoute(EPUSH_ROUTES.GET_DEVICES);
 			Response result = await InternalUrlEncodedRequestToObject<Response>(requestUrl, HttpMethod.Get, null).ConfigureAwait(false) ?? throw new RequestFailedException(nameof(GetDevicesAsync) + " request failed.");
-			
+
 			for (int i = 0; i < result.Devices.Length; i++) {
 				if (result.Devices[i] == null) {
 					continue;
@@ -97,10 +90,10 @@ namespace Assistant.Pushbullet {
 			}
 
 			jsonContent = JsonConvert.SerializeObject(jObject);
-			Push result = await InternalStringContentRequestToObject<Push>(requestUrl, HttpMethod.Post, jsonContent).ConfigureAwait(false) ?? throw new RequestFailedException(nameof(PushAsync) + " request failed.");			
+			Push result = await InternalStringContentRequestToObject<Push>(requestUrl, HttpMethod.Post, jsonContent).ConfigureAwait(false) ?? throw new RequestFailedException(nameof(PushAsync) + " request failed.");
 			return result;
 		}
-				
+
 		public async IAsyncEnumerable<Subscription> GetSubscriptionsAsync() {
 			string requestUrl = API_BASE_URL + GetRoute(EPUSH_ROUTES.GET_SUBSCRIPTIONS);
 			Response result = await InternalUrlEncodedRequestToObject<Response>(requestUrl, HttpMethod.Get, null).ConfigureAwait(false) ?? throw new RequestFailedException(nameof(GetSubscriptionsAsync) + " request failed.");
@@ -113,7 +106,7 @@ namespace Assistant.Pushbullet {
 				yield return result.Subscriptions[i];
 			}
 		}
-		
+
 		public async Task<PushDeleteStatusCode> DeletePushAsync(string pushIdentifier) {
 			if (string.IsNullOrEmpty(pushIdentifier)) {
 				return PushDeleteStatusCode.Unknown;
@@ -123,7 +116,7 @@ namespace Assistant.Pushbullet {
 			Response response = await InternalUrlEncodedRequestToObject<Response>(requestUrl, HttpMethod.Delete, null).ConfigureAwait(false) ?? throw new RequestFailedException(nameof(DeletePushAsync) + " request failed");
 			return response.IsDeleteRequestSuccess ? PushDeleteStatusCode.Success : PushDeleteStatusCode.Unknown;
 		}
-		
+
 		public async IAsyncEnumerable<Push> GetAllPushesAsync(PushListRequestParameter requestParams) {
 			string requestUrl = API_BASE_URL + GetRoute(EPUSH_ROUTES.GET_ALL_PUSHES);
 
@@ -136,15 +129,15 @@ namespace Assistant.Pushbullet {
 
 			Response result = await InternalUrlEncodedRequestToObject<Response>(requestUrl, HttpMethod.Get, data).ConfigureAwait(false) ?? throw new RequestFailedException(nameof(GetAllPushesAsync) + " request failed.");
 
-			for(int i = 0; i < result.Pushes.Length; i++) {
-				if(result.Pushes[i] == null) {
+			for (int i = 0; i < result.Pushes.Length; i++) {
+				if (result.Pushes[i] == null) {
 					continue;
 				}
 
 				yield return result.Pushes[i];
 			}
 		}
-		
+
 		public async Task<ChannelInfo> GetChannelInfoAsync(string channelTag, bool ignoreRecentPushes = false) {
 			if (string.IsNullOrEmpty(channelTag)) {
 				throw new ArgumentNullException(nameof(channelTag));
