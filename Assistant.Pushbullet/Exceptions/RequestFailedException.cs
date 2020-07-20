@@ -30,7 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Pushbullet.Exceptions {
+namespace Luna.Pushbullet.Exceptions {
 	public class RequestFailedException : Exception {
 		public RequestFailedException() : base("A request to PushBullet api has been failed.") {
 		}

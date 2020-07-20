@@ -1,10 +1,10 @@
-using Assistant.Logging.Interfaces;
+using Luna.Logging.Interfaces;
 using System;
 using System.Runtime.CompilerServices;
-using static Assistant.Logging.Enums;
-using static Assistant.Logging.Logger;
+using static Luna.Logging.Enums;
+using static Luna.Logging.Logger;
 
-namespace Assistant.Logging {
+namespace Luna.Logging {
 	public static class LoggerExtensions {
 		public static void RegisterLoggerEvent(object? eventHandler) {
 			if (eventHandler == null) {

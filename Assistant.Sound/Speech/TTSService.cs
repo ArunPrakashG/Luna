@@ -1,6 +1,6 @@
-using Assistant.Extensions;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using RestSharp;
 using System;
 using System.Collections.Generic;
@@ -8,9 +8,9 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Logging.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Sound.Speech {
+namespace Luna.Sound.Speech {
 	public class TTS {
 		private static readonly ILogger Logger = new Logger(typeof(TTS).Name);
 		private static readonly SemaphoreSlim SpeechSemaphore = new SemaphoreSlim(1, 1);

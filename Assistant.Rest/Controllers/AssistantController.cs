@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Assistant.Rest.Controllers {
+namespace Luna.Rest.Controllers {
 	[Route("api/v1/assistant")]
 	public class AssistantController : Controller {
 		[HttpGet("status")]

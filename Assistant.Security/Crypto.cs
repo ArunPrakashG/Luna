@@ -1,12 +1,12 @@
-using Assistant.Extensions.Interfaces;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Assistant.Security {
+namespace Luna.Security {
 	public class Crypto : IExternal {
 		private static readonly ILogger Logger = new Logger(typeof(Crypto).Name);
 

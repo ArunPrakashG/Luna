@@ -1,17 +1,17 @@
-using Assistant.Extensions;
-using Assistant.Gpio.Config;
-using Assistant.Gpio.Controllers;
-using Assistant.Gpio.Drivers;
-using Assistant.Gpio.Events.EventArgs;
-using Assistant.Gpio.Exceptions;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions;
+using Luna.Gpio.Config;
+using Luna.Gpio.Controllers;
+using Luna.Gpio.Drivers;
+using Luna.Gpio.Events.EventArgs;
+using Luna.Gpio.Exceptions;
+using Luna.Logging.Interfaces;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Gpio.Enums;
-using static Assistant.Logging.Enums;
+using static Luna.Gpio.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Gpio.Events {
+namespace Luna.Gpio.Events {
 	internal class Generator {
 		private const int POLL_DELAY = 1; // in ms		
 		private readonly ILogger Logger;

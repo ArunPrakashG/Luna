@@ -1,4 +1,4 @@
-namespace Assistant.Extensions.Shared.Shell {
+namespace Luna.Extensions.Shared.Shell {
 	public readonly struct Parameter {
 		public readonly string CommandKey;
 		public readonly string[] Parameters;

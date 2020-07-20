@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Modules {
+namespace Luna.Modules {
 	public struct EventResponse {
 		public readonly string? ResponseMessage;
 		public readonly bool IsSuccess;

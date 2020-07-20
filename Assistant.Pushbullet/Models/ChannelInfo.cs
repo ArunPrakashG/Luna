@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Assistant.Pushbullet.Models {
+namespace Luna.Pushbullet.Models {
 	public class ChannelInfo {
 		[JsonProperty("active")]
 		public bool Active { get; set; }

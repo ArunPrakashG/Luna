@@ -1,13 +1,13 @@
-using Assistant.Extensions;
-using Assistant.Extensions.Interfaces;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions;
+using Luna.Extensions.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using static Assistant.Logging.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Sound {
+namespace Luna.Sound {
 	public class Sound : IExternal {
 		private static readonly ILogger Logger = new Logger(typeof(Sound).Name);
 		public static bool IsGloballyMuted = false;

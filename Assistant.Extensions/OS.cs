@@ -1,10 +1,10 @@
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace Assistant.Extensions {
+namespace Luna.Extensions {
 	// Credits to this section goes to JustArchiNET -> ArchiSteamFarm
 	public static class OS {
 		public static bool IsUnix => RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);

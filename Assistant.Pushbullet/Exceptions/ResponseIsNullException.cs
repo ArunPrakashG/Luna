@@ -30,7 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Pushbullet.Exceptions {
+namespace Luna.Pushbullet.Exceptions {
 	public class ResponseIsNullException : Exception {
 		public ResponseIsNullException() : base("The api json response is null or empty.") {
 		}

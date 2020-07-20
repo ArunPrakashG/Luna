@@ -1,4 +1,4 @@
-namespace Assistant.Logging {
+namespace Luna.Logging {
 	public class Enums {
 		public enum LogLevels {
 			Trace,

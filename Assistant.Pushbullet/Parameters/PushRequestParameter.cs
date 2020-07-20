@@ -1,6 +1,6 @@
-using static Assistant.Pushbullet.PushEnums;
+using static Luna.Pushbullet.PushEnums;
 
-namespace Assistant.Pushbullet.Parameters {
+namespace Luna.Pushbullet.Parameters {
 	public struct PushRequestParameter<T> {
 		public readonly PushTarget PushTarget;
 		public readonly string PushTargetValue;

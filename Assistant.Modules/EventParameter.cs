@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Modules {
+namespace Luna.Modules {
 	public struct EventParameter {
 		public readonly object[] Values;
 		public readonly int ValuesCount => Values != null ? Values.Length : 0;

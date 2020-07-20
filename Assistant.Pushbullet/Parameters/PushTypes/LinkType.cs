@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Pushbullet.Parameters.PushTypes {
+namespace Luna.Pushbullet.Parameters.PushTypes {
 	public class LinkType {
 		[JsonProperty("type")]
 		public readonly string TypeIdentifier = "link";

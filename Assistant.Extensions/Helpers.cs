@@ -1,5 +1,5 @@
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using Figgle;
 using RestSharp;
 using System;
@@ -14,9 +14,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Logging.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Extensions {
+namespace Luna.Extensions {
 	public static class Helpers
 	{
 		private static readonly ILogger Logger = new Logger(typeof(Helpers).Name);

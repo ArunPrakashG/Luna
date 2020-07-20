@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Pushbullet.Parameters.PushTypes {
+namespace Luna.Pushbullet.Parameters.PushTypes {
 	[Obsolete("Not Implemented yet.")]
 	public class FileType {		
 		[JsonProperty("type")]

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace Assistant.Rest {
+namespace Luna.Rest {
 	public class Startup {
 		public Startup(IConfiguration configuration) {
 			Configuration = configuration;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Assistant.Rest {
+namespace Luna.Rest {
 	public struct RequestParameter {
 		public readonly string? AuthToken;
 		public readonly string? PublicIp;

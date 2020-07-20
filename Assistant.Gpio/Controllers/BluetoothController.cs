@@ -1,10 +1,10 @@
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
-using static Assistant.Logging.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Gpio.Controllers {
+namespace Luna.Gpio.Controllers {
 
 	/// <summary>
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)

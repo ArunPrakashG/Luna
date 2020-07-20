@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Weather {
+namespace Luna.Weather {
 	[Serializable]
 	public class WeatherResponse {
 		[JsonProperty("coord")]

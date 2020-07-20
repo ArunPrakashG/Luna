@@ -1,8 +1,8 @@
-using Assistant.Gpio.Events.EventArgs;
+using Luna.Gpio.Events.EventArgs;
 using System;
-using static Assistant.Gpio.Enums;
+using static Luna.Gpio.Enums;
 
-namespace Assistant.Gpio.Events {
+namespace Luna.Gpio.Events {
 	internal struct EventConfig {
 		internal readonly int GpioPin;
 

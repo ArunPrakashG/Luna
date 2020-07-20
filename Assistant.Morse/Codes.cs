@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace Assistant.Morse {
+namespace Luna.Morse {
 	public class Codes {
 		public string this[char character] {
 			get {

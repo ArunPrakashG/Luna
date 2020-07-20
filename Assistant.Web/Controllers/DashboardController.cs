@@ -5,9 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Assistant.Web.Models;
+using Luna.Web.Models;
 
-namespace Assistant.Web.Controllers
+namespace Luna.Web.Controllers
 {
 	public class DashboardController : Controller
 	{

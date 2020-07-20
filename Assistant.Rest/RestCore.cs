@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Assistant.Rest {
+namespace Luna.Rest {
 	public class RestCore {
 		private static int ServerPort = 7777;
 		private static IHost? WebHost;

@@ -1,6 +1,6 @@
 using System;
 
-namespace Assistant.Location {
+namespace Luna.Location {
 	[Serializable]
 	public class Response {
 		public string? Message { get; set; }

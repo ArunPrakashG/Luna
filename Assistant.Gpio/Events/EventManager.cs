@@ -1,10 +1,10 @@
-using Assistant.Gpio.Controllers;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Gpio.Controllers;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Assistant.Gpio.Events {
+namespace Luna.Gpio.Events {
 	public class EventManager {
 		private readonly ILogger Logger = new Logger(typeof(EventManager).Name);
 		private readonly Dictionary<int, Generator> Events = new Dictionary<int, Generator>();

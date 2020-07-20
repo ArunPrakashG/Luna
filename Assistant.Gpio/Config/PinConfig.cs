@@ -1,8 +1,8 @@
-namespace Assistant.Gpio.Config {
+namespace Luna.Gpio.Config {
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
-	using static Assistant.Gpio.Enums;
+	using static Luna.Gpio.Enums;
 
 	/// <summary>
 	/// Defines pin configuration collection.

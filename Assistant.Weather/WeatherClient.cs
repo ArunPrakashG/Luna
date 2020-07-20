@@ -1,7 +1,7 @@
-using Assistant.Extensions;
-using Assistant.Extensions.Interfaces;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions;
+using Luna.Extensions.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.Net;
@@ -9,7 +9,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.Weather {
+namespace Luna.Weather {
 	public class WeatherClient : IExternal, IDisposable {
 		private const int MAX_RETRY_COUNT = 3;
 		private readonly ILogger Logger = new Logger(typeof(WeatherClient).Name);

@@ -1,9 +1,9 @@
-using Assistant.Extensions;
-using Assistant.Extensions.Interfaces;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
-using Assistant.Modules.Interfaces;
-using Assistant.Modules.Interfaces.EventInterfaces;
+using Luna.Extensions;
+using Luna.Extensions.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
+using Luna.Modules.Interfaces;
+using Luna.Modules.Interfaces.EventInterfaces;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,7 +17,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.Modules {
+namespace Luna.Modules {
 	public class ModuleInitializer : IExternal{
 		private readonly ILogger Logger = new Logger(nameof(ModuleInitializer));
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();

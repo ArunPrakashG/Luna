@@ -1,10 +1,10 @@
-using Assistant.Gpio;
+using Luna.Gpio;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Hosting;
 using System.Threading.Tasks;
 
-namespace Assistant.Web {
+namespace Luna.Web {
 	public class Program {
 		private static int KestrelPort = 5335;
 		private static IHost WebHost;

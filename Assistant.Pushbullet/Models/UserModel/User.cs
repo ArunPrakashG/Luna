@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Pushbullet.Models {
+namespace Luna.Pushbullet.Models {
 	public class User {
 		[JsonProperty("created")]
 		public float Created { get; set; }

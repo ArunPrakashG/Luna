@@ -5,9 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Westwind.AspNetCore.LiveReload;
 using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation;
-using Assistant.Gpio;
+using Luna.Gpio;
 
-namespace Assistant.Web {
+namespace Luna.Web {
 	public class Startup {
 		public Startup(IConfiguration configuration) {
 			Configuration = configuration;

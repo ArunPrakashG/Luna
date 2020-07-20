@@ -1,6 +1,6 @@
 using System;
 
-namespace Assistant.Web.Models
+namespace Luna.Web.Models
 {
 	public class ErrorViewModel
 	{

@@ -1,17 +1,17 @@
 // All credits for this code goes to AshV
 // https://github.com/AshV
 
-using Assistant.Extensions;
-using Assistant.Extensions.Interfaces;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions;
+using Luna.Extensions.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Assistant.Morse {
+namespace Luna.Morse {
 	public class MorseCore : IExternal {
 		private int TimeUnitInMilliSeconds { get; set; } = 100;
 

@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Pushbullet.Models {
+namespace Luna.Pushbullet.Models {
 	[Serializable]
 	public class Subscription {
 		[JsonProperty("active")]

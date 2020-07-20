@@ -1,6 +1,6 @@
 using System;
 
-namespace Assistant.Modules.Interfaces {
+namespace Luna.Modules.Interfaces {
 	public interface IModuleBase {
 
 		///<summary>

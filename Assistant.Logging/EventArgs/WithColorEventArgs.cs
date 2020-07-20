@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Logging.EventArgs {
+namespace Luna.Logging.EventArgs {
 	[Serializable]
 	public class WithColorEventArgs {
 		[JsonProperty]

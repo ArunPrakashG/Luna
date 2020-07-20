@@ -1,13 +1,13 @@
-using Assistant.Extensions;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.Location {
+namespace Luna.Location {
 	public class ZipCode {
 		private ILogger Logger { get; set; } = new Logger(typeof(ZipCode).Name);
 		private const int MAX_TRIES = 3;

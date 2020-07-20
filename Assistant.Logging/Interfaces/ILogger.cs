@@ -1,8 +1,8 @@
 using System;
 using System.Runtime.CompilerServices;
-using static Assistant.Logging.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Logging.Interfaces {
+namespace Luna.Logging.Interfaces {
 	public interface ILogger {
 
 		string? LogIdentifier { get; set; }

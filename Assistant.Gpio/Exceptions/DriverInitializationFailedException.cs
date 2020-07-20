@@ -1,6 +1,6 @@
 using System;
 
-namespace Assistant.Gpio.Exceptions {
+namespace Luna.Gpio.Exceptions {
 	public class DriverInitializationFailedException : Exception {
 		public DriverInitializationFailedException(string driverName)
 			: base(string.Format("A driver failed to initialize properly. {0}", driverName)) { }

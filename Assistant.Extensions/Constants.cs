@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace Assistant.Extensions {
+namespace Luna.Extensions {
 	public static class Constants {
 		public const string TraceLogPath = "TraceLog.txt";
 		public const string DebugLogPath = "DebugLog.txt";

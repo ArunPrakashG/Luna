@@ -1,6 +1,6 @@
-using Assistant.Modules.Interfaces;
+using Luna.Modules.Interfaces;
 
-namespace Assistant.Modules {
+namespace Luna.Modules {
 	public struct ModuleInfo<T> where T : IModuleBase {
 		public readonly string? ModuleIdentifier;
 		public readonly T Module;

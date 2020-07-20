@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Assistant.Modules.Interfaces.EventInterfaces {
+namespace Luna.Modules.Interfaces.EventInterfaces {
 
 	/// <summary>
 	/// Provides various AsyncTask methods which is fired during certain events occurring in assistant.

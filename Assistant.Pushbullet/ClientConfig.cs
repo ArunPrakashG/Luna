@@ -1,10 +1,10 @@
-using Assistant.Pushbullet.Exceptions;
+using Luna.Pushbullet.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
-namespace Assistant.Pushbullet {
+namespace Luna.Pushbullet {
 	public struct ClientConfig {
 		public readonly string AccessToken;
 		public readonly IWebProxy Proxy;

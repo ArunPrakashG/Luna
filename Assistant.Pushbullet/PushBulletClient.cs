@@ -1,9 +1,9 @@
-using Assistant.Extensions.Interfaces;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
-using Assistant.Pushbullet.Exceptions;
-using Assistant.Pushbullet.Models;
-using Assistant.Pushbullet.Parameters;
+using Luna.Extensions.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
+using Luna.Pushbullet.Exceptions;
+using Luna.Pushbullet.Models;
+using Luna.Pushbullet.Parameters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -11,9 +11,9 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using static Assistant.Pushbullet.PushEnums;
+using static Luna.Pushbullet.PushEnums;
 
-namespace Assistant.Pushbullet {
+namespace Luna.Pushbullet {
 	public class PushbulletClient : IExternal, IDisposable {
 		private static readonly int RequestFailedCount = 0;
 

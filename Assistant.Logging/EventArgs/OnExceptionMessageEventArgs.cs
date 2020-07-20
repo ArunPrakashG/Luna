@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System;
 
-namespace Assistant.Logging.EventArgs {
+namespace Luna.Logging.EventArgs {
 	public class OnExceptionMessageEventArgs {
 		[JsonProperty]
 		public string? LogIdentifier { get; private set; }

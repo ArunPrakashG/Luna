@@ -1,6 +1,6 @@
 using System;
 
-namespace Assistant.Extensions.Attributes {
+namespace Luna.Extensions.Attributes {
 
 	[AttributeUsage(AttributeTargets.All)]
 	public class RequireInternetAttribute : Attribute {

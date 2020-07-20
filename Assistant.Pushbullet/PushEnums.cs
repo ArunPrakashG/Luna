@@ -1,4 +1,4 @@
-namespace Assistant.Pushbullet {
+namespace Luna.Pushbullet {
 	public class PushEnums {
 		public enum PushTarget {
 			Device,

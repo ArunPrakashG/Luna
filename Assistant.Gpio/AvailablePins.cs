@@ -1,4 +1,4 @@
-namespace Assistant.Gpio {
+namespace Luna.Gpio {
 	public struct AvailablePins {
 		public readonly int[] OutputPins;
 		public readonly int[] InputPins;

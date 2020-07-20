@@ -1,7 +1,7 @@
 using System;
-using static Assistant.Gpio.Enums;
+using static Luna.Gpio.Enums;
 
-namespace Assistant.Gpio.Events.EventArgs {
+namespace Luna.Gpio.Events.EventArgs {
 	internal struct OnValueChangedEventArgs {
 		internal readonly int Pin;
 		internal readonly GpioPinState CurrentState;

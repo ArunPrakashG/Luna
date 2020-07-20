@@ -1,6 +1,6 @@
 using System;
 
-namespace Assistant.Pushbullet.Exceptions {
+namespace Luna.Pushbullet.Exceptions {
 	public class IncorrectAccessTokenException : Exception {
 		public IncorrectAccessTokenException() : base("Empty or Incorrect access token specified.") {
 		}

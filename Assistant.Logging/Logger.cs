@@ -1,10 +1,10 @@
-using Assistant.Logging.EventArgs;
-using Assistant.Logging.Interfaces;
+using Luna.Logging.EventArgs;
+using Luna.Logging.Interfaces;
 using System;
 using System.Runtime.CompilerServices;
-using static Assistant.Logging.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Logging {
+namespace Luna.Logging {
 	public class Logger : ILogger {
 		public string? LogIdentifier { get; set; }
 

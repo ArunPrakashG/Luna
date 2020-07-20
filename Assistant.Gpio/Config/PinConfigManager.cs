@@ -1,13 +1,13 @@
-using Assistant.Extensions;
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Extensions;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Assistant.Gpio.Config {
+namespace Luna.Gpio.Config {
 	/// <summary>
 	/// Defines the <see cref="PinConfigManager" />
 	/// </summary>

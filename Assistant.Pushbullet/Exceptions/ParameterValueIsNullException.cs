@@ -30,7 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Pushbullet.Exceptions {
+namespace Luna.Pushbullet.Exceptions {
 	class ParameterValueIsNullException : Exception {
 		public ParameterValueIsNullException() : base("The parameter value is null.") {
 		}

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Assistant.Web.Controllers
+namespace Luna.Web.Controllers
 {
     public class SystemStatusController : Controller
     {

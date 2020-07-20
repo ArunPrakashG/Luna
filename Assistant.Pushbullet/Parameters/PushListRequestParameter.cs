@@ -1,6 +1,6 @@
 using System;
 
-namespace Assistant.Pushbullet.Parameters {
+namespace Luna.Pushbullet.Parameters {
 	public struct PushListRequestParameter {
 		public readonly TimeSpan ModifiedAfter;
 		public readonly bool ActiveOnly;

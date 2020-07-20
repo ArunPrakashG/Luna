@@ -1,7 +1,7 @@
-using Assistant.Extensions.Interfaces;
-using Assistant.Logging;
+using Luna.Extensions.Interfaces;
+using Luna.Logging;
 
-namespace Assistant.Location {
+namespace Luna.Location {
 	public class LocationCore : IExternal {
 		public void RegisterLoggerEvent(object eventHandler) {
 			LoggerExtensions.RegisterLoggerEvent(eventHandler);

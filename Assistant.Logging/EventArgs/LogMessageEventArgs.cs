@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 using System;
-using static Assistant.Logging.Enums;
+using static Luna.Logging.Enums;
 
-namespace Assistant.Logging.EventArgs {
+namespace Luna.Logging.EventArgs {
 	public class LogMessageEventArgs {
 		[JsonProperty]
 		public string? LogIdentifier { get; private set; }

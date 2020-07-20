@@ -1,11 +1,11 @@
-using Assistant.Logging;
-using Assistant.Logging.Interfaces;
+using Luna.Logging;
+using Luna.Logging.Interfaces;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
 using Unosquare.RaspberryIO.Computer;
-using static Assistant.Gpio.Enums;
+using static Luna.Gpio.Enums;
 
-namespace Assistant.Gpio.Controllers {
+namespace Luna.Gpio.Controllers {
 	public class SoundController {
 		private readonly ILogger Logger = new Logger(typeof(SoundController).Name);
 		private bool IsAllowedToRun => PinController.GetDriver() != null && PinController.GetDriver()?.DriverName == GpioDriver.RaspberryIODriver;

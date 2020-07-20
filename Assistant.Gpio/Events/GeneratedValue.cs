@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using static Assistant.Gpio.Enums;
+using static Luna.Gpio.Enums;
 
-namespace Assistant.Gpio.Events {
+namespace Luna.Gpio.Events {
 	internal struct GeneratedValue {
 		internal GpioPinState PinState { get; private set; }
 		internal bool DigitalValue { get; private set; }

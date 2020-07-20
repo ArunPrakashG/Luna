@@ -1,4 +1,4 @@
-namespace Assistant.Gpio {
+namespace Luna.Gpio {
 	public static class Enums {
 		public enum GpioDriver {
 			RaspberryIODriver,

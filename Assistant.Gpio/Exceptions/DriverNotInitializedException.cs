@@ -1,9 +1,9 @@
-using Assistant.Gpio.Drivers;
+using Luna.Gpio.Drivers;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Assistant.Gpio.Exceptions {
+namespace Luna.Gpio.Exceptions {
 	public class DriverNotInitializedException : Exception {
 		public DriverNotInitializedException()
 			: base("The specified " + nameof(IGpioControllerDriver) + " failed to initialize.") {
