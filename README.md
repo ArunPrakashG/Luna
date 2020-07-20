@@ -1,4 +1,5 @@
-# HOME ASSISTANT
+# LUNA
+### A DIGITAL BUTLER
 
 ## NOTE: Currently rewritting the code.
 
