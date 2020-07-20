@@ -1,4 +1,4 @@
-using Luna.Core.Watchers.Interfaces;
+using Luna.Watchers.Interfaces;
 using Luna.Extensions;
 using Luna.Logging;
 using Luna.Logging.Interfaces;
@@ -9,7 +9,7 @@ using System.Threading;
 using static Luna.Gpio.Enums;
 using static Luna.Logging.Enums;
 
-namespace Luna.Core {
+namespace Luna {
 	[Serializable]
 	public class CoreConfig {
 		[JsonProperty]

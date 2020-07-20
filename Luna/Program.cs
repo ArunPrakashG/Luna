@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Luna.Logging.Enums;
 
-namespace Luna.Core {	
+namespace Luna {	
 	public class Program {
 		private static readonly ILogger Logger = new Logger(typeof(Program).Name);
 		private static Mutex? InstanceIdentifierMutex;

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Core.Shell.InternalCommands {
+namespace Luna.Shell.InternalCommands {
 	public class HelpCommand : IShellCommand, IDisposable {
 		public bool HasParameters => true;
 

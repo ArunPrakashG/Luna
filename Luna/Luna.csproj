@@ -4,15 +4,15 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AssemblyVersion>8.17.0.0</AssemblyVersion>
+    <AssemblyVersion>8.2.0.0</AssemblyVersion>
     <FileVersion>8.17.0.0</FileVersion>
     <Version>8.2.0.0</Version>
-    <Authors>Arun</Authors>
-    <Company>Arun Prakash</Company>
-    <Copyright>Copyright © Home Assistant 2019-2020</Copyright>
-    <PackageProjectUrl>https://github.com/ArunPrakashG/HomeAssistant</PackageProjectUrl>
+    <Authors>ArunPrakashG</Authors>
+    <Company>ArunPrakashG</Company>
+    <Copyright>Copyright © Luna 2019-2020</Copyright>
+    <PackageProjectUrl>https://github.com/ArunPrakashG/Luna</PackageProjectUrl>
     <RepositoryType>Git</RepositoryType>
-    <RepositoryUrl>https://github.com/ArunPrakashG/HomeAssistant.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/ArunPrakashG/Luna.git</RepositoryUrl>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <RuntimeIdentifiers>linux-arm;win-x64</RuntimeIdentifiers>
@@ -23,6 +23,7 @@
     <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
 		<MvcRazorCompileOnPublish>true</MvcRazorCompileOnPublish>
 		<PreserveCompilationContext>true</PreserveCompilationContext>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0">

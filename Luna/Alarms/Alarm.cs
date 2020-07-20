@@ -1,7 +1,7 @@
 using FluentScheduler;
 using System;
 
-namespace Luna.Core.Alarms {
+namespace Luna.Alarms {
 	public class Alarm : IAlarm, IJob {
 		public string? Name { get; }
 

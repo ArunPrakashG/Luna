@@ -1,9 +1,9 @@
-namespace Luna.Core {
-	using Luna.Core.Server;
-	using Luna.Core.Shell;
-	using Luna.Core.Update;
-	using Luna.Core.Watchers;
-	using Luna.Core.Watchers.Interfaces;
+namespace Luna {
+	using Luna.Server;
+	using Luna.Shell;
+	using Luna.Update;
+	using Luna.Watchers;
+	using Luna.Watchers.Interfaces;
 	using Luna.Extensions;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
@@ -193,7 +193,7 @@ namespace Luna.Core {
 			}
 
 			Logger.Log("Bye, have a good day sir!");
-			NLog.NLog.LoggerOnShutdown();
+			Logging.NLog.LoggerOnShutdown();
 			KeepAliveToken.Cancel();
 			Environment.Exit(exitCode);
 		}

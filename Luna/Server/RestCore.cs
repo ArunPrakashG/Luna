@@ -9,7 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Core.Server {
+namespace Luna.Server {
 	internal class RestCore : IDisposable {
 		private readonly Logging.Interfaces.ILogger Logger = new Logger(nameof(RestCore));
 		private readonly CancellationTokenSource ShutdownTokenSource = new CancellationTokenSource();

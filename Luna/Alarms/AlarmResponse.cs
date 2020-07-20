@@ -1,6 +1,6 @@
 using System;
 
-namespace Luna.Core.Alarms
+namespace Luna.Alarms
 {
 	public struct AlarmResponse {
 		public bool IsScheduled { get; }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Luna.Gpio;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Luna.Core.Server.Controllers
+namespace Luna.Server.Controllers
 {
     public class GpioController : Controller
     {

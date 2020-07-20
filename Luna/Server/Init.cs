@@ -10,7 +10,7 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Diagnostics;
 
-namespace Luna.Core.Server {
+namespace Luna.Server {
 	internal sealed class Init {
 		private readonly IConfiguration Configuration;
 		private readonly IWebHostEnvironment WebhostEnvironment;

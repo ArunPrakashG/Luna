@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Luna.Core.Watchers.Interfaces {
+namespace Luna.Watchers.Interfaces {
 	public interface IWatcher {
 		string FilterQuery { get; }
 

@@ -1,8 +1,9 @@
-namespace Luna.Core.Shell {
+namespace Luna.Shell {
 	using Luna.Extensions;
 	using Luna.Extensions.Shared.Shell;
 	using Luna.Logging;
 	using Luna.Logging.Interfaces;
+	using Luna.Shell.InternalCommands;
 	using Luna.Sound;
 	using System;
 	using System.Collections.Generic;

@@ -7,7 +7,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Core.Update {
+namespace Luna.Update {
 	internal class GitHub {
 
 		[JsonProperty("url")]

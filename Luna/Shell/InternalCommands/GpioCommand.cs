@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Luna.Gpio.Enums;
 
-namespace Luna.Core.Shell.InternalCommands {
+namespace Luna.Shell.InternalCommands {
 	public class GpioCommand : IShellCommand, IDisposable {
 		public bool HasParameters => true;
 

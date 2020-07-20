@@ -3,7 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using static Luna.Logging.Enums;
 
-namespace Luna.Core.NLog {
+namespace Luna.Logging {
 	public class CoreLogger {
 		private global::NLog.Logger? LogModule;
 		public string? LogIdentifier { get; private set; }

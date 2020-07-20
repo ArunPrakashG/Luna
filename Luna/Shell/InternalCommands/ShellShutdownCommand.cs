@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Core.Shell.InternalCommands {
+namespace Luna.Shell.InternalCommands {
 	public class ShellShutdownCommand : IShellCommand, IDisposable {
 		public bool HasParameters => false;
 

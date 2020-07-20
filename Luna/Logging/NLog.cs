@@ -5,7 +5,7 @@ using NLog.Targets;
 using System;
 using System.IO;
 
-namespace Luna.Core.NLog {
+namespace Luna.Logging {
 	public static class NLog {
 		private const string GeneralTraceLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${level:uppercase=true} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";
 		private const string GeneralDebugLayout = @"${date:format=dd-M-yyyy h\:mm} ][ ${logger} ][ ${message}${onexception:inner= ${exception:format=toString,Data}}";

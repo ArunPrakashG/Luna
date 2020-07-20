@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using static Luna.Logging.Enums;
 using static Luna.Modules.ModuleInitializer;
 
-namespace Luna.Core.Update {
+namespace Luna.Update {
 	public class UpdateManager {
 		private const string JOB_NAME = "GITHUB_UPDATER";
 		private readonly ILogger Logger = new Logger(typeof(UpdateManager).Name);

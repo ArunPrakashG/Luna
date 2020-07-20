@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace Luna.Core.Server.Controllers {
+namespace Luna.Server.Controllers {
 	public class DashboardController : Controller {
 		private readonly ILogger<DashboardController> _logger;
 

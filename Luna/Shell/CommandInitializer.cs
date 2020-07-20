@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Core.Shell {
+namespace Luna.Shell {
 	internal class CommandInitializer {
 		private static readonly ILogger Logger = new Logger(typeof(CommandInitializer).Name);
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);

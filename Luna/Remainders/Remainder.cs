@@ -1,7 +1,7 @@
 using FluentScheduler;
 using System;
 
-namespace Luna.Core.Remainders {
+namespace Luna.Remainders {
 	public class Remainder : IJob {
 		public readonly string? UniqueId;
 		public readonly string? Message;

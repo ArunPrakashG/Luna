@@ -6,7 +6,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Core.Shell.InternalCommands {
+namespace Luna.Shell.InternalCommands {
 	public class MorseCommand : IShellCommand, IDisposable {
 		public bool HasParameters => true;
 

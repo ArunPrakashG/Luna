@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using static Luna.Modules.ModuleInitializer;
 
-namespace Luna.Core.Watchers {
+namespace Luna.Watchers {
 	public class GenericWatcher : IWatcher {
 		private const int DELAY_SECS = 2;
 		private readonly ILogger Logger = new Logger(nameof(GenericWatcher));
