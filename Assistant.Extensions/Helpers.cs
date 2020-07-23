@@ -82,23 +82,6 @@ namespace Luna.Extensions {
 			}
 		}
 
-		public static void SetFileSeperator() {
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-				FileSeperator = "//";
-				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
-			}
-
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-				FileSeperator = "\\";
-				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
-			}
-
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-				FileSeperator = "//";
-				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
-			}
-		}
-
 		public static bool AsBool(this string value, out bool? booleanValue) {
 			if (string.IsNullOrEmpty(value)) {
 				booleanValue = null;
@@ -230,7 +213,6 @@ namespace Luna.Extensions {
 
 			proc.Start();
 			proc.WaitForExit();
-
 			return proc.StandardOutput.ReadToEnd();
 		}
 
@@ -313,7 +295,7 @@ namespace Luna.Extensions {
 				return;
 			}
 			
-			Logger.WithColor(FiggleFonts.Ogre.Render(text), ConsoleColor.Green);
+			Logger.WithColor(, ConsoleColor.Green);
 		}
 
 		public static string? GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);

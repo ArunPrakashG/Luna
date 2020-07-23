@@ -9,7 +9,7 @@ using static Luna.Logging.Enums;
 
 namespace Luna {
 	internal static class CoreEventManager {
-		private static List<Logging.CoreLogger> AssistantLoggers = new List<Logging.CoreLogger>();
+		private static List<Logging.InternalLogger> AssistantLoggers = new List<Logging.InternalLogger>();
 		private static readonly ILogger Logger = new Logger(typeof(CoreEventManager).Name);
 
 		static CoreEventManager() {
@@ -32,13 +32,13 @@ namespace Luna {
 
 		internal static void OnExceptionOccured(object sender, OnExceptionMessageEventArgs e) {
 			if (AssistantLoggers == null) {
-				AssistantLoggers = new List<Logging.CoreLogger>();
+				AssistantLoggers = new List<Logging.InternalLogger>();
 			}
 
-			Logging.CoreLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
+			Logging.InternalLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
 
 			if (logger == null) {
-				logger = new Logging.CoreLogger(e.LogIdentifier);
+				logger = new Logging.InternalLogger(e.LogIdentifier);
 				AssistantLoggers.Add(logger);
 			}
 
@@ -47,13 +47,13 @@ namespace Luna {
 
 		internal static void OnErrorReceived(object sender, EventArgsBase e) {
 			if (AssistantLoggers == null) {
-				AssistantLoggers = new List<Logging.CoreLogger>();
+				AssistantLoggers = new List<Logging.InternalLogger>();
 			}
 
-			Logging.CoreLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
+			Logging.InternalLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
 
 			if (logger == null) {
-				logger = new Logging.CoreLogger(e.LogIdentifier);
+				logger = new Logging.InternalLogger(e.LogIdentifier);
 				AssistantLoggers.Add(logger);
 			}
 
@@ -64,13 +64,13 @@ namespace Luna {
 
 		internal static void OnLogMessageReceived(object sender, LogMessageEventArgs e) {
 			if (AssistantLoggers == null) {
-				AssistantLoggers = new List<Logging.CoreLogger>();
+				AssistantLoggers = new List<Logging.InternalLogger>();
 			}
 
-			Logging.CoreLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
+			Logging.InternalLogger? logger = AssistantLoggers.Find(x => !string.IsNullOrEmpty(x.LogIdentifier) && x.LogIdentifier.Equals(e.LogIdentifier, StringComparison.OrdinalIgnoreCase));
 
 			if (logger == null) {
-				logger = new Logging.CoreLogger(e.LogIdentifier);
+				logger = new Logging.InternalLogger(e.LogIdentifier);
 				AssistantLoggers.Add(logger);
 			}
 

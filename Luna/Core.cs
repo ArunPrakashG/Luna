@@ -1,18 +1,18 @@
 namespace Luna {
-	using Luna.Server;
-	using Luna.Shell;
-	using Luna.Update;
-	using Luna.Watchers;
-	using Luna.Watchers.Interfaces;
-	using Luna.Extensions;
+	using Figgle;
+	using FluentScheduler;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
 	using Luna.Logging;
-	using Luna.Logging.Interfaces;
 	using Luna.Modules;
 	using Luna.Modules.Interfaces.EventInterfaces;
+	using Luna.Server;
+	using Luna.Shell;
 	using Luna.Sound.Speech;
-	using FluentScheduler;
+	using Luna.Update;
+	using Luna.Watchers;
+	using Luna.Watchers.Interfaces;
+	using Synergy.Extensions;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -22,56 +22,50 @@ namespace Luna {
 	using System.Threading.Tasks;
 	using Unosquare.RaspberryIO;
 	using static Luna.Gpio.Enums;
-	using static Luna.Logging.Enums;
 	using static Luna.Modules.ModuleInitializer;
 
-	public class Core {
-		private readonly ILogger Logger = new Logger(nameof(Core));
+	internal class Core {
+		private static readonly Stopwatch RuntimeSpanCounter;
+		private readonly InternalLogger Logger;
 		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
 		private readonly IWatcher InternalFileWatcher;
 		private readonly IWatcher InternalModuleWatcher;
 		private readonly GpioCore Controller;
 		private readonly UpdateManager Updater;
-		private readonly CoreConfig Config;
+		private readonly CoreConfig Config;		
 		private readonly ModuleInitializer ModuleLoader;
-		private readonly DateTime StartupTime;
 		private readonly RestCore RestServer;
 
 		internal readonly bool IsBaseInitiationCompleted;
 		internal readonly bool DisableFirstChanceLogWithDebug;
 		internal readonly bool InitiationCompleted;
 
-		public bool IsNetworkAvailable { get; internal set; }
+		internal static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
 
-		public string AssistantName {
-			get => Config.AssistantDisplayName ?? "Home Assistant";
-			internal set => Config.AssistantDisplayName = value ?? Config.AssistantDisplayName;
+		static Core() {
+			RuntimeSpanCounter = new Stopwatch();
+			JobManager.Initialize();
 		}
 
 		internal Core(string[] args) {
+			Console.Title = $"Initializing...";
+			Logger = InternalLogger.GetOrCreateLogger<Core>(this, nameof(Core));
 			OS.Init(true);
-			Console.Title = $"Home Assistant Initializing...";
-			StartupTime = DateTime.Now;
+			RuntimeSpanCounter.Restart();			
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 
 			if (File.Exists(Constants.TraceLogPath)) {
 				File.Delete(Constants.TraceLogPath);
 			}
 
-			JobManager.Initialize(new Registry());
-
 			Config = new CoreConfig(this);
-			Config.Load();
-			Config.ProgramLastStartup = StartupTime;
-
-			Helpers.SetFileSeperator();
-			IsNetworkAvailable = Helpers.IsNetworkAvailable();
-			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
-			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
+			Config.LoadAsync().Wait();
+			Config.LocalIP = Helpers.GetLocalIpAddress()?.ToString() ?? "-Invalid-";
+			Config.PublicIP = Helpers.GetPublicIP()?.ToString() ?? "-Invalid-";
 
 			if (!IsNetworkAvailable) {
-				Logger.Log("No Internet connection.", LogLevels.Warn);
-				Logger.Log($"Starting {AssistantName} in offline mode...");
+				Logger.Warn("No Internet connection.");
+				Logger.Info($"Starting offline mode...");
 			}
 
 			Controller = new GpioCore(new AvailablePins(
@@ -81,14 +75,15 @@ namespace Luna {
 					Config.RelayPins,
 					Config.IRSensorPins,
 					Config.SoundSensorPins
-					), true);
+			), true);
+
 			Updater = new UpdateManager(this);
 			ModuleLoader = new ModuleInitializer();
 			RestServer = new RestCore(Config.RestServerPort, Config.Debug);
 
 			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.WithName("ConsoleUpdater").ToRunEvery(1).Seconds());
-			Helpers.ASCIIFromText(Config.AssistantDisplayName);
-			Logger.WithColor($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", ConsoleColor.Blue);
+			Logger.CustomLog(FiggleFonts.Ogre.Render("LUNA"), ConsoleColor.Green);
+			Logger.CustomLog($"---------------- Starting Luna v{Constants.Version} ----------------", ConsoleColor.Blue);
 			IsBaseInitiationCompleted = true;
 			PostInitiation().Wait();
 
@@ -177,7 +172,7 @@ namespace Luna {
 				() => InternalFileWatcher.StopWatcher(),
 				() => InternalModuleWatcher.StopWatcher(),
 				() => ModuleLoader?.OnCoreShutdown(),
-				() => Config.Save()
+				async () => await Config.SaveAsync().ConfigureAwait(false)
 			);
 
 			Logger.Log("Finished exit tasks.", LogLevels.Trace);
@@ -193,7 +188,7 @@ namespace Luna {
 			}
 
 			Logger.Log("Bye, have a good day sir!");
-			Logging.NLog.LoggerOnShutdown();
+			Logging.InternalLogManager.LoggerOnShutdown();
 			KeepAliveToken.Cancel();
 			Environment.Exit(exitCode);
 		}
