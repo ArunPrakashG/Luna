@@ -28,8 +28,8 @@ namespace Luna {
 		private static readonly Stopwatch RuntimeSpanCounter;
 		private readonly InternalLogger Logger;
 		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
-		private readonly IWatcher InternalFileWatcher;
-		private readonly IWatcher InternalModuleWatcher;
+		private readonly ConfigWatcher InternalConfigWatcher;
+		private readonly ModuleWatcher InternalModuleWatcher;
 		private readonly GpioCore Controller;
 		private readonly UpdateManager Updater;
 		private readonly CoreConfig Config;		
@@ -38,6 +38,7 @@ namespace Luna {
 
 		internal readonly bool IsBaseInitiationCompleted;
 		internal readonly bool DisableFirstChanceLogWithDebug;
+
 		internal readonly bool InitiationCompleted;
 
 		internal static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
@@ -86,17 +87,8 @@ namespace Luna {
 			Logger.CustomLog($"---------------- Starting Luna v{Constants.Version} ----------------", ConsoleColor.Blue);
 			IsBaseInitiationCompleted = true;
 			PostInitiation().Wait();
-
-			InternalFileWatcher = new GenericWatcher(this, "*.json", Constants.ConfigDirectory, false, null, new Dictionary<string, Action<string>>(3) {
-				{ "Assistant.json", OnCoreConfigChangeEvent },
-				{ "DiscordBot.json", OnDiscordConfigChangeEvent },
-				{ "MailConfig.json", OnMailConfigChangeEvent }
-			});
-
-			InternalModuleWatcher = new GenericWatcher(this, "*.dll", Constants.ModuleDirectory, false, null, new Dictionary<string, Action<string>>(1) {
-				{ "*", OnModuleDirectoryChangeEvent }
-			});
-
+			InternalConfigWatcher = new ConfigWatcher(this);
+			InternalModuleWatcher = new ModuleWatcher(this);
 			InitiationCompleted = true;
 		}
 
@@ -169,7 +161,7 @@ namespace Luna {
 				() => Controller?.Shutdown(),
 				() => JobManager.RemoveAllJobs(),
 				() => JobManager.Stop(),
-				() => InternalFileWatcher.StopWatcher(),
+				() => InternalConfigWatcher.StopWatcher(),
 				() => InternalModuleWatcher.StopWatcher(),
 				() => ModuleLoader?.OnCoreShutdown(),
 				async () => await Config.SaveAsync().ConfigureAwait(false)
@@ -318,8 +310,8 @@ namespace Luna {
 
 		public ModuleInitializer GetModuleInitializer() => ModuleLoader;
 
-		internal IWatcher GetFileWatcher() => InternalFileWatcher;
+		internal FileWatcherBase GetFileWatcher() => InternalConfigWatcher;
 
-		internal IWatcher GetModuleWatcher() => InternalModuleWatcher;
+		internal FileWatcherBase GetModuleWatcher() => InternalModuleWatcher;
 	}
 }
