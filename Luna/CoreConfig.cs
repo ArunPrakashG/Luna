@@ -60,6 +60,9 @@ namespace Luna {
 		public bool EnableModules { get; set; }
 
 		[JsonProperty]
+		public bool EnableShell { get; set; }
+
+		[JsonProperty]
 		public GpioConfiguration GpioConfiguration { get; set; } = new GpioConfiguration();
 
 		[JsonProperty]

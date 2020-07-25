@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 
 namespace Luna.Watchers {
-	internal class ModuleWatcher : FileWatcherBase {
+	internal class ModuleWatcher : WatcherBase {
 		private readonly Core Core;
 
 		internal ModuleWatcher(Core core) : base(new InternalLogger(nameof(ConfigWatcher))) {

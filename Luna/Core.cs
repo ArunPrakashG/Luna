@@ -147,8 +147,7 @@ namespace Luna {
 		}
 
 		internal void OnExit() {
-			Logger.Log("Shutting down...");
-			Config.ProgramLastShutdown = DateTime.Now;
+			Logger.Info("Shutting down...");
 
 			Parallel.Invoke(
 				new ParallelOptions() {
@@ -167,20 +166,19 @@ namespace Luna {
 				async () => await Config.SaveAsync().ConfigureAwait(false)
 			);
 
-			Logger.Log("Finished exit tasks.", LogLevels.Trace);
+			Logger.Trace("Finished exit tasks.");
 		}
 
 		internal void Exit(int exitCode = 0) {
 			if (exitCode != 0) {
-				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
+				Logger.Warn("Exiting with nonzero error code...");
 			}
 
 			if (exitCode == 0) {
 				OnExit();
 			}
 
-			Logger.Log("Bye, have a good day sir!");
-			Logging.InternalLogManager.LoggerOnShutdown();
+			InternalLogManager.LoggerOnShutdown();
 			KeepAliveToken.Cancel();
 			Environment.Exit(exitCode);
 		}
@@ -297,7 +295,7 @@ namespace Luna {
 		}
 
 		private void SetConsoleTitle() {
-			string text = $"{AssistantName} v{Constants.Version} | https://{Constants.LocalIP}:{Config.RestServerPort + 1}/ | {DateTime.Now.ToLongTimeString()} | ";
+			string text = $"Luna v{Constants.Version} | https://{Config.LocalIP}:{Config.RestServerPort}/ | {DateTime.Now.ToLongTimeString()} | ";
 			text += GpioCore.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
 			Helpers.SetConsoleTitle(text);
 		}
@@ -310,8 +308,8 @@ namespace Luna {
 
 		public ModuleInitializer GetModuleInitializer() => ModuleLoader;
 
-		internal FileWatcherBase GetFileWatcher() => InternalConfigWatcher;
+		internal WatcherBase GetFileWatcher() => InternalConfigWatcher;
 
-		internal FileWatcherBase GetModuleWatcher() => InternalModuleWatcher;
+		internal WatcherBase GetModuleWatcher() => InternalModuleWatcher;
 	}
 }

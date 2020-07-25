@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Luna.Watchers.Interfaces {
-	internal abstract class FileWatcherBase {
+namespace Luna.Watchers {
+	internal abstract class WatcherBase {
 		private DateTime LastEventTime;
 		protected const int DELAY_SECS = 1;
 		protected readonly InternalLogger Logger;
@@ -16,7 +16,7 @@ namespace Luna.Watchers.Interfaces {
 		private Dictionary<string, Action<string>> EventActionPairs;
 		protected List<string> IgnoredFiles;
 
-		protected FileWatcherBase(InternalLogger logger) {
+		protected WatcherBase(InternalLogger logger) {
 			Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			IsModuleWatcher = EventActionPairs.Count == 1 && EventActionPairs.First().Key.Equals("*");
 		}
@@ -98,7 +98,7 @@ namespace Luna.Watchers.Interfaces {
 			});
 		}
 
-		protected void StopWatcher() {
+		internal void StopWatcher() {
 			if (Watcher == null) {
 				return;
 			}
