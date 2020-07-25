@@ -134,18 +134,6 @@ namespace Luna {
 			await Interpreter.InitInterpreterAsync().ConfigureAwait(false);
 		}
 
-		internal void OnNetworkDisconnected() {
-			IsNetworkAvailable = false;
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
-			Constants.ExternelIP = "Internet connection lost.";
-		}
-
-		internal void OnNetworkReconnected() {
-			IsNetworkAvailable = true;
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
-			Constants.ExternelIP = Helpers.GetExternalIp();
-		}
-
 		internal void OnExit() {
 			Logger.Info("Shutting down...");
 
