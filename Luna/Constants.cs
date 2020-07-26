@@ -16,7 +16,7 @@ namespace Luna {
 		internal const string TextToSpeechDirectory = ResourcesDirectory + "/TTS";
 		internal const string GitHubAPI = "https://api.github.com/repos/";
 		internal const string GitHubUserID = "ArunPrakashG";
-		internal const string GitHubProjectName = "HomeAssistant";
+		internal const string GitHubProjectName = "Luna";
 		internal const string GITHUB_RELEASE_URL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/latest";
 		internal const string GitHubAssetDownloadURL = GitHubAPI + GitHubUserID + "/" + GitHubProjectName + "/releases/assets/";
 

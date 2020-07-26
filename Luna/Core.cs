@@ -1,6 +1,7 @@
 namespace Luna {
 	using Figgle;
 	using FluentScheduler;
+	using JetBrains.Annotations;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
 	using Luna.Logging;
@@ -11,10 +12,8 @@ namespace Luna {
 	using Luna.Sound.Speech;
 	using Luna.Update;
 	using Luna.Watchers;
-	using Luna.Watchers.Interfaces;
 	using Synergy.Extensions;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.InteropServices;
@@ -24,24 +23,30 @@ namespace Luna {
 	using static Luna.Gpio.Enums;
 	using static Luna.Modules.ModuleInitializer;
 
-	internal class Core {
-		private static readonly Stopwatch RuntimeSpanCounter;
+	internal class Core {		
 		private readonly InternalLogger Logger;
 		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
 		private readonly ConfigWatcher InternalConfigWatcher;
 		private readonly ModuleWatcher InternalModuleWatcher;
 		private readonly GpioCore Controller;
-		private readonly UpdateManager Updater;
-		private readonly CoreConfig Config;		
+		private readonly UpdateManager Updater;		
 		private readonly ModuleInitializer ModuleLoader;
 		private readonly RestCore RestServer;
-
-		internal readonly bool IsBaseInitiationCompleted;
+		
 		internal readonly bool DisableFirstChanceLogWithDebug;
+		internal readonly CoreConfig Config;
 
-		internal readonly bool InitiationCompleted;
+		[PublicAPI]
+		public readonly bool InitiationCompleted;
 
-		internal static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
+		[PublicAPI]
+		public readonly bool IsBaseInitiationCompleted;
+
+		[PublicAPI]
+		public static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
+
+		[PublicAPI]
+		public static readonly Stopwatch RuntimeSpanCounter;
 
 		static Core() {
 			RuntimeSpanCounter = new Stopwatch();
@@ -52,7 +57,7 @@ namespace Luna {
 			Console.Title = $"Initializing...";
 			Logger = InternalLogger.GetOrCreateLogger<Core>(this, nameof(Core));
 			OS.Init(true);
-			RuntimeSpanCounter.Restart();			
+			RuntimeSpanCounter.Restart();
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 
 			if (File.Exists(Constants.TraceLogPath)) {

@@ -1,15 +1,12 @@
-using Luna.Extensions;
 using Luna.Logging;
-using Luna.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Update {
-	internal class GitHub {
-
+namespace Luna {
+	internal class GithubResponse : IDisposable {
 		[JsonProperty("url")]
 		public string? ReleaseUrl { get; set; }
 
@@ -34,26 +31,26 @@ namespace Luna.Update {
 		}
 
 		private const int MAX_TRIES = 3;
-		private readonly ILogger Logger = new Logger(typeof(GitHub).Name);
+		private readonly InternalLogger Logger = new InternalLogger(nameof(GithubResponse));
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly HttpClient Client = new HttpClient();
 
-		static GitHub() {
+		static GithubResponse() {
 			Client.DefaultRequestHeaders.Add("User-Agent", Constants.GitHubProjectName);
 		}
 
-		public async Task Request() {
-			if (string.IsNullOrEmpty(Constants.GITHUB_RELEASE_URL)) {
-				return;
+		internal async Task<GithubResponse> LoadAsync() {
+			if (string.IsNullOrEmpty(Constants.GITHUB_RELEASE_URL) || Client == null || Sync == null) {
+				return this;
 			}
 
-			await Sync.WaitAsync().ConfigureAwait(false);			
+			await Sync.WaitAsync().ConfigureAwait(false);
 
 			try {
 				string? json = null;
 
 				for (int i = 0; i < MAX_TRIES; i++) {
-					
+
 					HttpResponseMessage responseMessage = await Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, Constants.GITHUB_RELEASE_URL)).ConfigureAwait(false);
 
 					if (responseMessage == null || responseMessage.StatusCode != System.Net.HttpStatusCode.OK || responseMessage.Content == null) {
@@ -72,24 +69,29 @@ namespace Luna.Update {
 				}
 
 				if (string.IsNullOrEmpty(json)) {
-					return;
+					return this;
 				}
 
-				GitHub obj = JsonConvert.DeserializeObject<GitHub>(json);
+				GithubResponse obj = JsonConvert.DeserializeObject<GithubResponse>(json);
 				this.Assets = obj.Assets;
 				this.PublishedAt = obj.PublishedAt;
 				this.ReleaseFileName = obj.ReleaseFileName;
 				this.ReleaseTagName = obj.ReleaseTagName;
 				this.ReleaseUrl = obj.ReleaseUrl;
-
+				return this;
 			}
 			catch (Exception e) {
 				Logger.Exception(e);
-				return;
+				return this;
 			}
 			finally {
 				Sync.Release();
 			}
+		}
+
+		public void Dispose() {
+			Client?.Dispose();
+			Sync?.Dispose();
 		}
 	}
 }
