@@ -4,7 +4,7 @@ using FluentScheduler;
 using System;
 using System.Collections.Generic;
 
-namespace Luna.Alarms {
+namespace Luna.Features.Alarms {
 	public static class AlarmManager {
 		public static readonly Dictionary<IAlarm, Schedule> Alarms = new Dictionary<IAlarm, Schedule>();
 		private static readonly ILogger Logger = new Logger(typeof(AlarmManager).Name);

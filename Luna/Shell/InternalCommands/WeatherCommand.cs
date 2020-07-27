@@ -1,7 +1,7 @@
 using Luna.Extensions;
 using Luna.Extensions.Shared.Shell;
 using Luna.Sound.Speech;
-using Luna.Weather;
+using OpenWeatherApiSharp;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,7 +48,7 @@ namespace Luna.Shell.InternalCommands {
 				}
 
 				string? apiKey;
-				if (string.IsNullOrEmpty(Program.CoreInstance.GetCoreConfig().OpenWeatherApiKey)) {
+				if (string.IsNullOrEmpty(Program.CoreInstance.GetCoreConfig().ApiKeys.OpenWeatherApiKey)) {
 					ShellOut.Error("Weather API key isn't set.");
 
 					apiKey = ShellOut.GetString("Open Weather Api Key");
@@ -59,9 +59,9 @@ namespace Luna.Shell.InternalCommands {
 					}
 				}
 
-				apiKey = Program.CoreInstance.GetCoreConfig().OpenWeatherApiKey;
+				apiKey = Program.CoreInstance.GetCoreConfig().ApiKeys.OpenWeatherApiKey;
 				int pinCode;
-				WeatherResponse? weather;
+				OpenWeatherApiSharp.WeatherResponse? weather;
 
 				switch (parameter.ParameterCount) {
 					case 0:
@@ -73,8 +73,8 @@ namespace Luna.Shell.InternalCommands {
 							return;
 						}
 
-						using(WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
-							weather = await client.GetAsync().ConfigureAwait(false);
+						using (OpenWeatherMapClient client = new OpenWeatherMapClient(apiKey)) {
+							weather = await client.GetWeatherAsync(pinCode, "in").ConfigureAwait(false);
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
@@ -100,8 +100,8 @@ namespace Luna.Shell.InternalCommands {
 							return;
 						}
 
-						using (WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
-							weather = await client.GetAsync().ConfigureAwait(false);
+						using (OpenWeatherMapClient client = new OpenWeatherMapClient(apiKey)) {
+							weather = await client.GetWeatherAsync(pinCode, "in").ConfigureAwait(false);
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
@@ -132,8 +132,8 @@ namespace Luna.Shell.InternalCommands {
 							return;
 						}
 
-						using (WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
-							weather = await client.GetAsync().ConfigureAwait(false);
+						using (OpenWeatherMapClient client = new OpenWeatherMapClient(apiKey)) {
+							weather = await client.GetWeatherAsync(pinCode, "in").ConfigureAwait(false);
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {

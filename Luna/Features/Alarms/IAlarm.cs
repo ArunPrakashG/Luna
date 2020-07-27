@@ -1,6 +1,6 @@
 using System;
 
-namespace Luna.Alarms
+namespace Luna.Features.Alarms
 {
 	public interface IAlarm {
 		string? Name { get; }

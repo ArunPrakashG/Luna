@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Luna.Logging.Enums;
 
-namespace Luna.Remainders {
+namespace Luna.Features.Remainders {
 	public static class RemainderManager {
 		public static readonly Dictionary<string, Remainder> Remainders = new Dictionary<string, Remainder>();
 		private static readonly ILogger Logger = new Logger(typeof(RemainderManager).Name);
