@@ -1,11 +1,8 @@
-using Luna.Logging;
-using Luna.Logging.Interfaces;
-using Luna.Sound.Speech;
 using FluentScheduler;
+using Luna.Sound.Speech;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static Luna.Logging.Enums;
 
 namespace Luna.Features.Remainders {
 	public static class RemainderManager {

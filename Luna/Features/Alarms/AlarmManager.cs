@@ -1,13 +1,12 @@
-using Luna.Logging;
-using Luna.Logging.Interfaces;
 using FluentScheduler;
+using Luna.Logging;
 using System;
 using System.Collections.Generic;
 
 namespace Luna.Features.Alarms {
 	public static class AlarmManager {
 		public static readonly Dictionary<IAlarm, Schedule> Alarms = new Dictionary<IAlarm, Schedule>();
-		private static readonly ILogger Logger = new Logger(typeof(AlarmManager).Name);
+		private static readonly InternalLogger Logger = new InternalLogger(nameof(AlarmManager));
 
 		public static AlarmResponse SetAlarm(IAlarm alarm) {
 			if (alarm == null || string.IsNullOrEmpty(alarm.Name) || string.IsNullOrEmpty(alarm.Description) || alarm.Task == null) {
