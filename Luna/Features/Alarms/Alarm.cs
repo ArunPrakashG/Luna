@@ -1,52 +1,32 @@
-using FluentScheduler;
 using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading;
 
 namespace Luna.Features.Alarms {
-	public class Alarm : IAlarm, IJob {
-		public string? Name { get; }
+	internal class Alarm : InternalJobBase {
+		private readonly string Description;
+		private readonly bool UseTTS;
 
-		public string? Description { get; }
-
-		public Action<IAlarm>? Task { get; }
-
-		public DateTime At { get; }
-
-		public string? Id { get; }
-
-		public bool ShouldRepeat { get; }
-
-		public bool ShouldSpeakOutLoud { get; }
-
-		public TimeSpan TimeSpanAt { get; }
-
-		public Alarm() { }
-
-		public Alarm(string? name, string? desc, Action<IAlarm>? task, DateTime at, bool shouldRepeat, bool useTts) {
-			Name = name;
-			Description = desc;
-			Task = task;
-			At = at;
-			TimeSpanAt = at - DateTime.Now;
-			Id = Guid.NewGuid().ToString();
-			ShouldRepeat = shouldRepeat;
-			ShouldSpeakOutLoud = useTts;
+		internal Alarm(string jobDescription, bool useTts, DateTime scheduledAt, string jobName, TimeSpan delayBetweenCalls) : base(jobName, scheduledAt, delayBetweenCalls) {
+			Description = jobDescription;			
+			UseTTS = useTts;
 		}
 
-		public Alarm(string? name, string? desc, Action<IAlarm>? task, TimeSpan at, bool shouldRepeat, bool useTts) {
-			Name = name;
-			Description = desc;
-			Task = task;
-			At = DateTime.Parse(at.ToString());
-			TimeSpanAt = at;
-			Id = Guid.NewGuid().ToString();
-			ShouldRepeat = shouldRepeat;
-			ShouldSpeakOutLoud = useTts;
+		internal void SetAlarm() {
+
 		}
 
-		public void Execute() {
-			if(Task != null) {
-				Task.Invoke(this);
-			}
+		internal override void OnJobOccured(ObjectParameterWrapper? objectParameterWrapper) {
+
+		}
+
+		internal override void OnJobInitialized() {
+
+		}
+
+		internal override void OnJobLoaded() {
+
 		}
 	}
 }

@@ -1,34 +1,45 @@
 using Luna.Logging;
+using Synergy.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Composition.Convention;
 using System.Composition.Hosting;
 using System.Linq;
 using System.Reflection;
 
 namespace Luna.Features {
-	internal class JobInitializer : ICollection<IScheduledInternalJob> {
+	internal class JobInitializer {
 		private readonly InternalLogger Logger = new InternalLogger(nameof(JobInitializer));
-		private readonly List<IScheduledInternalJob> Jobs = new List<IScheduledInternalJob>();
+		private readonly ObservableCollection<InternalJobBase> Jobs = new ObservableCollection<InternalJobBase>();
 
-		public int Count => Jobs.Count;
+		internal int JobCount => Jobs.Count;
 
-		public bool IsReadOnly => false;
-
-		public IScheduledInternalJob this[int index] {
+		public InternalJobBase this[int index] {
 			get => Jobs[index] ?? throw new ArgumentOutOfRangeException(nameof(index));
 			set => Jobs[index] = value ?? throw new NullReferenceException(nameof(value));
+		}
+
+		internal JobInitializer() {
+			Jobs.CollectionChanged += OnJobCollectionChanged;
+		}
+
+		private void OnJobCollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {
+			if(e == null || e.Action != NotifyCollectionChangedAction.Add) {
+
+			}
 		}
 
 		internal bool LoadInternalJobs() {
 			try {
 				ConventionBuilder conventions = new ConventionBuilder();
-				conventions.ForTypesDerivedFrom<IScheduledInternalJob>().Export<IScheduledInternalJob>();
+				conventions.ForTypesDerivedFrom<InternalJobBase>().Export<InternalJobBase>();
 				IEnumerable<Assembly> psuedoCollection = new HashSet<Assembly>() { Assembly.GetExecutingAssembly() };
 				ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(psuedoCollection, conventions);
 				using CompositionHost container = configuration.CreateContainer();
-				List<IScheduledInternalJob> jobsCollection = container.GetExports<IScheduledInternalJob>().ToList();
+				List<InternalJobBase> jobsCollection = container.GetExports<InternalJobBase>().ToList();
 
 				if (jobsCollection.Count <= 0) {
 					Logger.Trace("No jobs exist to load.");
@@ -36,7 +47,8 @@ namespace Luna.Features {
 				}
 
 				for (int i = 0; i < jobsCollection.Count; i++) {
-					IScheduledInternalJob job = jobsCollection[i];
+					InternalJobBase job = jobsCollection[i];
+
 					if (IsExistingJob(job.UniqueID)) {
 						Logger.Info($"Skipping '{job.JobName} / {job.UniqueID}' job as it already exists.");
 						continue;
@@ -54,13 +66,12 @@ namespace Luna.Features {
 			}
 		}
 
-		private void OnJobLoaded(ref IScheduledInternalJob job) {
+		private void OnJobLoaded(ref InternalJobBase job) {
 			if (job.HasJobExpired) {
 				Logger.Warn($"'{job.JobName}' job has already expired.");
 				return;
 			}
 
-			job.Events.OnJobInitialized?.Invoke();
 			Jobs.Add(job);
 			Logger.Info($"'{job.JobName}' job loaded.");
 		}
@@ -73,7 +84,7 @@ namespace Luna.Features {
 			return Jobs.Where(x => x.UniqueID.Equals(uniqueId)).Count() == 1;
 		}
 
-		public void Add(IScheduledInternalJob item) {
+		internal void Add(InternalJobBase item) {
 			if (item == null) {
 				return;
 			}
@@ -85,16 +96,8 @@ namespace Luna.Features {
 			Jobs.Add(item);
 		}
 
-		public void Clear() => Jobs.Clear();
+		internal bool Contains(InternalJobBase item) => IsExistingJob(item.UniqueID);
 
-		public bool Contains(IScheduledInternalJob item) => IsExistingJob(item.UniqueID);
-
-		public void CopyTo(IScheduledInternalJob[] array, int arrayIndex) => Jobs.CopyTo(array, arrayIndex);
-
-		public bool Remove(IScheduledInternalJob item) => Jobs.Remove(item);
-
-		public IEnumerator<IScheduledInternalJob> GetEnumerator() => Jobs.GetEnumerator();
-
-		IEnumerator IEnumerable.GetEnumerator() => Jobs.GetEnumerator();
+		internal bool Remove(InternalJobBase item) => Jobs.Remove(item);
 	}
 }
