@@ -2,6 +2,7 @@ namespace Luna {
 	using Figgle;
 	using FluentScheduler;
 	using JetBrains.Annotations;
+	using Luna.Features;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
 	using Luna.Logging;
@@ -55,6 +56,7 @@ namespace Luna {
 
 		internal Core(string[] args) {
 			Console.Title = $"Initializing...";
+			JobScheduler.InitJobManager();
 			Logger = InternalLogger.GetOrCreateLogger<Core>(this, nameof(Core));
 			OS.Init(true);
 			RuntimeSpanCounter.Restart();

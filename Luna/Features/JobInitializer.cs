@@ -13,33 +13,41 @@ using System.Reflection;
 namespace Luna.Features {
 	internal class JobInitializer {
 		private readonly InternalLogger Logger = new InternalLogger(nameof(JobInitializer));
-		private readonly ObservableCollection<InternalJobBase> Jobs = new ObservableCollection<InternalJobBase>();
+		private readonly ObservableCollection<InternalJob> ObservableJobCollection = new ObservableCollection<InternalJob>();
 
-		internal int JobCount => Jobs.Count;
+		internal int JobCount => ObservableJobCollection.Count;
 
-		public InternalJobBase this[int index] {
-			get => Jobs[index] ?? throw new ArgumentOutOfRangeException(nameof(index));
-			set => Jobs[index] = value ?? throw new NullReferenceException(nameof(value));
+		internal InternalJob this[int index] {
+			get => ObservableJobCollection[index] ?? throw new ArgumentOutOfRangeException(nameof(index));
+			set => ObservableJobCollection[index] = value ?? throw new NullReferenceException(nameof(value));
 		}
 
 		internal JobInitializer() {
-			Jobs.CollectionChanged += OnJobCollectionChanged;
+			ObservableJobCollection.CollectionChanged += OnJobCollectionChanged;
 		}
 
 		private void OnJobCollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {
 			if(e == null || e.Action != NotifyCollectionChangedAction.Add) {
+				return;
+			}
 
+			foreach(InternalJob? job in e.NewItems) {
+				if(job == null) {
+					continue;
+				}
+
+				OnJobLoaded(job);
 			}
 		}
 
 		internal bool LoadInternalJobs() {
 			try {
 				ConventionBuilder conventions = new ConventionBuilder();
-				conventions.ForTypesDerivedFrom<InternalJobBase>().Export<InternalJobBase>();
+				conventions.ForTypesDerivedFrom<InternalJob>().Export<InternalJob>();
 				IEnumerable<Assembly> psuedoCollection = new HashSet<Assembly>() { Assembly.GetExecutingAssembly() };
 				ContainerConfiguration configuration = new ContainerConfiguration().WithAssemblies(psuedoCollection, conventions);
 				using CompositionHost container = configuration.CreateContainer();
-				List<InternalJobBase> jobsCollection = container.GetExports<InternalJobBase>().ToList();
+				List<InternalJob> jobsCollection = container.GetExports<InternalJob>().ToList();
 
 				if (jobsCollection.Count <= 0) {
 					Logger.Trace("No jobs exist to load.");
@@ -47,14 +55,7 @@ namespace Luna.Features {
 				}
 
 				for (int i = 0; i < jobsCollection.Count; i++) {
-					InternalJobBase job = jobsCollection[i];
-
-					if (IsExistingJob(job.UniqueID)) {
-						Logger.Info($"Skipping '{job.JobName} / {job.UniqueID}' job as it already exists.");
-						continue;
-					}
-
-					OnJobLoaded(ref job);
+					Add(jobsCollection[i]);					
 				}
 
 				Logger.Info("Internal jobs loaded.");
@@ -66,38 +67,59 @@ namespace Luna.Features {
 			}
 		}
 
-		private void OnJobLoaded(ref InternalJobBase job) {
+		private void OnJobLoaded(InternalJob job) {
 			if (job.HasJobExpired) {
 				Logger.Warn($"'{job.JobName}' job has already expired.");
+				Remove(job.UniqueID);
 				return;
 			}
-
-			Jobs.Add(job);
+						
 			Logger.Info($"'{job.JobName}' job loaded.");
 		}
 
+		internal InternalJob GetJob(string uniqueId) {
+			if (string.IsNullOrEmpty(uniqueId)) {
+				return null;
+			}
+
+			return ObservableJobCollection.Where(x => x.UniqueID.Equals(uniqueId)).FirstOrDefault();
+		}
+
 		private bool IsExistingJob(string uniqueId) {
-			if (string.IsNullOrEmpty(uniqueId) || Jobs.Count <= 0) {
+			if (string.IsNullOrEmpty(uniqueId) || ObservableJobCollection.Count <= 0) {
 				return false;
 			}
 
-			return Jobs.Where(x => x.UniqueID.Equals(uniqueId)).Count() == 1;
+			return ObservableJobCollection.Where(x => x.UniqueID.Equals(uniqueId)).Count() >= 1;
 		}
 
-		internal void Add(InternalJobBase item) {
+		internal void Remove(string uniqueID) {
+			if (string.IsNullOrEmpty(uniqueID)) {
+				return;
+			}
+
+			var job = ObservableJobCollection.Where(x => x.UniqueID.Equals(uniqueID, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+
+			if(job == null) {
+				return;
+			}
+
+			job.Dispose();			
+			ObservableJobCollection.Remove(job);
+			Logger.Trace($"Disposed and removed job -> {job.UniqueID}");
+		}
+
+		internal void Add(InternalJob item) {
 			if (item == null) {
 				return;
 			}
 
-			if (IsExistingJob(item.UniqueID)) {
+			if (IsExistingJob(item.UniqueID) || item.HasJobExpired) {
 				return;
 			}
 
-			Jobs.Add(item);
+			ObservableJobCollection.Add(item);
+			Logger.Trace($"Added job -> {item.UniqueID}");
 		}
-
-		internal bool Contains(InternalJobBase item) => IsExistingJob(item.UniqueID);
-
-		internal bool Remove(InternalJobBase item) => Jobs.Remove(item);
 	}
 }

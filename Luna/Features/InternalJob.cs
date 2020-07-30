@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Luna.Features {
-	internal abstract class InternalJobBase : IDisposable {
+	internal abstract class InternalJob : IDisposable {
 		/// <summary>
 		/// The unique ID which is used to identify this job.
 		/// </summary>
@@ -31,6 +30,9 @@ namespace Luna.Features {
 		/// </summary>
 		internal readonly string JobName;
 
+		/// <summary>
+		/// Optional object parameters to be passed on invoking <see cref="OnJobTriggered"/>.
+		/// </summary>
 		internal readonly ObjectParameterWrapper? JobParameters;
 
 		/// <summary>
@@ -44,9 +46,9 @@ namespace Luna.Features {
 		internal TimeSpan SpanUntilInitialCall => (DateTime.Now - ScheduledAt);
 
 		private bool IsDisposed;
-		private Timer JobTimer;
+		private Timer JobTimer;		
 
-		internal InternalJobBase(string jobName, DateTime scheduledAt, ObjectParameterWrapper? parameters = null) {
+		internal InternalJob(string jobName, DateTime scheduledAt, ObjectParameterWrapper? parameters = null) {
 			JobName = jobName ?? throw new ArgumentNullException(nameof(jobName));
 			ScheduledAt = scheduledAt.Equals(DateTime.MinValue) ? throw new ArgumentOutOfRangeException(nameof(scheduledAt)) : scheduledAt;
 			UniqueID = JobName + "/" + new Guid().ToString("N") + "/" + ScheduledAt.Ticks;
@@ -55,7 +57,7 @@ namespace Luna.Features {
 			JobParameters = parameters;
 		}
 
-		internal InternalJobBase(string jobName, DateTime scheduledAt, TimeSpan delayBetweenCalls, ObjectParameterWrapper? parameters = null) {
+		internal InternalJob(string jobName, DateTime scheduledAt, TimeSpan delayBetweenCalls, ObjectParameterWrapper? parameters = null) {
 			JobName = jobName ?? throw new ArgumentNullException(nameof(jobName));
 			ScheduledAt = scheduledAt.Equals(DateTime.MinValue) ? throw new ArgumentOutOfRangeException(nameof(scheduledAt)) : scheduledAt;
 			UniqueID = JobName?.Replace("\n", "")?.Replace(" ", "") + "/" + new Guid().ToString("N") + "/" + ScheduledAt.Ticks;
@@ -64,14 +66,31 @@ namespace Luna.Features {
 			JobParameters = parameters;
 		}
 
+		/// <summary>
+		/// Sets the internal job timer.
+		/// </summary>
+		/// <param name="timer"></param>
 		internal void SetJobTimer(Timer timer) => JobTimer = timer;
 
+		/// <summary>
+		/// Fired when this job is loaded and ready to be fired at <see cref="ScheduledAt"/> time.
+		/// </summary>
 		internal abstract void OnJobInitialized();
 
-		internal abstract void OnJobOccured(ObjectParameterWrapper? objectParameterWrapper);
+		/// <summary>
+		/// Fired when <see cref="ScheduledAt"/> time is reached.
+		/// </summary>
+		/// <param name="objectParameterWrapper">Optional object parameter wrapper.</param>
+		internal abstract void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper);
 
+		/// <summary>
+		/// Fired when the job is loaded.
+		/// </summary>
 		internal abstract void OnJobLoaded();
 
+		/// <summary>
+		/// <inheritdoc />
+		/// </summary>
 		public void Dispose() {
 			IsDisposed = true;
 			JobTimer?.Dispose();

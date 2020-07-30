@@ -1,28 +1,29 @@
 using FluentScheduler;
+using Luna.Logging;
+using Luna.Sound.Speech;
 using System;
 
 namespace Luna.Features.Remainders {
-	public class Remainder : IJob {
-		public readonly string? UniqueId;
-		public readonly string? Message;
-		public readonly DateTime RemaindAt;
-		public readonly Action<Remainder>? Func;
-		public readonly bool IsCompleted;
+	internal class Remainder : InternalJob {
+		private readonly InternalLogger Logger = new InternalLogger(nameof(Remainder));
+		private readonly string Description;
 
-		public Remainder() { }
-
-		public Remainder(string? msg, DateTime at, Action<Remainder>? func = null) {
-			Message = msg;
-			UniqueId = Guid.NewGuid().ToString();
-			RemaindAt = at;
-			Func = func;
-			IsCompleted = false;
+		internal Remainder(string remainderName, string remainderDescription, DateTime scheduledAt) : base(remainderName, scheduledAt) {
+			Description = remainderDescription;
 		}
 
-		public void Execute() {
-			if(Func != null) {
-				Func.Invoke(this);
-			}
+		internal override void OnJobInitialized() {
+			// called right after OnJobLoaded
+			Logger.Trace($"EVENT -> {nameof(OnJobInitialized)}");
+		}
+
+		internal override void OnJobLoaded() {
+			// called when job is loaded
+			Logger.Trace($"EVENT -> {nameof(OnJobLoaded)}");
+		}
+
+		internal override async void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper) {
+			await TTS.SpeakText(Description, false).ConfigureAwait(false);
 		}
 	}
 }
