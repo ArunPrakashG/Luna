@@ -13,9 +13,9 @@ namespace Luna.Features {
 		}
 
 		internal static void InitJobManager() {
-			if (!JobInitializer.LoadInternalJobs()) {
-				return;
-			}
+			//if (!JobInitializer.LoadInternalJobs()) {
+			//	return;
+			//}
 
 			InitializeJobs();
 		}
@@ -28,18 +28,6 @@ namespace Luna.Features {
 				if (job.HasJobExpired) {
 					job.Dispose();
 					JobInitializer.Remove(job.UniqueID);
-					continue;
-				}
-
-				Timer jobTimer = new Timer(
-					state => job.OnJobTriggered(job.JobParameters),
-					null,
-					job.SpanUntilInitialCall,
-					job.IsRecurring ? job.DelayBetweenCalls : Timeout.InfiniteTimeSpan
-				);
-
-				if (!SetJobTimer(job, jobTimer)) {
-					Logger.Trace($"Failed to initialize job '{job.JobName}'");
 					continue;
 				}
 
@@ -56,18 +44,6 @@ namespace Luna.Features {
 				return;
 			}
 
-			Timer jobTimer = new Timer(
-					state => job.OnJobTriggered(job.JobParameters),
-					null,
-					job.SpanUntilInitialCall,
-					job.IsRecurring ? job.DelayBetweenCalls : Timeout.InfiniteTimeSpan
-				);
-
-			if (!SetJobTimer(job, jobTimer)) {
-				Logger.Trace($"Failed to initialize job '{job.JobName}'");
-				return;
-			}
-
 			Logger.Info($"'{job.JobName}' set to fire @ {Math.Round(job.SpanUntilInitialCall.TotalMinutes, 3)} minutes from now {(job.IsRecurring ? $"and {Math.Round(job.DelayBetweenCalls.TotalMinutes, 3)} minutes thereafter." : "")}");
 		}
 
@@ -79,15 +55,5 @@ namespace Luna.Features {
 		internal static InternalJob? GetJob(string uniqueId) => JobInitializer.GetJob(uniqueId);
 
 		internal static void RemoveJob(string uniqueID) => JobInitializer.Remove(uniqueID);
-
-		private static bool SetJobTimer(InternalJob job, Timer jobTimer) {
-			if (job == null || jobTimer == null) {
-				return false;
-			}
-
-			Helpers.InBackgroundThread(job.OnJobInitialized);
-			job.SetJobTimer(jobTimer);
-			return true;
-		}
 	}
 }

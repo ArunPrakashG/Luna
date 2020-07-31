@@ -52,7 +52,8 @@
     <Content Include="Commands\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Compile Remove="Features\IScheduledInternalJob.cs" />
+    <Compile Remove="Features\JobInitializer.cs" />
+    <Compile Remove="Features\JobScheduler.cs" />
     <None Update="Config\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -79,7 +80,8 @@
     <Folder Include="Server\Models\" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Features\IScheduledInternalJob.cs" />
+    <None Include="Features\JobInitializer.cs" />
+    <None Include="Features\JobScheduler.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Assistant.Gpio\Assistant.Gpio.csproj" />

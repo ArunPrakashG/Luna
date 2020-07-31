@@ -8,22 +8,21 @@ using System.Threading;
 
 namespace Luna.Features {
 	internal class Alarm : InternalJob {
+		private readonly InternalLogger Logger;
 		private readonly string Description;
 		private readonly bool UseTTS;
 
-		internal static readonly List<Alarm> Alarms = new List<Alarm>();
-		internal static readonly InternalLogger Logger = new InternalLogger(nameof(Alarm));
+		private static readonly List<Alarm> Alarms = new List<Alarm>();
+		
 
-		internal Alarm(string alarmDescription, bool useTts, DateTime scheduledAt, string alarmName, TimeSpan delayBetweenCalls) : base(alarmName, scheduledAt, delayBetweenCalls) {
+		internal Alarm(string alarmDescription, bool useTts, DateTime scheduledAt, string alarmName) : base(alarmName ?? throw new ArgumentNullException(nameof(alarmName)), scheduledAt) {
+			Logger = new InternalLogger(nameof(alarmName));
 			Description = alarmDescription;			
 			UseTTS = useTts;
-
-			if(Alarms.Where(x => x.UniqueID.Equals(this.UniqueID)).Count() <= 0) {
-				Alarms.Add(this);
-			}
+			Alarm.Alarms.Add(this);
 		}
 
-		internal override async void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper) {
+		protected override async void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper) {
 			Logger.Trace($"Alarm event -> {this.UniqueID}");
 			// play alarm notification sound
 			// read console or wait for an input to snooze or cancel alarm
@@ -33,14 +32,22 @@ namespace Luna.Features {
 			}
 		}
 
-		internal override void OnJobInitialized() {
+		protected override void OnJobInitialized() {
 			// called right after OnJobLoaded
 			Logger.Trace($"EVENT -> {nameof(OnJobInitialized)}");
 		}
 
-		internal override void OnJobLoaded() {
+		protected override void OnJobLoaded() {
 			// called when job is loaded
 			Logger.Trace($"EVENT -> {nameof(OnJobLoaded)}");
+		}
+
+		protected override void OnDisposed() {
+			for (int i = 0; i < Alarm.Alarms.Count; i++) {
+				if (Alarm.Alarms[i].IsDisposed) {
+					Alarm.Alarms.RemoveAt(i);
+				}
+			}
 		}
 	}
 }

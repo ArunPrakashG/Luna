@@ -1,6 +1,5 @@
+using Synergy.Extensions;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 
 namespace Luna.Features {
@@ -18,12 +17,12 @@ namespace Luna.Features {
 		/// <summary>
 		/// True will enable recurring of this job based on <see cref="DelayBetweenCalls"/> span.
 		/// </summary>
-		internal readonly bool IsRecurring;
+		internal bool IsRecurring => DelayBetweenCalls != Timeout.InfiniteTimeSpan;
 
 		/// <summary>
 		/// The delay between each fire of the event if the job is set to recurre.
 		/// </summary>
-		internal readonly TimeSpan DelayBetweenCalls;
+		internal TimeSpan DelayBetweenCalls { get; private set; }
 
 		/// <summary>
 		/// The job name.
@@ -45,54 +44,113 @@ namespace Luna.Features {
 		/// </summary>
 		internal TimeSpan SpanUntilInitialCall => (DateTime.Now - ScheduledAt);
 
-		private bool IsDisposed;
-		private Timer JobTimer;		
+		internal bool IsDisposed => JobTimer == null;
+		private readonly Timer JobTimer;
 
-		internal InternalJob(string jobName, DateTime scheduledAt, ObjectParameterWrapper? parameters = null) {
+		protected InternalJob(string jobName, DateTime scheduledAt, ObjectParameterWrapper? parameters = null) {
+			OnJobLoaded();
+
 			JobName = jobName ?? throw new ArgumentNullException(nameof(jobName));
 			ScheduledAt = scheduledAt.Equals(DateTime.MinValue) ? throw new ArgumentOutOfRangeException(nameof(scheduledAt)) : scheduledAt;
 			UniqueID = JobName + "/" + new Guid().ToString("N") + "/" + ScheduledAt.Ticks;
-			IsRecurring = false;
 			DelayBetweenCalls = Timeout.InfiniteTimeSpan;
 			JobParameters = parameters;
+
+			JobTimer = new Timer(
+					state => {
+						OnJobTriggered(JobParameters);
+						Helpers.InBackgroundThread(() => OnJobExecuted(), UniqueID);
+					},
+					null,
+					SpanUntilInitialCall,
+					DelayBetweenCalls
+			);
+
+			OnJobInitialized();
 		}
 
-		internal InternalJob(string jobName, DateTime scheduledAt, TimeSpan delayBetweenCalls, ObjectParameterWrapper? parameters = null) {
+		protected InternalJob(string jobName, TimeSpan scheduledSpan, ObjectParameterWrapper? parameters = null) {
+			OnJobLoaded();
+
 			JobName = jobName ?? throw new ArgumentNullException(nameof(jobName));
-			ScheduledAt = scheduledAt.Equals(DateTime.MinValue) ? throw new ArgumentOutOfRangeException(nameof(scheduledAt)) : scheduledAt;
-			UniqueID = JobName?.Replace("\n", "")?.Replace(" ", "") + "/" + new Guid().ToString("N") + "/" + ScheduledAt.Ticks;
-			IsRecurring = delayBetweenCalls != Timeout.InfiniteTimeSpan;
-			DelayBetweenCalls = IsRecurring ? delayBetweenCalls : Timeout.InfiniteTimeSpan;
+			ScheduledAt = new DateTime() + scheduledSpan;
+			UniqueID = JobName + "/" + new Guid().ToString("N") + "/" + ScheduledAt.Ticks;
+			DelayBetweenCalls = Timeout.InfiniteTimeSpan;
 			JobParameters = parameters;
+
+			JobTimer = new Timer(
+					state => {
+						OnJobTriggered(JobParameters);
+						Helpers.InBackgroundThread(() => OnJobExecuted(), UniqueID);
+					},
+					null,
+					SpanUntilInitialCall,
+					DelayBetweenCalls
+			);
+
+			OnJobInitialized();
 		}
 
 		/// <summary>
-		/// Sets the internal job timer.
+		/// Disables refiring of this job. (Disposes it after first event)
 		/// </summary>
-		/// <param name="timer"></param>
-		internal void SetJobTimer(Timer timer) => JobTimer = timer;
+		/// <returns></returns>
+		internal InternalJob WithoutRecurring() {
+			if (IsDisposed) {
+				throw new ObjectDisposedException(nameof(InternalJob));
+			}
+
+			DelayBetweenCalls = Timeout.InfiniteTimeSpan;
+			JobTimer.Change(SpanUntilInitialCall, Timeout.InfiniteTimeSpan);
+			return this;
+		}
+
+		/// <summary>
+		/// Sets if the job should reoccure after initial firing.
+		/// </summary>
+		/// <param name="delayBetweenCalls">The delay to wait before next and rest of the fires.</param>
+		/// <returns></returns>
+		internal InternalJob ReoccureEvery(TimeSpan delayBetweenCalls) {
+			if (IsDisposed) {
+				throw new ObjectDisposedException(nameof(InternalJob));
+			}
+
+			DelayBetweenCalls = delayBetweenCalls;
+			JobTimer.Change(SpanUntilInitialCall, DelayBetweenCalls);
+			return this;
+		}
 
 		/// <summary>
 		/// Fired when this job is loaded and ready to be fired at <see cref="ScheduledAt"/> time.
 		/// </summary>
-		internal abstract void OnJobInitialized();
+		protected abstract void OnJobInitialized();
 
 		/// <summary>
 		/// Fired when <see cref="ScheduledAt"/> time is reached.
 		/// </summary>
 		/// <param name="objectParameterWrapper">Optional object parameter wrapper.</param>
-		internal abstract void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper);
+		protected abstract void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper);
 
 		/// <summary>
 		/// Fired when the job is loaded.
 		/// </summary>
-		internal abstract void OnJobLoaded();
+		protected abstract void OnJobLoaded();
+
+		protected abstract void OnDisposed();
+
+		private void OnJobExecuted() {
+			if (IsRecurring) {
+				return;
+			}
+
+			WithoutRecurring();
+			Dispose();
+		}
 
 		/// <summary>
 		/// <inheritdoc />
 		/// </summary>
 		public void Dispose() {
-			IsDisposed = true;
 			JobTimer?.Dispose();
 		}
 	}

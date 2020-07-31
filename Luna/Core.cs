@@ -56,7 +56,6 @@ namespace Luna {
 
 		internal Core(string[] args) {
 			Console.Title = $"Initializing...";
-			JobScheduler.InitJobManager();
 			Logger = InternalLogger.GetOrCreateLogger<Core>(this, nameof(Core));
 			OS.Init(true);
 			RuntimeSpanCounter.Restart();
@@ -96,7 +95,7 @@ namespace Luna {
 			PostInitiation().Wait();
 			InternalConfigWatcher = new ConfigWatcher(this);
 			InternalModuleWatcher = new ModuleWatcher(this);
-			InitiationCompleted = true;
+			InitiationCompleted = true;			
 		}
 
 		private async Task PostInitiation() {
