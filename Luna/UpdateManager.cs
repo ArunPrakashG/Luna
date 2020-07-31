@@ -1,5 +1,5 @@
 using FluentScheduler;
-using Luna.Extensions;
+using Luna.ExternalExtensions;
 using Luna.Logging;
 using Luna.Modules.Interfaces.EventInterfaces;
 using Luna.Server;

@@ -1,5 +1,5 @@
-using Luna.Extensions;
-using Luna.Extensions.Shared.Shell;
+using Luna.ExternalExtensions;
+using Luna.ExternalExtensions.Shared.Shell;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

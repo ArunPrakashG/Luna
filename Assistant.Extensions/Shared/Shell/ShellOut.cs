@@ -1,6 +1,6 @@
 using System;
 
-namespace Luna.Extensions.Shared.Shell {
+namespace Luna.ExternalExtensions.Shared.Shell {
 	public static class ShellOut {
 		public static void Info(string? msg) {
 			if (string.IsNullOrEmpty(msg)) {

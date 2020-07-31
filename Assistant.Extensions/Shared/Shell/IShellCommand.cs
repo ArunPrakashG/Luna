@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.Extensions.Shared.Shell {
+namespace Luna.ExternalExtensions.Shared.Shell {
 	/// <summary>
 	/// Base implementation of a shell command object. Must be inherited by all ShellCommand objects.
 	/// </summary>

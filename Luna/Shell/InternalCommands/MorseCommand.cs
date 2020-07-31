@@ -1,4 +1,4 @@
-using Luna.Extensions.Shared.Shell;
+using Luna.ExternalExtensions.Shared.Shell;
 using Luna.Gpio;
 using Luna.Gpio.Controllers;
 using Luna.Morse;

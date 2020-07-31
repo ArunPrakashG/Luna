@@ -1,6 +1,6 @@
 namespace Luna.Shell {
-	using Luna.Extensions;
-	using Luna.Extensions.Shared.Shell;
+	using Luna.ExternalExtensions;
+	using Luna.ExternalExtensions.Shared.Shell;
 	using Luna.Logging;
 	using Luna.Logging.Interfaces;
 	using Luna.Shell.InternalCommands;
@@ -11,7 +11,7 @@ namespace Luna.Shell {
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Parameter = Extensions.Shared.Shell.Parameter;
+	using Parameter = ExternalExtensions.Shared.Shell.Parameter;
 
 	/// <summary>
 	/// The Shell Instance.

@@ -1,6 +1,6 @@
 using System;
 
-namespace Luna.Extensions.Attributes {
+namespace Luna.ExternalExtensions.Attributes {
 
 	[AttributeUsage(AttributeTargets.All)]
 	public class RequireInternetAttribute : Attribute {

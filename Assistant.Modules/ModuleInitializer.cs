@@ -1,5 +1,5 @@
-using Luna.Extensions;
-using Luna.Extensions.Interfaces;
+using Luna.ExternalExtensions;
+using Luna.ExternalExtensions.Interfaces;
 using Luna.Modules.Interfaces;
 using Luna.Modules.Interfaces.EventInterfaces;
 using System;

@@ -16,7 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Luna.Logging.Enums;
 
-namespace Luna.Extensions {
+namespace Luna.ExternalExtensions {
 	public static class Helpers
 	{
 		private static readonly ILogger Logger = new Logger(typeof(Helpers).Name);

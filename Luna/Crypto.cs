@@ -1,4 +1,4 @@
-using Luna.Extensions.Interfaces;
+using Luna.ExternalExtensions.Interfaces;
 using Luna.Logging;
 using System;
 using System.IO;

@@ -1,4 +1,4 @@
-using Luna.Extensions;
+using Luna.ExternalExtensions;
 using Luna.Gpio.Config;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Exceptions;

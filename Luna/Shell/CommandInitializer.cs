@@ -1,5 +1,5 @@
-using Luna.Extensions;
-using Luna.Extensions.Shared.Shell;
+using Luna.ExternalExtensions;
+using Luna.ExternalExtensions.Shared.Shell;
 using Luna.Logging;
 using Luna.Logging.Interfaces;
 using System;

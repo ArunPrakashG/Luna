@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace Luna.Extensions {
+namespace Luna.ExternalExtensions {
 	public static class Constants {
 		
 

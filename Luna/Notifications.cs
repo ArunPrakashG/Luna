@@ -21,14 +21,24 @@ namespace Luna {
 
 			// we use bash command
 			// will require command line player to be installed
-			if (OS.IsUnix) {
-
+			if (Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD) {
+				NotifyUnix();
+				return;
 			}
 
 			// we use media player api
 			if(Helpers.GetPlatform() == OSPlatform.Windows) {
-
+				NotifyWindows();
+				return;
 			}
+		}
+
+		private static void NotifyUnix() {
+
+		}
+
+		private static void NotifyWindows() {
+
 		}
 	}
 }

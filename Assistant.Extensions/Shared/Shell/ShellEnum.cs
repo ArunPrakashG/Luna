@@ -1,4 +1,4 @@
-namespace Luna.Extensions.Shared.Shell {
+namespace Luna.ExternalExtensions.Shared.Shell {
 	public class ShellEnum {
 		public enum COMMAND_CODE : byte {
 			HELP_BASIC = 0x00,
