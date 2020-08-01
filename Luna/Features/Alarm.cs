@@ -2,9 +2,6 @@ using Luna.Logging;
 using Luna.Sound.Speech;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
 
 namespace Luna.Features {
 	internal class Alarm : InternalJob {
@@ -13,11 +10,10 @@ namespace Luna.Features {
 		private readonly bool UseTTS;
 
 		private static readonly List<Alarm> Alarms = new List<Alarm>();
-		
 
 		internal Alarm(string alarmDescription, bool useTts, DateTime scheduledAt, string alarmName) : base(alarmName ?? throw new ArgumentNullException(nameof(alarmName)), scheduledAt) {
 			Logger = new InternalLogger(nameof(alarmName));
-			Description = alarmDescription;			
+			Description = alarmDescription;
 			UseTTS = useTts;
 			Alarm.Alarms.Add(this);
 		}

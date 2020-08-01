@@ -2,7 +2,6 @@ namespace Luna {
 	using Figgle;
 	using FluentScheduler;
 	using JetBrains.Annotations;
-	using Luna.Features;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
 	using Luna.Logging;
@@ -11,7 +10,6 @@ namespace Luna {
 	using Luna.Server;
 	using Luna.Shell;
 	using Luna.Sound.Speech;
-	using Luna.Update;
 	using Luna.Watchers;
 	using Synergy.Extensions;
 	using System;
@@ -24,16 +22,16 @@ namespace Luna {
 	using static Luna.Gpio.Enums;
 	using static Luna.Modules.ModuleInitializer;
 
-	internal class Core {		
+	internal class Core {
 		private readonly InternalLogger Logger;
 		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
 		private readonly ConfigWatcher InternalConfigWatcher;
 		private readonly ModuleWatcher InternalModuleWatcher;
 		private readonly GpioCore Controller;
-		private readonly UpdateManager Updater;		
+		private readonly UpdateManager Updater;
 		private readonly ModuleInitializer ModuleLoader;
 		private readonly RestCore RestServer;
-		
+
 		internal readonly bool DisableFirstChanceLogWithDebug;
 		internal readonly CoreConfig Config;
 
@@ -95,7 +93,7 @@ namespace Luna {
 			PostInitiation().Wait();
 			InternalConfigWatcher = new ConfigWatcher(this);
 			InternalModuleWatcher = new ModuleWatcher(this);
-			InitiationCompleted = true;			
+			InitiationCompleted = true;
 		}
 
 		private async Task PostInitiation() {

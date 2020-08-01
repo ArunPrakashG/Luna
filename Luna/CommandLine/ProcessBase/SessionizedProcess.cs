@@ -12,31 +12,38 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Luna.CommandLine {
-	internal class CommandProcessSession : IDisposable {
+namespace Luna.CommandLine.ProcessBase {
+	internal abstract class SessionizedProcess : IDisposable {
 		private const string UNIX_SHELL = "/bin/bash";
 		private const string WINDOWS_SHELL = "cmd.exe";
 		private readonly InternalLogger Logger;
 		private readonly Process Process;
-		private readonly bool IsElevationCapable;
+		protected readonly bool IsElevationCapable;
+		protected readonly bool EnableIOLogging;
 
 		private CancellationTokenSource CommandInputSessionToken = new CancellationTokenSource();
-		private readonly ObservableStack<string> OutputContainer;
-		private readonly ObservableStack<string> ErrorContainer;
-		private readonly ObservableStack<string> InputContainer;
+		protected readonly ObservableStack<string> OutputContainer;
+		protected readonly ObservableStack<string> ErrorContainer;
+		protected readonly ObservableStack<string> InputContainer;
 
 		private string? InputSessionVariable;
 		private bool IsInputSessionActive;
 
-		internal CommandProcessSession(string command, bool asAdmin = false) {
+		internal SessionizedProcess(OSPlatform platform, string command, bool enableIOLogging = false, bool asAdmin = false) {
 			if (string.IsNullOrEmpty(command)) {
 				throw new ArgumentNullException(nameof(command));
 			}
 
+			if(Helpers.GetPlatform() != platform) {
+				throw new PlatformNotSupportedException();
+			}
+
+			EnableIOLogging = enableIOLogging;
 			string shellName = Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD ? UNIX_SHELL : WINDOWS_SHELL;
 			Logger = new InternalLogger(shellName);
 			IsElevationCapable = IsElevated();
-			command = $"{(Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD ? "-c" : "/C")} \"{EscapeArguments(command)}\"";
+			bool isUnixEnv = Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD;
+			command = $"{(isUnixEnv ? "-c" : "/C")} {(isUnixEnv && IsElevationCapable ? "sudo" : "")} \"{EscapeArguments(command)}\"";
 
 			Process = new Process();
 			Process.StartInfo = new ProcessStartInfo() {
@@ -81,28 +88,28 @@ namespace Luna.CommandLine {
 			InputSessionVariable = data;
 		}		
 
-		private void ProcessStandardError(object sender, NotifyCollectionChangedEventArgs e) {
+		protected virtual void ProcessStandardError(object sender, NotifyCollectionChangedEventArgs e) {
 			if (!ErrorContainer.TryPop(out string? newLine)) {
 				return;
 			}
 
-
+			ProcessLog(newLine, ProcessLogLevel.Error);
 		}
 
-		private void ProcessStandardOutput(object sender, NotifyCollectionChangedEventArgs e) {
+		protected virtual void ProcessStandardOutput(object sender, NotifyCollectionChangedEventArgs e) {
 			if (!OutputContainer.TryPop(out string? newLine)) {
 				return;
 			}
 
-
+			ProcessLog(newLine, ProcessLogLevel.Info);
 		}
 
-		private void ProcessStandardInput(object sender, NotifyCollectionChangedEventArgs e) {
+		protected virtual void ProcessStandardInput(object sender, NotifyCollectionChangedEventArgs e) {
 			if (!InputContainer.TryPop(out string? newLine)) {
 				return;
 			}
 
-
+			ProcessLog(newLine, ProcessLogLevel.Input);
 		}
 
 		private void OnOutputReceived(object sender, DataReceivedEventArgs e) {
@@ -117,6 +124,11 @@ namespace Luna.CommandLine {
 			if ((sender == null) || (e == null)) {
 				return;
 			}
+
+			string fullOutput = Process.StandardOutput.ReadToEnd();
+			string fullError = Process.StandardError.ReadToEnd();
+			Logger.Info(fullOutput);
+			Logger.Info(fullError);
 
 			Dispose();
 		}
@@ -172,14 +184,54 @@ namespace Luna.CommandLine {
 			return false;
 		}
 
+		protected void ProcessLog(string? msg, ProcessLogLevel logLevel) {
+			if (string.IsNullOrEmpty(msg)) {
+				return;
+			}
+
+			if (EnableIOLogging) {
+				switch (logLevel) {
+					case ProcessLogLevel.Error:
+						Console.ForegroundColor = ConsoleColor.Red;
+						Console.WriteLine($"{Process.ProcessName} > {logLevel} > {msg}");
+						Console.ResetColor();
+						break;
+					case ProcessLogLevel.Info:
+						Console.WriteLine($"{Process.ProcessName} > {logLevel} > {msg}");
+						break;
+					case ProcessLogLevel.Input:
+						// this can be annoying as it appears when user just passed in an input...
+						// Console.WriteLine($"{Process.ProcessName} < {logLevel} > {msg}");
+						break;
+				}
+			}			
+
+			Logger.Trace($"{Process.ProcessName} > {logLevel} > {msg}");
+		}
+
 		public void Dispose() {
 			if (!CommandInputSessionToken.IsCancellationRequested) {
 				CommandInputSessionToken.Cancel();
 				CommandInputSessionToken.Dispose();
 			}
 
-			Process?.Kill();
-			Process?.Dispose();
+			if (Process != null) {
+				if (!Process.HasExited) {
+					Process.Kill();
+				}
+
+				Process.Dispose();
+			}
+
+			OutputContainer.Clear();
+			InputContainer.Clear();
+			ErrorContainer.Clear();
+		}
+
+		protected enum ProcessLogLevel {
+			Info,
+			Error,
+			Input
 		}
 	}
 }
