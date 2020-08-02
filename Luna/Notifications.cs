@@ -10,6 +10,7 @@ using System.Media;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Luna {
 	internal static class Notifications {
@@ -26,7 +27,7 @@ namespace Luna {
 
 		internal static void Unmute() => MuteNotifications = false;
 
-		internal static void Notify(NotificationType type) {
+		internal static async Task Notify(NotificationType type) {
 			if (MuteNotifications) {
 				return;
 			}
@@ -34,7 +35,7 @@ namespace Luna {
 			// we use bash command
 			// will require command line player such as sox/vlc to be installed
 			if (Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD) {
-				NotifyUnix(type);
+				await NotifyUnix(type).ConfigureAwait(false);
 				return;
 			}
 
@@ -48,29 +49,29 @@ namespace Luna {
 			// sorry i have 0 knowledge with mac systems :'(			
 		}
 
-		private static void NotifyUnix(NotificationType type) {
+		private static async Task NotifyUnix(NotificationType type) {
 			switch (type) {
 				case NotificationType.NotifyGeneric:					
 					using (SoxCommandInterfacer sox = new SoxCommandInterfacer(false, true, false)) {
-						sox.Play(WriteToTempPath(Resources.NotificationGeneric));
+						await sox.PlayAsync(WriteToTempPath(Resources.NotificationGeneric)).ConfigureAwait(false);
 					}
 
 					break;
 				case NotificationType.NotifyLong:
 					using (SoxCommandInterfacer sox = new SoxCommandInterfacer(false, true, false)) {
-						sox.Play(WriteToTempPath(Resources.NotificationLong));
+						await sox.PlayAsync(WriteToTempPath(Resources.NotificationLong)).ConfigureAwait(false);
 					}
 
 					break;
 				case NotificationType.NotifyShort:
 					using (SoxCommandInterfacer sox = new SoxCommandInterfacer(false, true, false)) {
-						sox.Play(WriteToTempPath(Resources.NotificationShort));
+						await sox.PlayAsync(WriteToTempPath(Resources.NotificationShort)).ConfigureAwait(false);
 					}
 
 					break;
 				case NotificationType.NotifyMail:
 					using (SoxCommandInterfacer sox = new SoxCommandInterfacer(false, true, false)) {
-						sox.Play(WriteToTempPath(Resources.NotificationMail));
+						await sox.PlayAsync(WriteToTempPath(Resources.NotificationMail)).ConfigureAwait(false);
 					}
 
 					break;

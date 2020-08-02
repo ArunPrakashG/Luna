@@ -6,13 +6,51 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Luna.CommandLine {
 	internal class FestivalCommandSession : SessionizedProcess {
 		private const string SessionInitiatorCommand = "festival";
 		private static readonly OSPlatform SupportedPlatform = OSPlatform.Linux;
+		private bool IsWaitingForSpeechEnd = false;
 
 		internal FestivalCommandSession(bool ioLogging = false, bool asAdmin = false) : base(SupportedPlatform, SessionInitiatorCommand, ioLogging, asAdmin) {	}
+
+		internal void SayText(string text) {
+			if (string.IsNullOrEmpty(text)) {
+				return;
+			}
+
+			WriteLine(GenerateSayTextCommand(text));
+			IsWaitingForSpeechEnd = true;
+
+			while (IsWaitingForSpeechEnd) {
+				Task.Delay(1).Wait();
+			}
+		}
+
+		internal void TTSFromFile(string fileName) {
+			if(string.IsNullOrEmpty(fileName) || !File.Exists(fileName)) {
+				return;
+			}
+
+			WriteLine(GenerateTTSCommand(fileName));
+			IsWaitingForSpeechEnd = true;
+
+			while (IsWaitingForSpeechEnd) {
+				Task.Delay(1).Wait();
+			}
+		}
+
+		internal void ExitSession() => WriteLine(GenerateExitCommand());
+
+		internal void SetVoice(FestivalVoice voice) => WriteLine(GenerateSelectVoiceCommand(voice));
+
+		internal enum FestivalVoice {
+			Rab,
+			Kal,
+			CmuArticHTS
+		}
 
 		private string GenerateSayTextCommand(string text) {
 			if (string.IsNullOrEmpty(text)) {
@@ -35,7 +73,7 @@ namespace Luna.CommandLine {
 		private string GenerateSelectVoiceCommand(FestivalVoice voice) {
 			switch (voice) {
 				case FestivalVoice.Kal:
-					return string.Format("({0})", "voice_kal_diphone");					
+					return string.Format("({0})", "voice_kal_diphone");
 				case FestivalVoice.Rab:
 					return string.Format("({0})", "voice_rab_diphone");
 				case FestivalVoice.CmuArticHTS:
@@ -43,32 +81,6 @@ namespace Luna.CommandLine {
 				default:
 					goto case FestivalVoice.Kal;
 			}
-		}
-
-		internal void SayText(string text) {
-			if (string.IsNullOrEmpty(text)) {
-				return;
-			}
-
-			WriteLine(GenerateSayTextCommand(text));
-		}
-
-		internal void TTSFromFile(string fileName) {
-			if(string.IsNullOrEmpty(fileName) || !File.Exists(fileName)) {
-				return;
-			}
-
-			WriteLine(GenerateTTSCommand(fileName));
-		}
-
-		internal void ExitSession() => WriteLine(GenerateExitCommand());
-
-		internal void SetVoice(FestivalVoice voice) => WriteLine(GenerateSelectVoiceCommand(voice));
-
-		internal enum FestivalVoice {
-			Rab,
-			Kal,
-			CmuArticHTS
 		}
 
 		protected override void ProcessStandardError(object sender, NotifyCollectionChangedEventArgs e) {
@@ -98,6 +110,15 @@ namespace Luna.CommandLine {
 
 			if (EnableIOLogging) {
 				ProcessLog(newLine, ProcessLogLevel.Input);
+			}
+
+			if (string.IsNullOrEmpty(newLine)) {
+				return;
+			}
+
+			if(newLine.Contains("#") && newLine.Contains("Utterance")) {
+				// speech ended
+				IsWaitingForSpeechEnd = false;
 			}
 		}
 	}
