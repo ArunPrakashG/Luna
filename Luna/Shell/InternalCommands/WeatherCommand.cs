@@ -1,6 +1,5 @@
 using Luna.ExternalExtensions;
 using Luna.ExternalExtensions.Shared.Shell;
-using Luna.Sound.Speech;
 using OpenWeatherApiSharp;
 using System;
 using System.Threading;
@@ -142,10 +141,15 @@ namespace Luna.Shell.InternalCommands {
 						}
 
 						if (tts != null && tts.HasValue && tts.Value) {
-							Helpers.InBackground(async () => await TTS.SpeakText($"Weather Data for {weather.LocationName}. " +
-								$"Wind Speed is {weather.Wind.Speed}. " +
-								$"Humidity level is {weather.Data.Humidity}. Pressure level {weather.Data.Pressure}. " +
-								$"Sea Level is {weather.Data.SeaLevel}. Temperature is {weather.Data.Temperature}.", true));
+							Helpers.InBackground(() => {
+								using(TTS tts = new TTS(false, false)) {
+									tts.Speak($"Weather Data for {weather.LocationName}. " +
+											$"Wind Speed is {weather.Wind.Speed}. " +
+											$"Humidity level is {weather.Data.Humidity}. Pressure level {weather.Data.Pressure}. " +
+											$"Sea Level is {weather.Data.SeaLevel}. Temperature is {weather.Data.Temperature}."
+									);
+								}
+							});
 						}
 
 						ShellOut.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");

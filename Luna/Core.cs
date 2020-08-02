@@ -9,7 +9,6 @@ namespace Luna {
 	using Luna.Modules.Interfaces.EventInterfaces;
 	using Luna.Server;
 	using Luna.Shell;
-	using Luna.Sound.Speech;
 	using Luna.Watchers;
 	using Synergy.Extensions;
 	using System;
@@ -35,16 +34,9 @@ namespace Luna {
 		internal readonly bool DisableFirstChanceLogWithDebug;
 		internal readonly CoreConfig Config;
 
-		[PublicAPI]
 		public readonly bool InitiationCompleted;
-
-		[PublicAPI]
 		public readonly bool IsBaseInitiationCompleted;
-
-		[PublicAPI]
 		public static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
-
-		[PublicAPI]
 		public static readonly Stopwatch RuntimeSpanCounter;
 
 		static Core() {

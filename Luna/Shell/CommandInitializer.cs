@@ -1,7 +1,5 @@
-using Luna.ExternalExtensions;
 using Luna.ExternalExtensions.Shared.Shell;
 using Luna.Logging;
-using Luna.Logging.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Composition.Convention;
@@ -14,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Luna.Shell {
 	internal class CommandInitializer {
-		private static readonly ILogger Logger = new Logger(typeof(CommandInitializer).Name);
+		private static readonly InternalLogger Logger = new InternalLogger(nameof(CommandInitializer));
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoadSync = new SemaphoreSlim(1, 1);
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
@@ -40,7 +38,7 @@ namespace Luna.Shell {
 
 				foreach (T command in list) {
 					if (await IsExistingCommand<T>(command.UniqueId).ConfigureAwait(false)) {
-						Logger.Warning($"'{command.CommandName}' shell command is already loaded; skipping from loading process...");
+						Logger.Warn($"'{command.CommandName}' shell command is already loaded; skipping from loading process...");
 						continue;
 					}
 
@@ -89,7 +87,7 @@ namespace Luna.Shell {
 
 				foreach (T command in list) {
 					if (await IsExistingCommand<T>(command.UniqueId).ConfigureAwait(false)) {
-						Logger.Warning($"'{command.CommandName}' shell command already exists. skipping...");
+						Logger.Warn($"'{command.CommandName}' shell command already exists. skipping...");
 						continue;
 					}
 
@@ -129,7 +127,7 @@ namespace Luna.Shell {
 					if (cmd.Value.UniqueId.Equals(cmdId)) {
 						cmd.Value.Dispose();
 						Interpreter.Commands.Remove(cmd.Value.UniqueId);
-						Logger.Warning($"Shell command has been unloaded -> {cmd.Value.CommandName}");
+						Logger.Warn($"Shell command has been unloaded -> {cmd.Value.CommandName}");
 						return true;
 					}
 				}
@@ -202,14 +200,14 @@ namespace Luna.Shell {
 		}
 
 		private bool CommandStartsWithIsUnique(char commandKeyChar, char targetKeyChar) {
-			if(commandKeyChar != targetKeyChar) {
+			if (commandKeyChar != targetKeyChar) {
 				return false;
 			}
 
 			int commandKeyCharCount = 0;
 			int targetKeyCharCount = 0;
 
-			foreach (KeyValuePair<string, IShellCommand> command in Interpreter.Commands) {				
+			foreach (KeyValuePair<string, IShellCommand> command in Interpreter.Commands) {
 				if (command.Value.CommandKey[0] == commandKeyChar) {
 					commandKeyCharCount++;
 				}
@@ -297,7 +295,7 @@ namespace Luna.Shell {
 
 		private HashSet<Assembly>? LoadAssembliesFromPath(string path) {
 			if (string.IsNullOrEmpty(path)) {
-				Logger.Log(nameof(path));
+				Logger.NullError(nameof(path));
 				return null;
 			}
 
@@ -315,8 +313,8 @@ namespace Luna.Shell {
 						assembly = Assembly.LoadFrom(assemblyPath);
 					}
 					catch (Exception e) {
-						Logger.Warning($"Assembly path is invalid. {assemblyPath}");
-						Logger.Log(e);
+						Logger.Warn($"Assembly path is invalid. {assemblyPath}");
+						Logger.Exception(e);
 						continue;
 					}
 
@@ -324,7 +322,7 @@ namespace Luna.Shell {
 				}
 			}
 			catch (Exception e) {
-				Logger.Log(e);
+				Logger.Exception(e);
 				return null;
 			}
 

@@ -1,5 +1,4 @@
 using Luna.Logging;
-using Luna.Sound.Speech;
 using System;
 using System.Collections.Generic;
 
@@ -18,13 +17,15 @@ namespace Luna.Features {
 			Alarm.Alarms.Add(this);
 		}
 
-		protected override async void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper) {
+		protected override void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper) {
 			Logger.Trace($"Alarm event -> {this.UniqueID}");
 			// play alarm notification sound
 			// read console or wait for an input to snooze or cancel alarm
 
 			if (UseTTS) {
-				await TTS.SpeakText(Description, false).ConfigureAwait(false);
+				using(TTS tts = new TTS()) {
+					tts.Speak(Description);
+				}
 			}
 		}
 

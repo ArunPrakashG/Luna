@@ -2,9 +2,7 @@ namespace Luna.Shell {
 	using Luna.ExternalExtensions;
 	using Luna.ExternalExtensions.Shared.Shell;
 	using Luna.Logging;
-	using Luna.Logging.Interfaces;
 	using Luna.Shell.InternalCommands;
-	using Luna.Sound;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
@@ -17,7 +15,7 @@ namespace Luna.Shell {
 	/// The Shell Instance.
 	/// </summary>
 	public static class Interpreter {
-		private static readonly ILogger Logger = new Logger("INTERPRETER");
+		private static readonly InternalLogger Logger = new InternalLogger(nameof(Interpreter));
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
 		private static bool InitCompleted = false;
@@ -122,7 +120,7 @@ namespace Luna.Shell {
 					Console.WriteLine();
 					ShellOut.Info("Type in the command! Use 'help' / 'h' for help regarding the available commands.");
 					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write($"#~{Path.GetFullPath(Assembly.GetExecutingAssembly().Location)}/{Program.CoreInstance.AssistantName.Trim()}/$ >> ");
+					Console.Write($"#~{Path.GetFullPath(Assembly.GetExecutingAssembly().Location)}/{Assembly.GetExecutingAssembly().GetName().Name}/$ >> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
 
@@ -154,7 +152,7 @@ namespace Luna.Shell {
 		/// <returns>The <see cref="bool"/></returns>
 		private static async Task<bool> ExecuteCommandAsync(string? command) {
 			if (!InitCompleted) {
-				Logger.Warning("Shell isn't initiated properly.");
+				Logger.Warn("Shell isn't initiated properly.");
 				ShellOut.Error("Shell is offline!");
 				return false;
 			}
@@ -302,7 +300,7 @@ namespace Luna.Shell {
 				return true;
 			}
 			catch (Exception e) {
-				Logger.Log(e);
+				Logger.Exception(e);
 				ShellOut.Error("Internal exception occurred. Execution failed unexpectedly.");
 				ShellOut.Exception(e);
 				return false;
@@ -365,7 +363,7 @@ namespace Luna.Shell {
 					return false;
 				}
 
-				Sound.PlayNotification(Sound.ENOTIFICATION_CONTEXT.ALERT);
+				await Notifications.Notify(Notifications.NotificationType.NotifyShort).ConfigureAwait(false);
 				await command.ExecuteAsync(new Parameter(commandKey, parameters)).ConfigureAwait(false);
 				return true;
 			}
