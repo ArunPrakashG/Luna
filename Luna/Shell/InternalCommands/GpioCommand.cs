@@ -91,7 +91,7 @@ namespace Luna.Shell.InternalCommands {
 				GpioPinState pinState;
 				bool isSet;
 
-				IGpioControllerDriver? driver = PinController.GetDriver();
+				GpioControllerDriver? driver = PinController.GetDriver();
 				if (driver == null || !driver.IsDriverInitialized) {
 					ShellOut.Error("Internal error occurred with the gpio driver. Please restart the assistant.");
 					return;

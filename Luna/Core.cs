@@ -65,7 +65,7 @@ namespace Luna {
 				Logger.Info($"Starting offline mode...");
 			}
 
-			Controller = new GpioCore(new AvailablePins(
+			Controller = new GpioCore(new PinsWrapper(
 					Config.OutputModePins,
 					Config.InputModePins,
 					Constants.BcmGpioPins,
@@ -94,7 +94,7 @@ namespace Luna {
 			async void checkAndUpdateAction() => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
 			async void gpioControllerInitAction() {
-				IGpioControllerDriver? _driver = default;
+				GpioControllerDriver? _driver = default;
 
 				switch (Config.GpioDriverProvider) {
 					case GpioDriver.RaspberryIODriver:

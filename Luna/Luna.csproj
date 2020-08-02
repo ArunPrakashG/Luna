@@ -55,6 +55,8 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
 		
+    <Compile Remove="Gpio\Controllers\GpioController.cs" />
+		
     <None Update="Config\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -78,6 +80,10 @@
     <Folder Include="Commands\" />
     <Folder Include="InternalModules\" />
     <Folder Include="Server\Models\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Gpio\Controllers\GpioController.cs" />
   </ItemGroup>
 	
   <ItemGroup>
