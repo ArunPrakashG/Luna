@@ -1,15 +1,9 @@
-using Luna.Watchers.Interfaces;
-using Luna.ExternalExtensions;
-using Luna.Logging;
-using Luna.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Threading;
-using static Luna.Gpio.Enums;
-using static Luna.Logging.Enums;
-using System.Collections.Immutable;
 using System.Threading.Tasks;
+using static Luna.Gpio.Enums;
 
 namespace Luna {
 	public class ApiKeys {
@@ -25,19 +19,19 @@ namespace Luna {
 		public bool GpioSafeMode { get; set; }
 
 		[JsonProperty]
-		public int[] OutputModePins = new int[]	{ 2, 3, 4, 17, 27, 22, 10, 9	};
+		public int[] OutputModePins = new int[] { 2, 3, 4, 17, 27, 22, 10, 9 };
 
 		[JsonProperty]
-		public int[] InputModePins = new int[] { 26,20,16 };
+		public int[] InputModePins = new int[] { 26, 20, 16 };
 
 		[JsonProperty]
-		public int[] IRSensorPins = new int[] {	26,20 };
+		public int[] InfraredSensorPins = new int[] { 26, 20 };
 
 		[JsonProperty]
-		public int[] SoundSensorPins = new int[] {	16	};
+		public int[] SoundSensorPins = new int[] { 16 };
 
 		[JsonProperty]
-		public int[] RelayPins = new int[] { 2, 3, 4, 17, 27, 22, 10, 9	};
+		public int[] RelayPins = new int[] { 2, 3, 4, 17, 27, 22, 10, 9 };
 
 		[JsonProperty]
 		public GpioDriver GpioDriverProvider { get; set; } = GpioDriver.RaspberryIODriver;
@@ -177,20 +171,20 @@ namespace Luna {
 
 			SaveAsync().RunSynchronously();
 			return true;
-		}		
+		}
 
 		public override string? ToString() => JsonConvert.SerializeObject(this);
 
 		public override int GetHashCode() => base.GetHashCode();
 
 		public override bool Equals(object? obj) {
-			if(obj == null) {
+			if (obj == null) {
 				return false;
 			}
 
 			CoreConfig? config = obj as CoreConfig;
 
-			if(config == null) {
+			if (config == null) {
 				return false;
 			}
 

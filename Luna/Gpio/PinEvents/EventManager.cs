@@ -11,7 +11,7 @@ namespace Luna.Gpio.PinEvents {
 
 		internal EventManager(GpioCore _core) => Core = _core;
 
-		internal async Task<bool> RegisterEvent(EventConfig config) {
+		internal async Task<bool> RegisterEvent(PinEventConfiguration config) {
 			if (!PinController.IsValidPin(config.GpioPin)) {
 				Logger.Warn("The specified pin is invalid.");
 				return false;

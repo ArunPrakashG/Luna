@@ -1,10 +1,9 @@
 using Luna.ExternalExtensions;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Drivers;
-using Luna.Gpio.Events.EventArgs;
 using Luna.Gpio.Exceptions;
+using Luna.Gpio.PinEvents.PinEventArgs;
 using Luna.Logging;
-using Luna.TypeLoader;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,9 +21,9 @@ namespace Luna.Gpio.PinEvents {
 		private bool OverridePolling;
 		private bool IsPossible => !Config.IsEventRegistered && Driver != null && Driver.IsDriverInitialized;
 
-		internal readonly EventConfig Config;
+		
 
-		internal Generator(GpioCore _core, EventConfig _config, InternalLogger _logger) {
+		internal Generator(GpioCore _core, PinEventConfiguration _config, InternalLogger _logger) {
 			Logger = _logger;
 			Core = _core;
 			Config = _config;
@@ -91,22 +90,24 @@ namespace Luna.Gpio.PinEvents {
 			bool isSame = PreviousValue.PinState == currentState;
 			Pin pinConfig = Driver.GetPinConfig(Config.GpioPin);
 			OnValueChangedEventArgs args;
+			CurrentValue _currentValue;
+			PreviousValue _previousValue;
 
 			switch (Config.PinEventState) {
-				case PinEventStates.Activated when currentState == GpioPinState.On && !isSame:
+				case PinEventState.Activated when currentState == GpioPinState.On && !isSame:
 					args = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue,
-					Config.PinMode, PinEventStates.Activated, PreviousValue.PinState, PreviousValue.DigitalValue);
+					Config.PinMode, PinEventState.Activated, PreviousValue.PinState, PreviousValue.DigitalValue);
 					Config.OnEvent?.Invoke(args);
 					break;
 
-				case PinEventStates.Deactivated when currentState == GpioPinState.Off && !isSame:
+				case PinEventState.Deactivated when currentState == GpioPinState.Off && !isSame:
 					args = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue,
-					Config.PinMode, PinEventStates.Deactivated, PreviousValue.PinState, PreviousValue.DigitalValue);
+					Config.PinMode, PinEventState.Deactivated, PreviousValue.PinState, PreviousValue.DigitalValue);
 					Config.OnEvent?.Invoke(args);
 					break;
-				case PinEventStates.Both when PreviousValue.PinState != currentState:
+				case PinEventState.Both when PreviousValue.PinState != currentState:
 					args = new OnValueChangedEventArgs(Config.GpioPin, currentState, currentValue,
-					Config.PinMode, PinEventStates.Both, PreviousValue.PinState, PreviousValue.DigitalValue);
+					Config.PinMode, PinEventState.Both, PreviousValue.PinState, PreviousValue.DigitalValue);
 					Config.OnEvent?.Invoke(args);
 					break;
 			}

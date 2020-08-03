@@ -1,24 +1,24 @@
 namespace Luna.Gpio {
-	internal class Enums {
-		internal enum GpioDriver {
+	public class Enums {
+		public enum GpioDriver {
 			RaspberryIODriver,
 			SystemDevicesDriver,
 			WiringPiDriver
 		}
 
-		internal enum PiAudioState {
+		public enum PiAudioState {
 			Mute,
 			Unmute
 		}
 
-		internal enum GpioPinMode {
+		public enum GpioPinMode {
 			Input = 0,
 			Output = 1,
 			Alt01 = 4,
 			Alt02 = 5
 		}
 
-		internal enum GpioCycles : byte {
+		public enum GpioCycles : byte {
 			Cycle,
 			Single,
 			Base,
@@ -28,12 +28,12 @@ namespace Luna.Gpio {
 			Default
 		}
 
-		internal enum GpioPinState {
+		public enum GpioPinState {
 			On = 0,
 			Off = 1
 		}
 
-		internal enum PinEventStates : byte {
+		public enum PinEventState : byte {
 			Activated,
 			Deactivated,
 			Both
@@ -42,7 +42,7 @@ namespace Luna.Gpio {
 		/// <summary>
 		///  Different numbering schemes supported by GPIO controllers and drivers.
 		/// </summary>
-		internal enum NumberingScheme {
+		public enum NumberingScheme {
 			/// <summary>
 			/// The logical representation of the GPIOs. Refer to the microcontroller's datasheet
 			/// to find this information.

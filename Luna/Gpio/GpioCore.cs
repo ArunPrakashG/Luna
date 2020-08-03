@@ -79,13 +79,13 @@ namespace Luna.Gpio {
 		private async Task InitEvents() {
 			for (int i = 0; i < AvailablePins.InputPins.Length; i++) {
 				EventConfig config = new EventConfig(AvailablePins.InputPins[i], GpioPinMode.Input,
-					PinEventStates.Both, OnPinValueChanged);
+					PinEventState.Both, OnPinValueChanged);
 				await EventManager.RegisterEvent(config).ConfigureAwait(false);
 			}
 
 			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
 				EventConfig config = new EventConfig(AvailablePins.OutputPins[i], GpioPinMode.Output,
-					PinEventStates.Both, OnPinValueChanged);
+					PinEventState.Both, OnPinValueChanged);
 				await EventManager.RegisterEvent(config).ConfigureAwait(false);
 			}
 		}
