@@ -8,7 +8,7 @@ namespace Luna {
 	internal class Constants {
 		internal const string TraceLogPath = "TraceLog.txt";
 		internal const string DebugLogPath = "DebugLog.txt";
-		internal const string GpioConfigFile = "GpioConfig.json";
+		internal const string GpioConfig = "GpioConfig.json";
 		internal const string ConfigDirectory = "Config";
 		internal const string ResourcesDirectory = "Resources";
 		internal const string ModuleDirectory = "Modules";
@@ -23,6 +23,8 @@ namespace Luna {
 		internal static readonly int[] BcmGpioPins = new int[26] {
 			2,3,4,17,27,22,10,9,11,5,6,13,19,26,14,15,18,23,24,25,8,7,12,16,20,21
 		};
+
+		internal static string GpioConfigPath => Path.Combine(ConfigDirectory, GpioConfig);
 
 		internal static string? HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
 

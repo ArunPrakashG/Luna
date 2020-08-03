@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using static Luna.Gpio.Enums;
 
-namespace Luna.Gpio.Events {
+namespace Luna.Gpio.PinEvents {
 	internal struct GeneratedValue {
 		internal GpioPinState PinState { get; private set; }
 		internal bool DigitalValue { get; private set; }

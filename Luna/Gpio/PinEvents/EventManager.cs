@@ -1,12 +1,11 @@
 using Luna.Gpio.Controllers;
 using Luna.Logging;
-using Luna.Logging.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Luna.Gpio.Events {
+namespace Luna.Gpio.PinEvents {
 	public class EventManager {
-		private readonly ILogger Logger = new Logger(typeof(EventManager).Name);
+		private readonly InternalLogger Logger = new InternalLogger(nameof(EventManager));
 		private readonly Dictionary<int, Generator> Events = new Dictionary<int, Generator>();
 		private readonly GpioCore Core;
 
@@ -14,7 +13,7 @@ namespace Luna.Gpio.Events {
 
 		internal async Task<bool> RegisterEvent(EventConfig config) {
 			if (!PinController.IsValidPin(config.GpioPin)) {
-				Logger.Warning("The specified pin is invalid.");
+				Logger.Warn("The specified pin is invalid.");
 				return false;
 			}
 
@@ -33,7 +32,7 @@ namespace Luna.Gpio.Events {
 		}
 
 		internal void StopAllEventGenerators() {
-			foreach(KeyValuePair<int, Generator> pair in Events) {
+			foreach (KeyValuePair<int, Generator> pair in Events) {
 				StopEventGeneratorForPin(pair.Key);
 			}
 		}
@@ -43,7 +42,7 @@ namespace Luna.Gpio.Events {
 				return;
 			}
 
-			if(!Events.TryGetValue(pin, out Generator? generator) || generator == null) {
+			if (!Events.TryGetValue(pin, out Generator? generator) || generator == null) {
 				return;
 			}
 

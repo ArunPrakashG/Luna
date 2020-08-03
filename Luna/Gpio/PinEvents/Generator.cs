@@ -1,20 +1,19 @@
 using Luna.ExternalExtensions;
-using Luna.Gpio.Config;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Drivers;
 using Luna.Gpio.Events.EventArgs;
 using Luna.Gpio.Exceptions;
-using Luna.Logging.Interfaces;
+using Luna.Logging;
+using Luna.TypeLoader;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using static Luna.Gpio.Enums;
-using static Luna.Logging.Enums;
 
-namespace Luna.Gpio.Events {
+namespace Luna.Gpio.PinEvents {
 	internal class Generator {
 		private const int POLL_DELAY = 1; // in ms		
-		private readonly ILogger Logger;
+		private readonly InternalLogger Logger;
 		private readonly GpioCore Core;
 		private readonly GeneratedValue PreviousValue = new GeneratedValue();
 		private readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
@@ -25,7 +24,7 @@ namespace Luna.Gpio.Events {
 
 		internal readonly EventConfig Config;
 
-		internal Generator(GpioCore _core, EventConfig _config, ILogger _logger) {
+		internal Generator(GpioCore _core, EventConfig _config, InternalLogger _logger) {
 			Logger = _logger;
 			Core = _core;
 			Config = _config;
@@ -41,12 +40,12 @@ namespace Luna.Gpio.Events {
 			}
 
 			if (!IsPossible) {
-				Logger.Log("An error occurred. Check if the specified pin is valid.", LogLevels.Warn);
+				Logger.Warn("An error occurred. Check if the specified pin is valid.");
 				return;
 			}
 
 			if (Config.PinMode == GpioPinMode.Alt01 || Config.PinMode == GpioPinMode.Alt02) {
-				Logger.Log("Currently only Output/Input polling is supported.", LogLevels.Warn);
+				Logger.Warn("Currently only Output/Input polling is supported.");
 				return;
 			}
 
@@ -61,13 +60,13 @@ namespace Luna.Gpio.Events {
 
 		private async Task PollAsync() {
 			if (!IsPossible) {
-				Logger.Log("An error occurred. Check if the specified pin is valid.", LogLevels.Warn);
+				Logger.Warn("An error occurred. Check if the specified pin is valid.");
 				return;
 			}
 
 			Config.SetEventRegisteredStatus(true);
 			await Sync.WaitAsync().ConfigureAwait(false);
-			Logger.Log($"Started '{(Config.PinMode == GpioPinMode.Input ? "Input" : "Output")}' pin polling for {Config.GpioPin}.", LogLevels.Trace);
+			Logger.Trace($"Started '{(Config.PinMode == GpioPinMode.Input ? "Input" : "Output")}' pin polling for {Config.GpioPin}.");
 
 			try {
 				do {
@@ -79,7 +78,7 @@ namespace Luna.Gpio.Events {
 			}
 			finally {
 				Config.SetEventRegisteredStatus(false);
-				Logger.Log($"Polling for '{Config.GpioPin}' has been stopped.", LogLevels.Trace);
+				Logger.Trace($"Polling for '{Config.GpioPin}' has been stopped.");
 				Sync.Release();
 			}
 		}
@@ -117,7 +116,7 @@ namespace Luna.Gpio.Events {
 
 		private void SetInitalValue() {
 			if (!IsPossible) {
-				Logger.Log("An error occurred. Check if the specified pin is valid.", LogLevels.Warn);
+				Logger.Warn("An error occurred. Check if the specified pin is valid.");
 				return;
 			}
 
