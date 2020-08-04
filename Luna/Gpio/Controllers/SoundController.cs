@@ -1,58 +1,35 @@
+using Luna.CommandLine;
 using Luna.Logging;
-using Luna.Logging.Interfaces;
-using System.Threading.Tasks;
-using Unosquare.RaspberryIO;
-using Unosquare.RaspberryIO.Computer;
+using System;
 using static Luna.Gpio.Enums;
 
 namespace Luna.Gpio.Controllers {
-	public class SoundController {
-		private readonly ILogger Logger = new Logger(typeof(SoundController).Name);
-		private bool IsAllowedToRun => PinController.GetDriver() != null && PinController.GetDriver()?.DriverName == GpioDriver.RaspberryIODriver;
+	internal class SoundController : IDisposable {
+		private readonly InternalLogger Logger = new InternalLogger(nameof(SoundController));
 		private readonly GpioCore Controller;
+		private readonly aMixerCommandInterfacer aMixerInterfacer;
 
-		internal SoundController(GpioCore _controller) => Controller = _controller;
+		internal SoundController(GpioCore gpioCore) {
+			Controller = gpioCore;
+			aMixerInterfacer = new aMixerCommandInterfacer(false, false, false);
+		}
 
-		public async Task SetAudioState(PiAudioState state) {
-			if (!IsAllowedToRun) {
-				return;
-			}
-
+		internal void SetAudioState(AudioState state) {
 			switch (state) {
-				case PiAudioState.Mute:
-					await Pi.Audio.ToggleMute(true).ConfigureAwait(false);
-					Logger.Log("Pi audio is muted.");
+				case AudioState.Mute:
+					aMixerInterfacer.SetVolumn(0);
+					Logger.Info("Pi audio is muted.");
 					break;
 
-				case PiAudioState.Unmute:
-					await Pi.Audio.ToggleMute(false).ConfigureAwait(false);
-					Logger.Log("Pi audio is Unmuted.");
+				case AudioState.Unmute:
+					aMixerInterfacer.SetVolumn(60);
+					Logger.Info("Pi audio is Unmuted.");
 					break;
 			}
 		}
 
-		public async Task<AudioState> GetAudioState() {
-			if (!IsAllowedToRun) {
-				return default;
-			}
+		internal void SetVolume(int level = 80) => aMixerInterfacer.SetVolumn(0);
 
-			return await Pi.Audio.GetState().ConfigureAwait(false);
-		}
-
-		public async Task SetVolume(int level = 80) {
-			if (!IsAllowedToRun) {
-				return;
-			}
-
-			await Pi.Audio.SetVolumePercentage(level).ConfigureAwait(false);
-		}
-
-		public async Task SetVolume(float decibels = -1.00f) {
-			if (!IsAllowedToRun) {
-				return;
-			}
-
-			await Pi.Audio.SetVolumeByDecibels(decibels).ConfigureAwait(false);
-		}
+		public void Dispose() => aMixerInterfacer.Dispose();
 	}
 }

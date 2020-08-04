@@ -53,7 +53,7 @@ namespace Luna {
 			await CoreInstance.KeepAlive().ConfigureAwait(false);
 		}
 
-		private static void OnForceQuitAssistant(object? sender, ConsoleCancelEventArgs e) => CoreInstance.Exit(-1);
+		private static void OnForceQuitAssistant(object? sender, ConsoleCancelEventArgs e) => CoreInstance.ExitEnvironment(-1);
 
 		public static void HandleTaskExceptions(object? sender, UnobservedTaskExceptionEventArgs e) {
 			if (sender == null || e == null || e.Exception == null) {
@@ -70,7 +70,7 @@ namespace Luna {
 			Logger.Exception(e.ExceptionObject as Exception);
 
 			if (e.IsTerminating) {
-				CoreInstance.Exit(-1);
+				CoreInstance.ExitEnvironment(-1);
 			}
 		}
 

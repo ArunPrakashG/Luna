@@ -17,14 +17,15 @@ namespace Luna.CommandLine.ProcessBase {
 		private const string WINDOWS_SHELL = "cmd.exe";
 		private readonly string ShellName = Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD ? UNIX_SHELL : WINDOWS_SHELL;
 		private readonly InternalLogger Logger;
-		private Process Process;
+		
 		protected readonly bool IsElevationCapable;
 		protected readonly bool EnableIOLogging;
 		protected readonly bool InternalTraceLogging;
-
 		protected readonly ObservableStack<string> OutputContainer;
 		protected readonly ObservableStack<string> ErrorContainer;
 		protected readonly ObservableStack<string> InputContainer;
+
+		private Process Process;
 
 		protected bool IsUnixEnvironment => Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD;
 

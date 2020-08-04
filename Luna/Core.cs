@@ -30,14 +30,15 @@ namespace Luna {
 		private readonly UpdateManager Updater;
 		private readonly ModuleInitializer ModuleLoader;
 		private readonly RestCore RestServer;
+		private readonly PinsWrapper Pins;
 
 		internal readonly bool DisableFirstChanceLogWithDebug;
 		internal readonly CoreConfig Config;
 
-		public readonly bool InitiationCompleted;
-		public readonly bool IsBaseInitiationCompleted;
-		public static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
-		public static readonly Stopwatch RuntimeSpanCounter;
+		internal readonly bool InitiationCompleted;
+		internal readonly bool IsBaseInitiationCompleted;
+		internal static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
+		internal static readonly Stopwatch RuntimeSpanCounter;
 
 		static Core() {
 			RuntimeSpanCounter = new Stopwatch();
@@ -65,15 +66,16 @@ namespace Luna {
 				Logger.Info($"Starting offline mode...");
 			}
 
-			Controller = new GpioCore(new PinsWrapper(
-					Config.OutputModePins,
-					Config.InputModePins,
+			Pins = new PinsWrapper(
+					Config.GpioConfiguration.OutputModePins,
+					Config.GpioConfiguration.InputModePins,
 					Constants.BcmGpioPins,
-					Config.RelayPins,
-					Config.IRSensorPins,
-					Config.SoundSensorPins
-			), true);
+					Config.GpioConfiguration.RelayPins,
+					Config.GpioConfiguration.InfraredSensorPins,
+					Config.GpioConfiguration.SoundSensorPins
+			);
 
+			Controller = new GpioCore(Pins, this, Config.GpioConfiguration.GpioSafeMode);
 			Updater = new UpdateManager(this);
 			ModuleLoader = new ModuleInitializer();
 			RestServer = new RestCore(Config.RestServerPort, Config.Debug);
@@ -94,21 +96,21 @@ namespace Luna {
 			async void checkAndUpdateAction() => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
 			async void gpioControllerInitAction() {
-				GpioControllerDriver? _driver = default;
+				GpioControllerDriver? driver = default;
 
-				switch (Config.GpioDriverProvider) {
+				switch (Config.GpioConfiguration.GpioDriverProvider) {
 					case GpioDriver.RaspberryIODriver:
-						_driver = new RaspberryIODriver();
+						driver = new RaspberryIODriver(new InternalLogger(nameof(RaspberryIODriver)), Pins, Controller.GetPinConfig(), Config.GpioConfiguration.PinNumberingScheme);
 						break;
 					case GpioDriver.SystemDevicesDriver:
-						_driver = new SystemDeviceDriver();
+						driver = new SystemDeviceDriver(new InternalLogger(nameof(SystemDeviceDriver)), Pins, Controller.GetPinConfig(), Config.GpioConfiguration.PinNumberingScheme);
 						break;
 					case GpioDriver.WiringPiDriver:
-						_driver = new WiringPiDriver();
+						driver = new WiringPiDriver(new InternalLogger(nameof(WiringPiDriver)), Pins, Controller.GetPinConfig(), Config.GpioConfiguration.PinNumberingScheme);
 						break;
 				}
 
-				await Controller.InitController(_driver, OS.IsUnix, Config.PinNumberingScheme).ConfigureAwait(false);
+				await Controller.InitController(driver, Config.GpioConfiguration.PinNumberingScheme).ConfigureAwait(false);
 			}
 
 			async void restServerInitAction() => await RestServer.InitServerAsync().ConfigureAwait(false);
@@ -141,19 +143,20 @@ namespace Luna {
 				() => ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default),
 				() => Interpreter.ExitShell(),
 				() => RestServer.Dispose(),
-				() => Controller?.Shutdown(),
+				() => Controller.Dispose(),
 				() => JobManager.RemoveAllJobs(),
 				() => JobManager.Stop(),
 				() => InternalConfigWatcher.StopWatcher(),
 				() => InternalModuleWatcher.StopWatcher(),
 				() => ModuleLoader?.OnCoreShutdown(),
+				() => Updater.Dispose(),
 				async () => await Config.SaveAsync().ConfigureAwait(false)
 			);
 
 			Logger.Trace("Finished exit tasks.");
 		}
 
-		internal void Exit(int exitCode = 0) {
+		internal void ExitEnvironment(int exitCode = 0) {
 			if (exitCode != 0) {
 				Logger.Warn("Exiting with nonzero error code...");
 			}
@@ -170,51 +173,7 @@ namespace Luna {
 		internal async Task Restart(int delay = 10) {
 			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
-			Exit(0);
-		}
-
-		internal async Task SystemShutdown() {
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.SystemShutdown, default);
-			if (GpioCore.IsAllowedToExecute) {
-				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
-				Logger.Log("Shutting down pi...", LogLevels.Warn);
-				OnExit();
-				await Pi.ShutdownAsync().ConfigureAwait(false);
-				return;
-			}
-
-			if (Helpers.GetPlatform() == OSPlatform.Windows) {
-				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
-				Logger.Log("Shutting down system...", LogLevels.Warn);
-				OnExit();
-				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/s /t 0") {
-					CreateNoWindow = true,
-					UseShellExecute = false
-				};
-				Process.Start(psi);
-			}
-		}
-
-		internal async Task SystemRestart() {
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.SystemRestart, default);
-			if (GpioCore.IsAllowedToExecute) {
-				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
-				Logger.Log("Restarting pi...", LogLevels.Warn);
-				OnExit();
-				await Pi.RestartAsync().ConfigureAwait(false);
-				return;
-			}
-
-			if (Helpers.GetPlatform() == OSPlatform.Windows) {
-				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
-				Logger.Log("Restarting system...", LogLevels.Warn);
-				OnExit();
-				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/r /t 0") {
-					CreateNoWindow = true,
-					UseShellExecute = false
-				};
-				Process.Start(psi);
-			}
+			ExitEnvironment(0);
 		}
 
 		internal async Task KeepAlive() {
@@ -248,7 +207,7 @@ namespace Luna {
 			if (!File.Exists(Constants.CoreConfigPath)) {
 				Logger.Log("The core config file has been deleted.", LogLevels.Warn);
 				Logger.Log("Fore quitting assistant.", LogLevels.Warn);
-				Exit(0);
+				ExitEnvironment(0);
 			}
 
 			Logger.Log("Updating core config as the local config file as been updated...");

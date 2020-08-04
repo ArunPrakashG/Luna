@@ -1,43 +1,27 @@
-using Luna.Gpio.Config;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Exceptions;
-using Luna.Logging.Interfaces;
-using System;
+using Luna.Logging;
 using System.Device.Gpio;
+using System.Device.Gpio.Drivers;
 using static Luna.Gpio.Enums;
 
 namespace Luna.Gpio.Drivers {
-	public class SystemDeviceDriver : GpioControllerDriver {
-		public ILogger Logger { get; private set; }
-
-		public PinsWrapper AvailablePins { get; private set; }
-
+	internal class SystemDeviceDriver : GpioControllerDriver {
 		private GpioController DriverController;
 
-		public bool IsDriverInitialized { get; private set; }
-		public Enums.GpioDriver DriverName => Enums.GpioDriver.SystemDevicesDriver;
+		public SystemDeviceDriver(InternalLogger logger, PinsWrapper pins, PinConfig pinConfig, NumberingScheme scheme) : base(logger, pins, Enums.GpioDriver.SystemDevicesDriver, pinConfig, scheme) {	}
 
-		public PinConfig PinConfig => PinConfigManager.GetConfiguration();
-
-		public NumberingScheme NumberingScheme { get; private set; }
-
-		public GpioControllerDriver InitDriver(ILogger _logger, PinsWrapper _availablePins, NumberingScheme _scheme) {
-			Logger = _logger ?? throw new ArgumentNullException(nameof(_logger));
-			AvailablePins = _availablePins;
-
+		internal override GpioControllerDriver Init() {
 			if (!GpioCore.IsAllowedToExecute) {
-				IsDriverInitialized = false;
 				throw new DriverInitializationFailedException(nameof(RaspberryIODriver), "Not allowed to initialize.");
 			}
 
-			NumberingScheme = _scheme;
-			DriverController = new GpioController((PinNumberingScheme) _scheme);
-			IsDriverInitialized = true;
+			DriverController = new GpioController(PinNumberingScheme.Logical, new RaspberryPi3Driver());
 			return this;
 		}
 
 		private void ClosePin(int pinNumber) {
-			if(DriverController == null) {
+			if (DriverController == null) {
 				return;
 			}
 
@@ -46,7 +30,7 @@ namespace Luna.Gpio.Drivers {
 			}
 		}
 
-		public Pin GetPinConfig(int pinNumber) {
+		internal override Pin GetPinConfig(int pinNumber) {
 			if (!PinController.IsValidPin(pinNumber) || DriverController == null || !IsDriverInitialized) {
 				return new Pin();
 			}
@@ -74,9 +58,7 @@ namespace Luna.Gpio.Drivers {
 			}
 		}
 
-		public GpioControllerDriver Cast<T>(T driver) where T : GpioControllerDriver => driver;
-
-		public bool SetGpioValue(int pin, GpioPinMode mode) {
+		internal override bool SetGpioValue(int pin, GpioPinMode mode) {
 			if (!PinController.IsValidPin(pin) || !IsDriverInitialized) {
 				return false;
 			}
@@ -106,7 +88,7 @@ namespace Luna.Gpio.Drivers {
 			}
 		}
 
-		public bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state) {
+		internal override bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state) {
 			if (!PinController.IsValidPin(pin) || !IsDriverInitialized) {
 				return false;
 			}
@@ -137,7 +119,7 @@ namespace Luna.Gpio.Drivers {
 			}
 		}
 
-		public GpioPinState GpioPinStateRead(int pin) {
+		internal override GpioPinState GpioPinStateRead(int pin) {
 			if (!PinController.IsValidPin(pin) || !IsDriverInitialized) {
 				return GpioPinState.Off;
 			}
@@ -162,7 +144,7 @@ namespace Luna.Gpio.Drivers {
 			}
 		}
 
-		public bool GpioDigitalRead(int pin) {
+		internal override bool GpioDigitalRead(int pin) {
 			if (!PinController.IsValidPin(pin) || !IsDriverInitialized) {
 				return false;
 			}
@@ -187,7 +169,7 @@ namespace Luna.Gpio.Drivers {
 			}
 		}
 
-		public bool SetGpioValue(int pin, GpioPinState state) {
+		internal override bool SetGpioValue(int pin, GpioPinState state) {
 			if (!PinController.IsValidPin(pin) || !IsDriverInitialized) {
 				return false;
 			}
@@ -205,7 +187,7 @@ namespace Luna.Gpio.Drivers {
 					return false;
 				}
 
-				DriverController.Write(pin, state == GpioPinState.Off ? PinValue.High : PinValue.Low);				
+				DriverController.Write(pin, state == GpioPinState.Off ? PinValue.High : PinValue.Low);
 				return true;
 			}
 			finally {
@@ -213,7 +195,7 @@ namespace Luna.Gpio.Drivers {
 			}
 		}
 
-		public int GpioPhysicalPinNumber(int bcmPin) {
+		internal override int GpioPhysicalPinNumber(int bcmPin) {
 			if (!PinController.IsValidPin(bcmPin) || !IsDriverInitialized) {
 				return -1;
 			}

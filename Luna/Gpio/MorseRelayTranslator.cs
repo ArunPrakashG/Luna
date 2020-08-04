@@ -1,45 +1,26 @@
-using Luna.Gpio.Config;
+using Luna.Features.Morse;
 using Luna.Gpio.Controllers;
-using Luna.Gpio.Drivers;
 using Luna.Logging;
-using Luna.Logging.Interfaces;
-using Luna.Morse;
 using System;
 using System.Threading.Tasks;
 using static Luna.Gpio.Enums;
-using static Luna.Logging.Enums;
 
 namespace Luna.Gpio {
-	public struct MorseCycleResult {
-		internal readonly bool Status;
-		internal readonly string? BaseText;
-		internal readonly string? Morse;
-
-		public MorseCycleResult(bool _status, string? _base, string? _morse) {
-			Status = _status;
-			BaseText = _base;
-			Morse = _morse;
-		}
-	}
-
-	public class MorseRelayTranslator {
-		private readonly ILogger Logger = new Logger(typeof(MorseRelayTranslator).Name);
-		private static readonly MorseCore MorseCore = new MorseCore();
+	internal class MorseRelayTranslator {
+		private readonly InternalLogger Logger = new InternalLogger(nameof(MorseRelayTranslator));
 		private readonly GpioCore Controller;
-		private GpioControllerDriver? Driver => PinController.GetDriver();
 
-		internal MorseRelayTranslator(GpioCore _controller) => Controller = _controller;
+		internal MorseRelayTranslator(GpioCore gpioCore) {
+			Controller = gpioCore ?? throw new ArgumentNullException(nameof(gpioCore));
+		}
 
-		public static MorseCore GetCore() => MorseCore;
-
-		public async Task<MorseCycleResult> RelayMorseCycle(string textToConvert, int relayPin) {
+		internal async Task<MorseCycleResult> RelayMorseCycle(string textToConvert, int relayPin) {
 			if (string.IsNullOrEmpty(textToConvert)) {
-				Logger.Log("The specified text is empty.", LogLevels.Warn);
 				return new MorseCycleResult(false, null, null);
 			}
-			
-			if (Driver == null) {
-				Logger.Log("Driver isn't started yet.", LogLevels.Warn);
+
+			if (PinController.GetDriver() == null) {
+				Logger.Warn("Driver isn't started yet.");
 				return new MorseCycleResult(false, null, null);
 			}
 
@@ -47,21 +28,21 @@ namespace Luna.Gpio {
 			string morse = MorseCore.ConvertToMorseCode(textToConvert);
 
 			if (string.IsNullOrEmpty(morse)) {
-				Logger.Log("Conversion to Morse failed. Cannot proceed.", LogLevels.Warn);
+				Logger.Warn("Conversion to Morse failed. Cannot proceed.");
 				return new MorseCycleResult(false, null, null);
 			}
 
 			Logger.Trace($"TEXT >> {textToConvert}");
 			Logger.Trace($"MORSE >> {morse}");
 
-			Pin beforePinStatus = Driver.GetPinConfig(relayPin);
+			Pin beforePinStatus = PinController.GetDriver().GetPinConfig(relayPin);
 
 			if (beforePinStatus.IsPinOn) {
-				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
+				PinController.GetDriver().SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
 			}
 
 			if (!MorseCore.IsValidMorse(morse)) {
-				Logger.Log("The specified Morse is invalid!", LogLevels.Warn);
+				Logger.Warn("The specified Morse is invalid!");
 				return new MorseCycleResult(false, null, null);
 			}
 
@@ -78,10 +59,10 @@ namespace Luna.Gpio {
 
 				switch (charecter) {
 					case '.':
-						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300), true);
+						PinController.GetDriver().SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300), true);
 						continue;
 					case '-':
-						Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3), true);
+						PinController.GetDriver().SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.On, TimeSpan.FromMilliseconds(300 * 3), true);
 						continue;
 					case '_':
 						await Task.Delay(300).ConfigureAwait(false);
@@ -89,10 +70,10 @@ namespace Luna.Gpio {
 				}
 			}
 
-			Pin afterPinStatus = Driver.GetPinConfig(relayPin);
+			Pin afterPinStatus = PinController.GetDriver().GetPinConfig(relayPin);
 
 			if (afterPinStatus.IsPinOn) {
-				Driver.SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
+				PinController.GetDriver().SetGpioValue(relayPin, GpioPinMode.Output, GpioPinState.Off);
 			}
 
 			return new MorseCycleResult(false, textToConvert, morse);

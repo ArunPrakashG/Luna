@@ -7,26 +7,26 @@ using Unosquare.RaspberryIO;
 using static Luna.Gpio.Enums;
 
 namespace Luna.Gpio.Controllers {
-	public class PinController {
+	internal class PinController {
 		private readonly InternalLogger Logger = new InternalLogger(nameof(PinController));
 		private static GpioControllerDriver CurrentDriver;
 		private static bool IsAlreadyInit;
 		private readonly GpioCore Controller;
 
-		internal PinController(GpioCore _controller) => Controller = _controller;
+		internal PinController(GpioCore core) => Controller = core;
 
-		internal void InitPinController(GpioControllerDriver driver, NumberingScheme numberingScheme = NumberingScheme.Logical) {
+		internal void InitPinController(GpioControllerDriver driver) {
 			if (!GpioCore.IsAllowedToExecute || IsAlreadyInit) {
 				return;
 			}
 
-			CurrentDriver = driver.InitDriver(Logger, Controller.GetAvailablePins(), numberingScheme) ?? throw new DriverInitializationFailedException(nameof(driver));
+			CurrentDriver = driver.Init() ?? throw new DriverInitializationFailedException(nameof(driver));
 			IsAlreadyInit = true;
 		}
 
-		public static GpioControllerDriver GetDriver() => GpioCore.IsAllowedToExecute && CurrentDriver.IsDriverInitialized && IsAlreadyInit ? CurrentDriver : throw new DriverNotInitializedException();
+		internal static GpioControllerDriver GetDriver() => GpioCore.IsAllowedToExecute && CurrentDriver.IsDriverInitialized && IsAlreadyInit ? CurrentDriver : throw new DriverNotInitializedException();
 
-		public static bool IsValidPin(int pin) {
+		internal static bool IsValidPin(int pin) {
 			if (!GpioCore.IsAllowedToExecute || !Constants.BcmGpioPins.Contains(pin)) {
 				return false;
 			}

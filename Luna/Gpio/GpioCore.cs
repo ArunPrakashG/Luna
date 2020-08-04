@@ -1,49 +1,49 @@
-using Luna.ExternalExtensions;
-using Luna.Gpio.Config;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Drivers;
-using Luna.Gpio.Events;
-using Luna.Gpio.Events.EventArgs;
 using Luna.Gpio.Exceptions;
+using Luna.Gpio.PinEvents;
 using Luna.Logging;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using static Luna.Gpio.Enums;
 
 namespace Luna.Gpio {
-	internal class GpioCore {
+	internal class GpioCore : IDisposable {
 		private readonly InternalLogger Logger = new InternalLogger(nameof(GpioCore));
 		private readonly bool IsGracefullShutdownRequested = true;
-		private readonly PinsWrapper AvailablePins;
+		private readonly PinsWrapper Pins;
 		private static bool IsInitSuccess;
 
-		private readonly EventManager EventManager;
+		private readonly InternalEventGenerator EventGenerator;
 		private readonly MorseRelayTranslator MorseTranslator;
 		private readonly BluetoothController BluetoothController;
 		private readonly SoundController SoundController;
-		private readonly PinController PinController;
-		private readonly PinConfigManager ConfigManager;
+		private readonly PinController PinController;		
+		private readonly Core Core;
 
+		private PinConfig PinConfig;
 		internal static readonly bool IsAllowedToExecute;
 
 		static GpioCore() {
 			IsAllowedToExecute = RuntimeInformation.ProcessArchitecture == Architecture.Arm && RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 		}
 
-		internal GpioCore(PinsWrapper pins, bool shouldGracefullyShutdown = true) {
-			AvailablePins = pins;
-			IsGracefullShutdownRequested = shouldGracefullyShutdown;			
+		internal GpioCore(PinsWrapper pins, Core core, bool shouldGracefullyShutdown = true) {
+			Core = core ?? throw new ArgumentNullException(nameof(core));
+			Pins = pins;
+			IsGracefullShutdownRequested = shouldGracefullyShutdown;
 			PinController = new PinController(this);
-			EventManager = new EventManager(this);
+			EventGenerator = new InternalEventGenerator(Core, PinController.GetDriver());
 			MorseTranslator = new MorseRelayTranslator(this);
 			BluetoothController = new BluetoothController(this);
 			SoundController = new SoundController(this);
-			ConfigManager = new PinConfigManager(this);
+			PinConfig = new PinConfig();
 		}
 
-		internal async Task InitController(GpioControllerDriver? gpioDriver, NumberingScheme numberingScheme) {
-			if (IsInitSuccess || gpioDriver == null) {
+		internal async Task InitController(GpioControllerDriver? driver, NumberingScheme numberingScheme) {
+			if (IsInitSuccess || driver == null) {
 				return;
 			}
 
@@ -52,68 +52,52 @@ namespace Luna.Gpio {
 				return;
 			}
 
-			PinController.InitPinController(gpioDriver, numberingScheme);
-			GpioControllerDriver? driver = PinController.GetDriver();
+			PinController.InitPinController(driver);
+			GpioControllerDriver? gpioDriver = PinController.GetDriver();
 
 			if (driver == null || !driver.IsDriverInitialized) {
 				Logger.Warn($"{gpioDriver.DriverName} failed to initialize properly. Restart of entire application is recommended.");
 				throw new DriverInitializationFailedException(gpioDriver.DriverName.ToString());
 			}
 
-			GeneratePinConfiguration(driver);
-			await InitEvents().ConfigureAwait(false);
+			if (!await PinConfig.LoadConfiguration().ConfigureAwait(false)) {
+				GeneratePinConfiguration();
+				await PinConfig.SaveConfig().ConfigureAwait(false);
+			}
+
+			EventGenerator.InitEventGeneration();
 			IsInitSuccess = true;
 		}
 
-		private void GeneratePinConfiguration(GpioControllerDriver _driver) {
+		private void GeneratePinConfiguration() {
 			List<Pin> pinConfigs = new List<Pin>();
 
 			for (int i = 0; i < Constants.BcmGpioPins.Length; i++) {
-				pinConfigs.Add(_driver.GetPinConfig(Constants.BcmGpioPins[i]));
+				pinConfigs.Add(PinController.GetDriver().GetPinConfig(Constants.BcmGpioPins[i]));
 				Logger.Trace($"Generated pin config for '{Constants.BcmGpioPins[i]}' gpio pin.");
 			}
 
-			ConfigManager.Init(new PinConfig(pinConfigs, false));
+			PinConfig = new PinConfig(pinConfigs, Core.Config.GpioConfiguration.GpioSafeMode);
 		}
 
-		private async Task InitEvents() {
-			for (int i = 0; i < AvailablePins.InputPins.Length; i++) {
-				EventConfig config = new EventConfig(AvailablePins.InputPins[i], GpioPinMode.Input,
-					PinEventState.Both, OnPinValueChanged);
-				await EventManager.RegisterEvent(config).ConfigureAwait(false);
-			}
+		internal InternalEventGenerator GetEventManager() => EventGenerator;
 
-			for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
-				EventConfig config = new EventConfig(AvailablePins.OutputPins[i], GpioPinMode.Output,
-					PinEventState.Both, OnPinValueChanged);
-				await EventManager.RegisterEvent(config).ConfigureAwait(false);
-			}
+		internal MorseRelayTranslator GetMorseTranslator() => MorseTranslator;
+
+		internal BluetoothController GetBluetoothController() => BluetoothController;
+
+		internal SoundController GetSoundController() => SoundController;
+
+		internal PinController GetPinController() => PinController;
+
+		internal PinsWrapper GetAvailablePins() => Pins;
+
+		internal PinConfig GetPinConfig() => PinConfig;
+
+		public void Dispose() {
+			EventGenerator?.Dispose();
+			SoundController?.Dispose();
+			PinController.GetDriver().ShutdownDriver(IsGracefullShutdownRequested);
 		}
-
-		private bool OnPinValueChanged(OnValueChangedEventArgs args) {
-			return true;
-		}
-
-		public async Task Shutdown() {
-			if (!IsInitSuccess) {
-				return;
-			}
-
-			EventManager.StopAllEventGenerators();
-			PinController.GetDriver()?.ShutdownDriver(IsGracefullShutdownRequested);
-			//await ConfigManager.SaveConfig().ConfigureAwait(false);
-		}
-
-		public EventManager GetEventManager() => EventManager;
-
-		public MorseRelayTranslator GetMorseTranslator() => MorseTranslator;
-
-		public BluetoothController GetBluetoothController() => BluetoothController;
-
-		public SoundController GetSoundController() => SoundController;
-
-		public PinController GetPinController() => PinController;
-
-		public PinsWrapper GetAvailablePins() => AvailablePins;
 	}
 }

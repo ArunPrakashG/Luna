@@ -6,7 +6,7 @@ namespace Luna.Gpio {
 			WiringPiDriver
 		}
 
-		public enum PiAudioState {
+		public enum AudioState {
 			Mute,
 			Unmute
 		}

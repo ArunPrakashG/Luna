@@ -1,29 +1,19 @@
 using Luna.ExternalExtensions;
-using Luna.Gpio.Config;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Exceptions;
-using Luna.Logging.Interfaces;
+using Luna.Logging;
 using System;
 using System.Linq;
 using static Luna.Gpio.Enums;
 
 namespace Luna.Gpio.Drivers {
-	public class WiringPiDriver : GpioControllerDriver {
+	internal class WiringPiDriver : GpioControllerDriver {
 		private const string COMMAND_KEY = "gpio -g";
 
-		public ILogger Logger { get; private set; }
-
-		public PinsWrapper AvailablePins { get; private set; }
-
-		public bool IsDriverInitialized { get; private set; }
-
-		public NumberingScheme NumberingScheme { get; private set; }
-
-		public PinConfig PinConfig => PinConfigManager.GetConfiguration();
-
-		public GpioDriver DriverName => GpioDriver.WiringPiDriver;
-
 		private static bool IsLibraryInstalled;
+
+		internal WiringPiDriver(InternalLogger logger, PinsWrapper pins, PinConfig pinConfig, NumberingScheme scheme) : base(logger, pins, GpioDriver.WiringPiDriver, pinConfig, scheme) {
+		}
 
 		private bool IsWiringPiInstalled() {
 			if (IsLibraryInstalled) {
@@ -45,36 +35,19 @@ namespace Luna.Gpio.Drivers {
 			return false;
 		}
 
-		public GpioControllerDriver InitDriver(ILogger _logger, PinsWrapper _availablePins, NumberingScheme _scheme) {
-			Logger = _logger ?? throw new ArgumentNullException(nameof(_logger));
-			AvailablePins = _availablePins;
-
+		internal override GpioControllerDriver Init() {
 			if (!IsWiringPiInstalled()) {
 				throw new DriverInitializationFailedException(nameof(WiringPiDriver), "WiringPi Library isn't installed on the system.");
 			}
 
 			if (!GpioCore.IsAllowedToExecute) {
-				IsDriverInitialized = false;
 				throw new DriverInitializationFailedException(nameof(WiringPiDriver), "Driver isn't allowed to execute.");
 			}
 
-			NumberingScheme = _scheme;
-
-			//for (int i = 0; i < AvailablePins.OutputPins.Length; i++) {
-			//	SetMode(AvailablePins.OutputPins[i], GpioPinMode.Output);
-			//}
-
-			//for (int i = 0; i < AvailablePins.InputPins.Length; i++) {
-			//	SetMode(AvailablePins.InputPins[i], GpioPinMode.Input);
-			//}
-
-			IsDriverInitialized = true;
 			return this;
 		}
 
-		public GpioControllerDriver Cast<T>(T driver) where T : GpioControllerDriver => driver;
-
-		public Pin GetPinConfig(int pinNumber) {
+		internal override Pin GetPinConfig(int pinNumber) {
 			if (!IsWiringPiInstalled()) {
 				return new Pin();
 			}
@@ -90,7 +63,7 @@ namespace Luna.Gpio.Drivers {
 			return new Pin(pinNumber, ReadState(pinNumber), GetMode(pinNumber));
 		}
 
-		public bool GpioDigitalRead(int pin) {
+		internal override bool GpioDigitalRead(int pin) {
 			if (!IsWiringPiInstalled()) {
 				return false;
 			}
@@ -106,12 +79,12 @@ namespace Luna.Gpio.Drivers {
 			return ReadState(pin) == Enums.GpioPinState.Off ? false : true;
 		}
 
-		public int GpioPhysicalPinNumber(int bcmPin) {
-			Logger.Warning(nameof(GpioPhysicalPinNumber) + " method is not supported when using WiringPiDriver.");
+		internal override int GpioPhysicalPinNumber(int bcmPin) {
+			Logger.Warn(nameof(GpioPhysicalPinNumber) + " method is not supported when using WiringPiDriver.");
 			return -1;
 		}
 
-		public GpioPinState GpioPinStateRead(int pin) {
+		internal override GpioPinState GpioPinStateRead(int pin) {
 			if (!IsWiringPiInstalled()) {
 				return GpioPinState.Off;
 			}
@@ -127,7 +100,7 @@ namespace Luna.Gpio.Drivers {
 			return ReadState(pin);
 		}
 
-		public bool SetGpioValue(int pin, Enums.GpioPinMode mode) {
+		internal override bool SetGpioValue(int pin, Enums.GpioPinMode mode) {
 			if (!IsWiringPiInstalled()) {
 				return false;
 			}
@@ -143,7 +116,7 @@ namespace Luna.Gpio.Drivers {
 			return SetMode(pin, mode);
 		}
 
-		public bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state) {
+		internal override bool SetGpioValue(int pin, GpioPinMode mode, GpioPinState state) {
 			if (!IsWiringPiInstalled()) {
 				return false;
 			}
@@ -159,7 +132,7 @@ namespace Luna.Gpio.Drivers {
 			return SetMode(pin, mode) ? WriteValue(pin, state) : false;
 		}
 
-		public bool SetGpioValue(int pin, GpioPinState state) {
+		internal override bool SetGpioValue(int pin, GpioPinState state) {
 			if (!IsWiringPiInstalled()) {
 				return false;
 			}
@@ -186,7 +159,7 @@ namespace Luna.Gpio.Drivers {
 				return GpioPinMode.Input;
 			}
 
-			return AvailablePins.OutputPins.Contains(pinNumber) ? GpioPinMode.Output : GpioPinMode.Input;
+			return Pins.OutputPins.Contains(pinNumber) ? GpioPinMode.Output : GpioPinMode.Input;
 		}
 
 		private GpioPinState ReadState(int pinNumber) {
@@ -225,8 +198,8 @@ namespace Luna.Gpio.Drivers {
 			(COMMAND_KEY + $" write {pinNumber} {(int) state}").ExecuteBash(false);
 			return true;
 		}
-		
-		public bool TogglePinState(int pinNumber) {
+
+		internal override bool TogglePinState(int pinNumber) {
 			if (!PinController.IsValidPin(pinNumber)) {
 				return false;
 			}

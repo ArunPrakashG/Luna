@@ -1,5 +1,4 @@
 using Luna.ExternalExtensions;
-using Luna.Gpio.Config;
 using Luna.Gpio.Controllers;
 using Luna.Logging;
 using System;
@@ -36,7 +35,7 @@ namespace Luna.Gpio.Drivers {
 		/// <summary>
 		/// The driver name.
 		/// </summary>
-		protected readonly GpioDriver DriverName;
+		internal readonly GpioDriver DriverName;
 
 		/// <summary>
 		/// The pin config.

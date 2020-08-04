@@ -1,76 +1,75 @@
 using Luna.Logging;
-using Luna.Logging.Interfaces;
 using System.Threading.Tasks;
 using Unosquare.RaspberryIO;
-using static Luna.Logging.Enums;
 
 namespace Luna.Gpio.Controllers {
-
 	/// <summary>
 	/// This class is only allowed to be used if we have the Generic driver (RaspberryIO driver)
 	/// </summary>
 	public class BluetoothController {
-		private readonly ILogger Logger = new Logger(typeof(BluetoothController).Name);
-		private bool IsAble => PinController.GetDriver() != null && GpioCore.IsAllowedToExecute && PinController.GetDriver()?.DriverName == Enums.GpioDriver.RaspberryIODriver;
+		private readonly InternalLogger Logger = new InternalLogger(nameof(BluetoothController));		
 		private readonly GpioCore Controller;
+
+		private bool IsPossible
+			=> PinController.GetDriver() != null && GpioCore.IsAllowedToExecute && PinController.GetDriver()?.DriverName == Enums.GpioDriver.RaspberryIODriver;
 
 		internal BluetoothController(GpioCore _controller) => Controller = _controller;
 
-		public async Task<bool> FetchControllers() {
-			if (!IsAble) {
+		internal async Task<bool> FetchControllers() {
+			if (!IsPossible) {
 				return false;
 			}
 
-			Logger.Log("Fetching blue-tooth controllers...");
+			Logger.Info("Fetching bluetooth controllers...");
 
 			foreach (string i in await Pi.Bluetooth.ListControllers().ConfigureAwait(false)) {
-				Logger.Log($"FOUND > {i}");
+				Logger.Info($"FOUND > {i}");
 			}
 
-			Logger.Log("Finished fetching controllers.");
+			Logger.Info("Finished fetching controllers.");
 			return true;
 		}
 
-		public async Task<bool> FetchDevices() {
-			if (!IsAble) {
+		internal async Task<bool> FetchDevices() {
+			if (!IsPossible) {
 				return false;
 			}
 
-			Logger.Log("Fetching blue-tooth devices...");
+			Logger.Info("Fetching bluetooth devices...");
 
 			foreach (string dev in await Pi.Bluetooth.ListDevices().ConfigureAwait(false)) {
-				Logger.Log($"FOUND > {dev}");
+				Logger.Info($"FOUND > {dev}");
 			}
 
-			Logger.Log("Finished fetching devices.");
+			Logger.Info("Finished fetching devices.");
 			return true;
 		}
 
-		public async Task<bool> TurnOnBluetooth() {
-			if (!IsAble) {
+		internal async Task<bool> TurnOnBluetooth() {
+			if (!IsPossible) {
 				return false;
 			}
 
 			if (await Pi.Bluetooth.PowerOn().ConfigureAwait(false)) {
-				Logger.Log("Blue-tooth has been turned on.");
+				Logger.Info("Bluetooth has been turned on.");
 				return true;
 			}
 
-			Logger.Log("Failed to turn on blue-tooth.", LogLevels.Warn);
+			Logger.Warn("Failed to turn on bluetooth.");
 			return false;
 		}
 
-		public async Task<bool> TurnOffBluetooth() {
-			if (!IsAble) {
+		internal async Task<bool> TurnOffBluetooth() {
+			if (!IsPossible) {
 				return false;
 			}
 
 			if (await Pi.Bluetooth.PowerOff().ConfigureAwait(false)) {
-				Logger.Log("Blue-tooth has been turned off.");
+				Logger.Info("Bluetooth has been turned off.");
 				return true;
 			}
 
-			Logger.Log("Failed to turn off blue-tooth.", LogLevels.Warn);
+			Logger.Warn("Failed to turn off bluetooth.");
 			return false;
 		}
 	}
