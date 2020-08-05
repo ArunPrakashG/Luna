@@ -1,5 +1,4 @@
-using Luna.ExternalExtensions;
-using Luna.ExternalExtensions.Shared.Shell;
+using Synergy.Extensions;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,8 +45,8 @@ namespace Luna.Shell.InternalCommands {
 					}
 				}
 
-				int exitCode = 0;				
-				switch (parameter.ParameterCount) {					
+				int exitCode = 0;
+				switch (parameter.ParameterCount) {
 					case 0:
 						ShellOut.Info("Exiting assistant in 5 seconds...");
 						Helpers.ScheduleTask(() => Program.CoreInstance.ExitEnvironment(0), TimeSpan.FromSeconds(5));

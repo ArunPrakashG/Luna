@@ -1,4 +1,3 @@
-using Luna.ExternalExtensions.Shared.Shell;
 using Luna.Logging;
 using System;
 using System.Collections.Generic;

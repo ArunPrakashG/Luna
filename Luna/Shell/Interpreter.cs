@@ -1,16 +1,14 @@
-namespace Luna.Shell {
-	using Luna.ExternalExtensions;
-	using Luna.ExternalExtensions.Shared.Shell;
-	using Luna.Logging;
-	using Luna.Shell.InternalCommands;
-	using System;
-	using System.Collections.Generic;
-	using System.IO;
-	using System.Reflection;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Parameter = ExternalExtensions.Shared.Shell.Parameter;
+using Luna.Logging;
+using Luna.Shell.InternalCommands;
+using Synergy.Extensions;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
+namespace Luna.Shell {
 	/// <summary>
 	/// The Shell Instance.
 	/// </summary>
@@ -120,7 +118,7 @@ namespace Luna.Shell {
 					Console.WriteLine();
 					ShellOut.Info("Type in the command! Use 'help' / 'h' for help regarding the available commands.");
 					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write($"#~{Path.GetFullPath(Assembly.GetExecutingAssembly().Location)}/{Assembly.GetExecutingAssembly().GetName().Name}/$ >> ");
+					Console.Write($"#~{Assembly.GetExecutingAssembly().GetName().Name}/$ >> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
 

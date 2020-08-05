@@ -1,11 +1,9 @@
 using FluentScheduler;
-using Luna.ExternalExtensions;
 using Luna.Logging;
 using Luna.Modules.Interfaces.EventInterfaces;
-using Luna.Server;
+using Synergy.Extensions;
 using System;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +14,7 @@ namespace Luna {
 		internal bool IsUpdateAvailable;
 		internal readonly GithubResponse? Response;
 
-		internal UpdateResult(GithubResponse? response, bool isUpdateAvailable = false) {			
+		internal UpdateResult(GithubResponse? response, bool isUpdateAvailable = false) {
 			Response = response;
 		}
 	}
@@ -93,13 +91,13 @@ namespace Luna {
 			if (!Core.IsNetworkAvailable || !Core.Config.AutoUpdates) {
 				return new UpdateResult(null);
 			}
-			
+
 			Logger.Trace("Checking for any new version...");
 
 			try {
 				GithubResponse response = await GetResponseAsync().ConfigureAwait(false);
 
-				if(response == null) {
+				if (response == null) {
 					return new UpdateResult(null);
 				}
 
@@ -119,7 +117,7 @@ namespace Luna {
 				IsOnPrerelease = latestVersion < Constants.Version;
 				return new UpdateResult(response, UpdateAvailable);
 			}
-			catch(Exception e) {
+			catch (Exception e) {
 				Logger.Exception(e);
 				return new UpdateResult(null);
 			}
@@ -146,7 +144,7 @@ namespace Luna {
 					File.Delete(updateFileName);
 				}
 
-				using(HttpResponseMessage result = await Client.GetAsync($"{Constants.GitHubAssetDownloadURL}/{releaseID}").ConfigureAwait(false)) {
+				using (HttpResponseMessage result = await Client.GetAsync($"{Constants.GitHubAssetDownloadURL}/{releaseID}").ConfigureAwait(false)) {
 					if (!result.IsSuccessStatusCode) {
 						Logger.Warn($"Download failed. {result.StatusCode}/{result.ReasonPhrase}");
 						return false;
@@ -186,22 +184,22 @@ namespace Luna {
 
 			if (OS.IsUnix) {
 				if (string.IsNullOrEmpty(Constants.HomeDirectory)) {
-					return false;
+					return;
 				}
 
 				string executable = Path.Combine(Constants.HomeDirectory, Constants.GitHubProjectName);
 
 				if (File.Exists(executable)) {
 					OS.UnixSetFileAccessExecutable(executable);
-					Logger.Log("File Permission set successfully!");
+					Logger.Info("File Permission set successfully!");
 				}
 			}
 
 			await Task.Delay(1000).ConfigureAwait(false);
 			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.UpdateStarted, default);
-			"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash(false);
+			"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash();
 			await Core.Restart(5).ConfigureAwait(false);
-			return true;
+			return;
 		}
 
 		public void Dispose() {

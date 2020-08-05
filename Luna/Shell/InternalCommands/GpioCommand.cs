@@ -1,5 +1,3 @@
-using Luna.ExternalExtensions;
-using Luna.ExternalExtensions.Shared.Shell;
 using Luna.Gpio;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Drivers;
@@ -108,7 +106,7 @@ namespace Luna.Shell.InternalCommands {
 
 						ShellOut.Info($"{pin} will be set to Output mode and configured in On state.");
 
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().GpioConfiguration.OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}
@@ -160,7 +158,7 @@ namespace Luna.Shell.InternalCommands {
 
 						ShellOut.Info($"{pin} will be set to {pinMode.ToString()} mode and configured in On state.");
 
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().GpioConfiguration.OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}
@@ -196,7 +194,7 @@ namespace Luna.Shell.InternalCommands {
 						pinState = (GpioPinState) stateVal;
 						ShellOut.Info($"{pin} will be set to {pinMode.ToString()} mode and configured in {pinState} state.");
 
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().GpioConfiguration.OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}
@@ -237,7 +235,7 @@ namespace Luna.Shell.InternalCommands {
 						pinMode = (GpioPinMode) modeValue;
 						pinState = (GpioPinState) stateValue;
 						ShellOut.Info($"{pin} will be set to {pinMode.ToString()} mode and configured in {pinState} state and set back by a delay of {delayValue} minutes.");
-						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().OutputModePins.Contains(pin)) {
+						if (!Constants.BcmGpioPins.Contains(pin) || !PinController.IsValidPin(pin) || !Program.CoreInstance.GetCoreConfig().GpioConfiguration.OutputModePins.Contains(pin)) {
 							ShellOut.Error("Specified gpio pin is an invalid.");
 							return;
 						}

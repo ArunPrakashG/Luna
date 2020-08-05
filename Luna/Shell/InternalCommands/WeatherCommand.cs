@@ -1,6 +1,6 @@
-using Luna.ExternalExtensions;
-using Luna.ExternalExtensions.Shared.Shell;
+using exSharp;
 using OpenWeatherApiSharp;
+using Synergy.Extensions;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -126,10 +126,7 @@ namespace Luna.Shell.InternalCommands {
 							return;
 						}
 
-						if (!parameter.Parameters[2].AsBool(out bool? tts)) {
-							ShellOut.Error("'TTS' argument is invalid.");
-							return;
-						}
+						bool tts = parameter.Parameters[2].AsBool();
 
 						using (OpenWeatherMapClient client = new OpenWeatherMapClient(apiKey)) {
 							weather = await client.GetWeatherAsync(pinCode, "in").ConfigureAwait(false);
@@ -140,9 +137,9 @@ namespace Luna.Shell.InternalCommands {
 							return;
 						}
 
-						if (tts != null && tts.HasValue && tts.Value) {
+						if (tts) {
 							Helpers.InBackground(() => {
-								using(TTS tts = new TTS(false, false)) {
+								using (TTS tts = new TTS(false, false)) {
 									tts.Speak($"Weather Data for {weather.LocationName}. " +
 											$"Wind Speed is {weather.Wind.Speed}. " +
 											$"Humidity level is {weather.Data.Humidity}. Pressure level {weather.Data.Pressure}. " +

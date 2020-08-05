@@ -1,7 +1,7 @@
 using Luna.Extensions;
-using Luna.ExternalExtensions;
 using Luna.Logging;
 using Mono.Unix.Native;
+using Synergy.Extensions;
 using System;
 using System.Collections.Specialized;
 using System.Diagnostics;

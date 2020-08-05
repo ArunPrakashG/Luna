@@ -1,6 +1,5 @@
 using Luna.Logging;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
@@ -11,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Luna.Server {
 	internal class RestCore : IDisposable {
-		private readonly Logging.Interfaces.ILogger Logger = new Logger(nameof(RestCore));
+		private readonly InternalLogger Logger = new InternalLogger(nameof(RestCore));
 		private readonly CancellationTokenSource ShutdownTokenSource = new CancellationTokenSource();
 		private readonly Mutex ServerInstanceMutex;
 		private readonly object LockObject = new object();

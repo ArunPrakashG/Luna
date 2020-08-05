@@ -1,4 +1,3 @@
-using Luna.ExternalExtensions.Shared.Shell;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -72,7 +71,7 @@ namespace Luna.Shell.InternalCommands {
 					default:
 						ShellOut.Error("Command seems to be in incorrect syntax.");
 						return;
-				}				
+				}
 			}
 			catch (Exception e) {
 				ShellOut.Exception(e);

@@ -2,7 +2,6 @@ using Luna.CommandLine;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Exceptions;
 using Luna.Logging;
-using Synergy.Extensions;
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -23,7 +22,7 @@ namespace Luna.Gpio.Drivers {
 				return true;
 			}
 
-			string? executeResult = CommandLine.Execute("gpio");
+			string? executeResult = CommandLine.ExecuteDirect("gpio");
 
 			if (string.IsNullOrEmpty(executeResult)) {
 				return false;
@@ -170,7 +169,7 @@ namespace Luna.Gpio.Drivers {
 				return GpioPinState.Off;
 			}
 
-			string? result = (COMMAND_KEY + " read " + pinNumber).ExecuteBash();
+			string? result = CommandLine.ExecuteDirect(COMMAND_KEY + " read " + pinNumber);
 
 			if (string.IsNullOrEmpty(result)) {
 				return GpioPinState.Off;
@@ -189,7 +188,7 @@ namespace Luna.Gpio.Drivers {
 			}
 
 			string pinMode = mode == GpioPinMode.Input ? "in" : "out";
-			(COMMAND_KEY + $" mode {pinNumber} {pinMode}").ExecuteBash();
+			CommandLine.Execute(COMMAND_KEY + $" mode {pinNumber} {pinMode}");
 			return true;
 		}
 
@@ -198,7 +197,7 @@ namespace Luna.Gpio.Drivers {
 				return false;
 			}
 
-			(COMMAND_KEY + $" write {pinNumber} {(int) state}").ExecuteBash();
+			CommandLine.Execute(COMMAND_KEY + $" write {pinNumber} {(int) state}");
 			return true;
 		}
 
@@ -207,7 +206,7 @@ namespace Luna.Gpio.Drivers {
 				return false;
 			}
 
-			(COMMAND_KEY + $" toggle {pinNumber}").ExecuteBash();
+			CommandLine.Execute(COMMAND_KEY + $" toggle {pinNumber}");
 			return true;
 		}
 	}

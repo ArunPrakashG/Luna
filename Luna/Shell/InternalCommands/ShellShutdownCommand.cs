@@ -1,7 +1,4 @@
-using Luna.ExternalExtensions.Shared.Shell;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -54,7 +51,7 @@ namespace Luna.Shell.InternalCommands {
 						return;
 				}
 			}
-			catch(Exception e) {
+			catch (Exception e) {
 				ShellOut.Exception(e);
 				return;
 			}

@@ -1,7 +1,5 @@
-using Luna.ExternalExtensions.Shared.Shell;
 using Luna.Gpio;
 using Luna.Gpio.Controllers;
-using Luna.Morse;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
