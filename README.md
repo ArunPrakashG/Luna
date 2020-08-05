@@ -1,6 +1,9 @@
 <div align="center">
-	<img width=15% src="Assets/LunaLogo.png">	
-	<a href="https://github.com/ArunPrakashG/Luna/releases"><img src="https://img.shields.io/github/downloads/ArunPrakashG/Luna/total.svg"></a>
+	<img width=15% src="Assets/LunaLogo.png">
+	<br/>
+	<a href="https://github.com/ArunPrakashG/Luna/releases">
+		<img src="https://img.shields.io/github/downloads/ArunPrakashG/Luna/total.svg">
+	</a>
 </div>
 
 ## NOTE: Currently rewritting the code.
