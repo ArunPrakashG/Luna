@@ -2,7 +2,10 @@
 	<img width=15% src="Assets/LunaLogo.png">
 	<br/>
 	<a href="https://github.com/ArunPrakashG/Luna/releases">
-		<img src="https://img.shields.io/github/downloads/ArunPrakashG/Luna/total.svg">
+		<img src="https://img.shields.io/github/downloads/ArunPrakashG/Luna/total.svg">		
+	</a>
+	<a>
+		<img src="https://img.shields.io/github/forks/ArunPrakashG/Luna" />
 	</a>
 </div>
 
