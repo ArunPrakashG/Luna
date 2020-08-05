@@ -6,6 +6,7 @@
 	</a>
 	<a>
 		<img src="https://img.shields.io/github/forks/ArunPrakashG/Luna" />
+		<img src="https://img.shields.io/github/stars/ArunPrakashG/Luna" />
 	</a>
 </div>
 
