@@ -1,5 +1,5 @@
 <div align="center">
-	<img width=15% src="https://github.com/ArunPrakashG/Luna/blob/Luna-Rework/Luna/Assets/LunaLogo.png">	
+	<img width=15% src="Assets/LunaLogo.png">	
 	<a href="https://github.com/ArunPrakashG/Luna/releases"><img src="https://img.shields.io/github/downloads/ArunPrakashG/Luna/total.svg"></a>
 </div>
 
