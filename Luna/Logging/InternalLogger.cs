@@ -1,4 +1,3 @@
-using Luna.ExternalExtensions;
 using NLog;
 using System;
 using System.Diagnostics;
@@ -111,8 +110,8 @@ namespace Luna.Logging {
 				return;
 			}
 
-			LogModule?.Error($"{previousMethodName}() {exception.GetBaseException().Message}/{exception.GetBaseException().HResult}/{exception.GetBaseException().StackTrace}");			
-		}		
+			LogModule?.Error($"{previousMethodName}() {exception.GetBaseException().Message}/{exception.GetBaseException().HResult}/{exception.GetBaseException().StackTrace}");
+		}
 
 		internal void Warn(string? message,
 			[CallerMemberName] string? previousMethodName = null,

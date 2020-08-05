@@ -177,7 +177,7 @@ namespace Luna {
 		}
 
 		internal async Task KeepAlive() {
-			Logger.Log($"Press {Constants.SHELL_KEY} for shell.", LogLevels.Green);
+			Logger.CustomLog($"Press {Constants.SHELL_KEY} for shell.", ConsoleColor.Green);
 			while (!KeepAliveToken.Token.IsCancellationRequested) {
 				try {
 					if (Interpreter.PauseShell) {

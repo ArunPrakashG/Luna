@@ -3,7 +3,6 @@ using Luna.ExternalExtensions;
 using Luna.Logging;
 using Mono.Unix.Native;
 using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
@@ -17,7 +16,7 @@ namespace Luna.CommandLine.ProcessBase {
 		private const string WINDOWS_SHELL = "cmd.exe";
 		private readonly string ShellName = Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD ? UNIX_SHELL : WINDOWS_SHELL;
 		private readonly InternalLogger Logger;
-		
+
 		protected readonly bool IsElevationCapable;
 		protected readonly bool EnableIOLogging;
 		protected readonly bool InternalTraceLogging;
@@ -30,12 +29,12 @@ namespace Luna.CommandLine.ProcessBase {
 		protected bool IsUnixEnvironment => Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD;
 
 		internal CommandProcess(OSPlatform platform, bool enableIOLogging = false, bool logToInternalTrace = false, bool asAdmin = false) {
-			if(platform != Helpers.GetPlatform()) {
+			if (platform != Helpers.GetPlatform()) {
 				throw new PlatformNotSupportedException();
 			}
 
 			InternalTraceLogging = logToInternalTrace;
-			EnableIOLogging = enableIOLogging;			
+			EnableIOLogging = enableIOLogging;
 			Logger = new InternalLogger(ShellName);
 			IsElevationCapable = IsElevated();
 			GenerateProcessInstance();
@@ -44,11 +43,11 @@ namespace Luna.CommandLine.ProcessBase {
 			InputContainer = new ObservableStack<string>();
 			OutputContainer.CollectionChanged += ProcessStandardOutput;
 			ErrorContainer.CollectionChanged += ProcessStandardError;
-			InputContainer.CollectionChanged += ProcessStandardInput;			
+			InputContainer.CollectionChanged += ProcessStandardInput;
 		}
 
 		protected virtual void GenerateProcessInstance() {
-			if(Process != null) {
+			if (Process != null) {
 				if (!Process.HasExited) {
 					Process.Kill();
 				}
@@ -79,7 +78,7 @@ namespace Luna.CommandLine.ProcessBase {
 		}
 
 		protected void ExecuteCommand(string? command) {
-			if(Process == null) {
+			if (Process == null) {
 				GenerateProcessInstance();
 			}
 
@@ -196,7 +195,7 @@ namespace Luna.CommandLine.ProcessBase {
 
 			if (InternalTraceLogging) {
 				Logger.Trace($"{Process.ProcessName} > {logLevel} > {msg}");
-			}			
+			}
 		}
 
 		protected enum ProcessLogLevel {

@@ -1,6 +1,4 @@
-using FluentScheduler;
 using Luna.Logging;
-using Luna.Sound.Speech;
 using System;
 using System.Collections.Generic;
 
@@ -34,10 +32,13 @@ namespace Luna.Features {
 			Logger.Trace($"EVENT -> {nameof(OnJobLoaded)}");
 		}
 
-		protected override async void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper) {
+		protected override void OnJobTriggered(ObjectParameterWrapper? objectParameterWrapper) {
 			Logger.Info($"REMAINDER > {Description}");
-			await TTS.SpeakText("Sir, You have a remainder!", true).ConfigureAwait(false);
-			await TTS.SpeakText(Description, false).ConfigureAwait(false);
+
+			using(TTS tts = new TTS(false, false)) {
+				tts.Speak("Sir, You have a remainder!");
+				tts.Speak(Description);
+			}
 		}
 	}
 }

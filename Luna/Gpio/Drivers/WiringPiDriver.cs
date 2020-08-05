@@ -1,18 +1,21 @@
-using Luna.ExternalExtensions;
+using Luna.CommandLine;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Exceptions;
 using Luna.Logging;
+using Synergy.Extensions;
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using static Luna.Gpio.Enums;
 
 namespace Luna.Gpio.Drivers {
 	internal class WiringPiDriver : GpioControllerDriver {
 		private const string COMMAND_KEY = "gpio -g";
-
 		private static bool IsLibraryInstalled;
+		private readonly OSCommandLineInterfacer CommandLine;
 
 		internal WiringPiDriver(InternalLogger logger, PinsWrapper pins, PinConfig pinConfig, NumberingScheme scheme) : base(logger, pins, GpioDriver.WiringPiDriver, pinConfig, scheme) {
+			CommandLine = new OSCommandLineInterfacer(OSPlatform.Linux, false, false, false);
 		}
 
 		private bool IsWiringPiInstalled() {
@@ -20,7 +23,7 @@ namespace Luna.Gpio.Drivers {
 				return true;
 			}
 
-			string? executeResult = "gpio".ExecuteBash(false);
+			string? executeResult = CommandLine.Execute("gpio");
 
 			if (string.IsNullOrEmpty(executeResult)) {
 				return false;
@@ -167,7 +170,7 @@ namespace Luna.Gpio.Drivers {
 				return GpioPinState.Off;
 			}
 
-			string? result = (COMMAND_KEY + " read " + pinNumber).ExecuteBash(false);
+			string? result = (COMMAND_KEY + " read " + pinNumber).ExecuteBash();
 
 			if (string.IsNullOrEmpty(result)) {
 				return GpioPinState.Off;
@@ -186,7 +189,7 @@ namespace Luna.Gpio.Drivers {
 			}
 
 			string pinMode = mode == GpioPinMode.Input ? "in" : "out";
-			(COMMAND_KEY + $" mode {pinNumber} {pinMode}").ExecuteBash(false);
+			(COMMAND_KEY + $" mode {pinNumber} {pinMode}").ExecuteBash();
 			return true;
 		}
 
@@ -195,7 +198,7 @@ namespace Luna.Gpio.Drivers {
 				return false;
 			}
 
-			(COMMAND_KEY + $" write {pinNumber} {(int) state}").ExecuteBash(false);
+			(COMMAND_KEY + $" write {pinNumber} {(int) state}").ExecuteBash();
 			return true;
 		}
 
@@ -204,7 +207,7 @@ namespace Luna.Gpio.Drivers {
 				return false;
 			}
 
-			(COMMAND_KEY + $" toggle {pinNumber}").ExecuteBash(false);
+			(COMMAND_KEY + $" toggle {pinNumber}").ExecuteBash();
 			return true;
 		}
 	}

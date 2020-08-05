@@ -1,8 +1,7 @@
-﻿// All credits for this code goes to AshV
+// All credits for this code goes to AshV
 // https://github.com/AshV
 
 using Luna.ExternalExtensions;
-using Luna.ExternalExtensions.Interfaces;
 using Luna.Logging;
 using System;
 using System.Collections.Generic;
@@ -14,7 +13,7 @@ namespace Luna.Features.Morse {
 	internal static class MorseCore {
 		private static readonly InternalLogger Logger = new InternalLogger(nameof(MorseCore));
 		private const int TimeUnitInMilliSeconds = 100;
-		private const int Frequency  = 650;
+		private const int Frequency = 650;
 		private const char DotUnicode = '•'; // U+25CF
 		private const char DashUnicode = '▬'; // U+25AC
 		private const char Dot = '.';

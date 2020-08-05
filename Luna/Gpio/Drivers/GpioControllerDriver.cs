@@ -1,6 +1,6 @@
-using Luna.ExternalExtensions;
 using Luna.Gpio.Controllers;
 using Luna.Logging;
+using Synergy.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;

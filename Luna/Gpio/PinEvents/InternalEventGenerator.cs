@@ -1,11 +1,11 @@
 using Luna.Extensions;
-using Luna.ExternalExtensions;
 using Luna.Gpio.Controllers;
 using Luna.Gpio.Drivers;
 using Luna.Gpio.Exceptions;
 using Luna.Gpio.PinEvents.PinEventArgs;
 using Luna.Logging;
 using Luna.TypeLoader;
+using Synergy.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -42,7 +42,7 @@ namespace Luna.Gpio.PinEvents {
 				CurrentValue currentValue = new CurrentValue(pinConfig.PinState, pinConfig.IsPinOn, pinConfig.Mode, PinEventState.Both);
 				PreviousValue previousValue = new PreviousValue(pinConfig.PinState, pinConfig.IsPinOn, pinConfig.Mode, PinEventState.Both);
 				PinEventConfiguration config = new PinEventConfiguration(pin, PinEventState.Both, currentValue, previousValue, new CancellationTokenSource());
-				Helpers.InBackgroundThread(() => Generate(ref config), true);
+				Helpers.InBackgroundThread(() => Generate(ref config), longRunning: true);
 				EventConfigurations.Add(config);
 			});
 
@@ -51,7 +51,7 @@ namespace Luna.Gpio.PinEvents {
 				CurrentValue currentValue = new CurrentValue(pinConfig.PinState, pinConfig.IsPinOn, pinConfig.Mode, PinEventState.Both);
 				PreviousValue previousValue = new PreviousValue(pinConfig.PinState, pinConfig.IsPinOn, pinConfig.Mode, PinEventState.Both);
 				PinEventConfiguration config = new PinEventConfiguration(pin, PinEventState.Both, currentValue, previousValue, new CancellationTokenSource());
-				Helpers.InBackgroundThread(() => Generate(ref config), true);
+				Helpers.InBackgroundThread(() => Generate(ref config), longRunning: true);
 				EventConfigurations.Add(config);
 			});
 
