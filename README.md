@@ -1,6 +1,5 @@
 <div align="center">
-	<h1>Luna</h1>
-	<h4>Digital Butler</h6>
+	<img width=15% src="https://github.com/ArunPrakashG/Luna/blob/Luna-Rework/Luna/Assets/LunaLogo.png">	
 	<a href="https://github.com/ArunPrakashG/Luna/releases"><img src="https://img.shields.io/github/downloads/ArunPrakashG/Luna/total.svg"></a>
 </div>
 
