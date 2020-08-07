@@ -1,3 +1,4 @@
+using Luna.Logging;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -71,7 +72,7 @@ namespace Luna {
 		[JsonProperty]
 		public ApiKeys ApiKeys { get; set; } = new ApiKeys();
 
-		private readonly ILogger Logger = new Logger(typeof(CoreConfig).Name);
+		private readonly InternalLogger Logger = new InternalLogger(nameof(CoreConfig));
 		private readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 		private readonly Core Core;
 
@@ -88,7 +89,7 @@ namespace Luna {
 			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 			Core.GetFileWatcher().Pause();
 
-			Logger.Log("Saving core config...", LogLevels.Trace);
+			Logger.Trace("Saving core config...");
 
 			try {
 				string filePath = Constants.CoreConfigPath;
@@ -108,7 +109,7 @@ namespace Luna {
 				}
 			}
 			catch (Exception e) {
-				Logger.Log(e);
+				Logger.Exception(e);
 				return;
 			}
 			finally {
@@ -116,7 +117,7 @@ namespace Luna {
 				Core.GetFileWatcher().Resume();
 			}
 
-			Logger.Log("Saved core config!", LogLevels.Trace);
+			Logger.Trace("Saved core config!");
 		}
 
 		internal async Task LoadAsync() {
@@ -131,7 +132,7 @@ namespace Luna {
 			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 
 			try {
-				Logger.Log("Loading core config...", LogLevels.Trace);
+				Logger.Trace("Loading core config...");
 				using (StreamReader reader = new StreamReader(new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read))) {
 					string jsonContent = reader.ReadToEnd();
 
@@ -148,10 +149,10 @@ namespace Luna {
 					this.StatisticsServerIP = config.StatisticsServerIP;
 				}
 
-				Logger.Log("Core configuration loaded successfully!", LogLevels.Trace);
+				Logger.Trace("Core configuration loaded successfully!");
 			}
 			catch (Exception e) {
-				Logger.Log(e);
+				Logger.Exception(e);
 				return;
 			}
 			finally {
@@ -160,7 +161,7 @@ namespace Luna {
 		}
 
 		internal bool GenerateDefaultConfig() {
-			Logger.Log("Generating default config...");
+			Logger.Info("Generating default config...");
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}

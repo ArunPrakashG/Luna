@@ -7,7 +7,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using static Luna.Modules.ModuleInitializer;
+using static Luna.Modules.ModuleLoader;
 
 namespace Luna {
 	internal class UpdateResult {
@@ -80,7 +80,7 @@ namespace Luna {
 			Logger.Info($"New version available!");
 			Logger.Info($"Latest Version: {latestVersion} / Local Version: {Constants.Version}");
 			Logger.Info("Automatically updating in 10 seconds...");
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.UpdateAvailable, default);
+			ExecuteAsyncEvent<EventBase>(MODULE_EXECUTION_CONTEXT.UpdateAvailable, default);
 			await DownloadLatestVersionAsync(result).ConfigureAwait(false);
 			return latestVersion;
 		}
@@ -196,7 +196,7 @@ namespace Luna {
 			}
 
 			await Task.Delay(1000).ConfigureAwait(false);
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.UpdateStarted, default);
+			ExecuteAsyncEvent<EventBase>(MODULE_EXECUTION_CONTEXT.UpdateStarted, default);
 			"cd /home/pi/Desktop/HomeAssistant/Helpers/Updater && dotnet Assistant.Updater.dll".ExecuteBash();
 			await Core.Restart(5).ConfigureAwait(false);
 			return;

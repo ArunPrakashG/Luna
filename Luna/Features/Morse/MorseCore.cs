@@ -1,8 +1,8 @@
 // All credits for this code goes to AshV
 // https://github.com/AshV
 
-using Luna.ExternalExtensions;
 using Luna.Logging;
+using Synergy.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;

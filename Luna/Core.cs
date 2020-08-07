@@ -1,12 +1,11 @@
 namespace Luna {
 	using Figgle;
 	using FluentScheduler;
-	using JetBrains.Annotations;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
 	using Luna.Logging;
 	using Luna.Modules;
-	using Luna.Modules.Interfaces.EventInterfaces;
+	using Luna.Modules.Interfaces;
 	using Luna.Server;
 	using Luna.Shell;
 	using Luna.Watchers;
@@ -14,12 +13,10 @@ namespace Luna {
 	using System;
 	using System.Diagnostics;
 	using System.IO;
-	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Unosquare.RaspberryIO;
 	using static Luna.Gpio.Enums;
-	using static Luna.Modules.ModuleInitializer;
 
 	internal class Core {
 		private readonly InternalLogger Logger;
@@ -28,7 +25,7 @@ namespace Luna {
 		private readonly ModuleWatcher InternalModuleWatcher;
 		private readonly GpioCore Controller;
 		private readonly UpdateManager Updater;
-		private readonly ModuleInitializer ModuleLoader;
+		private readonly ModuleLoader ModuleLoader;
 		private readonly RestCore RestServer;
 		private readonly PinsWrapper Pins;
 
@@ -77,7 +74,7 @@ namespace Luna {
 
 			Controller = new GpioCore(Pins, this, Config.GpioConfiguration.GpioSafeMode);
 			Updater = new UpdateManager(this);
-			ModuleLoader = new ModuleInitializer();
+			ModuleLoader = new ModuleLoader();
 			RestServer = new RestCore(Config.RestServerPort, Config.Debug);
 
 			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.WithName("ConsoleUpdater").ToRunEvery(1).Seconds());
@@ -116,8 +113,7 @@ namespace Luna {
 			async void restServerInitAction() => await RestServer.InitServerAsync().ConfigureAwait(false);
 
 			static async void endStartupAction() {
-				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
-				await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
+				ModuleLoader.ExecuteActionOnType<IEvent>((e) => e.OnStarted());
 			}
 
 			Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = 10 },
@@ -140,7 +136,7 @@ namespace Luna {
 					MaxDegreeOfParallelism = 10
 				},
 				async () => await RestServer.ShutdownServer().ConfigureAwait(false),
-				() => ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default),
+				() => ModuleLoader.ExecuteActionOnType<IEvent>((e) => e.OnShutdownRequested()),
 				() => Interpreter.ExitShell(),
 				() => RestServer.Dispose(),
 				() => Controller.Dispose(),
@@ -249,7 +245,7 @@ namespace Luna {
 
 		public CoreConfig GetCoreConfig() => Config;
 
-		public ModuleInitializer GetModuleInitializer() => ModuleLoader;
+		public ModuleLoader GetModuleInitializer() => ModuleLoader;
 
 		internal WatcherBase GetFileWatcher() => InternalConfigWatcher;
 

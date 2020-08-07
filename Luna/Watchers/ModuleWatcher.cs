@@ -1,9 +1,7 @@
 using Luna.Logging;
-using Luna.Watchers.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace Luna.Watchers {
 	internal class ModuleWatcher : WatcherBase {
@@ -28,7 +26,7 @@ namespace Luna.Watchers {
 		}
 
 		private void OnModuleDirectoryChangeEvent(string obj) {
-			
+
 		}
 	}
 }
