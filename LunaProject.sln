@@ -14,7 +14,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Updater", "Assist
 		{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76} = {83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Assistant.Restarter", "Assistant.Restarter\Assistant.Restarter.csproj", "{AF331F5B-62CB-4593-9CBB-F5C6583A714C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Luna.External", "Assistant.Restarter\Luna.External.csproj", "{AF331F5B-62CB-4593-9CBB-F5C6583A714C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{83264DEA-66FC-45EB-BFC0-95B9CE7BCD76} = {83264DEA-66FC-45EB-BFC0-95B9CE7BCD76}
 	EndProjectSection

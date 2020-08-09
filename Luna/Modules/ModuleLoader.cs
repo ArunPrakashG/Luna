@@ -18,7 +18,6 @@ namespace Luna.Modules {
 		private static readonly SemaphoreSlim ModuleLoaderSemaphore = new SemaphoreSlim(1, 1);
 		private readonly InternalLogger Logger = new InternalLogger(nameof(ModuleLoader));
 		private readonly List<ModuleWrapper<IModule>> ModulesCache;
-
 		internal static readonly ObservableCollection<IModule> Modules;
 
 		static ModuleLoader() {
@@ -35,12 +34,12 @@ namespace Luna.Modules {
 				return;
 			}
 
-			foreach (IModule module in e.NewItems) {
+			foreach (IModule? module in e.NewItems) {
 				if (module == null) {
 					continue;
 				}
 
-				Helpers.InBackground(async () => await InitServiceOfTypeAsync(module).ConfigureAwait(false));
+				Helpers.InBackground(() => InitServiceOfTypeAsync(module));
 			}
 		}
 
@@ -90,43 +89,34 @@ namespace Luna.Modules {
 			return true;
 		}
 
-		private async Task<bool> InitServiceOfTypeAsync<T>(T module) where T : IModule {
+		private void InitServiceOfTypeAsync<T>(T module) where T : IModule {
 			if (module == null) {
-				return false;
+				return;
 			}
 
 			Logger.Trace($"Starting module... ({module.ModuleIdentifier})");
 
 			if (IsExisitingModule(module)) {
-				return false;
+				return;
 			}
 
 			if (module.RequiresInternetConnection && !Helpers.IsNetworkAvailable()) {
-				return false;
+				return;
 			}
 
-			await ModuleLoaderSemaphore.WaitAsync().ConfigureAwait(false);
-
-			try {
-				if (module.InitModuleService()) {
-					Logger.Info($"Module loaded! ({module.ModuleIdentifier})");
-					return true;
-				}
+			if (module.InitModuleService()) {
+				Logger.Info($"Module loaded! ({module.ModuleIdentifier})");
+				return;
 			}
-			finally {
-				ModuleLoaderSemaphore.Release();
-			}
-
-			return false;
 		}
 
-		private bool UnloadModulesOfType() {
+		private void UnloadModulesOfType() {
 			if (Modules.Count <= 0) {
-				return false;
+				return;
 			}
 
 			if (!Modules.OfType<IModule>().Any()) {
-				return false;
+				return;
 			}
 
 			List<IModule> unloadedModules = new List<IModule>();
@@ -147,8 +137,6 @@ namespace Luna.Modules {
 					}
 				}
 			}
-
-			return true;
 		}
 
 		private bool UnloadModuleWithId(string id) {
@@ -191,7 +179,6 @@ namespace Luna.Modules {
 			}
 
 			if (Modules.Any(x => x.ModuleIdentifier == module.ModuleIdentifier)) {
-				Logger.Trace("This module is already loaded and added to module collection.");
 				return true;
 			}
 
@@ -199,11 +186,7 @@ namespace Luna.Modules {
 		}
 
 		private bool UnloadFromPath(string assemblyPath) {
-			if (string.IsNullOrEmpty(assemblyPath)) {
-				return false;
-			}
-
-			if (Modules.Count <= 0) {
+			if (string.IsNullOrEmpty(assemblyPath) || Modules.Count <= 0) {
 				return false;
 			}
 

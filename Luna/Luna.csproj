@@ -58,10 +58,6 @@
     <None Update="Config\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-		
-    <None Update="InternalModules\**">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="NLog.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>    
@@ -76,7 +72,6 @@
   <ItemGroup>
     <Folder Include="Config\SteamBots\" />
     <Folder Include="Commands\" />
-    <Folder Include="InternalModules\" />
     <Folder Include="Server\Models\" />
   </ItemGroup>
 	

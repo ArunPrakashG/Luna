@@ -1,6 +1,7 @@
 namespace Luna {
 	using Figgle;
 	using FluentScheduler;
+	using Luna.CommandLine;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
 	using Luna.Logging;
@@ -13,6 +14,7 @@ namespace Luna {
 	using System;
 	using System.Diagnostics;
 	using System.IO;
+	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Unosquare.RaspberryIO;
@@ -112,8 +114,9 @@ namespace Luna {
 
 			async void restServerInitAction() => await RestServer.InitServerAsync().ConfigureAwait(false);
 
-			static async void endStartupAction() {
+			void endStartupAction() {
 				ModuleLoader.ExecuteActionOnType<IEvent>((e) => e.OnStarted());
+				ModuleLoader.ExecuteActionOnType<IAsyncEvent>(async (e) => await e.OnStarted().ConfigureAwait(false));
 			}
 
 			Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = 10 },
@@ -135,8 +138,10 @@ namespace Luna {
 				new ParallelOptions() {
 					MaxDegreeOfParallelism = 10
 				},
+
 				async () => await RestServer.ShutdownServer().ConfigureAwait(false),
 				() => ModuleLoader.ExecuteActionOnType<IEvent>((e) => e.OnShutdownRequested()),
+				() => ModuleLoader.ExecuteActionOnType<IAsyncEvent>(async (e) => await e.OnShutdownRequested().ConfigureAwait(false)),
 				() => Interpreter.ExitShell(),
 				() => RestServer.Dispose(),
 				() => Controller.Dispose(),
@@ -167,6 +172,11 @@ namespace Luna {
 		}
 
 		internal async Task Restart(int delay = 10) {
+			Helpers.ScheduleTask(() => {
+				using (OSCommandLineInterfacer cl = new OSCommandLineInterfacer(OSPlatform.Linux, true)) {
+					cl.Execute("");
+				}
+			});
 			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			ExitEnvironment(0);
