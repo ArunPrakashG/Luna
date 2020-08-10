@@ -1,52 +1,94 @@
-using Newtonsoft.Json;
-using RestSharp;
+using JsonCommandLine;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using JsonCommandLine;
 
 namespace Luna.External {
 	internal partial class Program {
-		private static string? HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
-		// update args =  -u --path "orginal_exe_path"
-		// restart args = -r --path "orginal_exe_path"
+		private static string ExecutablePath;
 
 		private static void Main(string[] args) {
-			args = ParseStartupArgs(Environment.CommandLine);
-			using(CommandLineParser parser = new CommandLineParser(Environment.CommandLine)) {
-
-			}
-
-			if (args.Length > 0) {
-				bool isJsonArgs = args[1].StartsWith('{') && args[1].EndsWith('}');
-				StartupArgument? argument = StartupArgument.Parse(args[1]);
-			}
-
-			Argument arg1 = new Argument("update", new Dictionary<string, string>() {
-				{"path", Environment.CurrentDirectory }
-			});
-
-			Argument arg2 = new Argument("restart", new Dictionary<string, string>() {
-				{"path", Environment.CurrentDirectory },
-				{"debug", "Enabled" }
-			});
-
-			StartupArgument arguments = new StartupArgument(arg1, arg2);
-			string argumentJson = arguments.GetArgsObject();
-			Console.WriteLine(argumentJson);
+			ParseStartupArguments();
 		}
 
-		private static string[] ParseStartupArgs(string commandLine) {
-			if (string.IsNullOrEmpty(commandLine)) {
-				return Array.Empty<string>();
+		private static void ParseStartupArguments() {
+			Arguments args;
+			using (CommandLineParser parser = new CommandLineParser(Environment.CommandLine)) {
+				if (!parser.IsJsonType) {
+					return;
+				}
+
+				ExecutablePath = parser.ExecutablePath ?? Assembly.GetExecutingAssembly().Location;
+				args = parser.Parse() ?? new Arguments();
 			}
 
-			return commandLine.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+			if (!args.ArgumentsExist) {
+				return;
+			}
+
+			for (int i = 0; i < args.ArgumentCollection.Count; i++) {
+				CommandLineArgument? arg = args.ArgumentCollection[i];
+
+				switch (arg.BaseCommand) {
+					case "update":
+						HandleUpdateCommand(arg.Parameters);
+						break;
+					case "restart":
+						HandleRestartCommand(arg.Parameters);
+						break;
+					case "cleanup":
+						HandleCleaupCommand(arg.Parameters);
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		private static void HandleUpdateCommand(Dictionary<string, string> parameters) {
+			bool presistLogs = true;
+			string exePath = "";
+
+			foreach (var p in parameters) {
+				switch (p.Key) {
+					case "presistLogs":
+						presistLogs = bool.Parse(p.Value);
+						break;
+					case "exePath":
+						exePath = p.Value;
+						break;
+				}
+			}
+		}
+
+		private static void HandleRestartCommand(Dictionary<string, string> parameters) {
+			bool forwardArgs = false;
+			bool presistLogs = true;
+			string exePath = "";
+			Dictionary<string, string> forwardPairs = new Dictionary<string, string>();
+
+			foreach (var p in parameters) {
+				if (forwardArgs) {
+					forwardPairs.Add(p.Key, p.Value);
+					continue;
+				}
+
+				switch (p.Key) {
+					case "presistLogs":
+						presistLogs = bool.Parse(p.Value);
+						break;
+					case "forwardArgs":
+						forwardArgs = bool.Parse(p.Value);
+						break;
+					case "exePath":
+						exePath = p.Value;
+						break;
+				}
+			}
+		}
+
+		private static void HandleCleaupCommand(Dictionary<string, string> parameters) {
+
 		}
 	}
 }
