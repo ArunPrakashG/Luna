@@ -33,7 +33,7 @@ namespace Luna.Shell.InternalCommands {
 			}
 
 			if (parameter.Parameters.Length > MaxParameterCount) {
-				ShellOut.Error("Too many arguments.");
+				ShellIO.Error("Too many arguments.");
 				return;
 			}
 
@@ -48,12 +48,12 @@ namespace Luna.Shell.InternalCommands {
 
 				string? apiKey;
 				if (string.IsNullOrEmpty(Program.CoreInstance.GetCoreConfig().ApiKeys.OpenWeatherApiKey)) {
-					ShellOut.Error("Weather API key isn't set.");
+					ShellIO.Error("Weather API key isn't set.");
 
-					apiKey = ShellOut.GetString("Open Weather Api Key");
+					apiKey = ShellIO.GetString("Open Weather Api Key");
 
 					if (string.IsNullOrEmpty(apiKey)) {
-						ShellOut.Error("Api key is invalid or not set properly.");
+						ShellIO.Error("Api key is invalid or not set properly.");
 						return;
 					}
 				}
@@ -64,11 +64,11 @@ namespace Luna.Shell.InternalCommands {
 
 				switch (parameter.ParameterCount) {
 					case 0:
-						ShellOut.Error("Pin code is invalid or not set.");
+						ShellIO.Error("Pin code is invalid or not set.");
 						return;
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
-							ShellOut.Error("Failed to parse pin code. Entered pin code is invalid.");
+							ShellIO.Error("Failed to parse pin code. Entered pin code is invalid.");
 							return;
 						}
 
@@ -77,25 +77,25 @@ namespace Luna.Shell.InternalCommands {
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
-							ShellOut.Error("Weather request failed.");
+							ShellIO.Error("Weather request failed.");
 							return;
 						}
 
-						ShellOut.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
-						ShellOut.Info($"Wind Speed: {weather.Wind.Speed}");
-						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
-						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
-						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
+						ShellIO.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
+						ShellIO.Info($"Wind Speed: {weather.Wind.Speed}");
+						ShellIO.Info($"Humidity: {weather.Data.Humidity}");
+						ShellIO.Info($"Pressure: {weather.Data.Pressure}");
+						ShellIO.Info($"Sea Level: {weather.Data.SeaLevel}");
+						ShellIO.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
-							ShellOut.Error("Pin code is invalid.");
+							ShellIO.Error("Pin code is invalid.");
 							return;
 						}
 
 						if (parameter.Parameters[1].Length > 3) {
-							ShellOut.Error("Country code is invalid.");
+							ShellIO.Error("Country code is invalid.");
 							return;
 						}
 
@@ -104,25 +104,25 @@ namespace Luna.Shell.InternalCommands {
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
-							ShellOut.Error("Weather request failed.");
+							ShellIO.Error("Weather request failed.");
 							return;
 						}
 
-						ShellOut.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
-						ShellOut.Info($"Wind Speed: {weather.Wind.Speed}");
-						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
-						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
-						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
+						ShellIO.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
+						ShellIO.Info($"Wind Speed: {weather.Wind.Speed}");
+						ShellIO.Info($"Humidity: {weather.Data.Humidity}");
+						ShellIO.Info($"Pressure: {weather.Data.Pressure}");
+						ShellIO.Info($"Sea Level: {weather.Data.SeaLevel}");
+						ShellIO.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					case 3 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]) && !string.IsNullOrEmpty(parameter.Parameters[2]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
-							ShellOut.Error("Pin code is invalid.");
+							ShellIO.Error("Pin code is invalid.");
 							return;
 						}
 
 						if (parameter.Parameters[1].Length > 3) {
-							ShellOut.Error("Country code is invalid.");
+							ShellIO.Error("Country code is invalid.");
 							return;
 						}
 
@@ -133,7 +133,7 @@ namespace Luna.Shell.InternalCommands {
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
-							ShellOut.Error("Weather request failed.");
+							ShellIO.Error("Weather request failed.");
 							return;
 						}
 
@@ -149,20 +149,20 @@ namespace Luna.Shell.InternalCommands {
 							});
 						}
 
-						ShellOut.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
-						ShellOut.Info($"Wind Speed: {weather.Wind.Speed}");
-						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
-						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
-						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
+						ShellIO.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
+						ShellIO.Info($"Wind Speed: {weather.Wind.Speed}");
+						ShellIO.Info($"Humidity: {weather.Data.Humidity}");
+						ShellIO.Info($"Pressure: {weather.Data.Pressure}");
+						ShellIO.Info($"Sea Level: {weather.Data.SeaLevel}");
+						ShellIO.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					default:
-						ShellOut.Error("Command seems to be in incorrect syntax.");
+						ShellIO.Error("Command seems to be in incorrect syntax.");
 						return;
 				}
 			}
 			catch (Exception e) {
-				ShellOut.Exception(e);
+				ShellIO.Exception(e);
 				return;
 			}
 			finally {
@@ -181,16 +181,16 @@ namespace Luna.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_code] -[country_code]");
+				ShellIO.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_code] -[country_code]");
 				return;
 			}
 
-			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
-			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} -[pin_code] '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[pin_code] -[country_code] '");
-			ShellOut.Info($"Advanced with TTS -> ' {CommandKey} -[pin_code] -[country_code] -[tts (true/false)] '");
-			ShellOut.Info($"----------------- ----------------------------- -----------------");
+			ShellIO.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellIO.Info($"|> {CommandDescription}");
+			ShellIO.Info($"Basic Syntax -> ' {CommandKey} -[pin_code] '");
+			ShellIO.Info($"Advanced -> ' {CommandKey} -[pin_code] -[country_code] '");
+			ShellIO.Info($"Advanced with TTS -> ' {CommandKey} -[pin_code] -[country_code] -[tts (true/false)] '");
+			ShellIO.Info($"----------------- ----------------------------- -----------------");
 		}
 
 		public bool Parse(Parameter parameter) {

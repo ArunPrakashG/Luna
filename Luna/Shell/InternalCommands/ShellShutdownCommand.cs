@@ -30,12 +30,12 @@ namespace Luna.Shell.InternalCommands {
 			}
 
 			if (!Program.CoreInstance.IsBaseInitiationCompleted) {
-				ShellOut.Error("Cannot execute as the core hasn't been successfully started yet.");
+				ShellIO.Error("Cannot execute as the core hasn't been successfully started yet.");
 				return;
 			}
 
 			if (parameter.Parameters.Length > MaxParameterCount) {
-				ShellOut.Error("Too many arguments.");
+				ShellIO.Error("Too many arguments.");
 				return;
 			}
 
@@ -45,14 +45,14 @@ namespace Luna.Shell.InternalCommands {
 				switch (parameter.ParameterCount) {
 					case 0:
 					default:
-						ShellOut.Info("After this process, you wont be able to execute shell commands in assistant...");
+						ShellIO.Info("After this process, you wont be able to execute shell commands in assistant...");
 						Interpreter.ExitShell();
-						ShellOut.Info("Shutdown process started!");
+						ShellIO.Info("Shutdown process started!");
 						return;
 				}
 			}
 			catch (Exception e) {
-				ShellOut.Exception(e);
+				ShellIO.Exception(e);
 				return;
 			}
 			finally {
@@ -67,14 +67,14 @@ namespace Luna.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} ");
+				ShellIO.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} ");
 				return;
 			}
 
-			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
-			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} '");
-			ShellOut.Info($"----------------- ----------------------------- -----------------");
+			ShellIO.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellIO.Info($"|> {CommandDescription}");
+			ShellIO.Info($"Basic Syntax -> ' {CommandKey} '");
+			ShellIO.Info($"----------------- ----------------------------- -----------------");
 		}
 
 		public bool Parse(Parameter parameter) {

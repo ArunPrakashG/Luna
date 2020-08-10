@@ -1,7 +1,10 @@
 using System;
 
 namespace Luna.Shell {
-	public static class ShellOut {
+	/// <summary>
+	/// Provides functionality to log directly to the console. (used in case of shell commands)
+	/// </summary>
+	public static class ShellIO {
 		public static void Info(string? msg) {
 			if (string.IsNullOrEmpty(msg)) {
 				return;
@@ -38,9 +41,9 @@ namespace Luna.Shell {
 			bool inputCorrect = false;
 			int count = 0;
 			int maxTry = 3;
-			
+
 			do {
-				if(count > maxTry) {
+				if (count > maxTry) {
 					Error("Execute the command again...");
 					return -1;
 				}
@@ -58,7 +61,7 @@ namespace Luna.Shell {
 					count++;
 					continue;
 				}
-				
+
 				return responseVal;
 			} while (!inputCorrect);
 

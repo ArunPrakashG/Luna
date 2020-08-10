@@ -12,7 +12,7 @@ namespace Luna.Shell {
 	/// <summary>
 	/// The Shell Instance.
 	/// </summary>
-	public static class Interpreter {
+	public static class Interpreter  {
 		private static readonly InternalLogger Logger = new InternalLogger(nameof(Interpreter));
 		private static readonly SemaphoreSlim Sync = new SemaphoreSlim(1, 1);
 		private static readonly SemaphoreSlim LoopSync = new SemaphoreSlim(1, 1);
@@ -59,7 +59,7 @@ namespace Luna.Shell {
 		/// Loads the internally defined shell commands, then loads the external commands libraries, then starts the shell instance.
 		/// </summary>		
 		/// <returns>Boolean, indicating if the process was successful.</returns>
-		public static async Task<bool> InitInterpreterAsync() {
+		internal static async Task<bool> InitInterpreterAsync() {
 			if (InitCompleted) {
 				return false;
 			}
@@ -116,14 +116,14 @@ namespace Luna.Shell {
 
 					Logger.Trace("Shell is in 'Running' state.");
 					Console.WriteLine();
-					ShellOut.Info("Type in the command! Use 'help' / 'h' for help regarding the available commands.");
+					ShellIO.Info("Type in the command! Use 'help' / 'h' for help regarding the available commands.");
 					Console.ForegroundColor = ConsoleColor.Green;
 					Console.Write($"#~{Assembly.GetExecutingAssembly().GetName().Name}/$ >> ");
 					Console.ResetColor();
 					string command = Console.ReadLine();
 
 					if (string.IsNullOrEmpty(command) || string.IsNullOrWhiteSpace(command)) {
-						ShellOut.Error("Invalid command.");
+						ShellIO.Error("Invalid command.");
 						continue;
 					}
 
@@ -151,13 +151,13 @@ namespace Luna.Shell {
 		private static async Task<bool> ExecuteCommandAsync(string? command) {
 			if (!InitCompleted) {
 				Logger.Warn("Shell isn't initiated properly.");
-				ShellOut.Error("Shell is offline!");
+				ShellIO.Error("Shell is offline!");
 				return false;
 			}
 
 			if (string.IsNullOrEmpty(command)) {
 				Logger.Trace("Command is null.");
-				ShellOut.Error("Command empty or invalid.");
+				ShellIO.Error("Command empty or invalid.");
 				return false;
 			}
 
@@ -172,12 +172,12 @@ namespace Luna.Shell {
 		/// <returns>The <see cref="bool"/></returns>
 		private static async Task<bool> ParseCommandAsync(string cmd) {
 			if (Commands.Count <= 0) {
-				ShellOut.Info("No commands have been loaded into the shell.");
+				ShellIO.Info("No commands have been loaded into the shell.");
 				return false;
 			}
 
 			if (string.IsNullOrEmpty(cmd)) {
-				ShellOut.Error("Invalid command.");
+				ShellIO.Error("Invalid command.");
 				return false;
 			}
 
@@ -191,7 +191,7 @@ namespace Luna.Shell {
 					string[] cmdSplit = cmd.Split(ShellConstants.MULTI_COMMAND, StringSplitOptions.RemoveEmptyEntries);
 
 					if (cmdSplit == null || cmdSplit.Length <= 0) {
-						ShellOut.Error("Failed to parse the command. Please retype in correct syntax!");
+						ShellIO.Error("Failed to parse the command. Please retype in correct syntax!");
 						return false;
 					}
 
@@ -299,8 +299,8 @@ namespace Luna.Shell {
 			}
 			catch (Exception e) {
 				Logger.Exception(e);
-				ShellOut.Error("Internal exception occurred. Execution failed unexpectedly.");
-				ShellOut.Exception(e);
+				ShellIO.Error("Internal exception occurred. Execution failed unexpectedly.");
+				ShellIO.Exception(e);
 				return false;
 			}
 			finally {
@@ -321,7 +321,7 @@ namespace Luna.Shell {
 			IShellCommand command = await Init.GetCommandWithKeyAsync<IShellCommand>(commandKey).ConfigureAwait(false);
 
 			if (command == null) {
-				ShellOut.Error("Command doesn't exist. use 'help' to check all available commands!");
+				ShellIO.Error("Command doesn't exist. use 'help' to check all available commands!");
 				return false;
 			}
 
@@ -331,12 +331,12 @@ namespace Luna.Shell {
 				}
 
 				if (!command.IsCurrentCommandContext(command.CommandKey, parameters.Length)) {
-					ShellOut.Error("Command doesn't match the syntax. Please retype.");
+					ShellIO.Error("Command doesn't match the syntax. Please retype.");
 					return false;
 				}
 
 				if (!command.HasParameters && parameters.Length > 0) {
-					ShellOut.Info($"'{command.CommandName}' doesn't require any arguments.");
+					ShellIO.Info($"'{command.CommandName}' doesn't require any arguments.");
 
 					string args = string.Empty;
 					for (int i = 0; i < parameters.Length; i++) {
@@ -345,19 +345,19 @@ namespace Luna.Shell {
 						}
 					}
 
-					ShellOut.Info($"Entered arguments '{args}' will be trimmed out.");
+					ShellIO.Info($"Entered arguments '{args}' will be trimmed out.");
 					parameters = new string[0];
 				}
 
 				if (parameters.Length > command.MaxParameterCount) {
-					ShellOut.Info($"'{command.CommandName}' only supports a maximum of '{command.MaxParameterCount}' arguments. You have entered '{parameters.Length}'");
+					ShellIO.Info($"'{command.CommandName}' only supports a maximum of '{command.MaxParameterCount}' arguments. You have entered '{parameters.Length}'");
 
 					string args = string.Empty;
 					for (int i = (parameters.Length - command.MaxParameterCount) - 1; i > parameters.Length - command.MaxParameterCount; i--) {
 						parameters[i] = null;
 					}
 
-					ShellOut.Info($"'{parameters.Length - command.MaxParameterCount}' arguments will be trimmed out.");
+					ShellIO.Info($"'{parameters.Length - command.MaxParameterCount}' arguments will be trimmed out.");
 					return false;
 				}
 
@@ -378,5 +378,13 @@ namespace Luna.Shell {
 		/// <param name="cmd"></param>
 		/// <returns></returns>
 		private static string Replace(string cmd) => cmd.Replace(";", "").Replace(",", "");
+
+		//public static IShellIO GetIO<T>(this T shellCommand) {
+		//	if(!(shellCommand is IShellIO) || !(shellCommand is IShellCommand)) {
+		//		throw new InvalidCastException($"Cannot cast {nameof(IShellCommand)} as {nameof(IShellIO)}");
+		//	}
+
+		//	return ((IShellIO) shellCommand);
+		//}
 	}
 }
