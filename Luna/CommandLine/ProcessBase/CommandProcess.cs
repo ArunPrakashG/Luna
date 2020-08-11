@@ -9,9 +9,10 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Luna.CommandLine.ProcessBase {
-	internal abstract class CommandProcess : IDisposable {
+	public abstract class CommandProcess : IDisposable {
 		private const string UNIX_SHELL = "/bin/bash";
 		private const string WINDOWS_SHELL = "cmd.exe";
 		private readonly string ShellName = Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD ? UNIX_SHELL : WINDOWS_SHELL;
@@ -25,6 +26,7 @@ namespace Luna.CommandLine.ProcessBase {
 		protected readonly ObservableStack<string> InputContainer;
 
 		private Process Process;
+		private readonly ProcessStartInfo DefaultProcessStartInfo;
 
 		protected bool IsUnixEnvironment => Helpers.GetPlatform() == OSPlatform.Linux || Helpers.GetPlatform() == OSPlatform.FreeBSD;
 
@@ -37,6 +39,21 @@ namespace Luna.CommandLine.ProcessBase {
 			EnableIOLogging = enableIOLogging;
 			Logger = new InternalLogger(ShellName);
 			IsElevationCapable = IsElevated();
+
+			DefaultProcessStartInfo = new ProcessStartInfo() {
+				CreateNoWindow = false,
+				RedirectStandardError = true,
+				RedirectStandardInput = true,
+				RedirectStandardOutput = true,
+				UseShellExecute = false,
+				StandardErrorEncoding = Encoding.ASCII,
+				StandardOutputEncoding = Encoding.ASCII,
+				StandardInputEncoding = Encoding.ASCII,
+				WindowStyle = ProcessWindowStyle.Hidden,
+				WorkingDirectory = Directory.GetCurrentDirectory(),
+				FileName = ShellName
+			};
+
 			GenerateProcessInstance();
 			OutputContainer = new ObservableStack<string>();
 			ErrorContainer = new ObservableStack<string>();
@@ -56,20 +73,7 @@ namespace Luna.CommandLine.ProcessBase {
 			}
 
 			Process = new Process();
-			Process.StartInfo = new ProcessStartInfo() {
-				CreateNoWindow = false,
-				RedirectStandardError = true,
-				RedirectStandardInput = true,
-				RedirectStandardOutput = true,
-				UseShellExecute = false,
-				StandardErrorEncoding = Encoding.ASCII,
-				StandardOutputEncoding = Encoding.ASCII,
-				StandardInputEncoding = Encoding.ASCII,
-				WindowStyle = ProcessWindowStyle.Hidden,
-				WorkingDirectory = Directory.GetCurrentDirectory(),
-				FileName = ShellName
-			};
-
+			Process.StartInfo = DefaultProcessStartInfo;
 			Process.EnableRaisingEvents = true;
 			Process.Disposed += OnDisposed;
 			Process.ErrorDataReceived += OnErrorReceived;
@@ -91,6 +95,34 @@ namespace Luna.CommandLine.ProcessBase {
 			Process.Start();
 			Process.BeginOutputReadLine();
 			Process.BeginErrorReadLine();
+		}
+
+		protected (string? output, string? error) ExecuteCommand(string? command, bool waitForExit) {
+			if (Process == null) {
+				GenerateProcessInstance();
+			}
+
+			if (string.IsNullOrEmpty(command)) {
+				return (null, null);
+			}
+
+			command = $"{(IsUnixEnvironment ? "-c" : "/C")} {(IsUnixEnvironment && IsElevationCapable ? "sudo" : "")} \"{EscapeArguments(command)}\"";
+			Process.StartInfo.Arguments = command;
+			Process.Start();
+			Process.BeginOutputReadLine();
+			Process.BeginErrorReadLine();
+
+			Task.Delay(2000).Wait();
+
+			string output = Process.StandardOutput.ReadToEnd();
+			string error = Process.StandardError.ReadToEnd();
+
+			if (waitForExit) {
+				Process.WaitForExit();
+				GenerateProcessInstance();
+			}
+
+			return (output, error);
 		}
 
 		protected virtual void ProcessStandardError(object sender, NotifyCollectionChangedEventArgs e) {

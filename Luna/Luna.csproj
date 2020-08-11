@@ -33,17 +33,18 @@
     <PackageReference Include="exSharp" Version="1.0.0" />
     <PackageReference Include="Figgle" Version="0.3.0" />
     <PackageReference Include="FluentScheduler" Version="5.4.0" />
+    <PackageReference Include="JsonCommandLine" Version="1.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.6" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="3.1.6" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="3.1.6" />
     <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
-    <PackageReference Include="NLog.Web.AspNetCore" Version="4.9.2" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="4.9.3" />
     <PackageReference Include="OpenWeatherApiSharp" Version="1.0.0" />
     <PackageReference Include="Synergy.Extensions" Version="1.3.0" />
     <PackageReference Include="Synergy.Logging" Version="1.3.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="NLog" Version="4.7.2" />
+    <PackageReference Include="NLog" Version="4.7.3" />
     <PackageReference Include="System.Composition" Version="1.4.1" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />

@@ -75,11 +75,20 @@ namespace Luna {
 		private readonly InternalLogger Logger = new InternalLogger(nameof(CoreConfig));
 		private readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 		private readonly Core Core;
+		internal static bool ColdStartup { get; set; }
 
 		[JsonConstructor]
-		internal CoreConfig() { }
+		internal CoreConfig() {
+			PublicIP = "Unassigned";
+			LocalIP = "Unassigned";
+			Core = default;
+		}
 
-		internal CoreConfig(Core _core) => Core = _core ?? throw new ArgumentNullException(nameof(_core));
+		internal CoreConfig(Core _core) {
+			PublicIP = "Unassigned";
+			LocalIP = "Unassigned";
+			Core = _core ?? throw new ArgumentNullException(nameof(_core));
+		}
 
 		internal async Task SaveAsync() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
@@ -124,6 +133,8 @@ namespace Luna {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
+
+			ColdStartup = ColdStartup ? !GenerateDefaultConfig() : ColdStartup;			
 
 			if (!File.Exists(Constants.CoreConfigPath) && !GenerateDefaultConfig()) {
 				return;

@@ -14,7 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Luna.Modules {
-	internal sealed class ModuleLoader {
+	public sealed class ModuleLoader {
 		private static readonly SemaphoreSlim ModuleLoaderSemaphore = new SemaphoreSlim(1, 1);
 		private readonly InternalLogger Logger = new InternalLogger(nameof(ModuleLoader));
 		private readonly List<ModuleWrapper<IModule>> ModulesCache;
@@ -185,7 +185,7 @@ namespace Luna.Modules {
 			return false;
 		}
 
-		private bool UnloadFromPath(string assemblyPath) {
+		internal bool UnloadFromPath(string assemblyPath) {
 			if (string.IsNullOrEmpty(assemblyPath) || Modules.Count <= 0) {
 				return false;
 			}
@@ -258,7 +258,7 @@ namespace Luna.Modules {
 
 		internal void OnCoreShutdown() => UnloadModulesOfType();
 
-		internal static void ExecuteActionOnType<T>(Action<T> eventAction) {
+		public static void ExecuteActionOnType<T>(Action<T> eventAction) {
 			if (Modules.Count <= 0) {
 				return;
 			}

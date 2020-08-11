@@ -3,48 +3,51 @@ using System;
 using System.Threading;
 
 namespace Luna.Features {
-	internal abstract class InternalJob : IDisposable {
+	/// <summary>
+	/// Provides an interface to schedule jobs
+	/// </summary>
+	public abstract class InternalJob : IDisposable {
 		/// <summary>
 		/// The unique ID which is used to identify this job.
 		/// </summary>
-		internal readonly string UniqueID;
+		public readonly string UniqueID;
 
 		/// <summary>
 		/// The <see cref="DateTime"/> at which the job is scheduled to fire initially.
 		/// </summary>
-		internal readonly DateTime ScheduledAt;
+		public readonly DateTime ScheduledAt;
 
 		/// <summary>
 		/// True will enable recurring of this job based on <see cref="DelayBetweenCalls"/> span.
 		/// </summary>
-		internal bool IsRecurring => DelayBetweenCalls != Timeout.InfiniteTimeSpan;
+		public bool IsRecurring => DelayBetweenCalls != Timeout.InfiniteTimeSpan;
 
 		/// <summary>
 		/// The delay between each fire of the event if the job is set to recurre.
 		/// </summary>
-		internal TimeSpan DelayBetweenCalls { get; private set; }
+		public TimeSpan DelayBetweenCalls { get; private set; }
 
 		/// <summary>
 		/// The job name.
 		/// </summary>
-		internal readonly string JobName;
+		public readonly string JobName;
 
 		/// <summary>
 		/// Optional object parameters to be passed on invoking <see cref="OnJobTriggered"/>.
 		/// </summary>
-		internal readonly ObjectParameterWrapper? JobParameters;
+		public readonly ObjectParameterWrapper? JobParameters;
 
 		/// <summary>
 		/// If <see cref="ScheduledAt"/> time is less than <see cref="DateTime.Now"/> then the job is expired as its unable to fire.
 		/// </summary>
-		internal bool HasJobExpired => DateTime.Now > ScheduledAt;
+		public bool HasJobExpired => DateTime.Now > ScheduledAt;
 
 		/// <summary>
 		/// The <see cref="TimeSpan"/> untill initial call of this job.
 		/// </summary>
-		internal TimeSpan SpanUntilInitialCall => (DateTime.Now - ScheduledAt);
+		public TimeSpan SpanUntilInitialCall => (DateTime.Now - ScheduledAt);
 
-		internal bool IsDisposed => JobTimer == null;
+		public bool IsDisposed => JobTimer == null;
 		private readonly Timer JobTimer;
 
 		protected InternalJob(string jobName, DateTime scheduledAt, ObjectParameterWrapper? parameters = null) {
@@ -95,7 +98,7 @@ namespace Luna.Features {
 		/// Disables refiring of this job. (Disposes it after first event)
 		/// </summary>
 		/// <returns></returns>
-		internal InternalJob WithoutRecurring() {
+		public InternalJob WithoutRecurring() {
 			if (IsDisposed) {
 				throw new ObjectDisposedException(nameof(InternalJob));
 			}
@@ -110,7 +113,7 @@ namespace Luna.Features {
 		/// </summary>
 		/// <param name="delayBetweenCalls">The delay to wait before next and rest of the fires.</param>
 		/// <returns></returns>
-		internal InternalJob ReoccureEvery(TimeSpan delayBetweenCalls) {
+		public InternalJob ReoccureEvery(TimeSpan delayBetweenCalls) {
 			if (IsDisposed) {
 				throw new ObjectDisposedException(nameof(InternalJob));
 			}

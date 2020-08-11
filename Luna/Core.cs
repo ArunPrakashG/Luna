@@ -1,6 +1,7 @@
 namespace Luna {
 	using Figgle;
 	using FluentScheduler;
+	using JsonCommandLine;
 	using Luna.CommandLine;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
@@ -14,19 +15,18 @@ namespace Luna {
 	using System;
 	using System.Diagnostics;
 	using System.IO;
+	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Unosquare.RaspberryIO;
 	using static Luna.Gpio.Enums;
 
-	internal class Core {
+	public class Core {
 		private readonly InternalLogger Logger;
 		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
 		private readonly ConfigWatcher InternalConfigWatcher;
 		private readonly ModuleWatcher InternalModuleWatcher;
 		private readonly GpioCore Controller;
-		private readonly UpdateManager Updater;
 		private readonly ModuleLoader ModuleLoader;
 		private readonly RestCore RestServer;
 		private readonly PinsWrapper Pins;
@@ -34,10 +34,15 @@ namespace Luna {
 		internal readonly bool DisableFirstChanceLogWithDebug;
 		internal readonly CoreConfig Config;
 
-		internal readonly bool InitiationCompleted;
-		internal readonly bool IsBaseInitiationCompleted;
-		internal static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
+		public readonly bool InitiationCompleted;
+		public readonly bool IsBaseInitiationCompleted;
+		public static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
 		internal static readonly Stopwatch RuntimeSpanCounter;
+
+		internal static bool IsMuted { get; private set; }
+		internal static bool NoUpdates { get; private set; }
+
+		public static bool IsUpdatesAllowed { get; private set; }
 
 		static Core() {
 			RuntimeSpanCounter = new Stopwatch();
@@ -51,12 +56,15 @@ namespace Luna {
 			RuntimeSpanCounter.Restart();
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 
+			ParseStartupArguments();
+
 			if (File.Exists(Constants.TraceLogFile)) {
 				File.Delete(Constants.TraceLogFile);
 			}
 
 			Config = new CoreConfig(this);
 			Config.LoadAsync().Wait();
+			IsUpdatesAllowed = !NoUpdates && Config.AutoUpdates;
 			Config.LocalIP = Helpers.GetLocalIpAddress()?.ToString() ?? "-Invalid-";
 			Config.PublicIP = Helpers.GetPublicIP()?.ToString() ?? "-Invalid-";
 
@@ -75,7 +83,6 @@ namespace Luna {
 			);
 
 			Controller = new GpioCore(Pins, this, Config.GpioConfiguration.GpioSafeMode);
-			Updater = new UpdateManager(this);
 			ModuleLoader = new ModuleLoader();
 			RestServer = new RestCore(Config.RestServerPort, Config.Debug);
 
@@ -89,10 +96,70 @@ namespace Luna {
 			InitiationCompleted = true;
 		}
 
+		private void ParseStartupArguments() {
+			using (CommandLineParser parser = new CommandLineParser(Environment.CommandLine)) {
+				if (!parser.IsJsonType) {
+					return;
+				}
+
+				Arguments arguments = parser.Parse();
+
+				if (arguments.ArgumentsExist) {
+					foreach (CommandLineArgument arg in arguments.ArgumentCollection) {
+						if (string.IsNullOrEmpty(arg.BaseCommand)) {
+							continue;
+						}
+						CancellationTokenSource waitToken;
+						switch (arg.BaseCommand) {
+							case "silent_start":
+								IsMuted = true;
+								break;
+							case "no_update":
+								NoUpdates = true;
+								break;
+							case "cold_start":
+								CoreConfig.ColdStartup = true;
+								break;
+
+							// commands just for testing
+							case "start_delayed" when arg.ParameterCount >= 1:
+								foreach(var param in arg.Parameters) {
+									switch (param.Key) {
+										case "delay":
+											waitToken = new CancellationTokenSource(TimeSpan.FromMinutes(double.Parse(param.Value)));
+											Logger.Info($"Waiting for {param.Value} minute(s) before continuing with code execution...");
+											while (waitToken.IsCancellationRequested) {
+												Task.Delay(5).Wait();
+											}
+
+											Logger.Info("Continuing...");
+											break;
+										default:
+											continue;
+									}
+								}
+								break;
+							case "start_delayed":
+								waitToken = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+								Logger.Info($"Waiting for 1 minute before continuing with code execution...");
+
+								while (waitToken.IsCancellationRequested) {
+									Task.Delay(5).Wait();
+								}
+
+								Logger.Info("Continuing...");
+								break;
+
+							default:
+								break;
+						}
+					}
+				}
+			}
+		}
+
 		private async Task PostInitiation() {
 			async void moduleLoaderAction() => await ModuleLoader.LoadAsync(Config.EnableModules).ConfigureAwait(false);
-
-			async void checkAndUpdateAction() => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
 
 			async void gpioControllerInitAction() {
 				GpioControllerDriver? driver = default;
@@ -121,7 +188,6 @@ namespace Luna {
 
 			Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = 10 },
 				moduleLoaderAction,
-				checkAndUpdateAction,
 				gpioControllerInitAction,
 				restServerInitAction,
 				endStartupAction
@@ -150,7 +216,6 @@ namespace Luna {
 				() => InternalConfigWatcher.StopWatcher(),
 				() => InternalModuleWatcher.StopWatcher(),
 				() => ModuleLoader?.OnCoreShutdown(),
-				() => Updater.Dispose(),
 				async () => await Config.SaveAsync().ConfigureAwait(false)
 			);
 
@@ -172,18 +237,22 @@ namespace Luna {
 		}
 
 		internal async Task Restart(int delay = 10) {
-			Helpers.ScheduleTask(() => {
-				using (OSCommandLineInterfacer cl = new OSCommandLineInterfacer(OSPlatform.Linux, true)) {
-					cl.Execute("");
-				}
-			});
+			CommandLineArgument restartArg = new CommandLineArgument("restart");
+			restartArg.TryAddParameter("exePath", Assembly.GetExecutingAssembly().Location);
+
+			string args = restartArg.BuildAsArgument();
+
+			using(LunaExternalProcessSession exProcess = new LunaExternalProcessSession(OSPlatform.Linux)) {
+				var result = exProcess.Run($"dotnet Luna.External.dll {args}", false);
+			}
+
 			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
 			ExitEnvironment(0);
 		}
 
 		internal async Task KeepAlive() {
-			Logger.CustomLog($"Press {Constants.SHELL_KEY} for shell.", ConsoleColor.Green);
+			Logger.CustomLog($"Press {Constants.ShellKeyChar} for shell.", ConsoleColor.Green);
 			while (!KeepAliveToken.Token.IsCancellationRequested) {
 				try {
 					if (Interpreter.PauseShell) {
@@ -194,7 +263,7 @@ namespace Luna {
 						ConsoleKeyInfo pressedKey = Console.ReadKey(true);
 
 						switch (pressedKey.Key) {
-							case Constants.SHELL_KEY:
+							case Constants.ShellKey:
 								Interpreter.Resume();
 								continue;
 
@@ -211,13 +280,13 @@ namespace Luna {
 
 		private void OnCoreConfigChangeEvent(string? fileName) {
 			if (!File.Exists(Constants.CoreConfigPath)) {
-				Logger.Log("The core config file has been deleted.", LogLevels.Warn);
-				Logger.Log("Fore quitting assistant.", LogLevels.Warn);
+				Logger.Warn("The core config file has been deleted.");
+				Logger.Warn("Fore quitting assistant.");
 				ExitEnvironment(0);
 			}
 
-			Logger.Log("Updating core config as the local config file as been updated...");
-			Helpers.InBackgroundThread(Config.Load);
+			Logger.Warn("Updating core config as the local config file as been updated...");
+			Helpers.InBackgroundThread(async () => await Config.LoadAsync().ConfigureAwait(false));
 		}
 
 		private void OnDiscordConfigChangeEvent(string? fileName) {
@@ -233,7 +302,7 @@ namespace Luna {
 
 			string fileName = Path.GetFileName(absoluteFileName);
 			string filePath = Path.GetFullPath(absoluteFileName);
-			Logger.Log($"An event has been raised on module folder for file > {fileName}", LogLevels.Trace);
+			Logger.Trace($"An event has been raised on module folder for file > {fileName}");
 
 			if (!File.Exists(filePath)) {
 				ModuleLoader.UnloadFromPath(filePath);
@@ -244,18 +313,15 @@ namespace Luna {
 		}
 
 		private void SetConsoleTitle() {
-			string text = $"Luna v{Constants.Version} | https://{Config.LocalIP}:{Config.RestServerPort}/ | {DateTime.Now.ToLongTimeString()} | ";
-			text += GpioCore.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
+			string text = $"Luna v{Constants.Version} | https://{Config.LocalIP}:{Config.RestServerPort}/ | {DateTime.Now.ToLongTimeString()} | Uptime : {Math.Round(RuntimeSpanCounter.Elapsed.TotalMinutes, 3)} minutes";			
 			Helpers.SetConsoleTitle(text);
 		}
 
-		public GpioCore GetGpioCore() => Controller;
+		internal GpioCore GetGpioCore() => Controller;
 
-		public UpdateManager GetUpdater() => Updater;
+		internal CoreConfig GetCoreConfig() => Config;
 
-		public CoreConfig GetCoreConfig() => Config;
-
-		public ModuleLoader GetModuleInitializer() => ModuleLoader;
+		internal ModuleLoader GetModuleInitializer() => ModuleLoader;
 
 		internal WatcherBase GetFileWatcher() => InternalConfigWatcher;
 

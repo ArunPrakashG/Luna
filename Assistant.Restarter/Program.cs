@@ -1,4 +1,5 @@
 using JsonCommandLine;
+using Luna.External.Updates;
 using Luna.Shell;
 using System;
 using System.Collections.Generic;
@@ -7,9 +8,11 @@ using System.Reflection;
 namespace Luna.External {
 	internal partial class Program {
 		private static string ExecutablePath;
+		private static readonly UpdateManager UpdateManager = new UpdateManager();
 
 		private static void Main(string[] args) {
 			ParseStartupArguments();
+			
 		}
 
 		private static void ParseStartupArguments() {
@@ -51,10 +54,7 @@ namespace Luna.External {
 			string exePath = "";
 
 			foreach (var p in parameters) {
-				switch (p.Key) {
-					case "presistLogs":
-						presistLogs = bool.Parse(p.Value);
-						break;
+				switch (p.Key) {					
 					case "exePath":
 						exePath = p.Value;
 						break;

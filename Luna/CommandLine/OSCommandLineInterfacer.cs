@@ -8,11 +8,11 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Luna.CommandLine {
-	internal class OSCommandLineInterfacer : CommandProcess {
+	public class OSCommandLineInterfacer : CommandProcess {
 
-		internal OSCommandLineInterfacer(OSPlatform platform, bool IOLogging = false, bool traceOnly = false, bool asAdmin = false) : base(platform, IOLogging, traceOnly, asAdmin) {	}
+		public OSCommandLineInterfacer(OSPlatform platform, bool IOLogging = false, bool traceOnly = false, bool asAdmin = false) : base(platform, IOLogging, traceOnly, asAdmin) {	}
 
-		internal void Execute(string command) {
+		public void Execute(string command) {
 			if (string.IsNullOrEmpty(command)) {
 				return;
 			}
@@ -20,7 +20,7 @@ namespace Luna.CommandLine {
 			ExecuteCommand(command);
 		}
 
-		internal string ExecuteDirect(string command) {
+		public string ExecuteDirect(string command) {
 			if (Helpers.GetPlatform() != OSPlatform.Linux || string.IsNullOrEmpty(command)) {
 				return null;
 			}

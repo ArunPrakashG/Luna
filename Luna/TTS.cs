@@ -14,6 +14,10 @@ namespace Luna {
 		}
 
 		internal void Speak(string? text) {
+			if (Core.IsMuted) {
+				return;
+			}
+
 			if (string.IsNullOrEmpty(text)) {
 				return;
 			}

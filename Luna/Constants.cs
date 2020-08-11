@@ -5,6 +5,7 @@ using System.Reflection;
 namespace Luna {
 	public static class Constants {
 		#region Internals
+		public const string TraceLogFile = "TraceLog.txt";
 		public const string ConfigDirectory = "Config";
 		public const string ModuleDirectory = "Modules";
 		public const string CommandsDirectory = "Commands";
@@ -12,6 +13,8 @@ namespace Luna {
 		public const string CoreConfig = "Luna.json";
 		public static readonly string GpioConfigPath;
 		public static readonly string CoreConfigPath;
+		public const ConsoleKey ShellKey = ConsoleKey.C;
+		public const char ShellKeyChar = 'c';
 		#endregion
 
 		#region GitHub
