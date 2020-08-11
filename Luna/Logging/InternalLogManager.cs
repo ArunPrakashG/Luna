@@ -21,8 +21,8 @@ namespace Luna.Logging {
 			}
 
 			LoggingConfiguration config = new LoggingConfiguration();
-			FileTarget TraceLogPath = new FileTarget() { FileName = Constants.TraceLogPath, Layout = GeneralTraceLayout };
-			FileTarget DebugLogPath = new FileTarget() { FileName = Constants.DebugLogPath, Layout = GeneralDebugLayout };
+			FileTarget TraceLogPath = new FileTarget() { FileName = Constants.TraceLogFile, Layout = GeneralTraceLayout };
+			FileTarget DebugLogPath = new FileTarget() { FileName = Constants.DebugLogFile, Layout = GeneralDebugLayout };
 			ColoredConsoleTarget coloredConsoleTarget = new ColoredConsoleTarget("ColoredConsole") { Layout = GeneralDebugLayout };
 			config.AddTarget(TraceLogPath);
 			config.AddTarget(DebugLogPath);

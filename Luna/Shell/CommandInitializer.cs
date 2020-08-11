@@ -58,8 +58,8 @@ namespace Luna.Shell {
 		}
 
 		internal async Task<bool> LoadCommandsAsync<T>() where T : IShellCommand {
-			if (!Directory.Exists(Constants.COMMANDS_PATH)) {
-				Directory.CreateDirectory(Constants.COMMANDS_PATH);
+			if (!Directory.Exists(Constants.CommandsDirectory)) {
+				Directory.CreateDirectory(Constants.CommandsDirectory);
 			}
 
 			AssemblyCollection?.Clear();
@@ -275,11 +275,11 @@ namespace Luna.Shell {
 		private HashSet<Assembly>? LoadAssemblies() {
 			HashSet<Assembly> assemblies = new HashSet<Assembly>();
 
-			if (string.IsNullOrEmpty(Constants.HomeDirectory) || string.IsNullOrEmpty(Constants.COMMANDS_PATH)) {
+			if (string.IsNullOrEmpty(Constants.HomeDirectory) || string.IsNullOrEmpty(Constants.CommandsDirectory)) {
 				return null;
 			}
 
-			string pluginsPath = Path.Combine(Constants.HomeDirectory, Constants.COMMANDS_PATH);
+			string pluginsPath = Path.Combine(Constants.HomeDirectory, Constants.CommandsDirectory);
 
 			if (Directory.Exists(pluginsPath)) {
 				HashSet<Assembly>? loadedAssemblies = LoadAssembliesFromPath(pluginsPath);

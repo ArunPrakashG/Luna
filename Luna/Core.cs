@@ -51,8 +51,8 @@ namespace Luna {
 			RuntimeSpanCounter.Restart();
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 
-			if (File.Exists(Constants.TraceLogPath)) {
-				File.Delete(Constants.TraceLogPath);
+			if (File.Exists(Constants.TraceLogFile)) {
+				File.Delete(Constants.TraceLogFile);
 			}
 
 			Config = new CoreConfig(this);

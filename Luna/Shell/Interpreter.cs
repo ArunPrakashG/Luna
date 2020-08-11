@@ -50,8 +50,8 @@ namespace Luna.Shell {
 		/// Initializes static members of the <see cref="Interpreter"/> class.
 		/// </summary>
 		static Interpreter() {
-			if (!Directory.Exists(Constants.COMMANDS_PATH)) {
-				Directory.CreateDirectory(Constants.COMMANDS_PATH);
+			if (!Directory.Exists(Constants.CommandsDirectory)) {
+				Directory.CreateDirectory(Constants.CommandsDirectory);
 			}
 		}
 

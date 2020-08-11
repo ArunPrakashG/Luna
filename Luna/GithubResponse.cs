@@ -36,11 +36,11 @@ namespace Luna {
 		private static readonly HttpClient Client = new HttpClient();
 
 		static GithubResponse() {
-			Client.DefaultRequestHeaders.Add("User-Agent", Constants.GitHubProjectName);
+			Client.DefaultRequestHeaders.Add("User-Agent", Constants.GitProjectName);
 		}
 
 		internal async Task<GithubResponse> LoadAsync() {
-			if (string.IsNullOrEmpty(Constants.GITHUB_RELEASE_URL) || Client == null || Sync == null) {
+			if (string.IsNullOrEmpty(Constants.GitReleaseUrl) || Client == null || Sync == null) {
 				return this;
 			}
 
@@ -51,7 +51,7 @@ namespace Luna {
 
 				for (int i = 0; i < MAX_TRIES; i++) {
 
-					HttpResponseMessage responseMessage = await Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, Constants.GITHUB_RELEASE_URL)).ConfigureAwait(false);
+					HttpResponseMessage responseMessage = await Client.SendAsync(new HttpRequestMessage(HttpMethod.Get, Constants.GitReleaseUrl)).ConfigureAwait(false);
 
 					if (responseMessage == null || responseMessage.StatusCode != System.Net.HttpStatusCode.OK || responseMessage.Content == null) {
 						Logger.Trace($"Request failed ({i})");

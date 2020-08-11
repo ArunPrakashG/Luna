@@ -1,13 +1,11 @@
 using FluentScheduler;
 using Luna.Logging;
-using Luna.Modules.Interfaces.EventInterfaces;
 using Synergy.Extensions;
 using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using static Luna.Modules.ModuleLoader;
 
 namespace Luna {
 	internal class UpdateResult {
@@ -36,7 +34,7 @@ namespace Luna {
 			Client = new HttpClient();
 			Client.DefaultRequestHeaders.Add("cache-control", "no-cache");
 			Client.DefaultRequestHeaders.Add("Accept", "application/octet-stream");
-			Client.DefaultRequestHeaders.Add("User-Agent", Constants.GitHubProjectName);
+			Client.DefaultRequestHeaders.Add("User-Agent", Constants.GitProjectName);
 		}
 
 		internal async Task<Version?> CheckAndUpdateAsync(bool withTimer) {
@@ -144,7 +142,7 @@ namespace Luna {
 					File.Delete(updateFileName);
 				}
 
-				using (HttpResponseMessage result = await Client.GetAsync($"{Constants.GitHubAssetDownloadURL}/{releaseID}").ConfigureAwait(false)) {
+				using (HttpResponseMessage result = await Client.GetAsync($"{Constants.GitDownloadUrl}/{releaseID}").ConfigureAwait(false)) {
 					if (!result.IsSuccessStatusCode) {
 						Logger.Warn($"Download failed. {result.StatusCode}/{result.ReasonPhrase}");
 						return false;
@@ -187,7 +185,7 @@ namespace Luna {
 					return;
 				}
 
-				string executable = Path.Combine(Constants.HomeDirectory, Constants.GitHubProjectName);
+				string executable = Path.Combine(Constants.HomeDirectory, Constants.GitProjectName);
 
 				if (File.Exists(executable)) {
 					OS.UnixSetFileAccessExecutable(executable);
