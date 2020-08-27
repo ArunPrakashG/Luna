@@ -1,8 +1,5 @@
 using Luna.CommandLine.ProcessBase;
-using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Luna.CommandLine {
 	internal class LunaExternalProcessSession : CommandProcess {
@@ -14,7 +11,13 @@ namespace Luna.CommandLine {
 				return (null, null);
 			}
 
-			return ExecuteCommand(command, waitForExit);			
+			using var processSession = new SessionizedProcessBuilder()
+				.WithArgument(command)
+				.WithCurrentWorkingDirectory()
+				.WithNoWindow()
+				.ExecuteAsync().Result;
+
+			return ExecuteCommand(command, waitForExit);
 		}
 	}
 }

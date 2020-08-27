@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Luna.CommandLine.ProcessBase {
-	public class SessionizedProcessBuilder {
+	public class SessionizedProcessBuilder : IDisposable {
 		private const string UNIX_SHELL = "/bin/bash";
 		private const string WINDOWS_SHELL = "cmd.exe";
 
@@ -24,11 +24,11 @@ namespace Luna.CommandLine.ProcessBase {
 		private readonly SemaphoreSlim ProcessSemaphore = new SemaphoreSlim(1, 1);
 		private readonly List<(RedirectionSource Source, Action<string> RedirectionTarget)> Redirection = new List<(RedirectionSource Source, Action<string> RedirectionTarget)>();
 
-		private Process Process;
+		private Process? Process;
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
+		public SessionizedProcessBuilder() : this(Helpers.GetPlatform() == OSPlatform.Windows ? WINDOWS_SHELL : UNIX_SHELL) {	}
+
 		public SessionizedProcessBuilder(string fileName) {
-#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 			if (string.IsNullOrEmpty(fileName)) {
 				throw new ArgumentNullException(nameof(fileName));
 			}
@@ -162,7 +162,7 @@ namespace Luna.CommandLine.ProcessBase {
 			return new ProcessExecutionResult(Process.ExitCode, Process.StandardError.ReadToEnd(), Process.StandardOutput.ReadToEnd(), Process.ExitTime);
 		}
 
-		public async Task ExecuteAsync() {
+		public async Task<ProcessSession> ExecuteAsync() {
 			Process = new Process();
 			RegisterInternalEvents();
 			await ProcessSemaphore.WaitAsync().ConfigureAwait(false);
@@ -188,15 +188,7 @@ namespace Luna.CommandLine.ProcessBase {
 
 			Process.Start();
 			ProcessSemaphore.Release();
-		}
-
-		public void WriteLine(string data) {
-			if (Process == null) {
-				throw new InvalidOperationException();
-			}
-
-			Process.StandardInput.AutoFlush = true;
-			Process.StandardInput.WriteLine(data);
+			return new ProcessSession(this, Process);
 		}
 
 		public void WriteLineAsync(Action<StreamWriter> inStream) {
@@ -236,7 +228,7 @@ namespace Luna.CommandLine.ProcessBase {
 		}
 
 		private void RegisterInternalEvents() {
-			if(Process == null || Process.HasExited) {
+			if (Process == null || Process.HasExited) {
 				return;
 			}
 
@@ -290,11 +282,11 @@ namespace Luna.CommandLine.ProcessBase {
 				switch (logLevel) {
 					case ProcessLogLevel.Error:
 						Console.ForegroundColor = ConsoleColor.Red;
-						Console.WriteLine($"{Process.ProcessName} > {logLevel} > {msg}");
+						Console.WriteLine($"{Process?.ProcessName} > {logLevel} > {msg}");
 						Console.ResetColor();
 						break;
 					case ProcessLogLevel.Info:
-						Console.WriteLine($"{Process.ProcessName} > {logLevel} > {msg}");
+						Console.WriteLine($"{Process?.ProcessName} > {logLevel} > {msg}");
 						break;
 					case ProcessLogLevel.Input:
 						// this can be annoying as it appears when user just passed in an input...
@@ -303,7 +295,7 @@ namespace Luna.CommandLine.ProcessBase {
 				}
 			}
 
-			Logger.Trace($"{Process.ProcessName} > {logLevel} > {msg}");
+			Logger.Trace($"{Process?.ProcessName} > {logLevel} > {msg}");
 		}
 
 		protected enum ProcessLogLevel {
