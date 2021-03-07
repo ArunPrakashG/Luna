@@ -1,33 +1,95 @@
-using Luna.Extensions;
+using JsonCommandLine;
+using Luna.External.Updates;
+using Luna.Shell;
 using System;
-using System.IO;
-using System.Linq;
+using System.Collections.Generic;
 using System.Reflection;
-using System.Threading.Tasks;
 
-namespace RestartHelper {
+namespace Luna.External {
+	internal partial class Program {
+		private static string ExecutablePath;
+		private static readonly UpdateManager UpdateManager = new UpdateManager();
 
-	internal class Program {
+		private static void Main(string[] args) {
+			ParseStartupArguments();
+			
+		}
 
-		private static string? HomeDirectory => Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+		private static void ParseStartupArguments() {
+			Arguments args;
+			using (CommandLineParser parser = new CommandLineParser(Environment.CommandLine)) {
+				if (!parser.IsJsonType) {
+					return;
+				}
 
-		private static async Task Main(string[] args) {
-			Console.WriteLine("Started restart helper...");
-			Console.WriteLine("Assistant Directory: " + Directory.GetParent(HomeDirectory).Parent?.FullName + "/Assistant.Core/");
-
-			int delay = 100;
-
-			if (args != null && args.Any()) {
-				delay = Convert.ToInt32(args[0].Trim());
+				ExecutablePath = parser.ExecutablePath ?? Assembly.GetExecutingAssembly().Location;
+				args = parser.Parse() ?? new Arguments();
 			}
 
-			Console.WriteLine("Restarting in " + delay + " ms...");
-			await Task.Delay(delay).ConfigureAwait(false);
-			Console.WriteLine("Started Assistant...");
-			Console.WriteLine("cd /home/pi/Desktop/HomeAssistant/Assistant.Core && dotnet Assistant.Core.dll".ExecuteBash(false));
-			Console.WriteLine("Exiting restarter.");
-			await Task.Delay(1000).ConfigureAwait(false);
-			Environment.Exit(0);
+			if (!args.ArgumentsExist) {
+				return;
+			}
+
+			for (int i = 0; i < args.ArgumentCollection.Count; i++) {
+				CommandLineArgument? arg = args.ArgumentCollection[i];
+
+				switch (arg.BaseCommand) {
+					case "update":
+						HandleUpdateCommand(arg.Parameters);
+						break;
+					case "restart":
+						HandleRestartCommand(arg.Parameters);
+						break;
+					case "cleanup":
+						HandleCleaupCommand(arg.Parameters);
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		private static void HandleUpdateCommand(Dictionary<string, string> parameters) {
+			bool presistLogs = true;
+			string exePath = "";
+
+			foreach (var p in parameters) {
+				switch (p.Key) {					
+					case "exePath":
+						exePath = p.Value;
+						break;
+				}
+			}
+		}
+
+		private static void HandleRestartCommand(Dictionary<string, string> parameters) {
+			bool forwardArgs = false;
+			bool presistLogs = true;
+			string exePath = "";
+			Dictionary<string, string> forwardPairs = new Dictionary<string, string>();
+
+			foreach (var p in parameters) {
+				if (forwardArgs) {
+					forwardPairs.Add(p.Key, p.Value);
+					continue;
+				}
+
+				switch (p.Key) {
+					case "presistLogs":
+						presistLogs = bool.Parse(p.Value);
+						break;
+					case "forwardArgs":
+						forwardArgs = bool.Parse(p.Value);
+						break;
+					case "exePath":
+						exePath = p.Value;
+						break;
+				}
+			}
+		}
+
+		private static void HandleCleaupCommand(Dictionary<string, string> parameters) {
+
 		}
 	}
 }

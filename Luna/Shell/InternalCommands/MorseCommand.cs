@@ -1,7 +1,5 @@
-using Luna.Extensions.Shared.Shell;
 using Luna.Gpio;
 using Luna.Gpio.Controllers;
-using Luna.Morse;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,7 +32,7 @@ namespace Luna.Shell.InternalCommands {
 			}
 
 			if (parameter.Parameters.Length > MaxParameterCount) {
-				ShellOut.Error("Too many arguments.");
+				ShellIO.Error("Too many arguments.");
 				return;
 			}
 
@@ -54,49 +52,49 @@ namespace Luna.Shell.InternalCommands {
 						morse = morseCore.ConvertToMorseCode(parameter.Parameters[0]);
 
 						if (string.IsNullOrEmpty(morse) || !morseCore.IsValidMorse(morse)) {
-							ShellOut.Error("Failed to verify generated morse code.");
+							ShellIO.Error("Failed to verify generated morse code.");
 							return;
 						}
 
-						ShellOut.Info(">>> " + morse);
+						ShellIO.Info(">>> " + morse);
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]):
 						morse = morseCore.ConvertToMorseCode(parameter.Parameters[0]);
 
 						if (string.IsNullOrEmpty(morse) || !morseCore.IsValidMorse(morse)) {
-							ShellOut.Error("Failed to verify generated morse code.");
+							ShellIO.Error("Failed to verify generated morse code.");
 							return;
 						}
 
-						ShellOut.Info(">>> " + morse);
+						ShellIO.Info(">>> " + morse);
 						int relayNumber;
 
 						try {
 							if (!int.TryParse(parameter.Parameters[1], out relayNumber)) {
-								ShellOut.Error("Relay number argument is invalid.");
+								ShellIO.Error("Relay number argument is invalid.");
 								return;
 							}
 						}
 						catch (IndexOutOfRangeException) {
-							ShellOut.Error("The specified relay number is invalid is greater than all the available relay numbers.");
+							ShellIO.Error("The specified relay number is invalid is greater than all the available relay numbers.");
 							return;
 						}
 
 						if (!PinController.IsValidPin(Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNumber])) {
-							ShellOut.Error("The specified pin is invalid.");
+							ShellIO.Error("The specified pin is invalid.");
 							return;
 						}
 
 						await Program.CoreInstance.GetGpioCore().GetMorseTranslator().RelayMorseCycle(morse, Program.CoreInstance.GetGpioCore().GetAvailablePins().OutputPins[relayNumber]).ConfigureAwait(false);
-						ShellOut.Info("Completed!");
+						ShellIO.Info("Completed!");
 						return;
 					default:
-						ShellOut.Error("Command seems to be in incorrect syntax.");
+						ShellIO.Error("Command seems to be in incorrect syntax.");
 						return;
 				}
 			}
 			catch (Exception e) {
-				ShellOut.Exception(e);
+				ShellIO.Exception(e);
 				return;
 			}
 			finally {
@@ -111,15 +109,15 @@ namespace Luna.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[text_to_convert]");
+				ShellIO.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[text_to_convert]");
 				return;
 			}
 
-			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
-			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} -[text_to_convert] '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[text_to_convert] -[relay_number_to_morse_cycle] '");
-			ShellOut.Info($"----------------- ----------------------------- -----------------");
+			ShellIO.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellIO.Info($"|> {CommandDescription}");
+			ShellIO.Info($"Basic Syntax -> ' {CommandKey} -[text_to_convert] '");
+			ShellIO.Info($"Advanced -> ' {CommandKey} -[text_to_convert] -[relay_number_to_morse_cycle] '");
+			ShellIO.Info($"----------------- ----------------------------- -----------------");
 		}
 
 		public bool Parse(Parameter parameter) {

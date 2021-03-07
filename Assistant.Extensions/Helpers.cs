@@ -16,7 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Luna.Logging.Enums;
 
-namespace Luna.Extensions {
+namespace Luna.ExternalExtensions {
 	public static class Helpers
 	{
 		private static readonly ILogger Logger = new Logger(typeof(Helpers).Name);
@@ -79,23 +79,6 @@ namespace Luna.Extensions {
 		public static async Task WaitUntilCancellation(CancellationToken _token, int interval = 25) {
 			while (!_token.IsCancellationRequested) {
 				await Task.Delay(interval).ConfigureAwait(false);
-			}
-		}
-
-		public static void SetFileSeperator() {
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-				FileSeperator = "//";
-				Logger.Log("Windows os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
-			}
-
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-				FileSeperator = "\\";
-				Logger.Log("Linux os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
-			}
-
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-				FileSeperator = "//";
-				Logger.Log("OSX os detected. setting file separator as " + FileSeperator, LogLevels.Trace);
 			}
 		}
 
@@ -230,7 +213,6 @@ namespace Luna.Extensions {
 
 			proc.Start();
 			proc.WaitForExit();
-
 			return proc.StandardOutput.ReadToEnd();
 		}
 
@@ -313,7 +295,7 @@ namespace Luna.Extensions {
 				return;
 			}
 			
-			Logger.WithColor(FiggleFonts.Ogre.Render(text), ConsoleColor.Green);
+			Logger.WithColor(, ConsoleColor.Green);
 		}
 
 		public static string? GetEnvironmentVariable(string variable, EnvironmentVariableTarget target = EnvironmentVariableTarget.Machine) => Environment.GetEnvironmentVariable(variable, target);

@@ -1,5 +1,5 @@
-using Luna.Extensions;
-using Luna.Extensions.Interfaces;
+using Luna.ExternalExtensions;
+using Luna.ExternalExtensions.Interfaces;
 using Luna.Logging;
 using Luna.Logging.Interfaces;
 using System;

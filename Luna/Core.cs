@@ -1,143 +1,193 @@
 namespace Luna {
-	using Luna.Server;
-	using Luna.Shell;
-	using Luna.Update;
-	using Luna.Watchers;
-	using Luna.Watchers.Interfaces;
-	using Luna.Extensions;
+	using Figgle;
+	using FluentScheduler;
+	using JsonCommandLine;
+	using Luna.CommandLine;
 	using Luna.Gpio;
 	using Luna.Gpio.Drivers;
 	using Luna.Logging;
-	using Luna.Logging.Interfaces;
 	using Luna.Modules;
-	using Luna.Modules.Interfaces.EventInterfaces;
-	using Luna.Sound.Speech;
-	using FluentScheduler;
+	using Luna.Modules.Interfaces;
+	using Luna.Server;
+	using Luna.Shell;
+	using Luna.Watchers;
+	using Synergy.Extensions;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
+	using System.Reflection;
 	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Unosquare.RaspberryIO;
 	using static Luna.Gpio.Enums;
-	using static Luna.Logging.Enums;
-	using static Luna.Modules.ModuleInitializer;
 
 	public class Core {
-		private readonly ILogger Logger = new Logger(nameof(Core));
+		private readonly InternalLogger Logger;
 		private readonly CancellationTokenSource KeepAliveToken = new CancellationTokenSource();
-		private readonly IWatcher InternalFileWatcher;
-		private readonly IWatcher InternalModuleWatcher;
+		private readonly ConfigWatcher InternalConfigWatcher;
+		private readonly ModuleWatcher InternalModuleWatcher;
 		private readonly GpioCore Controller;
-		private readonly UpdateManager Updater;
-		private readonly CoreConfig Config;
-		private readonly ModuleInitializer ModuleLoader;
-		private readonly DateTime StartupTime;
+		private readonly ModuleLoader ModuleLoader;
 		private readonly RestCore RestServer;
+		private readonly PinsWrapper Pins;
 
-		internal readonly bool IsBaseInitiationCompleted;
 		internal readonly bool DisableFirstChanceLogWithDebug;
-		internal readonly bool InitiationCompleted;
+		internal readonly CoreConfig Config;
 
-		public bool IsNetworkAvailable { get; internal set; }
+		public readonly bool InitiationCompleted;
+		public readonly bool IsBaseInitiationCompleted;
+		public static bool IsNetworkAvailable => Helpers.IsNetworkAvailable();
+		internal static readonly Stopwatch RuntimeSpanCounter;
 
-		public string AssistantName {
-			get => Config.AssistantDisplayName ?? "Home Assistant";
-			internal set => Config.AssistantDisplayName = value ?? Config.AssistantDisplayName;
+		internal static bool IsMuted { get; private set; }
+		internal static bool NoUpdates { get; private set; }
+
+		public static bool IsUpdatesAllowed { get; private set; }
+
+		static Core() {
+			RuntimeSpanCounter = new Stopwatch();
+			JobManager.Initialize();
 		}
 
 		internal Core(string[] args) {
+			Console.Title = $"Initializing...";
+			Logger = InternalLogger.GetOrCreateLogger<Core>(this, nameof(Core));
 			OS.Init(true);
-			Console.Title = $"Home Assistant Initializing...";
-			StartupTime = DateTime.Now;
+			RuntimeSpanCounter.Restart();
 			File.WriteAllText("version.txt", Constants.Version?.ToString());
 
-			if (File.Exists(Constants.TraceLogPath)) {
-				File.Delete(Constants.TraceLogPath);
-			}
+			ParseStartupArguments();
 
-			JobManager.Initialize(new Registry());
+			if (File.Exists(Constants.TraceLogFile)) {
+				File.Delete(Constants.TraceLogFile);
+			}
 
 			Config = new CoreConfig(this);
-			Config.Load();
-			Config.ProgramLastStartup = StartupTime;
-
-			Helpers.SetFileSeperator();
-			IsNetworkAvailable = Helpers.IsNetworkAvailable();
-			Constants.LocalIP = Helpers.GetLocalIpAddress() ?? "-Invalid-";
-			Constants.ExternelIP = Helpers.GetExternalIp() ?? "-Invalid-";
+			Config.LoadAsync().Wait();
+			IsUpdatesAllowed = !NoUpdates && Config.AutoUpdates;
+			Config.LocalIP = Helpers.GetLocalIpAddress()?.ToString() ?? "-Invalid-";
+			Config.PublicIP = Helpers.GetPublicIP()?.ToString() ?? "-Invalid-";
 
 			if (!IsNetworkAvailable) {
-				Logger.Log("No Internet connection.", LogLevels.Warn);
-				Logger.Log($"Starting {AssistantName} in offline mode...");
+				Logger.Warn("No Internet connection.");
+				Logger.Info($"Starting offline mode...");
 			}
 
-			Controller = new GpioCore(new AvailablePins(
-					Config.OutputModePins,
-					Config.InputModePins,
+			Pins = new PinsWrapper(
+					Config.GpioConfiguration.OutputModePins,
+					Config.GpioConfiguration.InputModePins,
 					Constants.BcmGpioPins,
-					Config.RelayPins,
-					Config.IRSensorPins,
-					Config.SoundSensorPins
-					), true);
-			Updater = new UpdateManager(this);
-			ModuleLoader = new ModuleInitializer();
+					Config.GpioConfiguration.RelayPins,
+					Config.GpioConfiguration.InfraredSensorPins,
+					Config.GpioConfiguration.SoundSensorPins
+			);
+
+			Controller = new GpioCore(Pins, this, Config.GpioConfiguration.GpioSafeMode);
+			ModuleLoader = new ModuleLoader();
 			RestServer = new RestCore(Config.RestServerPort, Config.Debug);
 
 			JobManager.AddJob(() => SetConsoleTitle(), (s) => s.WithName("ConsoleUpdater").ToRunEvery(1).Seconds());
-			Helpers.ASCIIFromText(Config.AssistantDisplayName);
-			Logger.WithColor($"X---------------- Starting {AssistantName} v{Constants.Version} ----------------X", ConsoleColor.Blue);
+			Logger.CustomLog(FiggleFonts.Ogre.Render("LUNA"), ConsoleColor.Green);
+			Logger.CustomLog($"---------------- Starting Luna v{Constants.Version} ----------------", ConsoleColor.Blue);
 			IsBaseInitiationCompleted = true;
 			PostInitiation().Wait();
-
-			InternalFileWatcher = new GenericWatcher(this, "*.json", Constants.ConfigDirectory, false, null, new Dictionary<string, Action<string>>(3) {
-				{ "Assistant.json", OnCoreConfigChangeEvent },
-				{ "DiscordBot.json", OnDiscordConfigChangeEvent },
-				{ "MailConfig.json", OnMailConfigChangeEvent }
-			});
-
-			InternalModuleWatcher = new GenericWatcher(this, "*.dll", Constants.ModuleDirectory, false, null, new Dictionary<string, Action<string>>(1) {
-				{ "*", OnModuleDirectoryChangeEvent }
-			});
-
+			InternalConfigWatcher = new ConfigWatcher(this);
+			InternalModuleWatcher = new ModuleWatcher(this);
 			InitiationCompleted = true;
+		}
+
+		private void ParseStartupArguments() {
+			using (CommandLineParser parser = new CommandLineParser(Environment.CommandLine)) {
+				if (!parser.IsJsonType) {
+					return;
+				}
+
+				Arguments arguments = parser.Parse();
+
+				if (arguments.ArgumentsExist) {
+					foreach (CommandLineArgument arg in arguments.ArgumentCollection) {
+						if (string.IsNullOrEmpty(arg.BaseCommand)) {
+							continue;
+						}
+						CancellationTokenSource waitToken;
+						switch (arg.BaseCommand) {
+							case "silent_start":
+								IsMuted = true;
+								break;
+							case "no_update":
+								NoUpdates = true;
+								break;
+							case "cold_start":
+								CoreConfig.ColdStartup = true;
+								break;
+
+							// commands just for testing
+							case "start_delayed" when arg.ParameterCount >= 1:
+								foreach(var param in arg.Parameters) {
+									switch (param.Key) {
+										case "delay":
+											waitToken = new CancellationTokenSource(TimeSpan.FromMinutes(double.Parse(param.Value)));
+											Logger.Info($"Waiting for {param.Value} minute(s) before continuing with code execution...");
+											while (waitToken.IsCancellationRequested) {
+												Task.Delay(5).Wait();
+											}
+
+											Logger.Info("Continuing...");
+											break;
+										default:
+											continue;
+									}
+								}
+								break;
+							case "start_delayed":
+								waitToken = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+								Logger.Info($"Waiting for 1 minute before continuing with code execution...");
+
+								while (waitToken.IsCancellationRequested) {
+									Task.Delay(5).Wait();
+								}
+
+								Logger.Info("Continuing...");
+								break;
+
+							default:
+								break;
+						}
+					}
+				}
+			}
 		}
 
 		private async Task PostInitiation() {
 			async void moduleLoaderAction() => await ModuleLoader.LoadAsync(Config.EnableModules).ConfigureAwait(false);
 
-			async void checkAndUpdateAction() => await Updater.CheckAndUpdateAsync(true).ConfigureAwait(false);
-
 			async void gpioControllerInitAction() {
-				IGpioControllerDriver? _driver = default;
+				GpioControllerDriver? driver = default;
 
-				switch (Config.GpioDriverProvider) {
+				switch (Config.GpioConfiguration.GpioDriverProvider) {
 					case GpioDriver.RaspberryIODriver:
-						_driver = new RaspberryIODriver();
+						driver = new RaspberryIODriver(new InternalLogger(nameof(RaspberryIODriver)), Pins, Controller.GetPinConfig(), Config.GpioConfiguration.PinNumberingScheme);
 						break;
 					case GpioDriver.SystemDevicesDriver:
-						_driver = new SystemDeviceDriver();
+						driver = new SystemDeviceDriver(new InternalLogger(nameof(SystemDeviceDriver)), Pins, Controller.GetPinConfig(), Config.GpioConfiguration.PinNumberingScheme);
 						break;
 					case GpioDriver.WiringPiDriver:
-						_driver = new WiringPiDriver();
+						driver = new WiringPiDriver(new InternalLogger(nameof(WiringPiDriver)), Pins, Controller.GetPinConfig(), Config.GpioConfiguration.PinNumberingScheme);
 						break;
 				}
 
-				await Controller.InitController(_driver, OS.IsUnix, Config.PinNumberingScheme).ConfigureAwait(false);
+				await Controller.InitController(driver, Config.GpioConfiguration.PinNumberingScheme).ConfigureAwait(false);
 			}
 
 			async void restServerInitAction() => await RestServer.InitServerAsync().ConfigureAwait(false);
 
-			static async void endStartupAction() {
-				ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantStartup, default);
-				await TTS.AssistantVoice(TTS.ESPEECH_CONTEXT.AssistantStartup).ConfigureAwait(false);
+			void endStartupAction() {
+				ModuleLoader.ExecuteActionOnType<IEvent>((e) => e.OnStarted());
+				ModuleLoader.ExecuteActionOnType<IAsyncEvent>(async (e) => await e.OnStarted().ConfigureAwait(false));
 			}
 
 			Parallel.Invoke(new ParallelOptions() { MaxDegreeOfParallelism = 10 },
 				moduleLoaderAction,
-				checkAndUpdateAction,
 				gpioControllerInitAction,
 				restServerInitAction,
 				endStartupAction
@@ -147,109 +197,62 @@ namespace Luna {
 			await Interpreter.InitInterpreterAsync().ConfigureAwait(false);
 		}
 
-		internal void OnNetworkDisconnected() {
-			IsNetworkAvailable = false;
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkDisconnected, default);
-			Constants.ExternelIP = "Internet connection lost.";
-		}
-
-		internal void OnNetworkReconnected() {
-			IsNetworkAvailable = true;
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.NetworkReconnected, default);
-			Constants.ExternelIP = Helpers.GetExternalIp();
-		}
-
 		internal void OnExit() {
-			Logger.Log("Shutting down...");
-			Config.ProgramLastShutdown = DateTime.Now;
+			Logger.Info("Shutting down...");
 
 			Parallel.Invoke(
 				new ParallelOptions() {
 					MaxDegreeOfParallelism = 10
 				},
+
 				async () => await RestServer.ShutdownServer().ConfigureAwait(false),
-				() => ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.AssistantShutdown, default),
+				() => ModuleLoader.ExecuteActionOnType<IEvent>((e) => e.OnShutdownRequested()),
+				() => ModuleLoader.ExecuteActionOnType<IAsyncEvent>(async (e) => await e.OnShutdownRequested().ConfigureAwait(false)),
 				() => Interpreter.ExitShell(),
 				() => RestServer.Dispose(),
-				() => Controller?.Shutdown(),
+				() => Controller.Dispose(),
 				() => JobManager.RemoveAllJobs(),
 				() => JobManager.Stop(),
-				() => InternalFileWatcher.StopWatcher(),
+				() => InternalConfigWatcher.StopWatcher(),
 				() => InternalModuleWatcher.StopWatcher(),
 				() => ModuleLoader?.OnCoreShutdown(),
-				() => Config.Save()
+				async () => await Config.SaveAsync().ConfigureAwait(false)
 			);
 
-			Logger.Log("Finished exit tasks.", LogLevels.Trace);
+			Logger.Trace("Finished exit tasks.");
 		}
 
-		internal void Exit(int exitCode = 0) {
+		internal void ExitEnvironment(int exitCode = 0) {
 			if (exitCode != 0) {
-				Logger.Log("Exiting with nonzero error code...", LogLevels.Error);
+				Logger.Warn("Exiting with nonzero error code...");
 			}
 
 			if (exitCode == 0) {
 				OnExit();
 			}
 
-			Logger.Log("Bye, have a good day sir!");
-			Logging.NLog.LoggerOnShutdown();
+			InternalLogManager.LoggerOnShutdown();
 			KeepAliveToken.Cancel();
 			Environment.Exit(exitCode);
 		}
 
 		internal async Task Restart(int delay = 10) {
+			CommandLineArgument restartArg = new CommandLineArgument("restart");
+			restartArg.TryAddParameter("exePath", Assembly.GetExecutingAssembly().Location);
+
+			string args = restartArg.BuildAsArgument();
+
+			using(LunaExternalProcessSession exProcess = new LunaExternalProcessSession(OSPlatform.Linux)) {
+				var result = exProcess.Run($"dotnet Luna.External.dll {args}", false);
+			}
+
 			Helpers.ScheduleTask(() => "cd /home/pi/Desktop/HomeAssistant/Helpers/Restarter && dotnet RestartHelper.dll".ExecuteBash(false), TimeSpan.FromSeconds(delay));
 			await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(false);
-			Exit(0);
-		}
-
-		internal async Task SystemShutdown() {
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.SystemShutdown, default);
-			if (GpioCore.IsAllowedToExecute) {
-				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
-				Logger.Log("Shutting down pi...", LogLevels.Warn);
-				OnExit();
-				await Pi.ShutdownAsync().ConfigureAwait(false);
-				return;
-			}
-
-			if (Helpers.GetPlatform() == OSPlatform.Windows) {
-				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
-				Logger.Log("Shutting down system...", LogLevels.Warn);
-				OnExit();
-				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/s /t 0") {
-					CreateNoWindow = true,
-					UseShellExecute = false
-				};
-				Process.Start(psi);
-			}
-		}
-
-		internal async Task SystemRestart() {
-			ExecuteAsyncEvent<IEvent>(MODULE_EXECUTION_CONTEXT.SystemRestart, default);
-			if (GpioCore.IsAllowedToExecute) {
-				Logger.Log($"Assistant is running on raspberry pi.", LogLevels.Trace);
-				Logger.Log("Restarting pi...", LogLevels.Warn);
-				OnExit();
-				await Pi.RestartAsync().ConfigureAwait(false);
-				return;
-			}
-
-			if (Helpers.GetPlatform() == OSPlatform.Windows) {
-				Logger.Log($"Assistant is running on a windows system.", LogLevels.Trace);
-				Logger.Log("Restarting system...", LogLevels.Warn);
-				OnExit();
-				ProcessStartInfo psi = new ProcessStartInfo("shutdown", "/r /t 0") {
-					CreateNoWindow = true,
-					UseShellExecute = false
-				};
-				Process.Start(psi);
-			}
+			ExitEnvironment(0);
 		}
 
 		internal async Task KeepAlive() {
-			Logger.Log($"Press {Constants.SHELL_KEY} for shell.", LogLevels.Green);
+			Logger.CustomLog($"Press {Constants.ShellKeyChar} for shell.", ConsoleColor.Green);
 			while (!KeepAliveToken.Token.IsCancellationRequested) {
 				try {
 					if (Interpreter.PauseShell) {
@@ -260,7 +263,7 @@ namespace Luna {
 						ConsoleKeyInfo pressedKey = Console.ReadKey(true);
 
 						switch (pressedKey.Key) {
-							case Constants.SHELL_KEY:
+							case Constants.ShellKey:
 								Interpreter.Resume();
 								continue;
 
@@ -277,13 +280,13 @@ namespace Luna {
 
 		private void OnCoreConfigChangeEvent(string? fileName) {
 			if (!File.Exists(Constants.CoreConfigPath)) {
-				Logger.Log("The core config file has been deleted.", LogLevels.Warn);
-				Logger.Log("Fore quitting assistant.", LogLevels.Warn);
-				Exit(0);
+				Logger.Warn("The core config file has been deleted.");
+				Logger.Warn("Fore quitting assistant.");
+				ExitEnvironment(0);
 			}
 
-			Logger.Log("Updating core config as the local config file as been updated...");
-			Helpers.InBackgroundThread(Config.Load);
+			Logger.Warn("Updating core config as the local config file as been updated...");
+			Helpers.InBackgroundThread(async () => await Config.LoadAsync().ConfigureAwait(false));
 		}
 
 		private void OnDiscordConfigChangeEvent(string? fileName) {
@@ -299,7 +302,7 @@ namespace Luna {
 
 			string fileName = Path.GetFileName(absoluteFileName);
 			string filePath = Path.GetFullPath(absoluteFileName);
-			Logger.Log($"An event has been raised on module folder for file > {fileName}", LogLevels.Trace);
+			Logger.Trace($"An event has been raised on module folder for file > {fileName}");
 
 			if (!File.Exists(filePath)) {
 				ModuleLoader.UnloadFromPath(filePath);
@@ -310,21 +313,18 @@ namespace Luna {
 		}
 
 		private void SetConsoleTitle() {
-			string text = $"{AssistantName} v{Constants.Version} | https://{Constants.LocalIP}:{Config.RestServerPort + 1}/ | {DateTime.Now.ToLongTimeString()} | ";
-			text += GpioCore.IsAllowedToExecute ? $"Uptime : {Math.Round(Pi.Info.UptimeTimeSpan.TotalMinutes, 3)} minutes" : null;
+			string text = $"Luna v{Constants.Version} | https://{Config.LocalIP}:{Config.RestServerPort}/ | {DateTime.Now.ToLongTimeString()} | Uptime : {Math.Round(RuntimeSpanCounter.Elapsed.TotalMinutes, 3)} minutes";			
 			Helpers.SetConsoleTitle(text);
 		}
 
-		public GpioCore GetGpioCore() => Controller;
+		internal GpioCore GetGpioCore() => Controller;
 
-		public UpdateManager GetUpdater() => Updater;
+		internal CoreConfig GetCoreConfig() => Config;
 
-		public CoreConfig GetCoreConfig() => Config;
+		internal ModuleLoader GetModuleInitializer() => ModuleLoader;
 
-		public ModuleInitializer GetModuleInitializer() => ModuleLoader;
+		internal WatcherBase GetFileWatcher() => InternalConfigWatcher;
 
-		internal IWatcher GetFileWatcher() => InternalFileWatcher;
-
-		internal IWatcher GetModuleWatcher() => InternalModuleWatcher;
+		internal WatcherBase GetModuleWatcher() => InternalModuleWatcher;
 	}
 }

@@ -1,51 +1,64 @@
-using Luna.Watchers.Interfaces;
-using Luna.Extensions;
 using Luna.Logging;
-using Luna.Logging.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using static Luna.Gpio.Enums;
-using static Luna.Logging.Enums;
 
 namespace Luna {
-	[Serializable]
+	public class ApiKeys {
+		[JsonProperty]
+		public string? OpenWeatherApiKey { get; set; }
+
+		[JsonProperty]
+		public string? PushBulletApiKey { get; set; }
+	}
+
+	public class GpioConfiguration {
+		[JsonProperty]
+		public bool GpioSafeMode { get; set; }
+
+		[JsonProperty]
+		public int[] OutputModePins = new int[] { 2, 3, 4, 17, 27, 22, 10, 9 };
+
+		[JsonProperty]
+		public int[] InputModePins = new int[] { 26, 20, 16 };
+
+		[JsonProperty]
+		public int[] InfraredSensorPins = new int[] { 26, 20 };
+
+		[JsonProperty]
+		public int[] SoundSensorPins = new int[] { 16 };
+
+		[JsonProperty]
+		public int[] RelayPins = new int[] { 2, 3, 4, 17, 27, 22, 10, 9 };
+
+		[JsonProperty]
+		public GpioDriver GpioDriverProvider { get; set; } = GpioDriver.RaspberryIODriver;
+
+		[JsonProperty]
+		public NumberingScheme PinNumberingScheme { get; set; } = NumberingScheme.Logical;
+	}
+
 	public class CoreConfig {
 		[JsonProperty]
-		public bool AutoUpdates { get; set; } = true;
+		public string PublicIP { get; set; }
 
 		[JsonProperty]
-		public bool EnableModules { get; set; } = true;
+		public string LocalIP { get; set; }
 
 		[JsonProperty]
-		public bool GpioSafeMode { get; set; } = false;
+		public bool AutoUpdates { get; set; }
 
 		[JsonProperty]
-		public int[] OutputModePins = new int[]
-		{
-			2, 3, 4, 17, 27, 22, 10, 9
-		};
+		public bool EnableModules { get; set; }
 
 		[JsonProperty]
-		public int[] InputModePins = new int[] {
-			26,20,16
-		};
+		public bool EnableShell { get; set; }
 
 		[JsonProperty]
-		public int[] IRSensorPins = new int[] {
-			26,20
-		};
-
-		[JsonProperty]
-		public int[] SoundSensorPins = new int[] {
-			16
-		};
-
-		[JsonProperty]
-		public int[] RelayPins = new int[] {
-			2, 3, 4, 17, 27, 22, 10, 9
-		};
+		public GpioConfiguration GpioConfiguration { get; set; } = new GpioConfiguration();
 
 		[JsonProperty]
 		public bool Debug { get; set; } = false;
@@ -57,45 +70,35 @@ namespace Luna {
 		public string? StatisticsServerIP { get; set; }
 
 		[JsonProperty]
-		public string? OpenWeatherApiKey { get; set; }
+		public ApiKeys ApiKeys { get; set; } = new ApiKeys();
 
-		[JsonProperty]
-		public string? PushBulletApiKey { get; set; }
-
-		[JsonProperty]
-		public string AssistantDisplayName { get; set; } = "Home Assistant";
-
-		[JsonProperty]
-		public GpioDriver GpioDriverProvider { get; set; } = GpioDriver.RaspberryIODriver;
-
-		[JsonProperty]
-		public NumberingScheme PinNumberingScheme { get; set; } = NumberingScheme.Logical;
-
-		[JsonProperty]
-		public DateTime ProgramLastStartup { get; set; }
-
-		[JsonProperty]
-		public DateTime ProgramLastShutdown { get; set; }
-
-		private readonly ILogger Logger = new Logger(typeof(CoreConfig).Name);
+		private readonly InternalLogger Logger = new InternalLogger(nameof(CoreConfig));
 		private readonly SemaphoreSlim ConfigSemaphore = new SemaphoreSlim(1, 1);
 		private readonly Core Core;
+		internal static bool ColdStartup { get; set; }
 
 		[JsonConstructor]
-		internal CoreConfig() { }
+		internal CoreConfig() {
+			PublicIP = "Unassigned";
+			LocalIP = "Unassigned";
+			Core = default;
+		}
 
-		internal CoreConfig(Core _core) => Core = _core ?? throw new ArgumentNullException(nameof(_core));
+		internal CoreConfig(Core _core) {
+			PublicIP = "Unassigned";
+			LocalIP = "Unassigned";
+			Core = _core ?? throw new ArgumentNullException(nameof(_core));
+		}
 
-		internal void Save() {
+		internal async Task SaveAsync() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
-			ConfigSemaphore.Wait();
+			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 			Core.GetFileWatcher().Pause();
 
-			Logger.Log("Saving core config...", LogLevels.Trace);
+			Logger.Trace("Saving core config...");
 
 			try {
 				string filePath = Constants.CoreConfigPath;
@@ -115,7 +118,7 @@ namespace Luna {
 				}
 			}
 			catch (Exception e) {
-				Logger.Log(e);
+				Logger.Exception(e);
 				return;
 			}
 			finally {
@@ -123,23 +126,24 @@ namespace Luna {
 				Core.GetFileWatcher().Resume();
 			}
 
-			Logger.Log("Saved core config!", LogLevels.Trace);
+			Logger.Trace("Saved core config!");
 		}
 
-		internal void Load() {
+		internal async Task LoadAsync() {
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Logger.Log("Config folder doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
+
+			ColdStartup = ColdStartup ? !GenerateDefaultConfig() : ColdStartup;			
 
 			if (!File.Exists(Constants.CoreConfigPath) && !GenerateDefaultConfig()) {
 				return;
 			}
 
-			ConfigSemaphore.Wait();
+			await ConfigSemaphore.WaitAsync().ConfigureAwait(false);
 
 			try {
-				Logger.Log("Loading core config...", LogLevels.Trace);
+				Logger.Trace("Loading core config...");
 				using (StreamReader reader = new StreamReader(new FileStream(Constants.CoreConfigPath, FileMode.Open, FileAccess.Read))) {
 					string jsonContent = reader.ReadToEnd();
 
@@ -148,28 +152,18 @@ namespace Luna {
 					}
 
 					CoreConfig config = JsonConvert.DeserializeObject<CoreConfig>(jsonContent);
-
-					this.AssistantDisplayName = config.AssistantDisplayName;
 					this.AutoUpdates = config.AutoUpdates;
 					this.Debug = config.Debug;
 					this.EnableModules = config.EnableModules;
-					this.GpioSafeMode = config.GpioSafeMode;
-					this.InputModePins = config.InputModePins;
-					this.IRSensorPins = config.IRSensorPins;
-					this.OpenWeatherApiKey = config.OpenWeatherApiKey;
-					this.OutputModePins = config.OutputModePins;
-					this.ProgramLastShutdown = config.ProgramLastShutdown;
-					this.ProgramLastStartup = config.ProgramLastStartup;
-					this.PushBulletApiKey = config.PushBulletApiKey;
-					this.RelayPins = config.RelayPins;
-					this.SoundSensorPins = config.SoundSensorPins;
+					this.GpioConfiguration = config.GpioConfiguration;
+					this.ApiKeys = config.ApiKeys;
 					this.StatisticsServerIP = config.StatisticsServerIP;
 				}
 
-				Logger.Log("Core configuration loaded successfully!", LogLevels.Trace);
+				Logger.Trace("Core configuration loaded successfully!");
 			}
 			catch (Exception e) {
-				Logger.Log(e);
+				Logger.Exception(e);
 				return;
 			}
 			finally {
@@ -178,9 +172,8 @@ namespace Luna {
 		}
 
 		internal bool GenerateDefaultConfig() {
-			Logger.Log("Generating default Config...");
+			Logger.Info("Generating default config...");
 			if (!Directory.Exists(Constants.ConfigDirectory)) {
-				Logger.Log("Config directory doesn't exist, creating one...");
 				Directory.CreateDirectory(Constants.ConfigDirectory);
 			}
 
@@ -188,18 +181,26 @@ namespace Luna {
 				return true;
 			}
 
-			Save();
+			SaveAsync().RunSynchronously();
 			return true;
-		}		
-
-		public override string? ToString() => base.ToString();
-
-		public override int GetHashCode() {
-			return base.GetHashCode();
 		}
 
-		public static bool operator ==(CoreConfig left, CoreConfig right) => Equals(left, right);
+		public override string? ToString() => JsonConvert.SerializeObject(this);
 
-		public static bool operator !=(CoreConfig left, CoreConfig right) => !Equals(left, right);
+		public override int GetHashCode() => base.GetHashCode();
+
+		public override bool Equals(object? obj) {
+			if (obj == null) {
+				return false;
+			}
+
+			CoreConfig? config = obj as CoreConfig;
+
+			if (config == null) {
+				return false;
+			}
+
+			return config.GetHashCode() == this.GetHashCode();
+		}
 	}
 }

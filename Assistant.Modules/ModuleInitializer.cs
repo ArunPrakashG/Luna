@@ -1,7 +1,5 @@
-using Luna.Extensions;
-using Luna.Extensions.Interfaces;
-using Luna.Logging;
-using Luna.Logging.Interfaces;
+using Luna.ExternalExtensions;
+using Luna.ExternalExtensions.Interfaces;
 using Luna.Modules.Interfaces;
 using Luna.Modules.Interfaces.EventInterfaces;
 using System;
@@ -18,7 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Luna.Modules {
-	public class ModuleInitializer : IExternal{
+	public class ModuleInitializer : IExternal {
 		private readonly ILogger Logger = new Logger(nameof(ModuleInitializer));
 		private HashSet<Assembly>? AssemblyCollection = new HashSet<Assembly>();
 		private static readonly SemaphoreSlim ModuleLoaderSemaphore = new SemaphoreSlim(1, 1);
@@ -33,7 +31,7 @@ namespace Luna.Modules {
 			if (sender == null || e == null || e.NewItems == null || e.NewItems.Count <= 0) {
 				return;
 			}
-			
+
 			foreach (IModuleBase module in e.NewItems) {
 				if (module == null) {
 					continue;
@@ -92,7 +90,7 @@ namespace Luna.Modules {
 			return true;
 		}
 
-		private async Task<bool> InitServiceOfTypeAsync<T>(T module) where T: IModuleBase {
+		private async Task<bool> InitServiceOfTypeAsync<T>(T module) where T : IModuleBase {
 			if (module == null) {
 				return false;
 			}

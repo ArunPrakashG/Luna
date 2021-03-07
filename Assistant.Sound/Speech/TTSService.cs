@@ -1,4 +1,4 @@
-using Luna.Extensions;
+using Luna.ExternalExtensions;
 using Luna.Logging;
 using Luna.Logging.Interfaces;
 using RestSharp;

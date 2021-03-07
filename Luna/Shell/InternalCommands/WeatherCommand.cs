@@ -1,7 +1,6 @@
-using Luna.Extensions;
-using Luna.Extensions.Shared.Shell;
-using Luna.Sound.Speech;
-using Luna.Weather;
+using exSharp;
+using OpenWeatherApiSharp;
+using Synergy.Extensions;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,7 +33,7 @@ namespace Luna.Shell.InternalCommands {
 			}
 
 			if (parameter.Parameters.Length > MaxParameterCount) {
-				ShellOut.Error("Too many arguments.");
+				ShellIO.Error("Too many arguments.");
 				return;
 			}
 
@@ -48,120 +47,122 @@ namespace Luna.Shell.InternalCommands {
 				}
 
 				string? apiKey;
-				if (string.IsNullOrEmpty(Program.CoreInstance.GetCoreConfig().OpenWeatherApiKey)) {
-					ShellOut.Error("Weather API key isn't set.");
+				if (string.IsNullOrEmpty(Program.CoreInstance.GetCoreConfig().ApiKeys.OpenWeatherApiKey)) {
+					ShellIO.Error("Weather API key isn't set.");
 
-					apiKey = ShellOut.GetString("Open Weather Api Key");
+					apiKey = ShellIO.GetString("Open Weather Api Key");
 
 					if (string.IsNullOrEmpty(apiKey)) {
-						ShellOut.Error("Api key is invalid or not set properly.");
+						ShellIO.Error("Api key is invalid or not set properly.");
 						return;
 					}
 				}
 
-				apiKey = Program.CoreInstance.GetCoreConfig().OpenWeatherApiKey;
+				apiKey = Program.CoreInstance.GetCoreConfig().ApiKeys.OpenWeatherApiKey;
 				int pinCode;
-				WeatherResponse? weather;
+				OpenWeatherApiSharp.WeatherResponse? weather;
 
 				switch (parameter.ParameterCount) {
 					case 0:
-						ShellOut.Error("Pin code is invalid or not set.");
+						ShellIO.Error("Pin code is invalid or not set.");
 						return;
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
-							ShellOut.Error("Failed to parse pin code. Entered pin code is invalid.");
+							ShellIO.Error("Failed to parse pin code. Entered pin code is invalid.");
 							return;
 						}
 
-						using(WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
-							weather = await client.GetAsync().ConfigureAwait(false);
+						using (OpenWeatherMapClient client = new OpenWeatherMapClient(apiKey)) {
+							weather = await client.GetWeatherAsync(pinCode, "in").ConfigureAwait(false);
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
-							ShellOut.Error("Weather request failed.");
+							ShellIO.Error("Weather request failed.");
 							return;
 						}
 
-						ShellOut.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
-						ShellOut.Info($"Wind Speed: {weather.Wind.Speed}");
-						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
-						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
-						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
+						ShellIO.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
+						ShellIO.Info($"Wind Speed: {weather.Wind.Speed}");
+						ShellIO.Info($"Humidity: {weather.Data.Humidity}");
+						ShellIO.Info($"Pressure: {weather.Data.Pressure}");
+						ShellIO.Info($"Sea Level: {weather.Data.SeaLevel}");
+						ShellIO.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
-							ShellOut.Error("Pin code is invalid.");
+							ShellIO.Error("Pin code is invalid.");
 							return;
 						}
 
 						if (parameter.Parameters[1].Length > 3) {
-							ShellOut.Error("Country code is invalid.");
+							ShellIO.Error("Country code is invalid.");
 							return;
 						}
 
-						using (WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
-							weather = await client.GetAsync().ConfigureAwait(false);
+						using (OpenWeatherMapClient client = new OpenWeatherMapClient(apiKey)) {
+							weather = await client.GetWeatherAsync(pinCode, "in").ConfigureAwait(false);
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
-							ShellOut.Error("Weather request failed.");
+							ShellIO.Error("Weather request failed.");
 							return;
 						}
 
-						ShellOut.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
-						ShellOut.Info($"Wind Speed: {weather.Wind.Speed}");
-						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
-						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
-						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
+						ShellIO.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
+						ShellIO.Info($"Wind Speed: {weather.Wind.Speed}");
+						ShellIO.Info($"Humidity: {weather.Data.Humidity}");
+						ShellIO.Info($"Pressure: {weather.Data.Pressure}");
+						ShellIO.Info($"Sea Level: {weather.Data.SeaLevel}");
+						ShellIO.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					case 3 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]) && !string.IsNullOrEmpty(parameter.Parameters[2]):
 						if (!int.TryParse(parameter.Parameters[0], out pinCode)) {
-							ShellOut.Error("Pin code is invalid.");
+							ShellIO.Error("Pin code is invalid.");
 							return;
 						}
 
 						if (parameter.Parameters[1].Length > 3) {
-							ShellOut.Error("Country code is invalid.");
+							ShellIO.Error("Country code is invalid.");
 							return;
 						}
 
-						if (!parameter.Parameters[2].AsBool(out bool? tts)) {
-							ShellOut.Error("'TTS' argument is invalid.");
-							return;
-						}
+						bool tts = parameter.Parameters[2].AsBool();
 
-						using (WeatherClient client = new WeatherClient(apiKey, pinCode, "in")) {
-							weather = await client.GetAsync().ConfigureAwait(false);
+						using (OpenWeatherMapClient client = new OpenWeatherMapClient(apiKey)) {
+							weather = await client.GetWeatherAsync(pinCode, "in").ConfigureAwait(false);
 						}
 
 						if (weather == null || weather.Location == null || weather.Wind == null || weather.Data == null) {
-							ShellOut.Error("Weather request failed.");
+							ShellIO.Error("Weather request failed.");
 							return;
 						}
 
-						if (tts != null && tts.HasValue && tts.Value) {
-							Helpers.InBackground(async () => await TTS.SpeakText($"Weather Data for {weather.LocationName}. " +
-								$"Wind Speed is {weather.Wind.Speed}. " +
-								$"Humidity level is {weather.Data.Humidity}. Pressure level {weather.Data.Pressure}. " +
-								$"Sea Level is {weather.Data.SeaLevel}. Temperature is {weather.Data.Temperature}.", true));
+						if (tts) {
+							Helpers.InBackground(() => {
+								using (TTS tts = new TTS(false, false)) {
+									tts.Speak($"Weather Data for {weather.LocationName}. " +
+											$"Wind Speed is {weather.Wind.Speed}. " +
+											$"Humidity level is {weather.Data.Humidity}. Pressure level {weather.Data.Pressure}. " +
+											$"Sea Level is {weather.Data.SeaLevel}. Temperature is {weather.Data.Temperature}."
+									);
+								}
+							});
 						}
 
-						ShellOut.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
-						ShellOut.Info($"Wind Speed: {weather.Wind.Speed}");
-						ShellOut.Info($"Humidity: {weather.Data.Humidity}");
-						ShellOut.Info($"Pressure: {weather.Data.Pressure}");
-						ShellOut.Info($"Sea Level: {weather.Data.SeaLevel}");
-						ShellOut.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
+						ShellIO.Info($"---------- Weather Data | {weather.LocationName} | {weather.Location.Latitude}:{weather.Location.Longitude} ----------");
+						ShellIO.Info($"Wind Speed: {weather.Wind.Speed}");
+						ShellIO.Info($"Humidity: {weather.Data.Humidity}");
+						ShellIO.Info($"Pressure: {weather.Data.Pressure}");
+						ShellIO.Info($"Sea Level: {weather.Data.SeaLevel}");
+						ShellIO.Info($"Temperature: {KelvinToCelsius(weather.Data.Temperature)} C");
 						return;
 					default:
-						ShellOut.Error("Command seems to be in incorrect syntax.");
+						ShellIO.Error("Command seems to be in incorrect syntax.");
 						return;
 				}
 			}
 			catch (Exception e) {
-				ShellOut.Exception(e);
+				ShellIO.Exception(e);
 				return;
 			}
 			finally {
@@ -180,16 +181,16 @@ namespace Luna.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_code] -[country_code]");
+				ShellIO.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[pin_code] -[country_code]");
 				return;
 			}
 
-			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
-			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} -[pin_code] '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[pin_code] -[country_code] '");
-			ShellOut.Info($"Advanced with TTS -> ' {CommandKey} -[pin_code] -[country_code] -[tts (true/false)] '");
-			ShellOut.Info($"----------------- ----------------------------- -----------------");
+			ShellIO.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellIO.Info($"|> {CommandDescription}");
+			ShellIO.Info($"Basic Syntax -> ' {CommandKey} -[pin_code] '");
+			ShellIO.Info($"Advanced -> ' {CommandKey} -[pin_code] -[country_code] '");
+			ShellIO.Info($"Advanced with TTS -> ' {CommandKey} -[pin_code] -[country_code] -[tts (true/false)] '");
+			ShellIO.Info($"----------------- ----------------------------- -----------------");
 		}
 
 		public bool Parse(Parameter parameter) {

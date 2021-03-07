@@ -1,5 +1,4 @@
-using Luna.Extensions;
-using Luna.Extensions.Shared.Shell;
+using Synergy.Extensions;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,7 +32,7 @@ namespace Luna.Shell.InternalCommands {
 			}
 
 			if (parameter.Parameters.Length > MaxParameterCount) {
-				ShellOut.Error("Too many arguments.");
+				ShellIO.Error("Too many arguments.");
 				return;
 			}
 
@@ -46,42 +45,42 @@ namespace Luna.Shell.InternalCommands {
 					}
 				}
 
-				int exitCode = 0;				
-				switch (parameter.ParameterCount) {					
+				int exitCode = 0;
+				switch (parameter.ParameterCount) {
 					case 0:
-						ShellOut.Info("Exiting assistant in 5 seconds...");
-						Helpers.ScheduleTask(() => Program.CoreInstance.Exit(0), TimeSpan.FromSeconds(5));
+						ShellIO.Info("Exiting assistant in 5 seconds...");
+						Helpers.ScheduleTask(() => Program.CoreInstance.ExitEnvironment(0), TimeSpan.FromSeconds(5));
 						return;
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
 						if (!int.TryParse(parameter.Parameters[0], out exitCode)) {
-							ShellOut.Error("Couldn't parse exit code argument.");
+							ShellIO.Error("Couldn't parse exit code argument.");
 							return;
 						}
 
-						ShellOut.Info($"Exiting assistant with '{exitCode}' exit code in 5 seconds...");
-						Helpers.ScheduleTask(() => Program.CoreInstance.Exit(exitCode), TimeSpan.FromSeconds(5));
+						ShellIO.Info($"Exiting assistant with '{exitCode}' exit code in 5 seconds...");
+						Helpers.ScheduleTask(() => Program.CoreInstance.ExitEnvironment(exitCode), TimeSpan.FromSeconds(5));
 						return;
 					case 2 when !string.IsNullOrEmpty(parameter.Parameters[0]) && !string.IsNullOrEmpty(parameter.Parameters[1]):
 						if (!int.TryParse(parameter.Parameters[0], out exitCode)) {
-							ShellOut.Error("Couldn't parse exit code argument.");
+							ShellIO.Error("Couldn't parse exit code argument.");
 							return;
 						}
 
 						if (!int.TryParse(parameter.Parameters[1], out int delay)) {
-							ShellOut.Error("Couldn't parse delay argument.");
+							ShellIO.Error("Couldn't parse delay argument.");
 							return;
 						}
 
-						ShellOut.Info($"Exiting assistant with '{exitCode}' exit code in '{delay}' seconds...");
-						Helpers.ScheduleTask(() => Program.CoreInstance.Exit(exitCode), TimeSpan.FromSeconds(delay));
+						ShellIO.Info($"Exiting assistant with '{exitCode}' exit code in '{delay}' seconds...");
+						Helpers.ScheduleTask(() => Program.CoreInstance.ExitEnvironment(exitCode), TimeSpan.FromSeconds(delay));
 						return;
 					default:
-						ShellOut.Error("Command seems to be in incorrect syntax.");
+						ShellIO.Error("Command seems to be in incorrect syntax.");
 						return;
 				}
 			}
 			catch (Exception e) {
-				ShellOut.Exception(e);
+				ShellIO.Exception(e);
 				return;
 			}
 			finally {
@@ -96,16 +95,16 @@ namespace Luna.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[exit_code]");
+				ShellIO.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey} -[exit_code]");
 				return;
 			}
 
-			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
-			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[exit_code] '");
-			ShellOut.Info($"Advanced With Delay -> ' {CommandKey} -[exit_code] -[delay_in_seconds] '");
-			ShellOut.Info($"----------------- ----------------------------- -----------------");
+			ShellIO.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellIO.Info($"|> {CommandDescription}");
+			ShellIO.Info($"Basic Syntax -> ' {CommandKey} '");
+			ShellIO.Info($"Advanced -> ' {CommandKey} -[exit_code] '");
+			ShellIO.Info($"Advanced With Delay -> ' {CommandKey} -[exit_code] -[delay_in_seconds] '");
+			ShellIO.Info($"----------------- ----------------------------- -----------------");
 		}
 
 		public bool Parse(Parameter parameter) {

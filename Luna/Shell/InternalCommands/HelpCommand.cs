@@ -1,4 +1,3 @@
-using Luna.Extensions.Shared.Shell;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -34,7 +33,7 @@ namespace Luna.Shell.InternalCommands {
 			}
 
 			if (parameter.Parameters.Length > MaxParameterCount) {
-				ShellOut.Error("Too many arguments.");
+				ShellIO.Error("Too many arguments.");
 				return;
 			}
 
@@ -63,19 +62,19 @@ namespace Luna.Shell.InternalCommands {
 					case 1 when !string.IsNullOrEmpty(parameter.Parameters[0]):
 						IShellCommand shellCmd = await Interpreter.Init.GetCommandWithKeyAsync<IShellCommand>(parameter.Parameters[0]).ConfigureAwait(false);
 						if (shellCmd == null) {
-							ShellOut.Error("Command doesn't exist. use ' help -all ' to check all available commands!");
+							ShellIO.Error("Command doesn't exist. use ' help -all ' to check all available commands!");
 							return;
 						}
 
 						shellCmd.OnHelpExec(false);
 						return;
 					default:
-						ShellOut.Error("Command seems to be in incorrect syntax.");
+						ShellIO.Error("Command seems to be in incorrect syntax.");
 						return;
-				}				
+				}
 			}
 			catch (Exception e) {
-				ShellOut.Exception(e);
+				ShellIO.Exception(e);
 				return;
 			}
 			finally {
@@ -85,11 +84,11 @@ namespace Luna.Shell.InternalCommands {
 
 		private void PrintAll() {
 			if (Interpreter.CommandsCount <= 0) {
-				ShellOut.Error("No commands exist.");
+				ShellIO.Error("No commands exist.");
 				return;
 			}
 
-			ShellOut.Info("--------------------------------------- Shell Commands ---------------------------------------");
+			ShellIO.Info("--------------------------------------- Shell Commands ---------------------------------------");
 			foreach (KeyValuePair<string, IShellCommand> cmd in Interpreter.Commands) {
 				if (string.IsNullOrEmpty(cmd.Key) || cmd.Value == null) {
 					continue;
@@ -97,7 +96,7 @@ namespace Luna.Shell.InternalCommands {
 
 				cmd.Value.OnHelpExec(false);
 			}
-			ShellOut.Info("----------------------------------------------------------------------------------------------");
+			ShellIO.Info("----------------------------------------------------------------------------------------------");
 		}
 
 		public async Task InitAsync() {
@@ -115,16 +114,16 @@ namespace Luna.Shell.InternalCommands {
 
 		public void OnHelpExec(bool quickHelp) {
 			if (quickHelp) {
-				ShellOut.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey};");
+				ShellIO.Info($"{CommandName} - {CommandKey} | {CommandDescription} | {CommandKey};");
 				return;
 			}
 
-			ShellOut.Info($"----------------- { CommandName} | {CommandKey} -----------------");
-			ShellOut.Info($"|> {CommandDescription}");
-			ShellOut.Info($"Basic Syntax -> ' {CommandKey} '");
-			ShellOut.Info($"All Commands -> ' {CommandKey} -all '");
-			ShellOut.Info($"Advanced -> ' {CommandKey} -[command_key] '");
-			ShellOut.Info($"----------------- ----------------------------- -----------------");
+			ShellIO.Info($"----------------- { CommandName} | {CommandKey} -----------------");
+			ShellIO.Info($"|> {CommandDescription}");
+			ShellIO.Info($"Basic Syntax -> ' {CommandKey} '");
+			ShellIO.Info($"All Commands -> ' {CommandKey} -all '");
+			ShellIO.Info($"Advanced -> ' {CommandKey} -[command_key] '");
+			ShellIO.Info($"----------------- ----------------------------- -----------------");
 		}
 	}
 }
